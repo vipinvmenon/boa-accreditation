@@ -1,0 +1,44 @@
+---
+description: Where the truth lives in this repository. Always applies.
+alwaysApply: true
+---
+
+# BOA Accreditation — read the docs before writing code
+
+Read `docs/CURRENT-STATE.md` first, every session, before anything else. It is
+the only document allowed to describe what is currently true. If this file and
+that file disagree, that file wins.
+
+`/docs` is canonical. These rules do not restate the architecture, because three
+separate descriptions of one system is how the sibling project broke once
+already.
+
+| Need | File |
+| --- | --- |
+| What is done / not done / next | `docs/CURRENT-STATE.md` |
+| What we are building and why | `docs/PRODUCT.md` |
+| Structure, routing, layering | `docs/ARCHITECTURE.md` |
+| Schema, ledger, constraints | `docs/DATA-MODEL.md` |
+| Tokens, grants, RLS, CSP | `docs/SECURITY.md` |
+| The offline gate | `docs/OFFLINE-SYNC.md` |
+| Any UI at all | `docs/DESIGN-SYSTEM.md` |
+| Runbook, BMS loop, retention | `docs/OPERATIONS.md` |
+| Why something is the way it is | `docs/DECISIONS.md` |
+| Your task ID and its acceptance criteria | `docs/ROADMAP.md` |
+
+## Commands
+
+**`pnpm` is not on the PATH on this machine.** Every script runs as
+`corepack pnpm <script>`. Bare `pnpm` fails with `command not found`. Never
+hand the user a command starting with `pnpm`.
+
+```
+corepack pnpm typecheck && corepack pnpm lint && corepack pnpm test && corepack pnpm build
+corepack pnpm test:visual   # design fidelity — required for ANY UI change
+corepack pnpm test:db       # pgTAP, against a real PostgreSQL
+corepack pnpm db:state      # ask the database, do not ask a document
+```
+
+## The dates
+
+Links out **20 Sep** · gate live **4 Oct** · build **5–9 Oct** · show **10 Oct 2026**.

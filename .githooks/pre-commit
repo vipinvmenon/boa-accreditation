@@ -1,0 +1,8 @@
+#!/bin/sh
+# Fast gates only. Anything slower than a few seconds gets bypassed with
+# --no-verify, and a hook people bypass is not a hook.
+set -e
+echo "pre-commit: typecheck, design gates, unit tests"
+corepack pnpm typecheck
+corepack pnpm lint
+corepack pnpm test

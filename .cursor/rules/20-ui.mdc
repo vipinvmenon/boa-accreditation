@@ -1,0 +1,60 @@
+---
+description: UI work. Transcription rules and the design gates.
+globs: ["app/**", "components/**", "lib/design.ts", "app/globals.css"]
+alwaysApply: false
+---
+
+# UI
+
+Read `docs/DESIGN-SYSTEM.md` before touching anything here.
+
+## Transcribe, do not translate
+
+The design is 560 lines where every value is an inline `style` attribute. We
+**transcribe them verbatim**. No Tailwind, no CSS modules, no component
+abstraction over the design's own markup. It is repetitive on purpose: a shared
+utility would read better and would let the rendered result drift from the
+approved design without the diff showing it.
+
+`app/globals.css` is the design's own `<helmet>` stylesheet and nothing else.
+
+## The two colour layers disagree ON PURPOSE
+
+Six values differ between the `[data-theme]` blocks and the `renderVals()`
+literals (`--ink2`, `--rule`, `--on`, `--grnbg`, `--goldbg`, `--badbg`).
+**Both are correct.** The helmet wins where markup resolves `var(--x, …)`; the
+`PROP` layer in `lib/design.ts` wins where the value arrives as a prop.
+
+**Reconciling them is the bug, not the fix.** `corepack pnpm lint` fails if you
+do. So does `tests/unit/design-contract.test.ts`.
+
+Inline fallbacks like `var(--ink3, rgba(166,201,180,0.58))` are dead code in the
+live DOM. Transcribe them verbatim anyway. Never "correct" them.
+
+## Fonts
+
+Anton (titles/numbers, 400 only) · Oswald (all UI caps, always tracked) ·
+Archivo (body) · JetBrains Mono (meta, tokens, serials, plates).
+
+Loaded via `@fontsource`, **not `next/font`** — next/font generates obfuscated
+family names and the design names families as literals, so every one would
+silently fall back to a system face. Every declared weight must be imported;
+`scripts/audit-font-weights.mjs` proves it.
+
+Anton headings render **synthesised bold** — the design does this too (verified:
+`font-weight: 700`, `font-synthesis: auto`, only Anton 400 loaded). Do not add
+`font-synthesis: none`.
+
+## Definition of done for any UI change
+
+```
+corepack pnpm lint && corepack pnpm test:visual
+```
+
+`test:visual` compares against `design/reference/`, captured from the approved
+bundle rendering itself. ≤0.8%. Both themes, both viewports. If it fails, open
+the `.diff.png` in `test-results/visual/` — do not regenerate the reference to
+make it pass.
+
+Responsive: the design's Web/Mob toggle is a review affordance and is **not**
+shipped. `mob ? A : B` becomes a media query at 768px.

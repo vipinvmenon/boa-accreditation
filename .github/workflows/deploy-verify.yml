@@ -1,0 +1,46 @@
+name: Verify deployment
+
+# Vercel fires deployment_status when a deploy finishes. That is the only moment
+# at which "what is live" is a question with a real answer — CI on push runs
+# BEFORE the deploy, so it can never catch a config that silently did not apply.
+#
+# This has already earned its keep: checking by hand on 11 Sep found the service
+# worker precaching three routes that 404, which would have made caches.addAll()
+# reject and disabled offline support at the gate with no visible error.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to verify (defaults to the production domain)'
+        required: false
+  schedule:
+    # 02:30 UTC = 08:00 IST — the daily reconcile named in docs/OPERATIONS.md.
+    # A drift that appears without a deploy (a DNS change, a dashboard edit,
+    # an expired cert) is invisible to a push-triggered check.
+    - cron: '30 2 * * *'
+
+jobs:
+  verify:
+    # Only for successful production deploys, or when a human asks.
+    if: >
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment_status.environment == 'Production')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Verify what is actually live
+        run: |
+          URL="${{ github.event.inputs.url }}"
+          if [ -z "$URL" ] && [ "${{ github.event_name }}" = "deployment_status" ]; then
+            URL="${{ github.event.deployment_status.environment_url }}"
+          fi
+          if [ -z "$URL" ]; then URL="https://accred.bangaloreopenair.com"; fi
+          echo "Verifying $URL"
+          corepack pnpm verify:deploy -- "$URL"

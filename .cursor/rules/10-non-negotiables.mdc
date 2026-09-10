@@ -1,0 +1,39 @@
+---
+description: Rules that make a change a defect regardless of intent. Always applies.
+alwaysApply: true
+---
+
+# Non-negotiables
+
+Violating any of these is a defect regardless of how good the reason seemed.
+
+1. **`design/source/boa_design_body.html` is the pixel contract.** Reproduce it.
+   A visual deviation is a defect, not a preference.
+2. **The check-in ledger is append-only.** A reissue appends, a void appends.
+   Enforced by an `ENABLE ALWAYS` trigger, not by convention.
+3. **Authorisation is enforced in the database.** Client-side checks are a
+   usability affordance, never a control.
+4. **`anon` has zero table grants and zero function EXECUTE.**
+5. **No `pass_token` before approval. Ever.** It is a `CHECK` constraint.
+6. **Never pre-assign a wristband or vehicle-sticker serial.** They are typed at
+   the gate as the physical article is handed over, or left blank.
+7. **The gate must work with the radio off.** Every read from the Dexie cache,
+   every write through the outbox. No fast path, online or not.
+8. **Zod at every boundary. No `any`. No `select *`. `timestamptz` always.**
+9. **Collect nothing beyond name, phone, role and vehicle registration.** No ID
+   number, no Aadhaar, no photo, no address, no date of birth.
+10. **Never mark a task done without meeting its acceptance criteria**, and
+    **never write a document asserting a verification you did not perform.**
+    That last one is the unrecoverable mistake here.
+
+## How the sibling project broke
+
+`boa-bar-control` built an architecture on assumptions about a design nobody had
+unpacked, then wrote a second document claiming it had been checked against
+artefacts that were never opened. Later its design QA was a same-viewport
+screenshot pair — and the cheapest way to pass a screenshot comparison is to
+hardcode the screenshot's values.
+
+- If a source looks missing, unpack it or ask.
+- A screenshot is not acceptance. The screen must render from the data layer.
+- If you cannot verify a claim, say so plainly in `CURRENT-STATE.md`.

@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (third update)._
+_Last updated: 11 September 2026 (fourth update)._
 
 ## In one line
 
@@ -64,9 +64,9 @@ directories are scaffolded but empty:
 - **No schema.** `supabase/migrations/` and `supabase/tests/` are empty.
 - **No screens.** `/s/[token]`, `/desk/*`, `/gate/*` are empty directories.
 - **No `lib/database.types.ts`** — it is generated from a live project.
-- **No design reference images.** `scripts/build-design-reference.mjs` and
-  `visual-check.mjs` are not written, so `test:visual` does not run yet. The
-  Anton bold question (DESIGN-SYSTEM.md) cannot be settled until they exist.
+- ~~No design reference images.~~ **Done.** 28 references captured from the
+  approved bundle rendering itself, and `test:visual` runs. It currently reports
+  `NOTHING COMPARED — no screen is built yet`, which is the honest answer.
 - **Almost no tests.** Only the design-contract suite exists. Playwright is
   installed but unconfigured; there is no e2e suite and no aeroplane-mode test.
 
@@ -168,6 +168,37 @@ anything; the calendar does it.
 secrets. After 20 Sep, CI goes red without it.
 
 ## Session log
+
+### 11 Sep 2026 — the design gate, multi-agent setup, always-on verification
+
+- **`corepack pnpm design:reference`** captures 28 references (7 screens × 2
+  themes × 2 viewports) by opening the approved bundle in a real browser and
+  driving its own nav/theme/viewport controls. It does **not** re-implement
+  `renderVals()` in Node: a gate whose reference is a second implementation
+  proves only that two guesses agree, which is how bar-control's design QA
+  failed.
+- **`corepack pnpm test:visual`** compares built screens at ≤0.8%, starts its
+  own server on a free port (bar-control once got a false verdict from a stale
+  dev server), reports COVERAGE every run, and says
+  `NOTHING COMPARED … this is not a pass` rather than a green tick when nothing
+  is built.
+- **The Anton bold question is SETTLED, with evidence.** The design's own
+  rendering reports `font-weight: 700`, `font-synthesis: auto`, and only Anton
+  400 loaded — so the approved artboard renders synthesised bold. Not adding
+  `font-synthesis: none` was correct. Recorded in the reference manifest.
+- **Cursor + Codex ready.** `.cursor/rules/` (4 scoped rule files) and
+  `AGENTS.md`. `scripts/check-agent-docs.mjs` fails lint if CLAUDE.md and
+  AGENTS.md diverge, if a linked doc is missing, or if the Cursor rules stop
+  carrying the non-negotiables — divergence between agent instruction files is
+  silent by construction, so it needs a gate.
+- **Build and deploy always.** pre-commit (typecheck/lint/test), pre-push
+  (build + visual + check:sql), CI on push, and `deploy-verify.yml` on Vercel's
+  `deployment_status` plus daily at 08:00 IST. `corepack pnpm verify:deploy`
+  runs 18 checks against the live site — all passing.
+- **MCP:** supabase, vercel, github, playwright, all project-scoped in
+  `.mcp.json` so Cursor and Codex get them too. **All four still need
+  authenticating** in a regular terminal.
+- `docs/TOOLING.md` and a fully dated `docs/ROADMAP.md` written.
 
 ### 11 Sep 2026 — Vercel live, and a service-worker bug caught in production
 

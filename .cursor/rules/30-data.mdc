@@ -1,0 +1,49 @@
+---
+description: Database, migrations, RPCs and the offline outbox.
+globs: ["supabase/**", "gate/**", "app/api/**", "lib/supabase-*.ts"]
+alwaysApply: false
+---
+
+# Data, security and the gate
+
+Read `docs/DATA-MODEL.md`, `docs/SECURITY.md` and `docs/OFFLINE-SYNC.md` first.
+
+## Migrations
+
+- One `begin;` / `commit;` per file. Prefix `boa_acc_`.
+- A comment header explaining the defect it prevents and what was rejected.
+- **Revoke EXECUTE in the same block that creates a function.** `create function`
+  grants to PUBLIC by default. bar-control needed three migrations to learn this.
+- `corepack pnpm check:sql` before `db push`.
+
+## Three silent failures to design around
+
+1. **Views bypass RLS by default.** Create every view
+   `with (security_invoker = true)`, or a view over `boa_acc_person` hands
+   `authenticated` every column the owner sees — `pass_token` included. It fails
+   by *working*.
+2. **`auth.role()` is deprecated** and breaks if anonymous sign-ins are enabled.
+   Target the role with `TO authenticated`.
+3. **An UPDATE needs a SELECT policy** or it returns 0 rows with no error.
+
+`extensions.gen_random_bytes(16)` — pgcrypto is in the `extensions` schema and
+will not resolve under `search_path = public, private, pg_temp`.
+
+## The outbox
+
+- **Every write goes to the outbox, online or offline. There is no fast path.**
+- Idempotency keys identify the user's **ACTION**, minted once when the flow
+  starts, reused on every retry. Never one per network call.
+- Replay is **strictly ordered** — `selectDrainBatch` stops at the first blocked
+  entry, it does not skip it. Skipping posts a reissue before its own original.
+- `duplicate` is success. `auth` stops the drain without consuming an attempt.
+  `person not found` is **transient, not invalid**.
+- Terminal means *stop and show somebody*, never *discard*.
+
+## Never
+
+- Never `select *`. Explicit column lists only.
+- Never let `lib/supabase-admin` be imported outside `app/api/**`. ESLint enforces it.
+- Never a `NEXT_PUBLIC_` prefix on the service-role key.
+- Never make a band or sticker serial unique — an append-only ledger must not
+  refuse a drain for a data-quality reason days after the band was fastened.

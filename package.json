@@ -11,7 +11,7 @@
     "build": "node scripts/extract-assets.mjs && next build && node scripts/build-gate-sw.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "node scripts/check-design-tokens.mjs && node scripts/audit-font-weights.mjs && eslint",
+    "lint": "node scripts/check-design-tokens.mjs && node scripts/audit-font-weights.mjs && node scripts/check-agent-docs.mjs && eslint",
     "test": "vitest run",
     "test:db": "node scripts/db-test.mjs",
     "test:e2e": "playwright test",
@@ -19,8 +19,10 @@
     "check:sql": "python3 scripts/sql-arity-check.py",
     "db:state": "node scripts/db-state.mjs",
     "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
-    "design:reference": "node scripts/build-design-reference.mjs",
-    "assets:extract": "node scripts/extract-assets.mjs"
+    "design:reference": "node scripts/capture-design-reference.mjs",
+    "assets:extract": "node scripts/extract-assets.mjs",
+    "prepare": "node scripts/install-hooks.mjs",
+    "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",
