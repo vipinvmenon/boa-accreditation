@@ -24,7 +24,9 @@
     "prepare": "node scripts/install-hooks.mjs",
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "task": "node scripts/task.mjs",
-    "bootstrap": "node scripts/bootstrap.mjs"
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "db:push": "node scripts/db-push.mjs",
+    "db:dry": "node scripts/db-push.mjs --dry"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

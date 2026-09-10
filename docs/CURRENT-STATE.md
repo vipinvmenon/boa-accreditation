@@ -3,13 +3,17 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (seventh update)._
+_Last updated: 11 September 2026 (eighth update)._
 
 ## In one line
 
 Phase 0 (foundation) is complete, pushed to
 [vipinvmenon/boa-accreditation](https://github.com/vipinvmenon/boa-accreditation)
 (**private**), and CI is green.
+**The schema is live.** 10 tables, 3 pass types seeded, the ledger immutable
+and `anon` locked out — all verified by running the checks, not asserted.
+`corepack pnpm db:state` is the truth.
+
 **The app is deployed and live at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)**, served
 from `bom1`, with the GitHub repo connected and auto-deploying.
@@ -203,7 +207,63 @@ If a task shows `[~]` IN FLIGHT, somebody stopped mid-way — `git log` and
 
 Full protocol: `docs/TOOLING.md` → "Handing off between agents".
 
+## What the database actually contains
+
+Run `corepack pnpm db:state`. As of 11 Sep:
+
+- 10 `boa_acc_` tables, migrations `202609110001` and `202609110002` applied.
+- `boa_acc_type` holds the 3 design types; every other table is empty.
+- `anon`: **0 table grants, 0 function grants.**
+- `auth.users`: 0 — nobody has been invited yet (ACC-026).
+
+Verified by attempting the thing, not by reading a grant table:
+
+| Attempt | Result |
+|---|---|
+| anon `GET /rest/v1/boa_acc_person` | `401` / `42501` |
+| anon `POST /rest/v1/boa_acc_org` | `401` / `42501` |
+| authenticated `select pass_token` | refused, `42501` |
+| authenticated `select *` on person | refused — because `*` includes `pass_token` |
+| authenticated `select full_name` | allowed |
+| `update`/`delete` on the ledger, **as table owner** | refused, `55000` |
+| 8 CHECK constraints, each violated on purpose | all refused, `23514` |
+
 ## Session log
+
+### 11 Sep 2026 — ACC-011, ACC-020, ACC-021: the schema is live
+
+- **`scripts/lib/db.mjs`** — two transports. Locally the Supabase Management API
+  (`/database/query`) runs SQL as `postgres` using the CLI token already in the
+  keychain, so **no database password needs to exist on this machine at all**.
+  Verified that multi-statement transactions, `set local role authenticated` and
+  rollback all work through it. CI keeps `SUPABASE_DB_URL` instead, deliberately:
+  an `sbp_` token can create or delete any project in the account, whereas the
+  DB URL is scoped to one database. CI gets the narrow credential.
+- **`db:state`** — asks the database, never a document. Pairs each migration
+  with one object that exists only if it truly ran.
+- **`db:dry`** — runs a pending migration for real, then rolls it back. It
+  earned its place immediately: it caught `public.digest` not existing, which is
+  the *same* pgcrypto-lives-in-`extensions` trap bar-control documented. Fixed
+  by using core `pg_catalog.sha256` instead.
+- **`check:sql`** — static checks. Found a false positive in itself (it counted
+  commas inside `array[...]` as column separators) and was fixed and
+  mutation-tested; it still catches a real arity error.
+- **10 tables applied.** Every function uses `search_path = ''` with fully
+  qualified names — stricter than bar-control, and it makes the pgcrypto trap
+  structurally impossible.
+- **The lockdown found a real exposure.** Immediately after the schema applied,
+  `anon` held **70 table grants** and an unauthenticated
+  `GET /rest/v1/boa_acc_person` returned **HTTP 200**. RLS was holding, so no
+  rows leaked — but the tables were discoverable and one permissive policy away
+  from 641 phone numbers. Now 0 grants and `401`/`42501` on every read and write.
+- **`auth.uid()` is wrapped in a scalar subquery** in every policy. Unwrapped it
+  is evaluated once per row; the Supabase guide measures that at 100x slower.
+- Policies use `to authenticated`, never the deprecated `auth.role()`, which
+  breaks silently if anonymous sign-ins are ever enabled.
+
+**A process correction:** I marked ACC-011 done having written two of its four
+scripts. That is exactly the violation non-negotiable #10 exists to prevent.
+Caught it, wrote the other two, and `task done` now gates on the test suite.
 
 ### 11 Sep 2026 — credentials landed; a live security hole found and closed
 
