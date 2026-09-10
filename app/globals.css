@@ -1,0 +1,57 @@
+/* The approved design's own <helmet> stylesheet, transcribed verbatim from
+ * design/source/boa_design_body.html lines 2-25. Every value here is the
+ * design's value. Do not "tidy" it, do not merge it with lib/design.ts, and
+ * do not reconcile it against the literals in the design's renderVals():
+ * those are a SECOND, equally correct layer. See docs/DESIGN-SYSTEM.md, C8.
+ *
+ * This file is the whole stylesheet. Everything else is an inline style
+ * attribute transcribed from the design markup, on purpose. */
+
+html, body { margin:0; padding:0; background:#0A0A0A; }
+* { box-sizing:border-box; }
+a { color:#00F5A5; text-decoration:none; }
+a:hover { color:#E3BB72; }
+::selection { background:#00F5A5; color:#0A0A0A; }
+input, button { font-family:inherit; }
+
+[data-theme="dark"] {
+  --bg:#0A0A0A; --panel:#101012; --panel2:#16161a; --ink:#F2EFE2;
+  --ink2:rgba(242,239,226,0.72); --ink3:rgba(242,239,226,0.52);
+  --rule:rgba(242,239,226,0.16); --rule2:rgba(242,239,226,0.32);
+  --grn:#00F5A5; --gold:#E3BB72; --bad:#FF6B5A;
+  --grnbg:rgba(0,245,165,0.10); --goldbg:rgba(227,187,114,0.10); --badbg:rgba(255,107,90,0.10);
+  --on:#0A0A0A;
+}
+[data-theme="light"] {
+  --bg:#EDEAE1; --panel:#F6F4EC; --panel2:#FFFFFF; --ink:#14141A;
+  --ink2:rgba(20,20,26,0.76); --ink3:rgba(20,20,26,0.50);
+  --rule:rgba(20,20,26,0.18); --rule2:rgba(20,20,26,0.34);
+  --grn:#05603F; --gold:#5E4610; --bad:#9E1F14;
+  --grnbg:rgba(5,96,63,0.09); --goldbg:rgba(94,70,16,0.09); --badbg:rgba(158,31,20,0.08);
+  --on:#F6F4EC;
+}
+
+/* --- Additions to the design source, each justified. --- */
+
+/* The design canvas renders at a fixed size; a real phone needs the tap target
+ * floor and must not zoom on focus. 16px is the iOS no-zoom threshold; the
+ * design's own inputs are larger than this everywhere except the search field. */
+input, button, select, textarea { font-size:16px; }
+
+/* The design has no focus states because a canvas has no keyboard. A gate
+ * volunteer in gloves and an approver on a laptop both need them. Only
+ * :focus-visible, so a thumb tap leaves no ring — bar-control's rule. */
+:focus-visible { outline:2px solid var(--grn); outline-offset:2px; }
+
+/* Screen-reader-only, for the labels the design conveys by position alone. */
+.sr-only {
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:0.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important; scroll-behavior:auto !important;
+  }
+}

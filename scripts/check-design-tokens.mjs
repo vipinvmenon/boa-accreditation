@@ -1,0 +1,113 @@
+// The design-fidelity lint gate. Replaces bar-control's check-classes.mjs,
+// which policed class names — this project has almost none, because the design
+// is inline styles and we transcribe them verbatim (docs/DESIGN-SYSTEM.md).
+//
+// What can silently drift here instead is COLOUR. Three checks:
+//
+//  1. Every [data-theme] token in app/globals.css still matches the design
+//     source byte-for-byte. This is the contract; drift is a defect.
+//  2. lib/design.ts's PROP layer still matches the design's renderVals()
+//     literals. The two layers disagree on six values ON PURPOSE (C8), so a
+//     well-meaning "fix" that reconciles them is exactly the failure mode.
+//  3. No raw hex outside the files allowed to carry one. A hex in a component
+//     is a value that no longer tracks the design.
+//
+// Plus the font-weight audit, which is its own script.
+
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (p) => readFileSync(join(root, p), 'utf8')
+
+const design = read('design/source/boa_design_body.html')
+let failed = false
+const fail = (msg) => {
+  console.error(`  ${msg}`)
+  failed = true
+}
+
+// ── 1. Theme tokens ────────────────────────────────────────────────────────
+const themeTokens = (src) => {
+  const out = new Map()
+  for (const m of src.matchAll(/\[data-theme="(dark|light)"\]\s*\{([^}]*)\}/g)) {
+    for (const d of m[2].matchAll(/(--[a-z0-9]+)\s*:\s*([^;]+);/g)) {
+      out.set(`${m[1]}.${d[1]}`, d[2].trim())
+    }
+  }
+  return out
+}
+const want = themeTokens(design)
+const got = themeTokens(read('app/globals.css'))
+if (want.size === 0) fail('could not parse any theme tokens out of the design source')
+for (const [k, v] of want) {
+  if (!got.has(k)) fail(`globals.css is missing ${k} (design says ${v})`)
+  else if (got.get(k) !== v) fail(`globals.css ${k} = ${got.get(k)} but the design says ${v}`)
+}
+
+// ── 2. The PROP layer ──────────────────────────────────────────────────────
+const propFromDesign = () => {
+  const out = { dark: {}, light: {} }
+  // e.g.  const ink2 = dark ? '#A6C9B4' : 'rgba(20,20,26,0.76)';
+  const re = /const (grn|gold|bad|ink|ink2|ink3|rule|grnbg|goldbg|badbg|on) = dark \? '([^']+)' : '([^']+)';/g
+  for (const m of design.matchAll(re)) {
+    out.dark[m[1]] = m[2]
+    out.light[m[1]] = m[3]
+  }
+  return out
+}
+const wantProp = propFromDesign()
+const designTs = read('lib/design.ts')
+const propFromTs = (theme) => {
+  const block = designTs.match(new RegExp(`${theme}: \\{([\\s\\S]*?)\\n  \\}`))
+  if (!block) return {}
+  const out = {}
+  for (const m of block[1].matchAll(/(\w+):\s*'([^']+)'/g)) out[m[1]] = m[2]
+  return out
+}
+if (Object.keys(wantProp.dark).length < 10) fail('could not parse renderVals() colour literals from the design source')
+for (const theme of ['dark', 'light']) {
+  const gotProp = propFromTs(theme)
+  for (const [k, v] of Object.entries(wantProp[theme])) {
+    if (gotProp[k] !== v) fail(`lib/design.ts PROP.${theme}.${k} = ${gotProp[k]} but renderVals() says ${v}`)
+  }
+}
+
+// ── 3. Stray hex ───────────────────────────────────────────────────────────
+// Files permitted to carry a raw hex, and why.
+const HEX_ALLOWED = new Set([
+  'lib/design.ts', // the PROP layer itself
+  'app/globals.css', // the transcribed helmet block
+  'app/layout.tsx', // the <body> fallback + themeColor
+])
+const walk = (dir, acc = []) => {
+  for (const name of readdirSync(join(root, dir))) {
+    const rel = join(dir, name)
+    if (/^(node_modules|\.next|\.git|design|public|supabase|tests|scripts)$/.test(name)) continue
+    const st = statSync(join(root, rel))
+    if (st.isDirectory()) walk(rel, acc)
+    else if (/\.(tsx?|css)$/.test(name)) acc.push(rel)
+  }
+  return acc
+}
+for (const file of walk('app').concat(walk('components'), walk('lib'), walk('gate'))) {
+  if (HEX_ALLOWED.has(file.split('/').join('/'))) continue
+  const src = read(file)
+  for (const m of src.matchAll(/#[0-9a-fA-F]{6}\b/g)) {
+    const line = src.slice(0, m.index).split('\n').length
+    // A transcribed inline fallback `var(--x, #RRGGBB)` IS the design's own
+    // markup and must be kept verbatim. Only bare hex is a defect.
+    const ctx = src.slice(Math.max(0, m.index - 40), m.index)
+    if (/var\(--[a-z0-9]+,\s*$/.test(ctx)) continue
+    fail(`${relative('.', file)}:${line} raw hex ${m[0]} — use lib/design.ts or a var(--token, fallback)`)
+  }
+}
+
+if (failed) {
+  console.error('\ndesign-token check FAILED.')
+  console.error('If you believe the design source is wrong, that is a conversation with Vipin,')
+  console.error('not an edit to globals.css. See docs/DESIGN-SYSTEM.md.')
+  process.exit(1)
+}
+console.log(`design tokens OK — ${want.size} theme tokens, ${Object.keys(wantProp.dark).length} prop colours, no stray hex`)

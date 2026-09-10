@@ -1,0 +1,865 @@
+
+<style>
+  html, body { margin:0; padding:0; background:#0A0A0A; }
+  * { box-sizing:border-box; }
+  a { color:#00F5A5; text-decoration:none; }
+  a:hover { color:#E3BB72; }
+  ::selection { background:#00F5A5; color:#0A0A0A; }
+  input, button { font-family:inherit; }
+  [data-theme="dark"] {
+    --bg:#0A0A0A; --panel:#101012; --panel2:#16161a; --ink:#F2EFE2;
+    --ink2:rgba(242,239,226,0.72); --ink3:rgba(242,239,226,0.52);
+    --rule:rgba(242,239,226,0.16); --rule2:rgba(242,239,226,0.32);
+    --grn:#00F5A5; --gold:#E3BB72; --bad:#FF6B5A;
+    --grnbg:rgba(0,245,165,0.10); --goldbg:rgba(227,187,114,0.10); --badbg:rgba(255,107,90,0.10);
+    --on:#0A0A0A;
+  }
+  [data-theme="light"] {
+    --bg:#EDEAE1; --panel:#F6F4EC; --panel2:#FFFFFF; --ink:#14141A;
+    --ink2:rgba(20,20,26,0.76); --ink3:rgba(20,20,26,0.50);
+    --rule:rgba(20,20,26,0.18); --rule2:rgba(20,20,26,0.34);
+    --grn:#05603F; --gold:#5E4610; --bad:#9E1F14;
+    --grnbg:rgba(5,96,63,0.09); --goldbg:rgba(94,70,16,0.09); --badbg:rgba(158,31,20,0.08);
+    --on:#F6F4EC;
+  }
+</style>
+</helmet>
+
+
+
+<div data-theme="{{ theme }}" style="min-height:100vh; background:var(--bg,#0A0A0A); font-family:'Archivo',system-ui,sans-serif; color:var(--ink2,rgba(242,239,226,0.72)); display:flex; flex-direction:column">
+
+  <div style="position:sticky; top:0; z-index:70; background:var(--bg,#0A0A0A); border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+    <div style="display:flex; align-items:stretch; gap:0; flex-wrap:wrap">
+      <div style="display:flex; align-items:center; gap:14px; padding:14px 18px; border-right:1px solid var(--rule,rgba(242,239,226,0.16))">
+        <img src="07e53085-c5b9-4695-acf2-acce2a7ec1b7" alt="Bangalore Open Air" style="height:30px; width:auto; display:block; filter:{{ logoFilter }}">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.52))">Accred<br>desk</div>
+      </div>
+
+      <div style="display:flex; align-items:stretch; gap:0; flex:1 1 auto; overflow-x:auto">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="7">
+          <button sc-camel-on-click="{{ n.go }}" style="cursor:pointer; border:none; border-right:1px solid var(--rule,rgba(242,239,226,0.16)); background:{{ n.bg }}; color:{{ n.fg }}; padding:11px 18px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; white-space:nowrap; transition:color 120ms, background 120ms" style-hover="color:var(--ink)">{{ n.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex; align-items:stretch; border-left:1px solid var(--rule,rgba(242,239,226,0.16))">
+        <sc-for list="{{ vpTabs }}" as="v" hint-placeholder-count="2">
+          <button sc-camel-on-click="{{ v.go }}" style="cursor:pointer; border:none; border-right:1px solid var(--rule,rgba(242,239,226,0.16)); background:{{ v.bg }}; color:{{ v.fg }}; padding:14px 14px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase">{{ v.label }}</button>
+        </sc-for>
+        <button sc-camel-on-click="{{ toggleTheme }}" style="cursor:pointer; border:none; background:transparent; color:var(--ink3,rgba(242,239,226,0.42)); padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase" style-hover="color:var(--grn)">{{ themeLabel }}</button>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; padding:8px 18px; border-top:1px solid var(--rule,rgba(242,239,226,0.16)); background:var(--panel,#101012); font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; letter-spacing:0.09em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">
+      <span style="color:var(--grn,#00F5A5)">● LIVE</span>
+      <span>BUILD 05–09 OCT · SHOW 10 OCT</span>
+      <span style="color:var(--ink2,rgba(242,239,226,0.72))">184 / 612 BANDS ISSUED</span>
+      <span style="margin-left:auto; color:var(--gold,#E3BB72)">14 NOT IN BMS</span>
+    </div>
+  </div>
+
+  <main style="flex:1; display:flex; justify-content:center">
+  <div style="width:100%; max-width:{{ shellMax }}; border-left:{{ shellEdge }}; border-right:{{ shellEdge }}; min-height:100%">
+
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Control room">
+        <div style="position:relative; overflow:hidden; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="position:absolute; top:0; bottom:0; right:0; width:{{ posterW }}; background-image:url(&quot;ed2b82dc-1838-41da-b849-4eda1919e1c0&quot;); background-size:cover; background-position:{{ posterPos }}; background-repeat:no-repeat; opacity:{{ posterOpacity }}"></div>
+          <div style="position:absolute; inset:0; background:{{ posterScrim }}" data-comment-anchor="2817691646-div"></div>
+          <div style="position:relative; padding:{{ padHero }}; min-height:{{ heroMin }}; display:flex; flex-direction:column; justify-content:flex-end; max-width:{{ heroTextMax }}">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:18px">Control room</div>
+            <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1 }}; line-height:0.92; letter-spacing:0.01em; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 18px; max-width:14ch">Nobody walks in unlisted</h1>
+            <p style="font-size:15.5px; line-height:1.55; color:var(--ink2,rgba(242,239,226,0.72)); margin:0 0 24px; max-width:52ch">Every person working at BOA is registered individually, approved against the master list, and checks in physically for their own wristband. Every vehicle is registered to a plate and carries a sticker bound to it.</p>
+            <div style="display:flex; gap:12px; flex-wrap:wrap">
+              <button sc-camel-on-click="{{ goQueue }}" style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:15px 22px; font-family:'Oswald',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:50px; display:flex; align-items:center; gap:12px" style-hover="background:transparent; color:var(--grn)">Clear the queue<span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700">{{ pendingCount }}</span></button>
+              <button sc-camel-on-click="{{ goGate }}" style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:var(--panel,#101012); color:var(--ink,#F2EFE2); padding:15px 22px; font-family:'Oswald',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:50px" style-hover="border-color:var(--grn); color:var(--grn)">Open the gate scanner</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:{{ statCols }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+            <div style="padding:20px 18px 18px; border-right:1px solid var(--rule,rgba(242,239,226,0.16))">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(166,201,180,0.58))">{{ s.label }}</div>
+              <div style="font-family:'Anton',sans-serif; font-size:46px; line-height:1; letter-spacing:0.01em; color:{{ s.colour }}; margin-top:12px">{{ s.value }}</div>
+              <div style="font-size:13px; line-height:1.4; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:8px">{{ s.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:14px">Wristbands</div>
+          <h2 style="font-family:'Anton',sans-serif; font-size:{{ h2 }}; line-height:1; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 10px">Three bands. No fourth.</h2>
+          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0 0 22px; max-width:60ch">Type is assigned at approval and sets the band colour and the zones. Serials are typed in at the gate as bands are handed over, never pre-assigned.</p>
+
+          <div style="display:grid; grid-template-columns:{{ typeCols }}; gap:1px; background:var(--rule,rgba(242,239,226,0.16))">
+            <sc-for list="{{ types }}" as="t" hint-placeholder-count="3">
+              <div style="background:var(--bg,#0A0A0A); padding:20px 18px; display:flex; flex-direction:column; gap:16px">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.52))">{{ t.num }}</div>
+                  <div style="font-family:'Anton',sans-serif; font-size:34px; line-height:1; color:var(--ink2,rgba(242,239,226,0.72))">{{ t.count }}</div>
+                </div>
+                <div style="height:8px; background:{{ t.colour }}"></div>
+                <div>
+                  <div style="font-family:'Anton',sans-serif; font-size:26px; line-height:1; text-transform:uppercase; color:var(--ink,#F2EFE2)">{{ t.label }}</div>
+                  <div style="font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:{{ t.colour }}; margin-top:6px">{{ t.band }} band</div>
+                </div>
+                <div style="font-size:13.5px; line-height:1.5; color:var(--ink2,rgba(242,239,226,0.72))">{{ t.note }}</div>
+                <div style="display:flex; flex-wrap:wrap; gap:0; border-top:1px solid var(--rule,rgba(242,239,226,0.16)); padding-top:12px; margin-top:auto">
+                  <sc-for list="{{ t.zones }}" as="z" hint-placeholder-count="4">
+                    <span style="font-family:'Oswald',sans-serif; font-size:9.5px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:{{ z.fg }}; padding:3px 8px 3px 0">{{ z.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); border-top:2px solid var(--gold,#E3BB72); background:var(--panel,#101012)">
+          <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
+            <div style="flex:1 1 320px">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold,#E3BB72); margin-bottom:12px">AAA override</div>
+              <div style="font-size:15px; line-height:1.6; color:var(--ink2,rgba(242,239,226,0.72)); max-width:62ch">All-areas access is not requestable on the vendor form. The accreditation lead stamps it onto an approved pass from a named list. <strong style="color:var(--ink,#F2EFE2)">14 issued of 18 approved.</strong></div>
+            </div>
+            <button style="cursor:pointer; border:1px solid var(--gold,#E3BB72); background:var(--gold,#E3BB72); color:var(--on,#0A0A0A); padding:14px 22px; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase" style-hover="background:transparent; color:var(--gold)">Manage list →</button>
+          </div>
+        </div>
+
+        <div style="padding:{{ padSec }}">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:14px">Organisations</div>
+          <h2 style="font-family:'Anton',sans-serif; font-size:{{ h2 }}; line-height:1; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 22px">38 companies on site</h2>
+
+          <div style="border-top:1px solid var(--rule2,rgba(242,239,226,0.32))">
+            <sc-for list="{{ orgs }}" as="o" hint-placeholder-count="7">
+              <div style="display:grid; grid-template-columns:{{ orgCols }}; gap:16px; padding:16px 0; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); align-items:center">
+                <div style="min-width:0">
+                  <div style="font-family:'Oswald',sans-serif; font-size:17px; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; color:var(--ink,#F2EFE2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ o.name }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ o.contact }}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:9px; min-width:0">
+                  <span style="width:9px; height:22px; background:{{ o.typeColour }}; flex:0 0 auto"></span>
+                  <span style="font-family:'Oswald',sans-serif; font-size:13px; font-weight:500; letter-spacing:0.09em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72))">{{ o.type }}</span>
+                </div>
+                <div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; letter-spacing:0.06em; color:var(--ink,#F2EFE2)">{{ o.used }}<span style="color:var(--ink3,rgba(242,239,226,0.42)); font-weight:400">/{{ o.quota }}</span></div>
+                  <div style="height:3px; background:var(--rule,rgba(242,239,226,0.16)); margin-top:6px"><div style="width:{{ o.pct }}; height:100%; background:{{ o.barFg }}"></div></div>
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:{{ o.statusFg }}; text-align:left; white-space:nowrap">{{ o.status }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isQueue }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Approval queue">
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:16px">Allocation desk</div>
+          <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1b }}; line-height:0.94; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 14px">Approval queue</h1>
+          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0; max-width:60ch">Approve a row, approve a whole organisation, or reject with a reason. Pass tokens generate on approval — nothing before.</p>
+        </div>
+
+        <div style="display:flex; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); overflow-x:auto">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <button sc-camel-on-click="{{ f.go }}" style="cursor:pointer; border:none; border-right:1px solid var(--rule,rgba(242,239,226,0.16)); background:{{ f.bg }}; color:{{ f.fg }}; padding:13px 18px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; white-space:nowrap; display:flex; align-items:center; gap:10px">{{ f.label }}<span style="font-family:'Oswald',sans-serif; font-size:11px; font-weight:700; opacity:0.65">{{ f.n }}</span></button>
+          </sc-for>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:14px 18px; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); background:var(--panel,#101012)">
+          <div style="width:20px; height:20px; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; cursor:pointer; flex:0 0 auto">✓</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink,#F2EFE2)">{{ selectedLabel }}</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-left:auto">
+            <button style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:10px 16px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; min-height:42px" style-hover="border-color:var(--ink); color:var(--ink)">Set type</button>
+            <button style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:10px 16px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; min-height:42px" style-hover="border-color:var(--bad); color:var(--bad)">Reject</button>
+            <button sc-camel-on-click="{{ approveOrg }}" style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:10px 18px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; min-height:42px" style-hover="background:transparent; color:var(--grn)">Approve selected</button>
+          </div>
+        </div>
+
+        <div style="padding:20px 18px; border-bottom:1px solid var(--rule2,rgba(242,239,226,0.32)); display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; background:var(--panel,#101012)">
+          <div style="min-width:0">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">Org 1 of 4 pending</div>
+            <div style="font-family:'Anton',sans-serif; font-size:26px; line-height:1.05; text-transform:uppercase; color:var(--ink,#F2EFE2); margin-top:8px">Chakra Sound &amp; Light</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:6px">Vendor · quota 22 · submitted 04 Oct · Ranjith K</div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:13px 18px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase" style-hover="border-color:var(--bad); color:var(--bad)">Reject</button>
+            <button sc-camel-on-click="{{ approveOrg }}" style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:13px 20px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase" style-hover="background:transparent; color:var(--grn)">Approve all →</button>
+          </div>
+        </div>
+
+        <sc-for list="{{ queue }}" as="p" hint-placeholder-count="7">
+          <div style="display:grid; grid-template-columns:{{ qCols }}; gap:16px; padding:15px 18px; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); align-items:center; background:{{ p.rowBg }}">
+            <div style="width:20px; height:20px; border:1px solid {{ p.boxBd }}; background:{{ p.boxBg }}; color:{{ p.tickFg }}; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; cursor:pointer; flex:0 0 auto">{{ p.tick }}</div>
+            <div style="min-width:0">
+              <div style="font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; color:var(--ink,#F2EFE2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ p.name }}</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px">{{ p.role }} · {{ p.phone }}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:9px; border:1px solid var(--rule2,rgba(242,239,226,0.32)); padding:7px 11px; cursor:pointer; min-width:0" style-hover="border-color:var(--grn)">
+              <span style="width:8px; height:18px; background:{{ p.typeColour }}; flex:0 0 auto"></span>
+              <span style="font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:500; letter-spacing:0.09em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ p.type }}</span>
+              <span style="margin-left:auto; font-family:'Oswald',sans-serif; font-size:9px; color:var(--ink3,rgba(242,239,226,0.42))">▾</span>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:{{ p.decFg }}; text-align:right; white-space:nowrap">{{ p.decision }}</div>
+          </div>
+        </sc-for>
+
+        <div style="padding:18px; font-family:'Oswald',sans-serif; font-size:10.5px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); display:flex; gap:18px; flex-wrap:wrap">
+          <span style="color:var(--grn,#00F5A5)">{{ approvedCount }} approved</span><span>2 pending</span><span>1 rejected</span>
+          <span style="margin-left:auto; color:var(--ink2,rgba(242,239,226,0.72))">Next org: Thunderjaw Merch →</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMaster }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Master list">
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:16px">Master list</div>
+          <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1b }}; line-height:0.94; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 14px">Everyone accredited</h1>
+          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0; max-width:62ch">Append-only. A reissue adds a row, it never overwrites the first. BMS entry is manual — the flag tracks who is still to be added.</p>
+        </div>
+
+        <div style="display:flex; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <input placeholder="SEARCH NAME, PHONE, COMPANY, BAND SERIAL" style="flex:1 1 auto; min-width:0; border:none; border-right:1px solid var(--rule,rgba(242,239,226,0.16)); background:transparent; color:var(--ink,#F2EFE2); padding:16px 18px; font-family:'Oswald',sans-serif; font-size:11.5px; letter-spacing:0.1em; text-transform:uppercase; outline:none" style-focus="background:var(--panel)">
+          <button style="cursor:pointer; border:none; background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:16px 18px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; white-space:nowrap" style-hover="color:var(--grn)">Export CSV</button>
+        </div>
+
+        <sc-for list="{{ master }}" as="m" hint-placeholder-count="8">
+          <div style="display:grid; grid-template-columns:{{ mCols }}; gap:16px; padding:15px 18px; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); align-items:center">
+            <div style="min-width:0">
+              <div style="font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; color:var(--ink,#F2EFE2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ m.name }}</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ m.org }} · {{ m.phone }}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:9px; min-width:0">
+              <span style="width:8px; height:18px; background:{{ m.typeColour }}; flex:0 0 auto"></span>
+              <span style="font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:500; letter-spacing:0.09em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72))">{{ m.type }}</span>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:{{ m.bandFg }}">{{ m.band }}</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:{{ m.vehFg }}">{{ m.vehicle }}</div>
+            <div style="font-family:'Oswald',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ m.bmsFg }}">{{ m.bms }}</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:{{ m.collFg }}; text-align:right">{{ m.collected }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSubmit }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Submission form">
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:16px">Public · token link</div>
+          <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1b }}; line-height:0.94; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 14px">Register your crew</h1>
+          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0; max-width:62ch">No account, no login. The token in the link is the credential and scopes to one organisation. Name, phone, role, vehicle — nothing else is collected.</p>
+        </div>
+
+        <div style="padding:22px 18px; border-bottom:1px solid var(--rule2,rgba(242,239,226,0.32)); background:var(--panel,#101012); display:flex; gap:26px; flex-wrap:wrap; align-items:flex-end">
+          <div style="flex:1 1 240px; min-width:0">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">Registering for</div>
+            <div style="font-family:'Anton',sans-serif; font-size:28px; line-height:1.05; text-transform:uppercase; color:var(--ink,#F2EFE2); margin-top:8px">Chakra Sound &amp; Light</div>
+          </div>
+          <div style="flex:1 1 220px">
+            <div style="display:flex; align-items:baseline; gap:8px; font-family:'Oswald',sans-serif; letter-spacing:0.08em; text-transform:uppercase">
+              <span style="font-size:26px; font-weight:700; color:var(--grn,#00F5A5)">14</span>
+              <span style="font-size:12px; color:var(--ink3,rgba(242,239,226,0.42))">/ 22 SEATS USED</span>
+            </div>
+            <div style="height:6px; background:var(--rule,rgba(242,239,226,0.16)); margin-top:10px"><div style="width:64%; height:100%; background:var(--grn,#00F5A5)"></div></div>
+          </div>
+        </div>
+
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-bottom:18px">Add a person</div>
+          <div style="display:grid; grid-template-columns:{{ formCols }}; gap:1px; background:var(--rule,rgba(242,239,226,0.16)); border:1px solid var(--rule,rgba(242,239,226,0.16))">
+            <sc-for list="{{ formFields }}" as="f" hint-placeholder-count="3">
+              <label style="background:var(--bg,#0A0A0A); padding:14px 16px; display:flex; flex-direction:column; gap:8px">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">{{ f.label }}</span>
+                <input placeholder="{{ f.ph }}" style="border:none; background:transparent; color:var(--ink,#F2EFE2); font-family:'Oswald',sans-serif; font-size:17px; font-weight:500; letter-spacing:0.02em; outline:none; width:100%; min-height:30px">
+                <span style="font-size:11.5px; line-height:1.4; color:var(--ink3,rgba(242,239,226,0.42))">{{ f.hint }}</span>
+              </label>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:16px; border:1px solid var(--rule,rgba(242,239,226,0.16)); border-top:none; padding:16px; flex-wrap:wrap">
+            <div style="width:44px; height:24px; background:var(--grn,#00F5A5); position:relative; flex:0 0 auto; cursor:pointer">
+              <div style="position:absolute; top:3px; left:23px; width:18px; height:18px; background:var(--on,#0A0A0A)"></div>
+            </div>
+            <div style="flex:1 1 220px; min-width:0">
+              <div style="font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink,#F2EFE2)">Bringing a vehicle</div>
+              <div style="font-size:12.5px; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px">A sticker is issued at check-in, tied to this number only.</div>
+            </div>
+          </div>
+
+          <label style="display:flex; flex-direction:column; gap:8px; border:1px solid var(--grn,#00F5A5); border-top:none; padding:14px 16px">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--grn,#00F5A5)">Vehicle registration</span>
+            <input value="KA 05 MJ 8871" style="border:none; background:transparent; color:var(--ink,#F2EFE2); font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; outline:none; width:100%; min-height:34px">
+          </label>
+
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px">
+            <button style="cursor:pointer; flex:1 1 200px; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:17px 22px; font-family:'Oswald',sans-serif; font-size:14px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; min-height:52px" style-hover="background:transparent; color:var(--grn)">Add to list</button>
+            <button style="cursor:pointer; flex:1 1 200px; border:1px solid var(--gold,#E3BB72); background:transparent; color:var(--gold,#E3BB72); padding:17px 22px; font-family:'Oswald',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:52px" style-hover="background:var(--gold); color:var(--on)">Submit 14 for approval →</button>
+          </div>
+        </div>
+
+        <div style="padding:{{ padSec }}">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-bottom:14px">Your list</div>
+          <div style="border-top:1px solid var(--rule2,rgba(242,239,226,0.32))">
+            <sc-for list="{{ submitted }}" as="x" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+                <span style="width:8px; height:18px; background:{{ x.dot }}; flex:0 0 auto"></span>
+                <div style="flex:1; min-width:0">
+                  <div style="font-family:'Oswald',sans-serif; font-size:15.5px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:var(--ink,#F2EFE2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ x.name }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px">{{ x.role }}</div>
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:{{ x.dot }}; white-space:nowrap">{{ x.state }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPass }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Passes">
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap">
+          <div style="flex:1 1 300px; min-width:0">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:16px">The pass</div>
+            <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1b }}; line-height:0.94; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 14px">{{ sheetTitle }}</h1>
+            <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0; max-width:62ch">{{ sheetBlurb }}</p>
+          </div>
+          <sc-if value="{{ isWeb }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <button style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:13px 18px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase" style-hover="border-color:var(--grn); color:var(--grn)">Send on WhatsApp</button>
+              <button style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:13px 20px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase" style-hover="background:transparent; color:var(--grn)">Print 14 passes →</button>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:grid; grid-template-columns:{{ passCols }}; gap:1px; background:var(--rule,rgba(242,239,226,0.16))">
+          <sc-for list="{{ passes }}" as="p" hint-placeholder-count="1">
+            <div style="background:var(--bg,#0A0A0A); padding:22px 20px; display:flex; flex-direction:column; gap:18px">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); padding-bottom:14px">
+                <img src="07e53085-c5b9-4695-acf2-acce2a7ec1b7" alt="BOA" style="height:26px; width:auto; display:block; filter:{{ logoFilter }}">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">{{ p.ref }}</div>
+              </div>
+
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">Name</div>
+                <div style="font-family:'Anton',sans-serif; font-size:30px; line-height:1.0; text-transform:uppercase; color:var(--ink,#F2EFE2); margin-top:8px">{{ p.name }}</div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72)); margin-top:10px">{{ p.org }}</div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px">{{ p.role }} · {{ p.days }}</div>
+              </div>
+
+              <div style="border:1px solid {{ p.colour }}">
+                <div style="height:10px; background:{{ p.colour }}"></div>
+                <div style="padding:14px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+                  <div style="flex:1 1 auto; min-width:0">
+                    <div style="font-family:'Anton',sans-serif; font-size:24px; line-height:1; text-transform:uppercase; color:{{ p.colour }}">{{ p.type }}</div>
+                    <div style="font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72)); margin-top:5px">{{ p.band }} band</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-bottom:9px">Zones</div>
+                <div style="display:flex; flex-wrap:wrap; gap:0 14px">
+                  <sc-for list="{{ p.zones }}" as="z" hint-placeholder-count="7">
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:500; letter-spacing:0.09em; text-transform:uppercase; color:{{ z.fg }}; padding:2px 0">{{ z.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="background:#FFFFFF; padding:16px; display:flex; justify-content:center">
+                <div style="display:grid; grid-template-columns:repeat(13,9px); grid-template-rows:repeat(13,9px)">
+                  <sc-for list="{{ p.qr }}" as="c" hint-placeholder-count="169">
+                    <div style="background:{{ c }}"></div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <sc-if value="{{ p.hasVehicle }}" hint-placeholder-val="{{ true }}">
+                <div style="border:1px solid var(--gold,#E3BB72); padding:12px 14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--gold,#E3BB72)">Vehicle</span>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; letter-spacing:0.12em; color:var(--ink,#F2EFE2)">{{ p.vehicle }}</span>
+                </div>
+              </sc-if>
+
+              <div style="margin-top:auto; border-top:1px solid var(--rule,rgba(242,239,226,0.16)); padding-top:14px; font-size:12px; line-height:1.5; color:var(--ink3,rgba(242,239,226,0.42))">Bring this and a valid photo ID. Non-transferable. One person = one pass = one physical check-in = one wristband.</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isGate }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Gate scanner">
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:16px">Crew check-in</div>
+          <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1b }}; line-height:0.94; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 14px">Three outcomes. No fourth.</h1>
+          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0; max-width:62ch">The approved list is held on the device, so a scan resolves with the radio off and writes flush when signal returns. There is no ambiguous state and no discretion at the gate.</p>
+        </div>
+
+        <div style="display:flex; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16)); overflow-x:auto">
+          <sc-for list="{{ scanStates }}" as="x" hint-placeholder-count="4">
+            <button sc-camel-on-click="{{ x.go }}" style="cursor:pointer; border:none; border-right:1px solid var(--rule,rgba(242,239,226,0.16)); background:{{ x.bg }}; color:{{ x.fg }}; padding:13px 18px; font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; white-space:nowrap">{{ x.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="display:grid; grid-template-columns:{{ gateCols }}; gap:1px; background:var(--rule,rgba(242,239,226,0.16))">
+
+          <div style="background:var(--bg,#0A0A0A); padding:24px 20px; display:flex; flex-direction:column; gap:20px">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">
+              <span>Gate 1 | Ravi</span><span style="color:var(--gold,#E3BB72)">Offline | 3 queued</span>
+            </div>
+
+            <div style="width:100%; max-width:280px; margin:0 auto; aspect-ratio:1; position:relative; border:1px solid var(--rule,rgba(242,239,226,0.16)); background:var(--panel,#101012)">
+              <div style="position:absolute; top:14px; left:14px; width:38px; height:38px; border-top:2px solid var(--grn,#00F5A5); border-left:2px solid var(--grn,#00F5A5)"></div>
+              <div style="position:absolute; top:14px; right:14px; width:38px; height:38px; border-top:2px solid var(--grn,#00F5A5); border-right:2px solid var(--grn,#00F5A5)"></div>
+              <div style="position:absolute; bottom:14px; left:14px; width:38px; height:38px; border-bottom:2px solid var(--grn,#00F5A5); border-left:2px solid var(--grn,#00F5A5)"></div>
+              <div style="position:absolute; bottom:14px; right:14px; width:38px; height:38px; border-bottom:2px solid var(--grn,#00F5A5); border-right:2px solid var(--grn,#00F5A5)"></div>
+              <div style="position:absolute; left:14px; right:14px; top:50%; height:2px; background:var(--grn,#00F5A5)"></div>
+            </div>
+
+            <div>
+              <div style="font-family:'Oswald',sans-serif; font-size:17px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink,#F2EFE2)">Point at the pass code</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:7px">612 approved passes held on this device</div>
+            </div>
+
+            <button style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:15px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; min-height:50px" style-hover="border-color:var(--grn); color:var(--grn)">Can't scan — search by name</button>
+
+            <div style="border-top:1px solid var(--rule,rgba(242,239,226,0.16)); padding-top:16px">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-bottom:10px">Last issued at this gate</div>
+              <sc-for list="{{ recent }}" as="r" hint-placeholder-count="3">
+                <div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+                  <span style="width:7px; height:16px; background:{{ r.colour }}; flex:0 0 auto"></span>
+                  <div style="flex:1; min-width:0">
+                    <div style="font-family:'Oswald',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:var(--ink,#F2EFE2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.name }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:2px">{{ r.meta }}</div>
+                  </div>
+                  <button style="cursor:pointer; border:none; background:transparent; color:var(--ink3,rgba(242,239,226,0.42)); font-family:'Oswald',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; padding:6px 0" style-hover="color:var(--bad)">Void</button>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:auto; border-top:1px solid var(--rule,rgba(242,239,226,0.16)); padding-top:14px; display:flex; justify-content:space-between; gap:12px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:500; letter-spacing:0.11em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">
+              <span>184 issued today</span><span>Ledger append-only</span>
+            </div>
+          </div>
+
+          <div style="background:var(--panel,#101012); padding:24px 20px; display:flex; flex-direction:column; gap:20px; border-top:4px solid {{ scanInk }}" data-comment-anchor="9de708c1f3-div">
+            <div>
+              <div style="font-family:'Anton',sans-serif; font-size:{{ verdictSize }}; line-height:0.92; letter-spacing:0.01em; text-transform:uppercase; color:{{ scanInk }}; text-shadow:{{ verdictGlow }}">{{ scanVerdict }}</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:{{ scanInk }}; margin-top:10px">{{ scanSub }}</div>
+            </div>
+
+            <sc-if value="{{ scanHasPerson }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-direction:column; gap:18px">
+                <div style="border-top:1px solid var(--rule2,rgba(242,239,226,0.32)); padding-top:18px">
+                  <div style="font-family:'Anton',sans-serif; font-size:34px; line-height:1; text-transform:uppercase; color:var(--ink,#F2EFE2)">{{ scanName }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72)); margin-top:10px">{{ scanOrg }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px">{{ scanRole }}</div>
+                </div>
+
+                <div style="border:1px solid {{ scanTypeColour }}">
+                  <div style="height:12px; background:{{ scanTypeColour }}"></div>
+                  <div style="padding:16px">
+                    <div style="font-family:'Anton',sans-serif; font-size:30px; line-height:1; text-transform:uppercase; color:{{ scanTypeColour }}">{{ scanType }}</div>
+                    <div style="font-family:'Oswald',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink,#F2EFE2); margin-top:8px">HAND OVER A {{ scanBandColour }} BAND</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:0 14px; margin-top:14px; border-top:1px solid var(--rule,rgba(242,239,226,0.16)); padding-top:12px">
+                      <sc-for list="{{ scanZones }}" as="z" hint-placeholder-count="7">
+                        <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.09em; text-transform:uppercase; color:{{ z.fg }}; padding:2px 0">{{ z.label }}</span>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+
+                <sc-if value="{{ scanHasVehicle }}" hint-placeholder-val="{{ true }}">
+                  <div style="border:1px solid var(--gold,#E3BB72); padding:14px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--gold,#E3BB72)">Sticker due</span>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; letter-spacing:0.12em; color:var(--ink,#F2EFE2)">KA 05 MJ 8871</span>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ scanIsAmber }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid var(--gold,#E3BB72); padding:16px">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--gold,#E3BB72); margin-bottom:10px">Already collected</div>
+                <div style="font-family:'Oswald',sans-serif; font-size:16px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink,#F2EFE2)">Issued 14:02 · Gate 1 · band #0412 by Ravi</div>
+                <div style="font-size:13px; line-height:1.5; color:var(--ink2,rgba(242,239,226,0.72)); margin-top:9px">A reissue needs a supervisor note. It adds a ledger row, it does not replace the first.</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ scanIsRed }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid var(--bad,#FF6B5A); padding:16px; font-size:14.5px; line-height:1.55; color:var(--ink,#F2EFE2)">This token is not on the approved list. Do not issue a wristband. Send them to the accreditation lead — their company can add them if quota remains.</div>
+            </sc-if>
+
+            <div style="margin-top:auto; display:flex; flex-direction:column; gap:11px">
+              <sc-if value="{{ scanCanIssue }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-direction:column; gap:11px">
+                  <input placeholder="WRISTBAND SERIAL — OPTIONAL" style="border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink,#F2EFE2); padding:15px 16px; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; outline:none; width:100%; min-height:52px" style-focus="border-color:var(--grn)">
+                  <button style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:20px; font-family:'Anton',sans-serif; font-size:19px; letter-spacing:0.1em; text-transform:uppercase; min-height:62px" style-hover="background:transparent; color:var(--grn)">Issue wristband</button>
+                </div>
+              </sc-if>
+              <button sc-camel-on-click="{{ resetScan }}" style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:transparent; color:var(--ink2,rgba(242,239,226,0.72)); padding:16px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:52px">Next person</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isVehicle }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Vehicle gate">
+        <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold,#E3BB72); margin-bottom:16px">Vehicle entrance</div>
+          <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1b }}; line-height:0.94; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 14px">Sticker and band. Both.</h1>
+          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0; max-width:62ch">Security's own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside. Stickers are bound to one registration and are not transferable.</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:{{ gateCols }}; gap:1px; background:var(--rule,rgba(242,239,226,0.16))">
+          <div style="background:var(--bg,#0A0A0A); padding:24px 20px; display:flex; flex-direction:column; gap:18px">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">Enter registration</div>
+            <input value="KA 05 MJ 8871" style="border:1px solid var(--gold,#E3BB72); background:transparent; color:var(--ink,#F2EFE2); padding:20px 16px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; text-align:center; outline:none; width:100%; min-height:68px">
+            <div style="border:1px solid var(--rule,rgba(242,239,226,0.16)); padding:16px">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.13em; text-transform:uppercase; color:var(--gold,#E3BB72); margin-bottom:10px">Both or neither</div>
+              <div style="font-size:13.5px; line-height:1.55; color:var(--ink2,rgba(242,239,226,0.72))">A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</div>
+            </div>
+          </div>
+
+          <div style="background:var(--panel,#101012); border-top:4px solid var(--grn,#00F5A5); padding:24px 20px; display:flex; flex-direction:column; gap:18px" data-comment-anchor="7f3dde32fc-div">
+            <div>
+              <div style="font-family:'Anton',sans-serif; font-size:{{ verdictSize }}; line-height:0.92; text-transform:uppercase; color:var(--grn,#00F5A5)">Cleared</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink2,rgba(242,239,226,0.72)); margin-top:10px">STICKER #V-0231 · ISSUED 09 OCT 08:14</div>
+            </div>
+
+            <div style="border-top:1px solid var(--rule2,rgba(242,239,226,0.32))">
+              <sc-for list="{{ vehChecks }}" as="c" hint-placeholder-count="3">
+                <div style="display:flex; align-items:center; gap:14px; padding:15px 0; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
+                  <span style="width:22px; height:22px; background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex:0 0 auto">✓</span>
+                  <div style="flex:1; min-width:0">
+                    <div style="font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink,#F2EFE2)">{{ c.label }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42)); margin-top:3px">{{ c.detail }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:auto; display:flex; flex-direction:column; gap:11px">
+              <button style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:20px; font-family:'Anton',sans-serif; font-size:18px; letter-spacing:0.1em; text-transform:uppercase; min-height:60px" style-hover="background:transparent; color:var(--grn)">Log entry &amp; open gate</button>
+              <button style="cursor:pointer; border:1px solid var(--bad,#FF6B5A); background:transparent; color:var(--bad,#FF6B5A); padding:16px; font-family:'Oswald',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:52px">Turn away — log reason</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+  </main>
+
+  <footer style="border-top:1px solid var(--rule,rgba(242,239,226,0.16)); padding:22px 18px 30px; display:flex; gap:20px; flex-wrap:wrap; justify-content:space-between; font-family:'Oswald',sans-serif; font-size:10.5px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink3,rgba(242,239,226,0.42))">
+    <span>Not registered, not approved, not verified — not inside.</span>
+    <span style="color:var(--gold,#E3BB72)">Artists handled at the hotel</span>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1360,&quot;height&quot;:900}}">
+const TYPES = [
+  { code: 'crew',  num: 'The standard', label: 'Working Crew', colour: '#00F5A5', colourLight: '#05603F', band: 'Poison green', count: 520, zones: ['Site', 'Backstage', 'Prod office', 'Bar'], note: 'The standard band. Most people working the festival.' },
+  { code: 'stage', num: 'The limited', label: 'Stage', colour: '#E3BB72', colourLight: '#5E4610', band: 'Ritual gold', count: 78, zones: ['Site', 'Backstage', 'Stage', 'Prod office'], note: 'Limited. Only people who work on or directly around the stages.' },
+  { code: 'aaa',   num: 'The restricted', label: 'AAA', colour: '#F2EFE2', colourLight: '#2A2A33', band: 'Bone white', count: 14, zones: ['Site', 'Backstage', 'Stage', 'Prod office', 'Bar', 'Lounges', 'Artist area'], note: 'Highly restricted. Named list only, approved directly by Salman.' }
+];
+
+const ALL_ZONES = ['Site', 'Backstage', 'Stage', 'Prod office', 'Bar', 'Lounges', 'Artist area'];
+
+const NAV = [
+  { id: 'dashboard', label: 'Control room' },
+  { id: 'queue',     label: 'Queue' },
+  { id: 'master',    label: 'Master list' },
+  { id: 'submit',    label: 'Submission' },
+  { id: 'pass',      label: 'Passes' },
+  { id: 'gate',      label: 'Gate' },
+  { id: 'vehicle',   label: 'Vehicle' }
+];
+
+class Component extends DCLogic {
+  state = { screen: 'dashboard', theme: 'dark', vp: 'web', scan: 'green', filter: 'pending', approved: false };
+
+  go = (screen) => () => this.setState({ screen });
+
+  typeOf(code, dark) {
+    const t = TYPES.find(x => x.code === code) || TYPES[0];
+    return { ...t, colour: dark ? t.colour : t.colourLight };
+  }
+
+  qrCells(seed) {
+    const sd = 'boa-acc-2026-' + (seed || '');
+    const cells = [];
+    let h = 7;
+    for (let i = 0; i < 169; i++) {
+      h = (h * 1103515245 + sd.charCodeAt(i % sd.length) * 31 + 12345) & 0x7fffffff;
+      const r = Math.floor(i / 13), c = i % 13;
+      const fin = (rr, cc) => rr < 3 && cc < 3;
+      const finder = fin(r, c) || fin(r, 12 - c) || fin(12 - r, c);
+      cells.push(finder ? '#0A0A0A' : ((h >> 9) % 100 < 46 ? '#0A0A0A' : 'transparent'));
+    }
+    return cells;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const dark = s.theme === 'dark';
+    const mob = s.vp === 'mobile';
+
+    const grn = dark ? '#00F5A5' : '#05603F';
+    const gold = dark ? '#E3BB72' : '#5E4610';
+    const bad = dark ? '#FF6B5A' : '#9E1F14';
+    const ink = dark ? '#F2EFE2' : '#14141A';
+    const ink2 = dark ? '#A6C9B4' : 'rgba(20,20,26,0.76)';
+    const ink3 = dark ? 'rgba(242,239,226,0.52)' : 'rgba(20,20,26,0.50)';
+    const rule = dark ? 'rgba(166,201,180,0.18)' : 'rgba(20,20,26,0.18)';
+    const grnbg = dark ? 'rgba(0,245,165,0.08)' : 'rgba(5,96,63,0.07)';
+    const goldbg = dark ? 'rgba(227,187,114,0.08)' : 'rgba(94,70,16,0.07)';
+    const badbg = dark ? 'rgba(255,107,90,0.09)' : 'rgba(158,31,20,0.07)';
+    const on = dark ? '#0D0D12' : '#F6F4EC';
+    const glowFor = (c) => dark ? '0 0 16px ' + c + '55, 0 0 38px ' + c + '22' : 'none';
+
+    const nav = NAV.map(n => {
+      const active = n.id === s.screen;
+      return {
+        ...n, go: this.go(n.id),
+        bg: active ? (dark ? 'rgba(0,245,165,0.08)' : 'rgba(5,96,63,0.07)') : 'transparent',
+        fg: active ? (dark ? grn : ink) : ink3,
+        mark: active ? grn : 'transparent',
+        glow: active && dark ? '0 0 14px rgba(0,245,165,0.5)' : 'none'
+      };
+    });
+
+    const vpTabs = [{ id: 'web', label: 'Web' }, { id: 'mobile', label: 'Mob' }].map(v => {
+      const active = v.id === s.vp;
+      return { ...v, go: () => this.setState({ vp: v.id }), bg: active ? ink : 'transparent', fg: active ? on : ink3 };
+    });
+
+const stats = [
+      { label: 'Submitted', value: '641', sub: '38 organisations', colour: ink, mark: 'transparent' },
+      { label: 'Approved', value: '612', sub: '29 awaiting decision', colour: grn, mark: grn },
+      { label: 'Bands issued', value: '184', sub: '428 not yet collected', colour: gold, mark: gold },
+      { label: 'Vehicle stickers', value: '47', sub: '52 registrations approved', colour: ink, mark: 'transparent' },
+      { label: 'Added to BMS', value: '598', sub: '14 approved, not entered', colour: gold, mark: gold }
+    ];
+
+    const types = TYPES.map(t => ({
+      ...t,
+      colour: dark ? t.colour : t.colourLight,
+      glow: glowFor(dark ? t.colour : t.colourLight),
+      zones: ALL_ZONES.map(z => ({ label: t.zones.indexOf(z) >= 0 ? z : '—— ' + z, fg: t.zones.indexOf(z) >= 0 ? ink2 : ink3 }))
+    }));
+
+    const ORGS = [
+      { name: 'Chakra Sound & Light', contact: 'Vendor · Ranjith K · +91 98861 04422', used: 14, quota: 22, type: 'stage', status: 'Submitted' },
+      { name: 'Sentinel Security Services', contact: 'Security · Faisal M · +91 99012 88104', used: 68, quota: 70, type: 'crew', status: 'Approved' },
+      { name: 'BOA Production Core', contact: 'Crew · Bhoopesh · +91 98450 11290', used: 41, quota: 45, type: 'stage', status: 'Approved' },
+      { name: 'Thunderjaw Merch', contact: 'Vendor · Aditi R · +91 90350 77218', used: 9, quota: 12, type: 'crew', status: 'Open' },
+      { name: 'Redline Beverages', contact: 'Sponsor · Sameer T · +91 87620 41139', used: 18, quota: 20, type: 'crew', status: 'Approved' },
+      { name: 'Distortion Press', contact: 'Media · Nikita B · +91 96110 55873', used: 11, quota: 15, type: 'crew', status: 'Submitted' },
+      { name: 'Ironhoof Rigging', contact: 'Contractor · Prakash D · +91 94480 30012', used: 26, quota: 26, type: 'stage', status: 'Closed' }
+    ];
+    const ss = { Open: ink3, Submitted: gold, Approved: grn, Closed: ink3 };
+    const orgs = ORGS.map(o => {
+      const t = this.typeOf(o.type, dark);
+      const pct = Math.round((o.used / o.quota) * 100);
+      return { ...o, type: t.label, typeColour: t.colour, statusFg: ss[o.status] || ink3, pct: pct + '%', barFg: pct >= 100 ? gold : grn };
+    });
+
+    const QUEUE = [
+      { name: 'Ranjith Kumar', phone: '+91 98861 04422', role: 'Stage tech', type: 'stage', decision: 'Approved' },
+      { name: 'Vinay Shetty', phone: '+91 90084 21771', role: 'Rigger', type: 'stage', decision: 'Approved' },
+      { name: 'Meera Joseph', phone: '+91 99450 66123', role: 'FOH engineer', type: 'stage', decision: 'Approved' },
+      { name: 'Arjun Nayar', phone: '+91 88670 12904', role: 'Lighting op', type: 'crew', decision: 'Approved' },
+      { name: 'Suhas Bhat', phone: '+91 97400 55381', role: 'Truck driver', type: 'crew', decision: 'Pending' },
+      { name: 'Ganesh Rao', phone: '+91 91084 77260', role: 'Loader', type: 'crew', decision: 'Pending' },
+      { name: 'Imran Sheikh', phone: '+91 96320 90014', role: 'Backline', type: 'crew', decision: 'Rejected' }
+    ];
+    const decFg = { Approved: grn, Pending: gold, Rejected: bad };
+    const queue = QUEUE.map(p => {
+      const dec = s.approved && p.decision === 'Pending' ? 'Approved' : p.decision;
+      const t = this.typeOf(p.type, dark);
+      const isApp = dec === 'Approved';
+      return {
+        ...p, decision: dec, type: t.label, typeColour: t.colour, decFg: decFg[dec],
+        rowBg: dec === 'Rejected' ? badbg : 'transparent',
+        boxBd: isApp ? grn : (dark ? 'rgba(242,239,226,0.32)' : 'rgba(20,20,26,0.34)'),
+        boxBg: isApp ? grn : 'transparent', tickFg: on, tick: isApp ? '✓' : ''
+      };
+    });
+
+    const filters = [
+      { id: 'pending', label: 'Pending', n: s.approved ? 0 : 29 },
+      { id: 'approved', label: 'Approved', n: s.approved ? 612 : 610 },
+      { id: 'rejected', label: 'Rejected', n: 4 },
+      { id: 'aaa', label: 'AAA flagged', n: 18 }
+    ].map(f => {
+      const active = f.id === s.filter;
+      return { ...f, go: () => this.setState({ filter: f.id }), bg: active ? grn : 'transparent', fg: active ? on : ink3 };
+    });
+
+    const MASTER = [
+      { name: 'Ranjith Kumar', phone: '+91 98861 04422', org: 'Chakra Sound & Light', type: 'stage', band: '#0412', vehicle: 'KA 05 MJ 8871', collected: '09 Oct 14:02 · Gate 1', inBms: true },
+      { name: 'Faisal Mohammed', phone: '+91 99012 88104', org: 'Sentinel Security', type: 'crew', band: '#1180', vehicle: '—', collected: '09 Oct 06:40 · Gate 1', inBms: true },
+      { name: 'Bhoopesh S', phone: '+91 98450 11290', org: 'BOA Production Core', type: 'aaa', band: '#0001', vehicle: 'KA 01 AB 2211', collected: '08 Oct 11:15 · Desk', inBms: true },
+      { name: 'Aditi Rao', phone: '+91 90350 77218', org: 'Thunderjaw Merch', type: 'crew', band: 'not issued', vehicle: 'KA 51 CQ 0043', collected: 'Not collected', inBms: false },
+      { name: 'Nikita Banerjee', phone: '+91 96110 55873', org: 'Distortion Press', type: 'crew', band: '#2205', vehicle: '—', collected: '10 Oct 12:30 · Gate 2', inBms: true },
+      { name: 'Sameer Thomas', phone: '+91 87620 41139', org: 'Redline Beverages', type: 'crew', band: 'not issued', vehicle: 'KA 03 HD 7788', collected: 'Not collected', inBms: false },
+      { name: 'Prakash Devaiah', phone: '+91 94480 30012', org: 'Ironhoof Rigging', type: 'stage', band: '#0388', vehicle: 'KA 09 TR 1902', collected: '08 Oct 07:55 · Desk', inBms: true },
+      { name: 'Imran Sheikh', phone: '+91 96320 90014', org: 'Chakra Sound & Light', type: 'crew', band: 'voided', vehicle: '—', collected: 'Rejected 05 Oct', inBms: false }
+    ];
+    const master = MASTER.map(m => {
+      const t = this.typeOf(m.type, dark);
+      const rej = m.collected.indexOf('Rejected') === 0;
+      const notColl = m.collected.indexOf('Not') === 0;
+      return {
+        ...m, type: t.label, typeColour: t.colour,
+        bandFg: m.band === 'not issued' ? ink3 : (m.band === 'voided' ? bad : grn),
+        vehFg: m.vehicle === '—' ? ink3 : gold,
+        bms: m.inBms ? 'In BMS' : 'Not in BMS',
+        bmsFg: m.inBms ? grn : gold,
+        collFg: rej ? bad : (notColl ? ink3 : ink2)
+      };
+    });
+
+    const formFields = [
+      { label: 'Full name', ph: 'As it appears on their ID', hint: 'Exactly as on their ID. No initials.' },
+      { label: 'Mobile', ph: '+91', hint: 'Used only to resend their pass.' },
+      { label: 'Role at the festival', ph: 'Rigger, FOH engineer, loader', hint: 'Free text is fine.' }
+    ];
+
+    const submitted = [
+      { name: 'Ranjith Kumar', role: 'Stage tech', state: 'Approved', dot: grn },
+      { name: 'Vinay Shetty', role: 'Rigger', state: 'Approved', dot: grn },
+      { name: 'Suhas Bhat', role: 'Truck driver', state: 'Submitted', dot: gold },
+      { name: 'Imran Sheikh', role: 'Backline', state: 'Rejected', dot: bad }
+    ];
+
+    const SHEET = [
+      { name: 'Ranjith Kumar', org: 'Chakra Sound & Light', role: 'Stage tech', type: 'stage', vehicle: 'KA 05 MJ 8871', days: 'Build + show', ref: 'BOA26-0412' },
+      { name: 'Vinay Shetty', org: 'Chakra Sound & Light', role: 'Rigger', type: 'stage', vehicle: '', days: 'Build + show', ref: 'BOA26-0418' },
+      { name: 'Meera Joseph', org: 'Chakra Sound & Light', role: 'FOH engineer', type: 'crew', vehicle: '', days: 'Show day', ref: 'BOA26-0421' },
+      { name: 'Suhas Bhat', org: 'Thunderjaw Merch', role: 'Truck driver', type: 'crew', vehicle: 'KA 51 CQ 0043', days: 'Build day', ref: 'BOA26-0631' },
+      { name: 'Bhoopesh S', org: 'BOA Production Core', role: 'Accreditation lead', type: 'aaa', vehicle: 'KA 01 AB 2211', days: 'Build + show', ref: 'BOA26-0001' },
+      { name: 'Nikita Banerjee', org: 'Distortion Press', role: 'Photographer', type: 'crew', vehicle: '', days: 'Show day', ref: 'BOA26-2205' }
+    ];
+    const passes = (mob ? SHEET.slice(0, 1) : SHEET).map(p => {
+      const t = this.typeOf(p.type, dark);
+      return {
+        ...p, type: t.label, band: t.band, colour: t.colour,
+        hasVehicle: p.vehicle !== '',
+        qr: this.qrCells(p.ref),
+        zones: ALL_ZONES.map(z => ({ label: t.zones.indexOf(z) >= 0 ? z : '—— ' + z, fg: t.zones.indexOf(z) >= 0 ? ink : ink3 }))
+      };
+    });
+
+    const scanMap = {
+      idle: { verdict: 'Ready', sub: 'Waiting for a scan', ink: rule },
+      green: { verdict: 'Approved', sub: 'Not yet collected · issue a band', ink: grn },
+      amber: { verdict: 'Collected', sub: 'A band was already issued to this person', ink: gold },
+      red: { verdict: 'Refuse', sub: 'Unknown, rejected or voided token', ink: bad }
+    };
+    const sc = scanMap[s.scan];
+    const passType = this.typeOf('stage', dark);
+
+    const scanStates = [
+      { id: 'idle', label: 'Scanning' },
+      { id: 'green', label: 'Approved' },
+      { id: 'amber', label: 'Collected' },
+      { id: 'red', label: 'Refuse' }
+    ].map(x => {
+      const active = x.id === s.scan;
+      return { ...x, go: () => this.setState({ scan: x.id }), bg: active ? grn : 'transparent', fg: active ? on : ink3 };
+    });
+
+    const vehChecks = [
+      { label: 'Vehicle sticker', detail: '#V-0231 · bound to KA 05 MJ 8871' },
+      { label: 'Crew wristband', detail: 'Stage · ritual gold · band #0412' },
+      { label: 'Plate matches sticker', detail: 'Visual check by the officer at the barrier' }
+    ];
+
+    return {
+      theme: s.theme,
+      queue, filters, master, formFields, submitted, passes, scanStates, vehChecks,
+      gateCols: mob ? '1fr' : 'minmax(300px, 0.9fr) minmax(320px, 1.1fr)',
+      verdictSize: mob ? '46px' : '58px',
+      scanBg: sc.bg,
+      scanInk: sc.ink,
+      scanVerdict: sc.verdict,
+      scanSub: sc.sub,
+      scanHasPerson: s.scan === 'green' || s.scan === 'amber',
+      scanIsAmber: s.scan === 'amber',
+      scanIsRed: s.scan === 'red',
+      scanCanIssue: s.scan === 'green',
+      scanHasVehicle: s.scan === 'green',
+      scanName: 'Ranjith Kumar',
+      scanOrg: 'Chakra Sound & Light',
+      scanRole: 'Stage tech · build + show day',
+      scanType: passType.label,
+      scanTypeColour: passType.colour,
+      scanBandColour: passType.band.toUpperCase(),
+      scanZones: ALL_ZONES.map(z => ({ label: passType.zones.indexOf(z) >= 0 ? z : '—— ' + z, fg: passType.zones.indexOf(z) >= 0 ? ink : ink3 })),
+      resetScan: () => this.setState({ scan: 'idle' }),
+      isWeb: !mob,
+      formCols: mob ? '1fr' : 'repeat(3, 1fr)',
+      passCols: mob ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+      sheetTitle: mob ? 'One person, one pass' : 'Pass sheet',
+      sheetBlurb: mob ? 'The code carries a pass token, not a name. Bring it and a valid photo ID to the crew check-in desk — a wristband cannot be collected on anyone else\u2019s behalf.' : 'One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.',
+      approveOrg: () => this.setState({ approved: true }),
+      selectedLabel: s.approved ? 'All 14 approved' : '14 of 14 selected',
+      recent: [
+        { name: 'Meera Joseph', meta: 'Working crew | band 0418 | 14:02', colour: dark ? '#00F5A5' : '#05603F' },
+        { name: 'Vinay Shetty', meta: 'Stage | band 0417 | 13:58', colour: dark ? '#E3BB72' : '#5E4610' },
+        { name: 'Ganesh Rao', meta: 'Working crew | band 0416 | 13:51', colour: dark ? '#00F5A5' : '#05603F' }
+      ],
+      approvedCount: s.approved ? 6 : 4,
+      h1b: mob ? '34px' : 'clamp(38px, 4.4vw, 58px)',
+      qCols: mob ? 'auto minmax(0,1fr)' : 'auto minmax(0,2.2fr) 1.5fr auto',
+      mCols: mob ? '1fr' : 'minmax(0,2fr) 1.1fr 0.8fr 1.1fr 0.9fr 1.3fr',
+      themeLabel: dark ? 'Light' : 'Dark',
+      logoFilter: dark ? 'drop-shadow(0 0 16px rgba(0,245,165,0.45))' : 'none',
+      goQueue: this.go('queue'),
+      goGate: this.go('gate'),
+      pendingCount: s.approved ? '0 left' : '29 left',
+      posterW: mob ? '100%' : 'min(56%, 720px)',
+      posterPos: mob ? '50% 8%' : '50% 14%',
+      posterOpacity: dark ? '1' : '0.32',
+      posterScrim: dark
+        ? (mob
+            ? 'linear-gradient(180deg, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.9) 52%, #0A0A0A 100%)'
+            : 'linear-gradient(90deg, #0A0A0A 0%, #0A0A0A 42%, rgba(10,10,10,0.55) 62%, rgba(10,10,10,0.12) 88%, rgba(10,10,10,0.12) 100%)')
+        : (mob
+            ? 'linear-gradient(180deg, rgba(237,234,225,0.4) 0%, #EDEAE1 52%, #EDEAE1 100%)'
+            : 'linear-gradient(90deg, #EDEAE1 0%, #EDEAE1 42%, rgba(237,234,225,0.72) 62%, rgba(237,234,225,0.4) 88%, rgba(237,234,225,0.4) 100%)'),
+      heroMin: mob ? '440px' : '520px',
+      heroTextMax: mob ? 'none' : '660px',
+      verdictGlow: 'none',
+      toggleTheme: () => this.setState({ theme: dark ? 'light' : 'dark' }),
+      nav, vpTabs, stats, types, orgs,
+      isMobile: mob,
+      shellMax: mob ? '420px' : '1280px',
+      shellEdge: mob ? '1px solid ' + rule : 'none',
+      padHero: mob ? '28px 18px' : '48px 40px 44px',
+      padSec: mob ? '28px 18px' : '40px',
+      h1: mob ? '40px' : 'clamp(46px, 6vw, 82px)',
+      h2: mob ? '28px' : '38px',
+      statCols: mob ? '1fr 1fr' : 'repeat(5, 1fr)',
+      typeCols: mob ? '1fr' : 'repeat(3, 1fr)',
+      orgCols: mob ? '1fr' : 'minmax(0,2.4fr) 1.2fr 1fr 1fr',
+      isDash: s.screen === 'dashboard',
+      isQueue: s.screen === 'queue',
+      isMaster: s.screen === 'master',
+      isSubmit: s.screen === 'submit',
+      isPass: s.screen === 'pass',
+      isGate: s.screen === 'gate',
+      isVehicle: s.screen === 'vehicle'
+    };
+  }
+}
+
+</script>
+
+
+</body></html>

@@ -1,0 +1,56 @@
+{
+  "name": "boa-accreditation",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "node scripts/extract-assets.mjs && next build && node scripts/build-gate-sw.mjs",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/check-design-tokens.mjs && node scripts/audit-font-weights.mjs && eslint",
+    "test": "vitest run",
+    "test:db": "node scripts/db-test.mjs",
+    "test:e2e": "playwright test",
+    "test:visual": "node scripts/visual-check.mjs",
+    "check:sql": "python3 scripts/sql-arity-check.py",
+    "db:state": "node scripts/db-state.mjs",
+    "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
+    "design:reference": "node scripts/build-design-reference.mjs",
+    "assets:extract": "node scripts/extract-assets.mjs"
+  },
+  "dependencies": {
+    "@fontsource/anton": "^5.3.0",
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/oswald": "^5.3.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "dexie": "^4.2.0",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.1.8",
+    "zxing-wasm": "^2.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.35.0",
+    "eslint-config-next": "16.3.4",
+    "fake-indexeddb": "^6.2.5",
+    "pg": "^8.23.0",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0",
+    "supabase": "2.115.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^3.2.4"
+  }
+}
