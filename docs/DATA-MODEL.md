@@ -104,3 +104,13 @@ Four nominees have no person row yet. The types card shows *stamped*.
   The Control room is one query, not eight.
 
 Neither view is granted to `anon`.
+
+> ⚠ **A Postgres view bypasses RLS by default** — it runs as its owner, not its
+> caller, so a view over `boa_acc_person` would hand `authenticated` every column
+> the *owner* can see, `pass_token` included. Both views must be created
+> `with (security_invoker = true)` (Postgres 15+; this project is on 17).
+>
+> This is the single easiest way to undo the entire column-grant defence in
+> SECURITY.md, and it fails silently — the view simply works, and returns too
+> much. `privileges.test.sql` must assert that `authenticated` cannot read
+> `pass_token` **through the views**, not only through the base table.

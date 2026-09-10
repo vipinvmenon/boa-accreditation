@@ -53,6 +53,26 @@ a *rotate*.
 foreign QR in one `startsWith` before touching the roster index, and stops a stray
 camera app opening anything.
 
+## Policy authoring rules
+
+Three Postgres/Supabase behaviours that fail *silently* and would each quietly
+undo something above. All three are asserted in `privileges.test.sql`.
+
+1. **Target the role with `TO`, never `auth.role()`.** `auth.role()` is
+   deprecated, and `auth.role() = 'authenticated'` breaks outright if anonymous
+   sign-ins are ever enabled, because an anonymous user carries the
+   `authenticated` Postgres role and passes the check without being signed in.
+   Write `... for select to authenticated using (...)`.
+
+2. **Views bypass RLS by default.** Create every view
+   `with (security_invoker = true)`. See DATA-MODEL.md — this is the easiest way
+   to leak `pass_token` past the column grants, and it fails by *working*.
+
+3. **An UPDATE needs a SELECT policy**, because Postgres must read the row
+   first. Without one, updates return 0 rows with no error. We have no UPDATE
+   policies by design — every write is a `SECURITY DEFINER` RPC — but if anyone
+   ever adds one, this is why it appears to do nothing.
+
 ## Quota is enforced server-side
 
 `select … for update` on the org row inside `boa_acc_submit`. The form's
@@ -100,6 +120,9 @@ Collected: full name, phone, role, and optionally a vehicle registration.
 Anything more is a liability carried until deletion and slows the form down on a
 phone. This is non-negotiable #9 and a `CHECK`-free rule enforced by the absence
 of the columns.
+
+The browser gets a **publishable** key, not the legacy `anon` key (which exists
+only for backwards compatibility). Either way it holds nothing: zero grants.
 
 The service-role key is server-only and must never carry a `NEXT_PUBLIC_` prefix.
 `lib/supabase-admin.ts` is import-restricted by ESLint to `app/api/**`.

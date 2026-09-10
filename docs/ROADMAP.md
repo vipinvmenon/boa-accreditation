@@ -24,7 +24,7 @@ A task is not done until its acceptance criteria are met and the gates pass.
 | ACC-006 | `build-gate-sw.mjs` from the real build manifest | ✅ |
 | ACC-007 | Root dead end, 404, error boundary | ✅ |
 | ACC-008 | `/docs` set, CLAUDE.md, AGENTS.md | ✅ |
-| ACC-009 | **Create the Supabase project** (ap-south-1) | ⛔ blocked on Vipin |
+| ACC-009 | **Create the Supabase project** | 🟡 project `tjbfvuboyvaephtewjwq` exists and is live. Still needs: keys in `.env.local`, MCP auth, `SUPABASE_DB_URL` in Actions secrets |
 | ACC-010 | **Create the Vercel project + DNS** | ⛔ blocked on Vipin/Sal |
 | ACC-011 | `db-test.mjs`, `db-state.mjs`, `sql-arity-check.py`, `lib/db-url.mjs` | ▢ needs ACC-009 |
 | ACC-012 | `build-design-reference.mjs` + `visual-check.mjs`; settle the Anton bold question | ▢ |

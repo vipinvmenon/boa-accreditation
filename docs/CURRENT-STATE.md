@@ -3,15 +3,17 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026._
+_Last updated: 11 September 2026 (second update)._
 
 ## In one line
 
 Phase 0 (foundation) is complete, pushed to
 [vipinvmenon/boa-accreditation](https://github.com/vipinvmenon/boa-accreditation)
 (**private**), and CI is green.
-**No database exists yet.** No Supabase project, no Vercel project, no schema,
-no screens beyond the root dead-end, the 404 and the error boundary.
+**The Supabase project now exists** — ref `tjbfvuboyvaephtewjwq`, verified live
+— but nothing has been built in it: **no schema, no migrations, no keys in
+`.env.local`.** No Vercel project. No screens beyond the root dead-end, the 404
+and the error boundary.
 
 ## Dates
 
@@ -69,16 +71,48 @@ directories are scaffolded but empty:
 
 These cannot proceed without Vipin, and Phase 1 cannot start without the first:
 
-1. **Create the Supabase project** (ap-south-1 / Mumbai) and put its URL, anon
-   key and service-role key in `.env.local`. Note the org was previously at a
-   2-project free-tier limit (Pricely + boa-bar-control, plus boa-stok-form) —
-   this may need a plan change.
+1. **Supabase — project created ✅, three things still outstanding:**
+   - **`.env.local`** — the project's anon key and service-role key. The URL is
+     already filled into `.env.example`. Without these the app cannot talk to
+     the database at all, MCP access notwithstanding: the MCP server is a tool
+     *I* use, it is not the application's credential.
+   - **Authenticate the MCP server.** `.mcp.json` is committed, but the server
+     is unauthenticated and shows `⏸ Pending approval`. This needs an
+     interactive terminal — see the note below.
+   - **`SUPABASE_DB_URL`** in the repo's GitHub Actions secrets, or CI goes red
+     on 20 Sep when the dated grace period expires.
 2. **Create the Vercel project** `boa-accreditation` in team
    `team_rDgA7v4RmDHjA3gFRapQoccp`, region `bom1`, and point
    `accred.bangaloreopenair.com` at it (Sal: CNAME at Wix → `cname.vercel-dns.com`).
 3. **The 38 organisations** — names, kinds, quotas, contact names and phones.
    Needed by 17 Sep for Phase 2.
 4. **Email addresses** for Bhoopesh, Salman and the two approvers.
+
+## The Supabase MCP server — configured, NOT yet authenticated
+
+`.mcp.json` is committed and points at project `tjbfvuboyvaephtewjwq` with the
+docs, account, database, debugging, development, functions and branching
+features. `claude mcp list` currently reports `⏸ Pending approval`.
+
+**Authentication cannot be done from an IDE-hosted or non-interactive session** —
+it is an OAuth flow. Vipin needs to run, in a regular terminal, from this
+directory:
+
+```
+claude          # approve the project-scoped server when prompted
+/mcp            # select `supabase`, then Authenticate
+```
+
+Until that is done, no agent can query the database through MCP. This does not
+block writing migrations — SQL can be written and reviewed offline — but it does
+block verifying them against the real project, and `db:state` has nothing to ask.
+
+Two Supabase Agent Skills are also installed under `.agents/skills/`
+(`supabase`, `supabase-postgres-best-practices`), symlinked into `.claude/skills/`
+with relative links so they are portable. Both were reviewed before being
+committed: they are documentation only — no scripts, no hooks, nothing
+executable. Their privileges guidance (`revoke all on all tables in schema
+public from public`) is consistent with ADR-004.
 
 ## The database CI job, and its expiry date
 
@@ -95,6 +129,20 @@ anything; the calendar does it.
 secrets. After 20 Sep, CI goes red without it.
 
 ## Session log
+
+### 11 Sep 2026 — Supabase MCP + skills
+
+- Added the project-scoped Supabase MCP server (`.mcp.json`) for project
+  `tjbfvuboyvaephtewjwq`. **Not authenticated** — that needs an interactive
+  terminal and is on Vipin.
+- Verified the project is live: `https://tjbfvuboyvaephtewjwq.supabase.co`
+  returns 401 `UNAUTHORIZED_MISSING_API_KEY`, which is the correct response to
+  an unauthenticated probe, and the edge resolves via `MAA` (India).
+- Installed and **reviewed** two Supabase Agent Skills. Docs only, nothing
+  executable, no conflict with our security model.
+- Filled the real project URL into `.env.example`. A project ref is not a secret
+  — it ships in every browser bundle — but the keys are, and they are still
+  missing.
 
 ### 11 Sep 2026 — repository, CI, first tests
 
