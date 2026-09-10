@@ -20,6 +20,7 @@ where the truth lives and what you may not do.
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | The BMS loop, the gate runbook, retention |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Before proposing an architecture change |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | To find your task ID and its acceptance criteria |
+| [docs/SETUP.md](docs/SETUP.md) | Credentials, logins, `bootstrap` — the unblock checklist |
 | [docs/TOOLING.md](docs/TOOLING.md) | Cursor/Codex setup, MCP servers, the gates, deploy verification |
 
 `design/source/` is the approved design, committed verbatim. It is the **UI

@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (fifth update)._
+_Last updated: 11 September 2026 (sixth update)._
 
 ## In one line
 
@@ -69,6 +69,20 @@ directories are scaffolded but empty:
   `NOTHING COMPARED — no screen is built yet`, which is the honest answer.
 - **Almost no tests.** Only the design-contract suite exists. Playwright is
   installed but unconfigured; there is no e2e suite and no aeroplane-mode test.
+
+## ⚠ The new project is in a different account from its siblings
+
+Verified 11 Sep by API call, not assumed:
+
+| | boa-accreditation | the two siblings |
+|---|---|---|
+| Supabase | `tjbfvuboyvaephtewjwq` — the CLI token on this Mac gets **403** | `vipinvmenon's Org` (`skbbvwdfpyyfpbvngkgh`) |
+| Vercel | scope `vipin-menon` | team `team_rDgA7v4RmDHjA3gFRapQoccp` |
+
+Nothing is broken by it, and it may well be deliberate. But billing, access and
+team membership are per-scope, and a second person cannot be added to a project
+they cannot see. **Moving it is much cheaper now than after 641 people are
+registered in it.** Decide before running `bootstrap` — see `docs/SETUP.md`.
 
 ## Blocked on the user
 
@@ -178,6 +192,24 @@ If a task shows `[~]` IN FLIGHT, somebody stopped mid-way — `git log` and
 Full protocol: `docs/TOOLING.md` → "Handing off between agents".
 
 ## Session log
+
+### 11 Sep 2026 — the credentials path, reduced to one command
+
+- `corepack pnpm bootstrap` links Supabase, fetches the keys, writes
+  `.env.local`, pushes all five env vars to Vercel across three environments,
+  sets the `SUPABASE_DB_URL` Actions secret **and confirms it landed**. It never
+  prints a key — lengths and prefixes only. `--check` dry-runs it.
+- **Found the real blocker rather than guessing at it.** The Supabase CLI token
+  on this Mac is valid but scoped to the org holding bar-central and stok-form;
+  `tjbfvuboyvaephtewjwq` returns 403. The Vercel token is separately expired.
+  So the accreditation project sits in a different account on *both* platforms —
+  the same pattern twice. `bootstrap` detects this precisely and prints the fix
+  instead of failing obscurely.
+- GitHub secrets need a libsodium sealed box, which Node has no primitive for.
+  Rather than add a crypto dependency, `bootstrap` hands the job to `gh` with
+  the token already in the macOS keychain. Verified by a set/list/delete
+  round-trip on a throwaway secret.
+- `docs/SETUP.md` is the human checklist: three logins, one command.
 
 ### 11 Sep 2026 — agent handoff made mechanical
 
