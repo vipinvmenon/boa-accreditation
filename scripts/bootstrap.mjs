@@ -38,9 +38,35 @@ const sh = (cmd, opts = {}) =>
 // ── 0. Preconditions a human must satisfy ─────────────────────────────────
 say('\nBOA Accreditation — bootstrap\n')
 
-let sbToken = null
-const tokenPath = join(process.env.HOME, '.supabase/access-token')
-if (existsSync(tokenPath)) sbToken = readFileSync(tokenPath, 'utf8').trim()
+/**
+ * Where the Supabase CLI keeps its access token.
+ *
+ * CLI >= ~2.x on macOS stores it in the LOGIN KEYCHAIN under the service
+ * "Supabase CLI", not in ~/.supabase/access-token. An earlier version of this
+ * script only read the file, so a perfectly good `supabase login` looked like
+ * "not logged in". Try the keychain first, fall back to the file (Linux, CI,
+ * and older CLIs), then the env var.
+ */
+function supabaseToken() {
+  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim()
+  try {
+    const t = execSync('security find-generic-password -s "Supabase CLI" -w', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    if (t) return t
+  } catch {
+    /* not on macOS, or no entry */
+  }
+  const tokenPath = join(process.env.HOME ?? '', '.supabase/access-token')
+  if (existsSync(tokenPath)) {
+    const t = readFileSync(tokenPath, 'utf8').trim()
+    if (t) return t
+  }
+  return null
+}
+
+const sbToken = supabaseToken()
 
 if (!sbToken) {
   console.error('  Supabase CLI is not logged in.\n  Run:  corepack pnpm exec supabase login\n')
@@ -91,6 +117,23 @@ record('service-role key', Boolean(serviceRole), mask(serviceRole))
 if (!publishable || !serviceRole) process.exit(1)
 
 // ── 2. .env.local ─────────────────────────────────────────────────────────
+// Fetch the real pooler connection string so the only thing a human has to
+// supply is the password. Hand-assembling this is a reliable way to get a
+// confusing DNS failure: the pooler host is region-specific and the username
+// is `postgres.<ref>`, not `postgres`.
+let poolerTemplate = ''
+try {
+  const pooler = await api(`/v1/projects/${PROJECT_REF}/config/database/pooler`)
+  if (pooler.status === 200) {
+    const cfg = JSON.parse(pooler.body)
+    const one = Array.isArray(cfg) ? cfg[0] : cfg
+    poolerTemplate = (one?.connection_string ?? '').replace(/:([^:@]{6,})@/, ':[YOUR-PASSWORD]@')
+  }
+} catch {
+  /* non-fatal — the comment below still tells them where to look */
+}
+record('pooler connection string', Boolean(poolerTemplate), poolerTemplate || '(unavailable — use the dashboard)')
+
 const dbUrl = process.env.SUPABASE_DB_URL ?? ''
 const envPath = join(root, '.env.local')
 const envBody = `# Written by scripts/bootstrap.mjs. Not committed — see .gitignore.
@@ -104,8 +147,11 @@ SUPABASE_SERVICE_ROLE_KEY=${serviceRole}
 BOA_ACC_OPERATOR_BOOTSTRAP=
 
 # Needed by \`corepack pnpm test:db\`. Supabase does not expose the database
-# password through the API — take it from the dashboard, or reset it:
-# https://supabase.com/dashboard/project/${PROJECT_REF}/settings/database
+# password through the API, by design. Get it (or reset it) here:
+#   https://supabase.com/dashboard/project/${PROJECT_REF}/settings/database
+# Then substitute it into this exact string — do NOT hand-assemble one, the
+# pooler host is region-specific and the user is postgres.<ref>, not postgres:
+${poolerTemplate ? `#   ${poolerTemplate}` : '#   (see the dashboard)'}
 SUPABASE_DB_URL=${dbUrl}
 `
 if (!CHECK) writeFileSync(envPath, envBody)

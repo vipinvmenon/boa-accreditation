@@ -28,3 +28,9 @@ supabase/.branches/
 /test-results/
 /playwright-report/
 /coverage/
+
+# `vercel link` appends a blanket `.env*`. Keep it — belt and braces over the
+# specific rules above — but negate the one env file that IS the contract.
+# .env.example carries no values, only the shape, and every new agent needs it.
+.env*
+!.env.example

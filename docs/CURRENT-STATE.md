@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (sixth update)._
+_Last updated: 11 September 2026 (seventh update)._
 
 ## In one line
 
@@ -70,25 +70,36 @@ directories are scaffolded but empty:
 - **Almost no tests.** Only the design-contract suite exists. Playwright is
   installed but unconfigured; there is no e2e suite and no aeroplane-mode test.
 
-## ⚠ The new project is in a different account from its siblings
+## Supabase org — different from the siblings, Vercel is not
 
-Verified 11 Sep by API call, not assumed:
+Corrected 11 Sep after linking. The earlier note said both platforms differed;
+**Vercel was wrong.**
 
 | | boa-accreditation | the two siblings |
 |---|---|---|
-| Supabase | `tjbfvuboyvaephtewjwq` — the CLI token on this Mac gets **403** | `vipinvmenon's Org` (`skbbvwdfpyyfpbvngkgh`) |
-| Vercel | scope `vipin-menon` | team `team_rDgA7v4RmDHjA3gFRapQoccp` |
+| Supabase org | `otlqwoxbrsshuoebbamj` | `skbbvwdfpyyfpbvngkgh` (`vipinvmenon's Org`) |
+| Vercel team | `team_rDgA7v4RmDHjA3gFRapQoccp` | **same team** ✅ |
 
-Nothing is broken by it, and it may well be deliberate. But billing, access and
-team membership are per-scope, and a second person cannot be added to a project
-they cannot see. **Moving it is much cheaper now than after 641 people are
-registered in it.** Decide before running `bootstrap` — see `docs/SETUP.md`.
+The `vipin-menon` slug in the Vercel dashboard URL merely looks personal; the
+linked `orgId` is the shared team. Only the **Supabase org** differs. That is
+worth a decision — a second person cannot be added to a project they cannot
+see, and Bhoopesh, Salman and two approvers all need access — but it is one
+thing to move, not two.
 
 ## Blocked on the user
 
 These cannot proceed without Vipin, and Phase 1 cannot start without the first:
 
-1. **Supabase — project created ✅, three things still outstanding:**
+1. **Supabase — DONE except the database URL.** ✅ Keys in `.env.local` and in
+   Vercel (15 vars across 3 environments), project linked, self-registration
+   closed. Remaining: `SUPABASE_DB_URL` into GitHub Actions secrets — you
+   already have the value, it is set in Vercel. One command:
+   ```
+   export SUPABASE_DB_URL='<the value you put in Vercel>'
+   corepack pnpm bootstrap
+   ```
+
+<details><summary>Superseded — the original three items</summary>
    - **`.env.local`** — the project's anon key and service-role key. The URL is
      already filled into `.env.example`. Without these the app cannot talk to
      the database at all, MCP access notwithstanding: the MCP server is a tool
@@ -98,6 +109,7 @@ These cannot proceed without Vipin, and Phase 1 cannot start without the first:
      interactive terminal — see the note below.
    - **`SUPABASE_DB_URL`** in the repo's GitHub Actions secrets, or CI goes red
      on 20 Sep when the dated grace period expires.
+</details>
 2. **Vercel — project created and deploying ✅.** Two loose ends:
    - **The CLI is not linked** (`.vercel/project.json` is absent) and the CLI
      token on this machine is expired (`invalidToken`). Not blocking — deploys
@@ -192,6 +204,37 @@ If a task shows `[~]` IN FLIGHT, somebody stopped mid-way — `git log` and
 Full protocol: `docs/TOOLING.md` → "Handing off between agents".
 
 ## Session log
+
+### 11 Sep 2026 — credentials landed; a live security hole found and closed
+
+Verified by running the checks, not by being told:
+
+- **Supabase project linked.** `boa-accred`, `tjbfvuboyvaephtewjwq`, ap-south-1
+  (Mumbai), Postgres 17.6.1, ACTIVE_HEALTHY.
+- **Keys fetched and written.** Modern format — `sb_publishable_…` and
+  `sb_secret_…` — which vindicates the earlier decision to use publishable
+  rather than the legacy anon key.
+- **15 Vercel env vars set** — 5 vars × Production/Preview/Development. Vercel
+  marked the service-role key Secret in Production and Preview on its own.
+- **🔴 SELF-REGISTRATION WAS ENABLED ON THE LIVE PROJECT.** `disable_signup` was
+  `false`, so anyone could have created an account. Closed via the Management
+  API and **proved closed by attempting a real signup**, which now returns
+  `422 signup_disabled`. This directly violated the project's own
+  non-negotiable, and nothing in the app would have surfaced it.
+- **Fixed the auth redirect config** while there: `site_url` and
+  `uri_allow_list` pointed at the `vercel.app` preview URL, not
+  `accred.bangaloreopenair.com`. That would have broken operator invite emails
+  in Phase 1 (ACC-026) in a way that looks like a mail problem, not a config one.
+- **Fixed a real bug in my own bootstrap script**: it read the Supabase token
+  from `~/.supabase/access-token`, but the current CLI stores it in the macOS
+  keychain. A perfectly good `supabase login` read as "not logged in". Now
+  keychain → file → env var.
+- Corrected the earlier claim that Vercel was in a different scope. It is not.
+- `.gitignore`: `vercel link` appended a blanket `.env*` which would also have
+  covered `.env.example`. Negated.
+
+**Still outstanding:** `SUPABASE_DB_URL` as a GitHub Actions secret. Vercel
+refuses to reveal Secret values (correctly), so it has to come from Vipin.
 
 ### 11 Sep 2026 — the credentials path, reduced to one command
 
