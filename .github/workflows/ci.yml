@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: app (typecheck, lint, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm typecheck
+      # `lint` runs check-design-tokens.mjs and audit-font-weights.mjs before
+      # eslint. Both prove the transcription still matches design/source/.
+      - run: corepack pnpm lint
+      - run: corepack pnpm test
+      - run: corepack pnpm build
+
+  database:
+    name: database (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+
+      # This job is REQUIRED, not advisory. boa-bar-control shipped its
+      # equivalent with `continue-on-error: true` and a "FLIP THIS TO REQUIRED"
+      # comment that was still there weeks later, so the suite never gated
+      # anything.
+      #
+      # There is genuinely no database yet (ACC-009 is blocked on Vipin), so a
+      # hard failure now would just train everyone to ignore a red tick. Instead
+      # the exception is DATED and expires itself: from 20 Sep 2026 — Milestone
+      # A, when the first invite links go out — a missing SUPABASE_DB_URL fails
+      # the build. No human has to remember to flip anything.
+      - name: Check the database secret
+        id: gate
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ]; then
+            echo "have_db=true" >> "$GITHUB_OUTPUT"
+            echo "SUPABASE_DB_URL is set — running the suite."
+            exit 0
+          fi
+          echo "have_db=false" >> "$GITHUB_OUTPUT"
+          GRACE_ENDS=$(date -u -d '2026-09-20' +%s 2>/dev/null || date -u -j -f '%Y-%m-%d' '2026-09-20' +%s)
+          NOW=$(date -u +%s)
+          if [ "$NOW" -ge "$GRACE_ENDS" ]; then
+            echo "::error::SUPABASE_DB_URL is not set and the grace period ended on 20 Sep 2026."
+            echo "The pgTAP suite proves anon has zero grants and that quota is enforced"
+            echo "server-side. Shipping without it is not an option. See docs/ROADMAP.md ACC-009."
+            exit 1
+          fi
+          echo "::warning::SUPABASE_DB_URL not set. Skipping until the grace period ends on 2026-09-20 (ACC-009)."
+
+      - name: Static migration check
+        if: always()
+        run: corepack pnpm check:sql || echo "::warning::check:sql not implemented yet (ACC-011)"
+
+      - name: pgTAP
+        if: steps.gate.outputs.have_db == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: corepack pnpm test:db
