@@ -14,7 +14,7 @@
 //
 // Plus the font-weight audit, which is its own script.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -82,6 +82,11 @@ const HEX_ALLOWED = new Set([
   'app/layout.tsx', // the <body> fallback + themeColor
 ])
 const walk = (dir, acc = []) => {
+  // A fresh clone does not contain empty scaffold directories: git does not
+  // track them. This crashed CI on the first run while passing locally, which
+  // is the exact failure mode a gate must not have — it has to work on a clone,
+  // not only on the machine that created the tree.
+  if (!existsSync(join(root, dir))) return acc
   for (const name of readdirSync(join(root, dir))) {
     const rel = join(dir, name)
     if (/^(node_modules|\.next|\.git|design|public|supabase|tests|scripts)$/.test(name)) continue
