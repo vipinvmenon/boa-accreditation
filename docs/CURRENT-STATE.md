@@ -3,11 +3,13 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 10 September 2026._
+_Last updated: 11 September 2026._
 
 ## In one line
 
-Phase 0 (foundation) is complete and every gate is green on an empty app.
+Phase 0 (foundation) is complete, pushed to
+[vipinvmenon/boa-accreditation](https://github.com/vipinvmenon/boa-accreditation)
+(**private**), and CI is green.
 **No database exists yet.** No Supabase project, no Vercel project, no schema,
 no screens beyond the root dead-end, the 404 and the error boundary.
 
@@ -37,6 +39,12 @@ Verified on 10 Sep by running the commands, not by assertion:
 - `scripts/extract-assets.mjs` recovers the logo (1008×360) and the Control room
   poster (1122×1402) from the design bundle. Both verified real PNGs.
 - `scripts/build-gate-sw.mjs` runs and emits a 27-entry precache (~622 KB).
+- `corepack pnpm test` — 13 tests green (`tests/unit/design-contract.test.ts`).
+- **The design gates were mutation-tested, not assumed.** Reordering two zones
+  fails the suite; "reconciling" the two colour layers fails both the suite and
+  the lint gate.
+- **CI is green on GitHub** (run 34515651290, both jobs). The whole chain was
+  also verified inside a real `git clone`, not only in the working tree.
 
 ## What does NOT exist yet
 
@@ -54,8 +62,8 @@ directories are scaffolded but empty:
 - **No design reference images.** `scripts/build-design-reference.mjs` and
   `visual-check.mjs` are not written, so `test:visual` does not run yet. The
   Anton bold question (DESIGN-SYSTEM.md) cannot be settled until they exist.
-- **No tests.** `corepack pnpm test` runs zero tests; Vitest and Playwright are
-  installed but unconfigured.
+- **Almost no tests.** Only the design-contract suite exists. Playwright is
+  installed but unconfigured; there is no e2e suite and no aeroplane-mode test.
 
 ## Blocked on the user
 
@@ -72,7 +80,36 @@ These cannot proceed without Vipin, and Phase 1 cannot start without the first:
    Needed by 17 Sep for Phase 2.
 4. **Email addresses** for Bhoopesh, Salman and the two approvers.
 
+## The database CI job, and its expiry date
+
+The `database` job is **required, not advisory**. It currently skips, because
+there is no database — but the exception is **dated and expires itself**: from
+**20 Sep 2026** a missing `SUPABASE_DB_URL` secret fails the build.
+
+This is deliberate. bar-control shipped the same job with `continue-on-error:
+true` and a "FLIP THIS TO REQUIRED" comment that was still there weeks later,
+so its pgTAP suite never gated anything. Nobody here has to remember to flip
+anything; the calendar does it.
+
+**Action:** once ACC-009 lands, add `SUPABASE_DB_URL` to the repo's Actions
+secrets. After 20 Sep, CI goes red without it.
+
 ## Session log
+
+### 11 Sep 2026 — repository, CI, first tests
+
+- Created **private** GitHub repo `vipinvmenon/boa-accreditation` and pushed.
+  Private because this carries the access-control design for a live event three
+  weeks out; private → public is one command later, the reverse un-indexes
+  nothing. The siblings disagree (bar-control public, stok-form private), so
+  there was no convention to inherit.
+- Added `tests/unit/design-contract.test.ts` — 13 tests over the pass types,
+  their zones, and the zone ORDER, which a colour check cannot see.
+- Added CI. Both gates mutation-tested before being trusted.
+- **CI caught a real bug on its first run that local dev had masked**: git does
+  not track empty directories, so `components/` and `gate/` are absent in a
+  clone and the token gate's directory walk crashed on them. Fixed, and
+  re-verified inside an actual `git clone`.
 
 ### 10 Sep 2026 — Phase 0
 
