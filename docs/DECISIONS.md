@@ -133,6 +133,43 @@ precache by URL.
 
 ---
 
+## ADR-008 — The visual reference is the approved bundle rendering itself, regenerated per run
+
+**Accepted 11 Sep 2026.**
+
+`design/reference/` holds 28 PNGs (7 screens × 2 themes × 2 viewports). Two
+decisions, both against the obvious choice.
+
+**1. The reference is captured by driving the approved bundle in a real browser,
+not by porting `renderVals()` to Node.** A fidelity gate whose reference is a
+second implementation of the design's logic proves only that two of our own
+guesses agree. bar-control's design QA failed exactly this way, and recorded the
+lesson as *"the cheapest way to pass a screenshot comparison is to hardcode the
+screenshot's values."* Rendering the artefact itself removes the entire class of
+error.
+
+**2. The PNGs are gitignored and regenerated on every CI run**, rather than
+committed as a baseline.
+
+Committing a baseline is the conventional choice, and it was rejected because a
+committed PNG fails on a runner image bump — Chrome renders antialiasing
+slightly differently — and the fix everyone reaches for is "regenerate the
+baseline", which is the single move that destroys a visual gate permanently.
+Capturing the reference and rendering the app in the **same browser, in the same
+run** isolates *our app vs the design* from *Chrome 130 vs Chrome 131*.
+
+The baseline cannot drift silently, because `design/source/boa_design_bundle.html`
+**is** committed: any change to the contract shows as a diff in review.
+
+Verified before accepting: 28/28 captures are byte-identical across consecutive
+runs on the same machine. It also avoids 4.8 MB of binary churn per re-capture.
+
+**The consequence to accept:** the design job is slower (it installs Chromium and
+renders 28 screens). That is the right thing to pay for the one gate that
+protects "I need the app exactly like the design".
+
+---
+
 ## Decisions taken by the user, 10 Sep 2026
 
 Recorded here so they are not re-opened by someone reading only the spec.

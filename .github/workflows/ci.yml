@@ -79,3 +79,38 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: corepack pnpm test:db
+
+  design:
+    name: design fidelity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm exec playwright install --with-deps chromium
+
+      # The references are REGENERATED here rather than committed, and that is
+      # deliberate. Capturing the approved bundle and rendering our app in the
+      # same browser, in the same run, isolates "our app vs the design" from
+      # "Chrome 130 vs Chrome 131". A committed PNG baseline would fail on a
+      # runner image bump and teach everyone to regenerate the baseline, which
+      # is the one move that destroys a visual gate.
+      #
+      # The baseline cannot drift silently: design/source/ is committed, so any
+      # change to the contract itself shows up as a diff in review.
+      # Verified 11 Sep: 28/28 captures are byte-identical across runs.
+      - run: corepack pnpm design:reference
+      - run: corepack pnpm build
+      - run: corepack pnpm test:visual
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-diffs
+          path: |
+            test-results/visual/
+            design/reference/manifest.json
+          retention-days: 14
