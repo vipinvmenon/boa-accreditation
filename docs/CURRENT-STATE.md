@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (fourth update)._
+_Last updated: 11 September 2026 (fifth update)._
 
 ## In one line
 
@@ -167,7 +167,32 @@ anything; the calendar does it.
 **Action:** once ACC-009 lands, add `SUPABASE_DB_URL` to the repo's Actions
 secrets. After 20 Sep, CI goes red without it.
 
+## Picking this up in Cursor or Codex
+
+Run `corepack pnpm task`. It reads `docs/ROADMAP.md` and prints what is in
+flight, what is next, and what is blocked on a human. Then read this file.
+
+If a task shows `[~]` IN FLIGHT, somebody stopped mid-way — `git log` and
+`git diff` show how far. Pick it up rather than starting something new.
+
+Full protocol: `docs/TOOLING.md` → "Handing off between agents".
+
 ## Session log
+
+### 11 Sep 2026 — agent handoff made mechanical
+
+- `corepack pnpm task` — status / start / done / block, reading and writing
+  `docs/ROADMAP.md` directly so there is no second copy of task state.
+- All 58 tasks normalised to one parseable checkbox format (they were split
+  between markdown tables and checkboxes, which no script could read and GitHub
+  rendered inconsistently).
+- `task done` runs typecheck, lint and test and **refuses to tick the box** if
+  any fails — non-negotiable #10 made mechanical rather than remembered.
+- The session-start protocol is in all three agent configs, and
+  `check-agent-docs.mjs` now fails lint if Cursor's copy stops mentioning it.
+  Mutation-tested: removing it from the Cursor rules alone fails the gate.
+- Fixed a real bug in the same script: it stamped release notes in UTC, writing
+  yesterday's date through the entire Indian evening. Now Asia/Kolkata.
 
 ### 11 Sep 2026 — the design gate, multi-agent setup, always-on verification
 

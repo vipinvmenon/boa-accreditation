@@ -52,20 +52,20 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
-- [x] **ACC-001** Recover the design from the bundle; commit to `design/source/`
-- [x] **ACC-002** Scaffold Next 16 / React 19 / TS strict / pnpm
-- [x] **ACC-003** Transcribe both colour layers; `check-design-tokens.mjs` gate
-- [x] **ACC-004** Fonts via `@fontsource`; `audit-font-weights.mjs` gate
-- [x] **ACC-005** `extract-assets.mjs` — logo + poster out of the bundle
-- [x] **ACC-006** `build-gate-sw.mjs`, precaching only routes Next emitted
-- [x] **ACC-007** Root dead end, 404, error boundary
-- [x] **ACC-008** `/docs`, `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`
-- [x] **ACC-010** Vercel project live at `accred.bangaloreopenair.com`
-- [x] **ACC-012** Design reference capture (28 refs) + `visual-check.mjs`
-- [x] **ACC-013** CI: app + database jobs, database required from 20 Sep
-- [x] **ACC-014** `verify-deploy.mjs` + deployment_status workflow
-- [x] **ACC-015** Git hooks: pre-commit gates, pre-push build + visual
-- [x] **ACC-016** MCP servers registered; Supabase agent skills installed
+- [x] **ACC-001** · Recover the design from the bundle; commit to `design/source/`
+- [x] **ACC-002** · Scaffold Next 16 / React 19 / TS strict / pnpm
+- [x] **ACC-003** · Transcribe both colour layers; `check-design-tokens.mjs` gate
+- [x] **ACC-004** · Fonts via `@fontsource`; `audit-font-weights.mjs` gate
+- [x] **ACC-005** · `extract-assets.mjs` — logo + poster out of the bundle
+- [x] **ACC-006** · `build-gate-sw.mjs`, precaching only routes Next emitted
+- [x] **ACC-007** · Root dead end, 404, error boundary
+- [x] **ACC-008** · `/docs`, `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`
+- [x] **ACC-010** · Vercel project live at `accred.bangaloreopenair.com`
+- [x] **ACC-012** · Design reference capture (28 refs) + `visual-check.mjs`
+- [x] **ACC-013** · CI: app + database jobs, database required from 20 Sep
+- [x] **ACC-014** · `verify-deploy.mjs` + deployment_status workflow
+- [x] **ACC-015** · Git hooks: pre-commit gates, pre-push build + visual
+- [x] **ACC-016** · MCP servers registered; Supabase agent skills installed
 
 ---
 
@@ -73,18 +73,16 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 
 **This is the critical path. If it slips, Milestone A slips.**
 
-| | ID | Task | Owner | Due |
-|---|---|---|---|---|
-| ☐ | ACC-011 | `db-test.mjs`, `db-state.mjs`, `sql-arity-check.py`, `lib/db-url.mjs` | C | Fri 11 |
-| ☐ | ACC-020 | `202609110001_boa_acc_core.sql` — 9 tables, enums, `pass_only_when_approved` CHECK, `ENABLE ALWAYS` triggers | C | Sat 12 |
-| ☐ | ACC-021 | `..._lock_down_privileges.sql` — anon has nothing; column grants omitting `pass_token`; views `security_invoker` | C | Sat 12 |
-| ☐ | ACC-022 | `privileges.test.sql` — every table, every function, both roles, **and through the views** | C | Sun 13 |
-| ☐ | ACC-023 | `boa_acc_mint_invite` / `org_view` / `submit` + `quota`, `tokens`, `throttle` tests | C | Mon 14 |
-| ☐ | ACC-024 | `/api/s/[token]` + ported `lib/rate-limit.ts` | C | Tue 15 |
-| ☐ | ACC-025 | `/s/[token]` — Submission screen, transcribed, both themes | C | Wed 16 |
-| ☐ | ACC-026 | `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers | C/V | Wed 16 |
-| ☐ | ACC-027 | `/desk/orgs` — create org, set quota, mint link, copy | C | Thu 17 |
-| ☐ | ACC-028 | Enable PITR on the Supabase project | V | Thu 17 |
+- [ ] **ACC-011** · `db-test.mjs`, `db-state.mjs`, `sql-arity-check.py`, `lib/db-url.mjs` · **C** · due Fri 11
+- [ ] **ACC-020** · `202609110001_boa_acc_core.sql` — 9 tables, enums, `pass_only_when_approved` CHECK, `ENABLE ALWAYS` triggers · **C** · due Sat 12
+- [ ] **ACC-021** · `..._lock_down_privileges.sql` — anon has nothing; column grants omitting `pass_token`; views `security_invoker` · **C** · due Sat 12
+- [ ] **ACC-022** · `privileges.test.sql` — every table, every function, both roles, **and through the views** · **C** · due Sun 13
+- [ ] **ACC-023** · `boa_acc_mint_invite` / `org_view` / `submit` + `quota`, `tokens`, `throttle` tests · **C** · due Mon 14
+- [ ] **ACC-024** · `/api/s/[token]` + ported `lib/rate-limit.ts` · **C** · due Tue 15
+- [ ] **ACC-025** · `/s/[token]` — Submission screen, transcribed, both themes · **C** · due Wed 16
+- [ ] **ACC-026** · `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers · **C/V** · due Wed 16
+- [ ] **ACC-027** · `/desk/orgs` — create org, set quota, mint link, copy · **C** · due Thu 17
+- [ ] **ACC-028** · Enable PITR on the Supabase project · **V** · due Thu 17
 
 **Acceptance — all four, or Phase 1 is not done:**
 1. A real link on the production domain accepts 3 people.
@@ -94,12 +92,10 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 
 ## Phase 2 — Ready to send · Fri 18 – Sat 19 Sep
 
-| | ID | Task | Owner | Due |
-|---|---|---|---|---|
-| ☐ | ACC-030 | Load all 38 orgs — kinds, quotas, contacts | C/B | Fri 18 |
-| ☐ | ACC-031 | Mint + label 38 invite tokens; export a WhatsApp-ready list | C | Fri 18 |
-| ☐ | ACC-032 | Confirmation copy, duplicate-phone path, closed-org path | C | Sat 19 |
-| ☐ | ACC-033 | `/desk` Control room on `boa_acc_desk_dashboard()` | C | Sat 19 |
+- [ ] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
+- [ ] **ACC-031** · Mint + label 38 invite tokens; export a WhatsApp-ready list · **C** · due Fri 18
+- [ ] **ACC-032** · Confirmation copy, duplicate-phone path, closed-org path · **C** · due Sat 19
+- [ ] **ACC-033** · `/desk` Control room on `boa_acc_desk_dashboard()` · **C** · due Sat 19
 
 **Acceptance: Bhoopesh opens a link on his own phone, adds himself with a
 vehicle, and watches the seat count move.** Not a demo on my machine.
@@ -113,15 +109,13 @@ vehicle, and watches the seat count move.** Not a demo on my machine.
 
 Runs while submissions arrive.
 
-| | ID | Task | Owner | Due |
-|---|---|---|---|---|
-| ☐ | ACC-040 | Approval queue — filters, per-row type, bulk, *Approve all →*, reasons | C | Tue 22 |
-| ☐ | ACC-041 | `boa_acc_decide` + `approve_org` + `ledger`/`reissue` tests | C | Tue 22 |
-| ☐ | ACC-042 | Master list — search, CSV, In BMS / Not in BMS column | C | Wed 23 |
-| ☐ | ACC-043 | Passes — server-rendered QR SVG, A4 print CSS, WhatsApp share | C | Thu 24 |
-| ☐ | ACC-044 | `/desk/aaa` + nomination guard + `aaa.test.sql` | C | Fri 25 |
-| ☐ | ACC-045 | `/desk/devices` — mint/revoke, raw token shown once | C | Fri 25 |
-| ☐ | ACC-046 | **Each approver runs the queue once.** Not for the first time on the day | B/SN | Sat 26 |
+- [ ] **ACC-040** · Approval queue — filters, per-row type, bulk, *Approve all →*, reasons · **C** · due Tue 22
+- [ ] **ACC-041** · `boa_acc_decide` + `approve_org` + `ledger`/`reissue` tests · **C** · due Tue 22
+- [ ] **ACC-042** · Master list — search, CSV, In BMS / Not in BMS column · **C** · due Wed 23
+- [ ] **ACC-043** · Passes — server-rendered QR SVG, A4 print CSS, WhatsApp share · **C** · due Thu 24
+- [ ] **ACC-044** · `/desk/aaa` + nomination guard + `aaa.test.sql` · **C** · due Fri 25
+- [ ] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25
+- [ ] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
 
 **Acceptance:** 100 real submissions approved through the real queue · 14 passes
 print one per A4 and **a phone decodes the QR off the paper** · `pass_token`
@@ -132,21 +126,19 @@ provably absent before approval · AAA unstampable without a nomination ·
 
 **The hardest week. Do not let it start late.**
 
-| | ID | Task | Owner | Due |
-|---|---|---|---|---|
-| ☐ | ACC-050 | `gate/db.ts` Dexie v1 | C | Mon 28 |
-| ☐ | ACC-051 | Port `outbox-policy.ts` from bar-control + unit tests | C | Mon 28 |
-| ☐ | ACC-052 | `gate/resolve.ts` — pure green/amber/red incl. pending-outbox amber | C | Tue 29 |
-| ☐ | ACC-053 | `gate/scanner.ts` — BarcodeDetector + zxing-wasm fallback | C | Tue 29 |
-| ☐ | ACC-053b | **Prove zxing-wasm on a real iPhone.** Not deferrable — see R1 | V | **Tue 29** |
-| ☐ | ACC-054 | `/gate/setup`, `/gate` transcribed, `force-static`, **+ sticker input** | C | Wed 30 |
-| ☐ | ACC-055 | `/gate/vehicle` + `vehicle.test.sql` | C | Thu 1 Oct |
-| ☐ | ACC-056 | `/api/gate/*`; SW precache incl. the `.wasm` | C | Thu 1 Oct |
-| ☐ | ACC-057 | `aeroplane-mode.spec.ts` + the two failure-path tests | C | Fri 2 Oct |
-| ☐ | ACC-058 | **Rehearsal: two real phones, one an iPhone, real aeroplane mode** | V/B | **Sat 3 Oct** |
-| ☐ | ACC-059 | Print the paper fallback: approved list by org, blank issue sheets | B | Sat 3 Oct |
-| ☐ | ACC-060 | Optimise `boa-logo.png` — 290 KB is heavy for a gate precache | C | Fri 2 Oct |
-| ☐ | ACC-061 | Mint device tokens for 4 phones | B | Sat 3 Oct |
+- [ ] **ACC-050** · `gate/db.ts` Dexie v1 · **C** · due Mon 28
+- [ ] **ACC-051** · Port `outbox-policy.ts` from bar-control + unit tests · **C** · due Mon 28
+- [ ] **ACC-052** · `gate/resolve.ts` — pure green/amber/red incl. pending-outbox amber · **C** · due Tue 29
+- [ ] **ACC-053** · `gate/scanner.ts` — BarcodeDetector + zxing-wasm fallback · **C** · due Tue 29
+- [ ] **ACC-053b** · **Prove zxing-wasm on a real iPhone.** Not deferrable — see R1 · **V** · due **Tue 29**
+- [ ] **ACC-054** · `/gate/setup`, `/gate` transcribed, `force-static`, **+ sticker input** · **C** · due Wed 30
+- [ ] **ACC-055** · `/gate/vehicle` + `vehicle.test.sql` · **C** · due Thu 1 Oct
+- [ ] **ACC-056** · `/api/gate/*`; SW precache incl. the `.wasm` · **C** · due Thu 1 Oct
+- [ ] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
+- [ ] **ACC-058** · **Rehearsal: two real phones, one an iPhone, real aeroplane mode** · **V/B** · due **Sat 3 Oct**
+- [ ] **ACC-059** · Print the paper fallback: approved list by org, blank issue sheets · **B** · due Sat 3 Oct
+- [ ] **ACC-060** · Optimise `boa-logo.png` — 290 KB is heavy for a gate precache · **C** · due Fri 2 Oct
+- [ ] **ACC-061** · Mint device tokens for 4 phones · **B** · due Sat 3 Oct
 
 **Acceptance:** cold start with the radio off renders the scanner and the full
 cached roster · every step of the aeroplane-mode spec asserted in CI · **both
@@ -159,9 +151,9 @@ printed and at the desk.
 
 ## Phase 5 — Live · Sun 4 – Sat 10 Oct
 
-- [ ] **ACC-070** Daily 08:00 reconcile: bands issued vs ledger; NOT IN BMS chased from `/desk/master?in_bms=false` · **B** · every day
-- [ ] **ACC-071** Watch `verify-deploy` (runs 08:00 IST daily) · **C/V**
-- [ ] **ACC-072** Post-show: export the ledger, reconcile against paper · **B** · 11 Oct
+- [ ] **ACC-070** · Daily 08:00 reconcile: bands issued vs ledger; NOT IN BMS chased from `/desk/master?in_bms=false` · **B** · every day
+- [ ] **ACC-071** · Watch `verify-deploy` (runs 08:00 IST daily) · **C/V**
+- [ ] **ACC-072** · Post-show: export the ledger, reconcile against paper · **B** · 11 Oct
 
 ## After the show
 

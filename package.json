@@ -22,7 +22,8 @@
     "design:reference": "node scripts/capture-design-reference.mjs",
     "assets:extract": "node scripts/extract-assets.mjs",
     "prepare": "node scripts/install-hooks.mjs",
-    "verify:deploy": "node scripts/verify-deploy.mjs"
+    "verify:deploy": "node scripts/verify-deploy.mjs",
+    "task": "node scripts/task.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

@@ -25,6 +25,34 @@ where the truth lives and what you may not do.
 `design/source/` is the approved design, committed verbatim. It is the **UI
 contract** and the **domain contract**. It is not inspiration.
 
+## Starting a session — do this before anything else
+
+You inherit the repository, not the previous agent's conversation. Everything
+you need is committed; nothing you need is in someone's scrollback.
+
+```bash
+corepack pnpm task          # what is in flight, what is next, what is blocked
+git log --oneline -5        # what the last agent actually did
+```
+
+Then read `docs/CURRENT-STATE.md`.
+
+1. **If something is IN FLIGHT (`[~]`), pick that up.** Do not start a new task.
+   `git log` and `git diff` show how far it got.
+2. **Otherwise take the first NEXT UP task.** The roadmap decides the order, not
+   you. If the order is wrong, say so — do not quietly reorder it.
+3. **Claim it:** `corepack pnpm task start ACC-nnn`, then commit
+   `docs/ROADMAP.md` so the next agent can see it is taken.
+4. **Finish it:** `corepack pnpm task done ACC-nnn`. This runs typecheck, lint
+   and test and refuses to tick the box if any of them fail — non-negotiable #10
+   made mechanical rather than remembered.
+5. **Out of time, or blocked?** `corepack pnpm task block ACC-nnn "why"` and
+   commit. That single line is what lets the next agent — Claude, Cursor or
+   Codex — resume instead of restart.
+
+**Never leave a task in flight without committing that fact.** An uncommitted
+`[~]` is invisible to every other tool.
+
 ## Non-negotiables
 
 Violating any of these is a defect regardless of how good the reason seemed.

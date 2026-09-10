@@ -19,6 +19,56 @@ change both — there is a CI check for exactly this.
 
 **The rule for all three: read `docs/CURRENT-STATE.md` first, every session.**
 
+## Handing off between agents
+
+**The problem this solves:** an agent inherits the repository, not the previous
+agent's conversation. If you hit Claude limits mid-task and open Cursor, Cursor
+has the docs but no idea which task was underway or how far it got. Without a
+marker it restarts the task, or worse, starts the one after it.
+
+`docs/ROADMAP.md` is the single source of truth for task state — there is no
+second copy anywhere. Every task is one parseable line:
+
+```
+- [ ] **ACC-020** · not started
+- [~] **ACC-020** · IN FLIGHT — somebody is on this
+- [x] **ACC-020** · done, gates passed
+```
+
+GitHub renders these as real checkboxes, so you can tick things off in the web UI
+and the script sees it.
+
+```bash
+corepack pnpm task                      # in flight · next up · blocked on a human
+corepack pnpm task start ACC-020        # claim it — refuses if another is in flight
+corepack pnpm task done  ACC-020        # runs typecheck+lint+test, THEN ticks the box
+corepack pnpm task block ACC-020 "ran out of limits mid-migration"
+```
+
+`task done` is the important one: it refuses to tick the box if any gate fails.
+Non-negotiable #10 — *never mark a task done without meeting its acceptance
+criteria* — made mechanical instead of remembered.
+
+`task block` writes the reason into `docs/CURRENT-STATE.md`. **That one line is
+what lets the next agent resume instead of restart**, so it is worth writing
+properly: "stopped after the tables landed, RLS policies not written" beats
+"out of limits".
+
+**Always commit the roadmap change.** An uncommitted `[~]` is invisible to every
+other tool. Dates are written in **IST**, not UTC — the whole plan is on festival
+time, and a UTC timestamp writes yesterday's date for the entire Indian evening.
+
+### The session-start protocol
+
+All three agents are told the same thing (`CLAUDE.md`, `AGENTS.md`,
+`.cursor/rules/00-truth.mdc`), and `check-agent-docs.mjs` fails lint if any of
+them stops saying it:
+
+1. `corepack pnpm task` and `git log --oneline -5`
+2. Read `docs/CURRENT-STATE.md`
+3. Something `[~]`? Pick that up. Otherwise take the first NEXT UP.
+4. Claim, work, `task done` — or `task block` with a real reason.
+
 ## Commands — the same everywhere
 
 **`pnpm` is not on the PATH on this machine.** Always `corepack pnpm`.

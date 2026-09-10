@@ -70,6 +70,8 @@ if (!existsSync(join(root, '.cursor/rules'))) {
     ['pass_token', 'no token before approval'],
     ['corepack pnpm', 'the command prefix'],
     ['test:visual', 'the design gate'],
+    ['task start', 'the resume protocol — without it Cursor restarts instead of resuming'],
+    ['IN FLIGHT', 'how to spot a half-finished task'],
   ]
   for (const [needle, what] of mustMention) {
     if (!cursor.includes(needle)) fail(`.cursor/rules/ never mentions "${needle}" — ${what} is missing for Cursor`)
