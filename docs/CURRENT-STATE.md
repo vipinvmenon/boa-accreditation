@@ -3,17 +3,20 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (second update)._
+_Last updated: 11 September 2026 (third update)._
 
 ## In one line
 
 Phase 0 (foundation) is complete, pushed to
 [vipinvmenon/boa-accreditation](https://github.com/vipinvmenon/boa-accreditation)
 (**private**), and CI is green.
-**The Supabase project now exists** — ref `tjbfvuboyvaephtewjwq`, verified live
-— but nothing has been built in it: **no schema, no migrations, no keys in
-`.env.local`.** No Vercel project. No screens beyond the root dead-end, the 404
-and the error boundary.
+**The app is deployed and live at
+[accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)**, served
+from `bom1`, with the GitHub repo connected and auto-deploying.
+**The Supabase project exists** — ref `tjbfvuboyvaephtewjwq`, verified live —
+but **nothing has been built in it: no schema, no migrations, no keys in
+`.env.local`.** No screens yet beyond the root dead-end, the 404 and the error
+boundary.
 
 ## Dates
 
@@ -81,12 +84,48 @@ These cannot proceed without Vipin, and Phase 1 cannot start without the first:
      interactive terminal — see the note below.
    - **`SUPABASE_DB_URL`** in the repo's GitHub Actions secrets, or CI goes red
      on 20 Sep when the dated grace period expires.
-2. **Create the Vercel project** `boa-accreditation` in team
-   `team_rDgA7v4RmDHjA3gFRapQoccp`, region `bom1`, and point
-   `accred.bangaloreopenair.com` at it (Sal: CNAME at Wix → `cname.vercel-dns.com`).
+2. **Vercel — project created and deploying ✅.** Two loose ends:
+   - **The CLI is not linked** (`.vercel/project.json` is absent) and the CLI
+     token on this machine is expired (`invalidToken`). Not blocking — deploys
+     go through the GitHub integration — but `vercel env pull` and `vercel logs`
+     will not work until someone runs `corepack pnpm vercel login && corepack
+     pnpm vercel link`.
+   - **The project sits under the `vipin-menon` scope**, whereas
+     boa-bar-control and boa-stok-form are under team
+     `team_rDgA7v4RmDHjA3gFRapQoccp`. Worth confirming that is intended —
+     billing, access and env vars are per-scope.
+   - **Environment variables are not set in Vercel.** The deployed build has no
+     Supabase credentials, so it can only serve the static dead-end page.
 3. **The 38 organisations** — names, kinds, quotas, contact names and phones.
    Needed by 17 Sep for Phase 2.
 4. **Email addresses** for Bhoopesh, Salman and the two approvers.
+
+## Production, verified 11 Sep
+
+Checked against the live site rather than assumed:
+
+| | |
+|---|---|
+| `accred.bangaloreopenair.com` | 200, our app, `x-vercel-id: bom1::…` |
+| `boa-accreditation.vercel.app` | 200, same build |
+| Security headers | all five present (`nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`, HSTS, `Permissions-Policy` with `camera=(self)`) |
+| `x-powered-by` | absent — `poweredByHeader: false` took effect |
+| `/s/*`, `/p/*` | `X-Robots-Tag: noindex, nofollow` (they 404 — no routes yet) |
+| `/gate/sw.js` | `Service-Worker-Allowed: /gate/`, `Cache-Control: no-cache` |
+
+**A real bug was found and fixed by this check.** The generated service worker
+was precaching `/gate`, `/gate/vehicle` and `/gate/setup` — routes that do not
+exist yet — and all three 404 in production. `caches.addAll()` is
+all-or-nothing, so a single 404 rejects the whole install and the service worker
+never activates. Listing an unbuilt route was therefore not a harmless
+placeholder, it was a switch that silently turns the offline gate off.
+`build-gate-sw.mjs` now reads the prerender manifest and precaches only routes
+Next actually emitted, and **fails the build** if some gate routes exist and
+others do not.
+
+Nothing registers the service worker yet, so this had no live effect — but it
+would have surfaced in Phase 4 as "offline just doesn't work", which is the
+worst week to debug it.
 
 ## The Supabase MCP server — configured, NOT yet authenticated
 
@@ -129,6 +168,17 @@ anything; the calendar does it.
 secrets. After 20 Sep, CI goes red without it.
 
 ## Session log
+
+### 11 Sep 2026 — Vercel live, and a service-worker bug caught in production
+
+- `accred.bangaloreopenair.com` is live and serving the app from `bom1`. The
+  GitHub repo is connected; pushes auto-deploy.
+- Verified every `vercel.json` header actually applied. They silently no-op when
+  wrong, so this was checked against the live response, not the config file.
+- **Fixed:** the service-worker precache listed three routes that do not exist,
+  which would have made `caches.addAll()` reject and disable offline support
+  entirely. See "Production, verified 11 Sep" above.
+- Vercel CLI added as a pinned devDependency rather than a global install.
 
 ### 11 Sep 2026 — Supabase MCP + skills
 

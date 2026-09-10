@@ -70,10 +70,31 @@ const chunks = gateChunks()
 // .wasm is not precached, every iPhone at the gate silently loses the camera.
 const wasm = assets.filter((p) => /\.wasm$/.test(p))
 
+/**
+ * Only precache routes Next ACTUALLY emitted.
+ *
+ * caches.addAll() is all-or-nothing: one 404 and the whole install rejects, the
+ * service worker never activates, and the gate silently loses offline support.
+ * Listing a route that does not exist yet — as this did while /gate was still
+ * unbuilt — is therefore not a harmless placeholder, it is a switch that turns
+ * the offline gate off. Verified against production on 11 Sep: /gate,
+ * /gate/vehicle and /gate/setup were all in the precache list and all 404ing.
+ *
+ * The prerender manifest is the ground truth for what was emitted. Ask it,
+ * do not assume.
+ */
+function emittedRoutes() {
+  const manifestPath = join(NEXT, 'prerender-manifest.json')
+  if (!existsSync(manifestPath)) return []
+  const routes = Object.keys(JSON.parse(readFileSync(manifestPath, 'utf8')).routes ?? {})
+  return ['/gate', '/gate/vehicle', '/gate/setup'].filter((r) => routes.includes(r))
+}
+
+const routes = emittedRoutes()
+const missing = ['/gate', '/gate/vehicle', '/gate/setup'].filter((r) => !routes.includes(r))
+
 const PRECACHE = [
-  '/gate',
-  '/gate/vehicle',
-  '/gate/setup',
+  ...routes,
   '/assets/boa-logo.png',
   ...new Set([...chunks, ...css, ...fonts, ...wasm]),
 ]
@@ -144,8 +165,18 @@ self.addEventListener('fetch', (event) => {
 mkdirSync(dirname(OUT), { recursive: true })
 writeFileSync(OUT, sw)
 console.log(
-  `build-gate-sw: ${PRECACHE.length} precached (${chunks.length} chunks, ${css.length} css, ${fonts.length} fonts, ${wasm.length} wasm) -> public/gate/sw.js`,
+  `build-gate-sw: ${PRECACHE.length} precached (${routes.length} routes, ${chunks.length} chunks, ${css.length} css, ${fonts.length} fonts, ${wasm.length} wasm) -> public/gate/sw.js`,
 )
+if (missing.length) {
+  console.warn(`build-gate-sw: ${missing.join(', ')} not built yet — excluded. The gate has no offline support until they exist (Phase 4, ACC-054).`)
+}
 if (wasm.length === 0) {
   console.warn('build-gate-sw: NOTE no .wasm precached yet — the zxing fallback lands in Phase 4 (iOS has no BarcodeDetector).')
+}
+
+// Once the gate exists, a missing route is a build error, not a warning: it
+// means the SW would ship an install that always rejects.
+if (routes.length > 0 && missing.length > 0) {
+  console.error(`build-gate-sw: some gate routes are built and some are not (${missing.join(', ')}). Refusing to emit a precache list that would fail to install.`)
+  process.exit(1)
 }
