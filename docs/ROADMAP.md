@@ -33,20 +33,34 @@ Everything else is off the critical path and can be cut. See "Cut order".
 
 These block **all** of Phase 1. Nothing on the critical path can start without #1.
 
-- [ ] **ACC-009a** · Publishable + service-role keys into `.env.local` **and**
-      into Vercel env vars (Production + Preview). **V** · *needed 11 Sep*
-- [ ] **ACC-009b** · Authenticate the Supabase MCP server. In a regular
-      terminal, from this directory: `claude` (approve), then `/mcp` → supabase →
-      Authenticate. **V** · *needed 11 Sep*
-- [ ] **ACC-009c** · `SUPABASE_DB_URL` into GitHub Actions secrets. **V** ·
-      *needed before 20 Sep — CI goes red that day without it*
-- [ ] **ACC-010b** · Confirm the Vercel scope. The project is under
-      `vipin-menon`; the siblings are under `team_rDgA7v4RmDHjA3gFRapQoccp`.
-      Billing/access/env are per-scope. **V** · *this week*
+- [x] **ACC-009a** · Publishable + service-role keys into `.env.local` **and**
+      into Vercel env vars. **Done 11 Sep** — 15 vars across Production, Preview
+      and Development; verified with `vercel env ls`.
+- [ ] **ACC-009b** · Authenticate the MCP servers (supabase, vercel, github,
+      playwright). `claude`, then `/mcp` → Authenticate each. **NO LONGER
+      BLOCKING** — migrations run through the Supabase Management API using the
+      CLI token, so this is now a convenience. **V** · *when convenient*
+- [ ] **ACC-009c** · `SUPABASE_DB_URL` into GitHub Actions secrets. **THE ONLY
+      HARD BLOCKER LEFT.** The value pasted into `.env.local` on 11 Sep was the
+      literal placeholder text, not a connection string. Take the Transaction
+      pooler string from the dashboard, substitute the password, then:
+      `export SUPABASE_DB_URL='postgresql://postgres.tjbfvuboyvaephtewjwq:...@aws-0-ap-south-1.pooler.supabase.com:6543/postgres'`
+      followed by `corepack pnpm bootstrap`. **V** · *before 20 Sep — CI goes
+      red that day without it*
+- [x] **ACC-010b** · Vercel scope confirmed **fine**. `vercel link` reports
+      orgId `team_rDgA7v4RmDHjA3gFRapQoccp` — the same team as the siblings. The
+      `vipin-menon` slug in the dashboard URL only looks personal. **Done 11 Sep.**
 - [ ] **ACC-030a** · The 38 organisations: name, kind, quota, contact name,
       contact phone. **V/B** · *needed 17 Sep*
 - [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.
+      `auth.users` is currently 0, so nobody can sign in to the desk at all.
       **V** · *needed 16 Sep*
+- [ ] **ACC-028** · Enable PITR on the Supabase project. ADR-002 names it as a
+      compensating control for storing `pass_token` in plaintext. **V** · *by 17 Sep*
+- [ ] **ACC-009d** · Decide whether to move the Supabase project into
+      `vipinvmenon's Org`. It currently sits in `otlqwoxbrsshuoebbamj`, so the
+      other four people cannot be given access to it. Cheaper now than after 641
+      people are registered. **V** · *this week*
 
 ---
 
