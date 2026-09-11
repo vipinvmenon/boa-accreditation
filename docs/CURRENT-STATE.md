@@ -258,13 +258,24 @@ Verified by attempting the thing, not by reading a grant table:
   because this pipeline has no `psql`/`pg_prove` — `runSql` only returns rows
   of the last statement (same constraint `db-push.mjs` already lives with).
   Parses `-- @proves: LEVEL | text` headers and prints them before the result.
-- **Found and fixed the actual cause of ACC-009c staying stuck**: the DB
-  password in `.env.local` contained three literal `@` characters, which broke
-  URL parsing (the `pg` connection string treats `@` as the userinfo/host
-  delimiter). Percent-encoded it. **Still failing after that fix** —
-  `password authentication failed for user "postgres"` — so either the
-  password itself is stale/wrong, or it needs a reset from the Supabase
-  dashboard. Flagged back to Vipin; not silently left as "probably fine."
+- **ACC-009c resolved.** Took two rounds: the DB password in `.env.local`
+  first had three literal `@` characters (broke URL parsing), then a
+  corrected paste was missing the `@` between password and host entirely.
+  Both diagnosed from the exact `pg`/`ERR_INVALID_URL` error rather than
+  guessed at. `corepack pnpm db:state` and `corepack pnpm test:db` both now
+  run for real over `SUPABASE_DB_URL` against the live Postgres 17.6 pooler
+  and pass. **A real bug in `db-test.mjs` itself was caught in the process**:
+  the test file's `begin;`/`rollback;` wrapper (added out of habit, not
+  necessity — nothing here mutates anything) pushed the assertion SELECT off
+  the end, so the node-postgres transport returned `ROLLBACK`'s empty result
+  instead and the runner read "zero rows" as "nothing failed" — a silent
+  false pass. Caught by running the suite through *both* transports and
+  noticing one produced no visible output. Fixed by removing the unneeded
+  wrapper and adding a hard-failure guard for zero rows / no plan line, so
+  the same class of bug cannot recur quietly.
+  **Still open:** the GitHub Actions `SUPABASE_DB_URL` secret was set before
+  this connection string was confirmed correct — it needs updating to match,
+  and CI has not yet proven it end to end.
 - **`.github/workflows/backup.yml`** — nightly encrypted `pg_dump`, replacing
   PITR (declined — paid add-on beyond Pro, disproportionate for one event).
   ADR-002 and `OPERATIONS.md` updated. `BACKUP_ENCRYPTION_KEY` secret added by

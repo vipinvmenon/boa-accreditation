@@ -59,13 +59,31 @@ for (const file of files) {
     continue
   }
 
+  // A real pgTAP run ALWAYS returns at least a plan line and a finish() line.
+  // Zero rows is not "nothing failed" — it is the transport silently
+  // returning the wrong statement's result (this happened once: begin;/
+  // rollback; pushed the SELECT off the end, and node-postgres returned
+  // ROLLBACK's empty result instead). Treat it as a hard failure, not a pass.
+  if (rows.length === 0) {
+    console.error(`  [FAIL] ${file} returned ZERO rows — the transport did not run the assertions.`)
+    console.error('  A real pgTAP run always returns at least a plan line and a finish() line.')
+    anyFailed = true
+    continue
+  }
+
   const lines = rows.map((r) => (typeof r === 'string' ? r : r.line ?? r.l ?? Object.values(r)[0]))
   let fileFailed = false
+  let sawPlan = false
   for (const line of lines) {
     if (line == null) continue
     const isFail = /^not ok/.test(line.trim())
     if (isFail) fileFailed = true
+    if (/^\d+\.\.\d+/.test(line.trim())) sawPlan = true
     console.log(`    ${isFail ? '✗' : line.trim().startsWith('ok') ? '✓' : ' '} ${line}`)
+  }
+  if (!sawPlan) {
+    console.error(`  [FAIL] ${file} — no "N..M" plan line seen. Assume it did not really run.`)
+    fileFailed = true
   }
 
   if (fileFailed) {

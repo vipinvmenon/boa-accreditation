@@ -16,14 +16,20 @@
 -- a later task (docs/DATA-MODEL.md). This file gets extended when they exist;
 -- claiming that coverage now would violate non-negotiable #10.
 --
--- Wrapped in ONE statement (UNION ALL of individually-numbered branches,
--- ORDER BY that number) because scripts/db-test.mjs, like scripts/db-push.mjs,
--- can only see the rows of the LAST statement it sends — there is no psql /
--- pg_prove in this pipeline. finish() is appended unordered after: it returns
--- zero rows on a clean pass and diagnostic rows only on failure, so where it
--- lands among ties does not change what a human reads.
-
-begin;
+-- ONE statement only — UNION ALL of individually-numbered branches, ORDER BY
+-- that number — because scripts/db-test.mjs, like scripts/db-push.mjs, can
+-- only see the rows of the LAST statement it sends (there is no psql /
+-- pg_prove here). finish() is appended unordered after: it returns zero rows
+-- on a clean pass and diagnostic rows only on failure, so where it lands
+-- among ties does not change what a human reads.
+--
+-- DELIBERATELY NOT wrapped in begin;/rollback;. Nothing here mutates
+-- anything (no GRANT, no INSERT), so there is nothing to roll back — and
+-- wrapping it made this the SECOND-to-last statement, not the last. Through
+-- node-postgres (the CI transport) that meant runSql returned ROLLBACK's
+-- empty result instead of the SELECT's, and the runner read "zero rows,
+-- zero failures found" as a pass. Caught by running this file through BOTH
+-- transports and noticing one produced no output at all.
 
 select line from (
   select 0 as n, plan(29) as line
@@ -95,5 +101,3 @@ select line from (
   union all select 999999, l from finish() l
 ) t
 order by n;
-
-rollback;

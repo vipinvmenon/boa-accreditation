@@ -40,21 +40,18 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       playwright). `claude`, then `/mcp` → Authenticate each. **NO LONGER
       BLOCKING** — migrations run through the Supabase Management API using the
       CLI token, so this is now a convenience. **V** · *when convenient*
-- [ ] **ACC-009c** · `SUPABASE_DB_URL` into GitHub Actions secrets. **THE ONLY
-      HARD BLOCKER LEFT.** Progress 11 Sep: the placeholder text was replaced
-      with a real value, but it had **three literal `@` characters in the
-      password**, which breaks URL parsing — fixed (percent-encoded) in
-      `.env.local` locally. **Still fails** even after that fix:
-      `password authentication failed for user "postgres"`. Either the
-      password is stale/wrong, or the account password needs a **reset** from
-      <https://supabase.com/dashboard/project/tjbfvuboyvaephtewjwq/settings/database>.
-      Whatever the corrected value is, it must ALSO be percent-encoded before
-      going into the connection string (`@` → `%40`, `!` → `%21`, etc.) —
-      don't paste it raw a second time. Once `corepack pnpm bootstrap`
-      confirms a real connection locally, the *same* corrected string goes
-      into the GitHub secret too (adding the secret alone, without fixing the
-      password issue, will make CI fail the same way). **V** · *before 20
-      Sep — CI goes red that day without it*
+- [x] **ACC-009c** · `SUPABASE_DB_URL` **verified working locally, 11 Sep.**
+      Took two rounds to get right — worth recording so nobody repeats them:
+      (1) the password had three literal `@` characters, breaking URL parsing;
+      (2) the next paste was missing the `@` between password and host
+      entirely. `corepack pnpm db:state` and `corepack pnpm test:db` both ran
+      for real against the live Postgres 17.6 over the pooler and passed.
+      **Remaining, still on Vipin:** the GitHub Actions secret was added
+      *before* this connection string was confirmed correct, so it likely
+      still holds one of the two broken versions. Update the
+      `SUPABASE_DB_URL` **repo secret** to match the exact value now working
+      in `.env.local` — a secret that merely exists is not the same as one
+      that is correct; CI has not proven it yet. **V** · *before 20 Sep*
 - [x] **ACC-010b** · Vercel scope confirmed **fine**. `vercel link` reports
       orgId `team_rDgA7v4RmDHjA3gFRapQoccp` — the same team as the siblings. The
       `vipin-menon` slug in the dashboard URL only looks personal. **Done 11 Sep.**
