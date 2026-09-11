@@ -223,6 +223,37 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 11 Sep 2026 — ACC-024: `/api/s/[token]` route handler, verified on production
+
+- **`app/api/s/[token]/route.ts`** — GET calls `boa_acc_org_view`, POST
+  validates the body against `lib/schemas/submission.ts` (zod, mirrors the
+  `boa_acc_person` CHECK constraints) and calls `boa_acc_submit`. Both RPCs
+  are `service_role`-only, so this route is the only place
+  `lib/supabase-admin.ts` (the service-role client) is held — already
+  fenced off by `eslint.config.mjs`'s `no-restricted-imports` exception,
+  which anticipated this exact filename before it existed.
+- **`lib/rate-limit.ts`** — ported verbatim from `boa-stok-form/lib/rate-limit.ts`.
+  A per-IP, per-instance in-memory guard against token-guessing on this
+  route; the real quota and 60/hour-per-token limits stay in the database
+  under a row lock (`boa_acc_submit`), not here.
+- Postgres errcodes map to HTTP: `P0002` → 404 (not 403 — see
+  ARCHITECTURE.md, a 403 would confirm a token exists), `rate_limited` →
+  429, `quota_exceeded` / `duplicate_phone` → 409, `org_closed` → 403.
+- **All three of ACC-024's acceptance criteria verified with real `curl`
+  against `accred.bangaloreopenair.com`, not against a local dev server**,
+  using orgs minted directly via SQL (same fixture pattern as
+  `quota.test.sql`) and wiped afterwards with `private.boa_acc_wipe_org`:
+  1. A real link accepted 22 people one at a time (201 each; `org_view`
+     reported `used: 22` between the two probes).
+  2. The 23rd against a quota of 22 was refused: `409 quota_exceeded`.
+  3. The 61st submission in an hour (quota 100, so quota could not be the
+     cause) was refused: `429 rate_limited`.
+  `db:state` after cleanup: all ten tables back to 0 rows.
+- **Not yet true:** `test:visual` still reports nothing for Submission —
+  that is ACC-025, not built. Phase 1's own acceptance line ("all four, or
+  Phase 1 is not done") is not satisfied yet; only this one task is.
+- 24/60 tasks done.
+
 ### 11 Sep 2026 — ACC-023: mint / org_view / submit, verified on the live DB
 
 - **`202609110004_boa_acc_submit.sql`** — `private.boa_acc_live_invite`,
