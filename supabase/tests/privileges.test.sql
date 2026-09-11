@@ -1,0 +1,99 @@
+-- ACC-022 · Prove non-negotiable #4: anon has zero table grants and zero
+-- function EXECUTE. And prove ADR-002's compensating control: authenticated
+-- can read a person's name but never their pass_token, at the COLUMN level —
+-- table_privs_are cannot see that distinction, only column_privs_are can.
+--
+-- @proves: CRITICAL | anon holds zero privileges on every boa_acc_ table
+-- @proves: CRITICAL | anon holds zero EXECUTE on every boa_acc_ function
+-- @proves: CRITICAL | authenticated cannot select pass_token on boa_acc_person
+-- @proves: HIGH     | authenticated CAN select the columns the desk actually needs
+-- @proves: HIGH     | authenticated gets EXECUTE on boa_acc_is_operator only
+-- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
+-- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
+--
+-- NOT YET COVERED: "through the views" (ACC-022's own title says so). There
+-- are no views yet — boa_acc_person_state and boa_acc_sticker_current land in
+-- a later task (docs/DATA-MODEL.md). This file gets extended when they exist;
+-- claiming that coverage now would violate non-negotiable #10.
+--
+-- Wrapped in ONE statement (UNION ALL of individually-numbered branches,
+-- ORDER BY that number) because scripts/db-test.mjs, like scripts/db-push.mjs,
+-- can only see the rows of the LAST statement it sends — there is no psql /
+-- pg_prove in this pipeline. finish() is appended unordered after: it returns
+-- zero rows on a clean pass and diagnostic rows only on failure, so where it
+-- lands among ties does not change what a human reads.
+
+begin;
+
+select line from (
+  select 0 as n, plan(29) as line
+
+  -- ---------------------------------------------------------------------
+  -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
+  -- migration first landed with 70 accidental grants.
+  -- ---------------------------------------------------------------------
+  union all select 1, table_privs_are('public', 'boa_acc_type',            'anon', array[]::text[], 'anon: zero on boa_acc_type')
+  union all select 2, table_privs_are('public', 'boa_acc_org',             'anon', array[]::text[], 'anon: zero on boa_acc_org')
+  union all select 3, table_privs_are('public', 'boa_acc_org_invite',      'anon', array[]::text[], 'anon: zero on boa_acc_org_invite')
+  union all select 4, table_privs_are('public', 'boa_acc_person',          'anon', array[]::text[], 'anon: zero on boa_acc_person')
+  union all select 5, table_privs_are('public', 'boa_acc_device',          'anon', array[]::text[], 'anon: zero on boa_acc_device')
+  union all select 6, table_privs_are('public', 'boa_acc_checkin',         'anon', array[]::text[], 'anon: zero on boa_acc_checkin')
+  union all select 7, table_privs_are('public', 'boa_acc_vehicle_event',   'anon', array[]::text[], 'anon: zero on boa_acc_vehicle_event')
+  union all select 8, table_privs_are('public', 'boa_acc_aaa_nomination',  'anon', array[]::text[], 'anon: zero on boa_acc_aaa_nomination')
+  union all select 9, table_privs_are('public', 'boa_acc_submit_throttle', 'anon', array[]::text[], 'anon: zero on boa_acc_submit_throttle')
+  union all select 10, table_privs_are('public', 'boa_acc_operator',       'anon', array[]::text[], 'anon: zero on boa_acc_operator')
+
+  union all select 11, function_privs_are('private', 'boa_acc_new_token',       array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_new_token')
+  union all select 12, function_privs_are('private', 'boa_acc_hash_token',      array['text'],    'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_hash_token')
+  union all select 13, function_privs_are('private', 'boa_acc_reject_mutation', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_reject_mutation')
+  union all select 14, function_privs_are('private', 'boa_acc_touch_updated_at',array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_touch_updated_at')
+  union all select 15, function_privs_are('private', 'boa_acc_is_operator',     array['public.boa_acc_operator_role[]'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_is_operator')
+
+  -- ---------------------------------------------------------------------
+  -- authenticated: only what the desk screens need, and only is_operator
+  -- for EXECUTE. The token helpers and the mutation guard stay server-only
+  -- even for a signed-in operator.
+  -- ---------------------------------------------------------------------
+  union all select 16, function_privs_are('private', 'boa_acc_new_token',       array[]::text[], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_new_token')
+  union all select 17, function_privs_are('private', 'boa_acc_hash_token',      array['text'],    'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_hash_token')
+  union all select 18, function_privs_are('private', 'boa_acc_reject_mutation', array[]::text[], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_reject_mutation')
+  union all select 19, function_privs_are('private', 'boa_acc_is_operator',     array['public.boa_acc_operator_role[]'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_is_operator')
+
+  -- The one column that must never be readable by a logged-in session —
+  -- ADR-002's compensating control, checked at the column, not the table.
+  union all select 20, column_privs_are('public', 'boa_acc_person', 'pass_token', 'authenticated', array[]::text[], 'authenticated: zero privileges on boa_acc_person.pass_token')
+  union all select 21, column_privs_are('public', 'boa_acc_person', 'full_name',  'authenticated', array['SELECT'], 'authenticated: SELECT on boa_acc_person.full_name')
+  union all select 22, column_privs_are('public', 'boa_acc_org_invite', 'token_hash', 'authenticated', array[]::text[], 'authenticated: zero privileges on boa_acc_org_invite.token_hash')
+  union all select 23, column_privs_are('public', 'boa_acc_device', 'token_hash', 'authenticated', array[]::text[], 'authenticated: zero privileges on boa_acc_device.token_hash')
+
+  -- The throttle table: written by boa_acc_submit (not built yet), read by
+  -- nobody. Exposing hit counts would let a caller measure how close it is
+  -- to the limit.
+  union all select 24, table_privs_are('public', 'boa_acc_submit_throttle', 'authenticated', array[]::text[], 'authenticated: zero on boa_acc_submit_throttle')
+
+  -- ---------------------------------------------------------------------
+  -- RLS is actually on, not just assumed from the migration text.
+  -- ---------------------------------------------------------------------
+  union all select 25, ok((select relrowsecurity from pg_class where oid = 'public.boa_acc_person'::regclass), 'RLS enabled on boa_acc_person')
+  union all select 26, ok((select relrowsecurity from pg_class where oid = 'public.boa_acc_checkin'::regclass), 'RLS enabled on boa_acc_checkin')
+  union all select 27, ok((select relrowsecurity from pg_class where oid = 'public.boa_acc_vehicle_event'::regclass), 'RLS enabled on boa_acc_vehicle_event')
+  union all select 28, ok((select relrowsecurity from pg_class where oid = 'public.boa_acc_submit_throttle'::regclass), 'RLS enabled on boa_acc_submit_throttle')
+
+  -- The ledger's immutability trigger actually exists and is ENABLE ALWAYS —
+  -- "always" matters because a table owner otherwise bypasses a plain trigger.
+  union all select 29, ok(
+    exists(
+      select 1 from pg_trigger t
+      join pg_class c on c.oid = t.tgrelid
+      where c.relname = 'boa_acc_checkin'
+        and t.tgname = 'boa_acc_checkin_immutable'
+        and t.tgenabled = 'A'
+    ),
+    'boa_acc_checkin_immutable is ENABLE ALWAYS'
+  )
+
+  union all select 999999, l from finish() l
+) t
+order by n;
+
+rollback;

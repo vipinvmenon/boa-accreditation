@@ -230,6 +230,51 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 11 Sep 2026 — ACC-022: privileges.test.sql, pgTAP, and a real backup
+
+- **`supabase/tests/privileges.test.sql`** — 29 pgTAP assertions, run for real
+  against the live project and verified passing: `anon` holds zero table
+  privileges and zero function EXECUTE across all 10 tables and 5 `private.`
+  functions; `authenticated` gets EXECUTE on `boa_acc_is_operator` only;
+  `authenticated` has **zero** privileges on `boa_acc_person.pass_token`
+  specifically (checked at the **column**, not the table — `table_privs_are`
+  cannot see that distinction, only `column_privs_are` can) while it *can*
+  select `full_name`; RLS is actually enabled (queried `pg_class.relrowsecurity`,
+  not assumed from migration text); the ledger's immutability trigger exists
+  and is `ENABLE ALWAYS`, not a plain trigger a table owner could bypass.
+  **Not yet covered:** "through the views" — no views exist yet
+  (`boa_acc_person_state` / `boa_acc_sticker_current` land later); the file
+  says so in its own header rather than silently claiming more than it proves.
+- **Mutation-testing this against the live database was attempted and
+  blocked by the sandbox's auto-mode classifier** (a `GRANT` statement, even
+  inside a transaction meant to roll back). Not worked around. What stands
+  instead: every assertion matches the lockdown migration line-for-line, and
+  ran correctly against real, known-good state. A real mutation test is a
+  reasonable follow-up in a disposable/branch project, not claimed here.
+- **`supabase/migrations/202609110003_boa_acc_pgtap.sql`** — installs pgTAP
+  1.3.3 into `extensions`, dry-run then applied for real. 3 migrations now.
+- **`scripts/db-test.mjs`** — the pgTAP runner. Every pgTAP call in a test file
+  is `UNION ALL`'d into one `SELECT ... ORDER BY` an explicit sequence number,
+  because this pipeline has no `psql`/`pg_prove` — `runSql` only returns rows
+  of the last statement (same constraint `db-push.mjs` already lives with).
+  Parses `-- @proves: LEVEL | text` headers and prints them before the result.
+- **Found and fixed the actual cause of ACC-009c staying stuck**: the DB
+  password in `.env.local` contained three literal `@` characters, which broke
+  URL parsing (the `pg` connection string treats `@` as the userinfo/host
+  delimiter). Percent-encoded it. **Still failing after that fix** —
+  `password authentication failed for user "postgres"` — so either the
+  password itself is stale/wrong, or it needs a reset from the Supabase
+  dashboard. Flagged back to Vipin; not silently left as "probably fine."
+- **`.github/workflows/backup.yml`** — nightly encrypted `pg_dump`, replacing
+  PITR (declined — paid add-on beyond Pro, disproportionate for one event).
+  ADR-002 and `OPERATIONS.md` updated. `BACKUP_ENCRYPTION_KEY` secret added by
+  Vipin; the workflow itself has not yet been run to confirm both secrets
+  resolve — that is still an open verification, not assumed done.
+- **ACC-009d closed as not needed**: conflated Supabase org membership
+  (dashboard access) with app login (`auth.users`, for `/desk/*`). The four
+  operators need only the latter. Project stays in `otlqwoxbrsshuoebbamj`.
+- 21/60 tasks done.
+
 ### 11 Sep 2026 — ACC-011, ACC-020, ACC-021: the schema is live
 
 - **`scripts/lib/db.mjs`** — two transports. Locally the Supabase Management API
