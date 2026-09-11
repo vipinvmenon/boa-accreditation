@@ -22,6 +22,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const WITNESSES = [
   ['202609110001_boa_acc_core', 'table', 'public.boa_acc_person'],
   ['202609110002_boa_acc_lock_down_privileges', 'function', 'private.boa_acc_is_operator'],
+  ['202609110003_boa_acc_pgtap', 'extension', 'extensions.pgtap'],
+  ['202609110004_boa_acc_submit', 'function', 'public.boa_acc_submit'],
+  ['202609110005_boa_acc_org_view_volatile', 'volatile', 'public.boa_acc_org_view'],
+  ['202609110006_boa_acc_wipe_org', 'function', 'private.boa_acc_wipe_org'],
+  ['202609110007_boa_acc_revoke_invite', 'function', 'private.boa_acc_revoke_invite'],
+  ['202609110008_boa_acc_wipe_email', 'function', 'private.boa_acc_wipe_email'],
 ]
 
 const t = describeTransport(root)
@@ -67,8 +73,14 @@ for (const [mig, kind, obj] of WITNESSES) {
   const sql =
     kind === 'table'
       ? `select count(*)::int as n from pg_tables where schemaname='${schema}' and tablename='${name}'`
-      : `select count(*)::int as n from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
-         where ns.nspname='${schema}' and p.proname='${name}'`
+      : kind === 'extension'
+        ? `select count(*)::int as n from pg_extension e join pg_namespace ns on ns.oid = e.extnamespace
+           where e.extname='${name}' and ns.nspname='${schema}'`
+        : kind === 'volatile'
+          ? `select count(*)::int as n from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+             where ns.nspname='${schema}' and p.proname='${name}' and p.provolatile = 'v'`
+          : `select count(*)::int as n from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
+             where ns.nspname='${schema}' and p.proname='${name}'`
   let n = 0
   try {
     ;[{ n }] = await q(sql)

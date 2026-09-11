@@ -80,7 +80,7 @@ export function describeTransport(root) {
  * Run SQL. Returns an array of result rows for the LAST statement that produced
  * any, matching what both transports naturally give back.
  */
-export async function runSql(sql, root) {
+export async function runSql(sql, root, opts = {}) {
   const env = { ...loadEnvLocal(root), ...process.env }
   const url = env.SUPABASE_DB_URL
 
@@ -89,6 +89,10 @@ export async function runSql(sql, root) {
     const client = new pg.Client({ connectionString: url })
     await client.connect()
     try {
+      // Transaction pooler reuses sessions. pgTAP stores the plan in
+      // session state, so a second file (or a second test:db run) on the
+      // same pooled backend raises "You tried to plan twice!".
+      if (opts.resetSession) await client.query('discard all')
       const res = await client.query(sql)
       const last = Array.isArray(res) ? res[res.length - 1] : res
       return last?.rows ?? []

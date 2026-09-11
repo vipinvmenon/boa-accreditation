@@ -51,7 +51,7 @@ for (const file of files) {
 
   let rows
   try {
-    rows = await runSql(sql, root)
+    rows = await runSql(sql, root, { resetSession: true })
   } catch (e) {
     console.error(`  [FAIL] ${file} did not run at all:`)
     console.error(`  ${e.message}`)

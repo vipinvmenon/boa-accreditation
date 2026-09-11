@@ -7,7 +7,7 @@
 -- @proves: CRITICAL | anon holds zero EXECUTE on every boa_acc_ function
 -- @proves: CRITICAL | authenticated cannot select pass_token on boa_acc_person
 -- @proves: HIGH     | authenticated CAN select the columns the desk actually needs
--- @proves: HIGH     | authenticated gets EXECUTE on boa_acc_is_operator only
+-- @proves: HIGH     | authenticated gets EXECUTE on boa_acc_is_operator and boa_acc_mint_invite only
 -- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
 -- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
 --
@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(29) as line
+  select 0 as n, plan(45) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -54,16 +54,32 @@ select line from (
   union all select 13, function_privs_are('private', 'boa_acc_reject_mutation', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_reject_mutation')
   union all select 14, function_privs_are('private', 'boa_acc_touch_updated_at',array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_touch_updated_at')
   union all select 15, function_privs_are('private', 'boa_acc_is_operator',     array['public.boa_acc_operator_role[]'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_is_operator')
+  union all select 30, function_privs_are('private', 'boa_acc_live_invite',     array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_live_invite')
+  union all select 31, function_privs_are('public',  'boa_acc_mint_invite',     array['uuid','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_mint_invite')
+  union all select 32, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_org_view')
+  union all select 33, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_submit')
 
   -- ---------------------------------------------------------------------
-  -- authenticated: only what the desk screens need, and only is_operator
-  -- for EXECUTE. The token helpers and the mutation guard stay server-only
-  -- even for a signed-in operator.
+  -- authenticated: desk read grants, EXECUTE on is_operator (policies) and
+  -- mint_invite (desk RPC). org_view / submit are service_role only — ADR-004.
+  -- The token helpers and the mutation guard stay server-only.
   -- ---------------------------------------------------------------------
   union all select 16, function_privs_are('private', 'boa_acc_new_token',       array[]::text[], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_new_token')
   union all select 17, function_privs_are('private', 'boa_acc_hash_token',      array['text'],    'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_hash_token')
   union all select 18, function_privs_are('private', 'boa_acc_reject_mutation', array[]::text[], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_reject_mutation')
   union all select 19, function_privs_are('private', 'boa_acc_is_operator',     array['public.boa_acc_operator_role[]'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_is_operator')
+  union all select 34, function_privs_are('private', 'boa_acc_live_invite',     array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_live_invite')
+  union all select 35, function_privs_are('public',  'boa_acc_mint_invite',     array['uuid','text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_mint_invite')
+  union all select 36, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_org_view')
+  union all select 37, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_submit')
+  union all select 38, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_org_view')
+  union all select 39, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_submit')
+  union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
+  union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
+  union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')
+  union all select 43, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_revoke_invite')
+  union all select 44, function_privs_are('private', 'boa_acc_wipe_email', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_email')
+  union all select 45, function_privs_are('private', 'boa_acc_wipe_email', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_email')
 
   -- The one column that must never be readable by a logged-in session —
   -- ADR-002's compensating control, checked at the column, not the table.
@@ -72,7 +88,7 @@ select line from (
   union all select 22, column_privs_are('public', 'boa_acc_org_invite', 'token_hash', 'authenticated', array[]::text[], 'authenticated: zero privileges on boa_acc_org_invite.token_hash')
   union all select 23, column_privs_are('public', 'boa_acc_device', 'token_hash', 'authenticated', array[]::text[], 'authenticated: zero privileges on boa_acc_device.token_hash')
 
-  -- The throttle table: written by boa_acc_submit (not built yet), read by
+  -- The throttle table: written by boa_acc_submit, read by
   -- nobody. Exposing hit counts would let a caller measure how close it is
   -- to the limit.
   union all select 24, table_privs_are('public', 'boa_acc_submit_throttle', 'authenticated', array[]::text[], 'authenticated: zero on boa_acc_submit_throttle')

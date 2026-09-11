@@ -3,24 +3,18 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (eighth update)._
+_Last updated: 11 September 2026 (ninth update)._
 
 ## In one line
 
-Phase 0 (foundation) is complete, pushed to
-[vipinvmenon/boa-accreditation](https://github.com/vipinvmenon/boa-accreditation)
-(**private**), and CI is green.
-**The schema is live.** 10 tables, 3 pass types seeded, the ledger immutable
-and `anon` locked out — all verified by running the checks, not asserted.
-`corepack pnpm db:state` is the truth.
+Phase 0 (foundation) is complete. **The schema and the public-surface RPCs
+are live** — mint, org_view, submit, quota lock, per-token throttle — verified
+by `corepack pnpm test:db` and `corepack pnpm db:state`, not asserted.
+`anon` still has zero grants. No submission *screen* yet (ACC-024 / ACC-025).
 
-**The app is deployed and live at
-[accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)**, served
-from `bom1`, with the GitHub repo connected and auto-deploying.
-**The Supabase project exists** — ref `tjbfvuboyvaephtewjwq`, verified live —
-but **nothing has been built in it: no schema, no migrations, no keys in
-`.env.local`.** No screens yet beyond the root dead-end, the 404 and the error
-boundary.
+**The app is deployed** at
+[accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
+(`bom1`). Supabase project `tjbfvuboyvaephtewjwq` has 8 migrations applied.
 
 ## Dates
 
@@ -57,22 +51,17 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 ## What does NOT exist yet
 
-Stated explicitly so nobody infers otherwise from the folder tree — the
-directories are scaffolded but empty:
-
-- **No Supabase project.** No project ref, no `.env.local`, no migrations run.
-  `corepack pnpm db:state`, `test:db` and `check:sql` have nothing to talk to,
-  and `scripts/db-test.mjs`, `db-state.mjs`, `sql-arity-check.py` are **not yet
-  written**.
-- **No Vercel project** and no `accred.bangaloreopenair.com` DNS.
-- **No schema.** `supabase/migrations/` and `supabase/tests/` are empty.
-- **No screens.** `/s/[token]`, `/desk/*`, `/gate/*` are empty directories.
-- **No `lib/database.types.ts`** — it is generated from a live project.
-- ~~No design reference images.~~ **Done.** 28 references captured from the
-  approved bundle rendering itself, and `test:visual` runs. It currently reports
-  `NOTHING COMPARED — no screen is built yet`, which is the honest answer.
-- **Almost no tests.** Only the design-contract suite exists. Playwright is
-  installed but unconfigured; there is no e2e suite and no aeroplane-mode test.
+- **No public or desk screens.** `/s/[token]`, `/desk/*`, `/gate/*` are empty.
+  ACC-024 is next: the route handler that calls `boa_acc_org_view` / `boa_acc_submit`.
+- **No `lib/database.types.ts`** — still generated from the live project, not committed.
+- **No e2e / aeroplane-mode suite.** Playwright is installed but unconfigured.
+- **`test:visual`** still reports `NOTHING COMPARED — no screen is built yet`.
+- **Cursor MCP is only half-connected.** The Vercel *plugin* authenticated in
+  this session (`plugin-vercel-vercel` tools loaded). `list_teams` returned
+  `[]` and `list_projects` on `team_rDgA7v4RmDHjA3gFRapQoccp` failed — this
+  login cannot see the BOA team. Project servers from `.mcp.json` /
+  `.cursor/mcp.json` (`supabase`, `github`, `playwright`) are **not** in this
+  chat's tool catalog. **ACC-009b stays open.** Not ticked.
 
 ## Supabase org — different from the siblings, Vercel is not
 
@@ -209,11 +198,15 @@ Full protocol: `docs/TOOLING.md` → "Handing off between agents".
 
 ## What the database actually contains
 
-Run `corepack pnpm db:state`. As of 11 Sep:
+Run `corepack pnpm db:state`. As of 11 Sep (after ACC-023):
 
-- 10 `boa_acc_` tables, migrations `202609110001` and `202609110002` applied.
-- `boa_acc_type` holds the 3 design types; every other table is empty.
-- `anon`: **0 table grants, 0 function grants.**
+- 10 `boa_acc_` tables; migrations `202609110001`–`202609110008` applied.
+  Witnesses all YES.
+- `boa_acc_type` holds the 3 design types; every other table is empty
+  (token-suite leftovers wiped; `auth.users` 0).
+- Public RPCs: `boa_acc_mint_invite` (EXECUTE `authenticated` only),
+  `boa_acc_org_view` and `boa_acc_submit` (EXECUTE `service_role` only).
+  `anon`: **0 table grants, 0 function grants.**
 - `auth.users`: 0 — nobody has been invited yet (ACC-026).
 
 Verified by attempting the thing, not by reading a grant table:
@@ -229,6 +222,33 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 11 Sep 2026 — ACC-023: mint / org_view / submit, verified on the live DB
+
+- **`202609110004_boa_acc_submit.sql`** — `private.boa_acc_live_invite`,
+  `boa_acc_mint_invite` (lead/admin only; raw token once; no sibling rotate),
+  `boa_acc_org_view`, `boa_acc_submit` (org row `FOR UPDATE`, quota,
+  per-token hourly throttle, name/phone/role/optional plate only).
+  `anon` EXECUTE remains zero. Hash via `private.boa_acc_hash_token` /
+  `pg_catalog.sha256`.
+- **`202609110005`** — `live_invite` and `org_view` are **VOLATILE**. STABLE
+  shared the calling statement's snapshot and treated a just-minted token as
+  `not found`. Verified by the failing test, then the ALTER, then a green re-run.
+- **`202609110006`–`008`** — `wipe_org`, `revoke_invite`, `wipe_email`. Sibling
+  DELETE CTEs share a snapshot, so they cannot satisfy `ON DELETE RESTRICT`;
+  a VOLATILE plpgsql body can. `corepack pnpm db:state` after the green suite:
+  0 orgs, 0 people, 0 operators, 0 `auth.users`.
+- **pgTAP:** `quota.test.sql` (22nd allowed, 23rd `quota_exceeded`, closed org,
+  duplicate phone), `throttle.test.sql` (60th allowed, 61st `rate_limited`,
+  second token unaffected), `tokens.test.sql` (unknown/revoked/expired all
+  `P0002 not found`; mint does not rotate). `privileges.test.sql` now `plan(45)`.
+- **`scripts/db-test.mjs`** — `DISCARD ALL` on the same postgres connection
+  before each file. The transaction pooler reuses sessions; without this,
+  the second file raises `You tried to plan twice!`.
+- **Cursor connectors:** Vercel plugin OAuth succeeded; that account cannot
+  list the BOA team. supabase/github/playwright from `.mcp.json` are not
+  loaded in this Cursor session. ACC-009b **not** ticked.
+- 23/60 tasks done after `task done ACC-023`.
 
 ### 11 Sep 2026 — ACC-022: privileges.test.sql, pgTAP, and a real backup
 
