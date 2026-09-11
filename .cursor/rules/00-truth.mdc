@@ -67,6 +67,21 @@ corepack pnpm test:db       # pgTAP, against a real PostgreSQL
 corepack pnpm db:state      # ask the database, do not ask a document
 ```
 
+## Model and effort — advisory, not a gate
+
+Not enforceable from a rules file — pick the default judgement call:
+
+- **Default: mid-tier model, medium effort.** Route handlers, RPCs, schemas,
+  tests — most of one ROADMAP task.
+- **Escalate to your strongest model / high effort** only for the offline
+  outbox / gate-sync design, an RLS or privilege question without an existing
+  pattern to copy, a DESIGN-SYSTEM.md ambiguity, or a bug that survives a
+  first pass. Drop back down once past it.
+- **Drop to your fastest/cheapest model** for mechanical work: renames,
+  boilerplate, log-line edits, doc formatting.
+- Point at `docs/*.md` and migration files by path and grep the section you
+  need; don't paste a whole doc into context for one table or function.
+
 ## The dates
 
 Links out **20 Sep** · gate live **4 Oct** · build **5–9 Oct** · show **10 Oct 2026**.

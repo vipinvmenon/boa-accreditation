@@ -117,6 +117,28 @@ corepack pnpm db:state      # what the database actually contains
 
 A task is not done until these pass. "It should work" is not a gate.
 
+## Model and effort — advisory, not a gate
+
+This cannot be enforced from a repo file — model and effort are a session
+setting, not something `CLAUDE.md` can override. Treat this as the default
+judgement call, not a rule `task done` checks:
+
+- **Default: Sonnet, medium effort.** Route handlers, RPCs, schemas, tests,
+  most of one ROADMAP task — this is the bulk of the work here.
+- **Escalate to Opus / high effort** only for the genuinely hard moments: the
+  offline outbox / gate-sync design (OFFLINE-SYNC.md), an RLS or privilege
+  question that isn't a copy of an existing pattern, reconciling a design
+  ambiguity in DESIGN-SYSTEM.md, or a bug that survives a first debugging
+  pass. Don't leave it on for the routine work that follows.
+- **Drop to low effort / Haiku** for mechanical work: renames, boilerplate,
+  log-line edits, doc formatting.
+- **Read files, don't paste them.** Point at `docs/*.md` and migration files
+  by path; grep for the section needed rather than loading a whole doc when
+  only one table or one function matters.
+- If a task is running long or blowing through context for no clear reason,
+  say so rather than pushing through — that is itself a signal to check
+  whether the wrong model/effort is loaded for what remains.
+
 ## Dates that do not move
 
 Links out **20 Sep** · gate live **4 Oct** · build **5–9 Oct** · show **10 Oct 2026**.
