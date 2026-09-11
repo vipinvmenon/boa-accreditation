@@ -106,7 +106,7 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-021** · `..._lock_down_privileges.sql` — anon has nothing; column grants omitting `pass_token`; views `security_invoker` · **C** · due Sat 12
 - [x] **ACC-022** · `privileges.test.sql` — every table, every function, both roles, **and through the views** · **C** · due Sun 13
 - [x] **ACC-023** · `boa_acc_mint_invite` / `org_view` / `submit` + `quota`, `tokens`, `throttle` tests · **C** · due Mon 14
-- [ ] **ACC-024** · `/api/s/[token]` + ported `lib/rate-limit.ts` · **C** · due Tue 15
+- [~] **ACC-024** · `/api/s/[token]` + ported `lib/rate-limit.ts` · **C** · due Tue 15
 - [ ] **ACC-025** · `/s/[token]` — Submission screen, transcribed, both themes · **C** · due Wed 16
 - [ ] **ACC-026** · `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers · **C/V** · due Wed 16
 - [ ] **ACC-027** · `/desk/orgs` — create org, set quota, mint link, copy · **C** · due Thu 17
