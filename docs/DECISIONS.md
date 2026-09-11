@@ -52,8 +52,18 @@ locally. This works. It was rejected because:
 
 **Compensating controls, all provable:** an explicit column-list grant that omits
 `pass_token`, asserted by `column_privs_are` in pgTAP; no RPC returns a token for
-a non-approved person, asserted as a named behaviour; PITR access restricted.
-**Residual risk: a database backup leaks every live pass token.** Accepted.
+a non-approved person, asserted as a named behaviour; a nightly encrypted backup
+(see below — not PITR). **Residual risk: a database backup leaks every live pass
+token if the encryption key is compromised.** Accepted.
+
+**Addendum, 11 Sep 2026 — PITR replaced with a nightly encrypted `pg_dump`.**
+Supabase PITR is a paid add-on beyond Pro (~$100+/mo), disproportionate for a
+one-weekend event with no ongoing budget. `.github/workflows/backup.yml` dumps
+the database nightly, encrypts it with a passphrase held only in a GitHub
+secret and a password manager, and retains it 90 days as a workflow artifact.
+This trades PITR's sub-minute recovery point for a nightly one — acceptable
+because the risk being covered is an accidental drop or bad migration, not
+live-traffic corruption. See `docs/OPERATIONS.md` — Backups.
 
 ---
 

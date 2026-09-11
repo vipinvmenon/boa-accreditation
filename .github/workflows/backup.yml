@@ -1,0 +1,73 @@
+name: Nightly encrypted backup
+
+# ADR-002 names PITR as the compensating control for storing `pass_token` in
+# plaintext. Supabase PITR is a paid add-on on top of Pro (~$100+/mo) — not
+# proportionate for a single-weekend festival. This is the zero-cost
+# alternative: a nightly `pg_dump`, encrypted at rest, kept as a workflow
+# artifact.
+#
+# What this does NOT give you that PITR would: sub-minute recovery points, or
+# recovery mid-day without waiting for tonight's run. What it DOES give you:
+# a same-day-or-better restore point for the actual risk ADR-002 named — an
+# accidental drop or a bad migration, not a live-traffic corruption window.
+#
+# Residual risk, recorded here rather than left implicit: a gap of up to 24h
+# of data between the last dump and an incident. Accepted — the alternative
+# (PITR) costs money nobody signed off on for a one-weekend event.
+
+on:
+  schedule:
+    # 21:30 UTC = 03:00 IST — after the desk closes, before the next day's
+    # submissions start landing.
+    - cron: '30 21 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    name: pg_dump, encrypt, upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets are present
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. See docs/SETUP.md."
+            exit 1
+          fi
+          if [ -z "$BACKUP_ENCRYPTION_KEY" ]; then
+            echo "::error::BACKUP_ENCRYPTION_KEY is not set. See docs/OPERATIONS.md — Backups."
+            exit 1
+          fi
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Dump and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          set -euo pipefail
+          STAMP="$(date -u +%Y%m%d-%H%M%S)"
+          FILENAME="boa-accred-${STAMP}.sql.gpg"
+
+          # --no-owner/--no-privileges: a restore target may not share role
+          # names with the source project. --format=plain: a single readable
+          # SQL file behind the encryption, not a second binary format to trust.
+          pg_dump "$SUPABASE_DB_URL" \
+            --no-owner --no-privileges --format=plain \
+            | gpg --batch --yes --symmetric --cipher-algo AES256 \
+                --passphrase "$BACKUP_ENCRYPTION_KEY" \
+                --output "$FILENAME"
+
+          echo "BACKUP_FILENAME=$FILENAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILENAME }}
+          path: ${{ env.BACKUP_FILENAME }}
+          # This is the actual retention decision, not PITR's. Keep enough
+          # nightly dumps to span the live window with room either side.
+          retention-days: 90

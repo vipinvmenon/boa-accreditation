@@ -94,5 +94,36 @@ quotas and headcounts, while the standing liability is individual crew phone
 numbers and plates. Those two sets can be separated without losing the planning
 value.
 
-Compensating controls meanwhile: PITR access restricted, `pass_token` carries
-zero column grants, and no export leaves the desk without a reason.
+Compensating controls meanwhile: nightly encrypted backups (below), `pass_token`
+carries zero column grants, and no export leaves the desk without a reason.
+
+## Backups — nightly encrypted dump, not PITR
+
+**Decided 11 Sep 2026, replacing ACC-028.** Supabase PITR is a paid add-on on
+top of Pro (~$100+/mo) — disproportionate for a single-weekend event. Instead,
+`.github/workflows/backup.yml` runs a `pg_dump` nightly at 03:00 IST, encrypts
+it with `gpg --symmetric` using the `BACKUP_ENCRYPTION_KEY` secret, and uploads
+it as a workflow artifact (90-day retention).
+
+**What this covers:** an accidental drop, a bad migration, or a corrupted
+table — the risk ADR-002 actually named. **What it does not cover:** recovery
+mid-day without waiting for that night's run — up to 24h of data could be lost
+between the last dump and an incident. Accepted; see ADR-002.
+
+**One-time setup (Vipin):**
+1. Generate a passphrase: `openssl rand -base64 32`
+2. Add it as a GitHub Actions secret named `BACKUP_ENCRYPTION_KEY` — same
+   place as `SUPABASE_DB_URL` (repo Settings → Secrets and variables → Actions)
+3. **Save that passphrase somewhere durable outside GitHub too** — a lost
+   passphrase makes every dump permanently unreadable. A password manager
+   entry, not a note in Slack.
+
+**To restore** (only ever tested against a *new* project, never the live one):
+```bash
+gh run download <run-id> -n boa-accred-<timestamp>.sql.gpg
+gpg --batch --yes --decrypt --passphrase "$BACKUP_ENCRYPTION_KEY" \
+    --output restored.sql boa-accred-<timestamp>.sql.gpg
+psql "$SUPABASE_DB_URL" -f restored.sql
+```
+**Rehearse this once before 4 Oct** — the first time you try a restore should
+not be during an actual incident on show day.

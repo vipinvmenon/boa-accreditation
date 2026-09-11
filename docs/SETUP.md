@@ -121,7 +121,9 @@ Then tick these in `docs/ROADMAP.md`:
 - **The 38 organisations** — name, kind, quota, contact name, contact phone.
   Needed **17 Sep** for Phase 2.
 - **Email addresses** for Bhoopesh, Salman and the two approvers. Needed **16 Sep**.
-- **Enable PITR** on the Supabase project (ACC-028).
+- **`BACKUP_ENCRYPTION_KEY`** GitHub secret (ACC-028, replaces PITR — see
+  `docs/OPERATIONS.md` — Backups). Generate with `openssl rand -base64 32`,
+  add as a repo secret, and save the passphrase outside GitHub too.
 
 ## If something fails
 

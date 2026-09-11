@@ -54,13 +54,22 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       contact phone. **V/B** · *needed 17 Sep*
 - [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.
       `auth.users` is currently 0, so nobody can sign in to the desk at all.
-      **V** · *needed 16 Sep*
-- [ ] **ACC-028** · Enable PITR on the Supabase project. ADR-002 names it as a
-      compensating control for storing `pass_token` in plaintext. **V** · *by 17 Sep*
-- [ ] **ACC-009d** · Decide whether to move the Supabase project into
-      `vipinvmenon's Org`. It currently sits in `otlqwoxbrsshuoebbamj`, so the
-      other four people cannot be given access to it. Cheaper now than after 641
-      people are registered. **V** · *this week*
+      **Interim decision, 11 Sep:** all four operator accounts will be created
+      with `vipinmenon16@gmail.com` as a placeholder so ACC-026 is not blocked
+      on real addresses. Swap in real emails before invite links go out on
+      20 Sep — a placeholder identity signing off an AAA approval is not
+      acceptable past that date. **V** · *real addresses needed 16 Sep*
+- [ ] **ACC-028** · `BACKUP_ENCRYPTION_KEY` GitHub secret. Replaces PITR
+      (rejected 11 Sep — paid add-on, disproportionate cost for one event) with
+      a nightly encrypted `pg_dump`, already built in
+      `.github/workflows/backup.yml`. Generate with `openssl rand -base64 32`,
+      add as a repo secret, save the passphrase outside GitHub too. See
+      `docs/OPERATIONS.md` — Backups. **V** · *by 17 Sep*
+- [x] **ACC-009d** · **Not needed — closed 11 Sep.** Conflated two different
+      things: Supabase org membership (dashboard/SQL/billing access) vs app
+      login (`auth.users` rows, used to sign into `/desk/*`). Bhoopesh, Salman
+      and the approvers only ever need the latter, which requires zero
+      Supabase org access. The project stays in `otlqwoxbrsshuoebbamj`.
 
 ---
 
@@ -96,7 +105,8 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [ ] **ACC-025** · `/s/[token]` — Submission screen, transcribed, both themes · **C** · due Wed 16
 - [ ] **ACC-026** · `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers · **C/V** · due Wed 16
 - [ ] **ACC-027** · `/desk/orgs` — create org, set quota, mint link, copy · **C** · due Thu 17
-- [ ] **ACC-028** · Enable PITR on the Supabase project · **V** · due Thu 17
+- [ ] **ACC-028** · `BACKUP_ENCRYPTION_KEY` secret for the nightly encrypted
+      backup (replaces PITR — see above) · **V** · due Thu 17
 
 **Acceptance — all four, or Phase 1 is not done:**
 1. A real link on the production domain accepts 3 people.
