@@ -99,7 +99,7 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-011** · `db-test.mjs`, `db-state.mjs`, `sql-arity-check.py`, `lib/db-url.mjs` · **C** · due Fri 11
 - [x] **ACC-020** · `202609110001_boa_acc_core.sql` — 9 tables, enums, `pass_only_when_approved` CHECK, `ENABLE ALWAYS` triggers · **C** · due Sat 12
 - [x] **ACC-021** · `..._lock_down_privileges.sql` — anon has nothing; column grants omitting `pass_token`; views `security_invoker` · **C** · due Sat 12
-- [ ] **ACC-022** · `privileges.test.sql` — every table, every function, both roles, **and through the views** · **C** · due Sun 13
+- [~] **ACC-022** · `privileges.test.sql` — every table, every function, both roles, **and through the views** · **C** · due Sun 13
 - [ ] **ACC-023** · `boa_acc_mint_invite` / `org_view` / `submit` + `quota`, `tokens`, `throttle` tests · **C** · due Mon 14
 - [ ] **ACC-024** · `/api/s/[token]` + ported `lib/rate-limit.ts` · **C** · due Tue 15
 - [ ] **ACC-025** · `/s/[token]` — Submission screen, transcribed, both themes · **C** · due Wed 16
