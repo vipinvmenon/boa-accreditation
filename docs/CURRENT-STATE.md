@@ -535,6 +535,33 @@ Verified by attempting the thing, not by reading a grant table:
 > beyond what is already recorded above. `typecheck`, `lint`, `test` (49/49),
 > and `build` all pass. Control-room, queue, master and passes remain
 > unaudited — still blocked on operator credentials.
+>
+> **12 Sep 2026 — added a "Forgot password?" flow to `/desk/login`, closing
+> the actual reason Vipin was blocked.** No self-service reset existed
+> anywhere: the only two modes on that page were sign-in and set-a-password-
+> from-an-invite-link. When Vipin said he didn't know his password, that gap
+> — not the invite/audit work above — was what was actually stopping him.
+> Added a third mode calling `supabase.auth.resetPasswordForEmail(email,
+> {redirectTo})`, which rides the same `/auth/confirm?token_hash=...&
+> type=recovery` server-side verification ADR-011 already fixed for invites
+> (`app/auth/confirm/route.ts` already accepted `type=recovery`, so no server
+> change was needed) — a click-through link, not a password I ever see or
+> type. Deliberately shows the same message whether or not the email has
+> desk access ("if that email has desk access, a reset link is on its way"),
+> for the reason `docs/SECURITY.md`'s "404, never 403" gives: distinguishing
+> the two responses lets a caller enumerate who has desk access.
+>
+> **Verified for real**, not just "no error returned": triggered it live for
+> `vipinmenon16@gmail.com` through the actual UI in the Browser pane (typed
+> the email, clicked Send), then queried `auth.users` directly —
+> `recovery_sent_at` was freshly stamped `2026-09-12T18:08:22.998Z`, ~90
+> seconds before the check, confirming Supabase genuinely dispatched the
+> email rather than the client-side success message being the only evidence.
+> Could not confirm inbox delivery itself — the Resend MCP connector in this
+> session needs Vipin to reconnect it with broader permissions before
+> `list-emails` will work. `typecheck`, `lint`, `test` (49/49), and `build`
+> all pass. **Vipin: check `vipinmenon16@gmail.com` (including spam) for the
+> reset link.**
 
 ## Session log
 

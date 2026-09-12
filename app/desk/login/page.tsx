@@ -37,7 +37,7 @@ function DeskLoginForm() {
   const flow = searchParams.get('flow')
   const linkError = searchParams.get('error') === 'invalid_link'
 
-  const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in'>('checking')
+  const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in' | 'forgot-password'>('checking')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -45,6 +45,7 @@ function DeskLoginForm() {
   const [error, setError] = useState<string | null>(
     linkError ? 'That link is invalid or has expired. Ask for a new one.' : null,
   )
+  const [resetSent, setResetSent] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -110,6 +111,26 @@ function DeskLoginForm() {
     router.replace('/desk')
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setBusy(true)
+    // Deliberately does not distinguish "no such account" from "sent" —
+    // the same reason app/api/s/[token] answers a bad token with 404 rather
+    // than a 403 (docs/SECURITY.md, "404, never 403"): telling an unknown
+    // caller whether an email has desk access would let them enumerate who
+    // has it.
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/desk/login`,
+    })
+    setBusy(false)
+    if (resetError) {
+      setError('Could not send a reset link. Try again shortly.')
+      return
+    }
+    setResetSent(true)
+  }
+
   const inputStyle: React.CSSProperties = {
     border: '1px solid var(--rule,rgba(242,239,226,0.16))',
     background: 'var(--panel,#101012)',
@@ -167,7 +188,7 @@ function DeskLoginForm() {
             margin: '0 0 24px',
           }}
         >
-          {mode === 'set-password' ? 'Set your password' : 'Desk sign in'}
+          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : 'Desk sign in'}
         </h1>
 
         {mode === 'sign-in' && (
@@ -195,8 +216,84 @@ function DeskLoginForm() {
               />
             </label>
             {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={busy} style={buttonStyle}>
+            <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
               Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null)
+                setResetSent(false)
+                setMode('forgot-password')
+              }}
+              className="hov-text-grn"
+              style={{
+                cursor: 'pointer',
+                border: 0,
+                background: 'transparent',
+                color: 'var(--ink3,rgba(242,239,226,0.42))',
+                fontFamily: "'JetBrains Mono',monospace",
+                fontSize: '11px',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                padding: 0,
+                textAlign: 'left',
+              }}
+            >
+              Forgot password?
+            </button>
+          </form>
+        )}
+
+        {mode === 'forgot-password' && (
+          <form onSubmit={(e) => void handleForgotPassword(e)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {resetSent ? (
+              <p style={{ fontSize: '13.5px', color: 'var(--ink2,rgba(242,239,226,0.72))', margin: 0 }}>
+                If that email has desk access, a reset link is on its way. Check your inbox.
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize: '13.5px', color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0 }}>
+                  Enter the email you were invited with. We&apos;ll send a link to set a new password.
+                </p>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={labelStyle}>Email</span>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={inputStyle}
+                  />
+                </label>
+                {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
+                <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
+                  Send reset link
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setError(null)
+                setMode('sign-in')
+              }}
+              className="hov-text-grn"
+              style={{
+                cursor: 'pointer',
+                border: 0,
+                background: 'transparent',
+                color: 'var(--ink3,rgba(242,239,226,0.42))',
+                fontFamily: "'JetBrains Mono',monospace",
+                fontSize: '11px',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                padding: 0,
+                textAlign: 'left',
+              }}
+            >
+              Back to sign in
             </button>
           </form>
         )}
@@ -229,7 +326,7 @@ function DeskLoginForm() {
               />
             </label>
             {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={busy} style={buttonStyle}>
+            <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
               Set password and continue
             </button>
           </form>
