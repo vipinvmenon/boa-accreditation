@@ -47,12 +47,9 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       (2) the next paste was missing the `@` between password and host
       entirely. `corepack pnpm db:state` and `corepack pnpm test:db` both ran
       for real against the live Postgres 17.6 over the pooler and passed.
-      **Remaining, still on Vipin:** the GitHub Actions secret was added
-      *before* this connection string was confirmed correct, so it likely
-      still holds one of the two broken versions. Update the
-      `SUPABASE_DB_URL` **repo secret** to match the exact value now working
-      in `.env.local` — a secret that merely exists is not the same as one
-      that is correct; CI has not proven it yet. **V** · *before 20 Sep*
+      The GitHub Actions repo secret was updated to the exact working value
+      on 12 Sep; its presence was verified with `gh secret list` without
+      revealing the value. **V** · *verified 12 Sep*
 - [x] **ACC-010b** · Vercel scope confirmed **fine**. `vercel link` reports
       orgId `team_rDgA7v4RmDHjA3gFRapQoccp` — the same team as the siblings. The
       `vipin-menon` slug in the dashboard URL only looks personal. **Done 11 Sep.**
@@ -64,7 +61,7 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       addresses routing to Vipin's personal inbox. Real addresses are deferred
       until the app is ready, but must replace the aliases before invite links
       go out on 20 Sep. **V** · *real addresses needed before launch*
-- [ ] **ACC-028** · `BACKUP_ENCRYPTION_KEY` GitHub secret. Replaces PITR
+- [x] **ACC-028** · `BACKUP_ENCRYPTION_KEY` GitHub secret. Replaces PITR
       (rejected 11 Sep — paid add-on, disproportionate cost for one event) with
       a nightly encrypted `pg_dump`, already built in
       `.github/workflows/backup.yml`. Generate with `openssl rand -base64 32`,

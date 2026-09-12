@@ -90,14 +90,10 @@ thing to move, not two.
 
 These cannot proceed without Vipin, and Phase 1 cannot start without the first:
 
-1. **Supabase — DONE except the database URL.** ✅ Keys in `.env.local` and in
-   Vercel (15 vars across 3 environments), project linked, self-registration
-   closed. Remaining: `SUPABASE_DB_URL` into GitHub Actions secrets — you
-   already have the value, it is set in Vercel. One command:
-   ```
-   export SUPABASE_DB_URL='<the value you put in Vercel>'
-   corepack pnpm bootstrap
-   ```
+1. **Supabase — DONE.** ✅ Keys in `.env.local` and in Vercel (15 vars across
+   3 environments), project linked, self-registration closed, and the exact
+   working `SUPABASE_DB_URL` was set as the GitHub Actions repository secret
+   on 12 Sep. Secret presence was verified without revealing its value.
 
 <details><summary>Superseded — the original three items</summary>
    - **`.env.local`** — the project's anon key and service-role key. The URL is
@@ -234,6 +230,14 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 12 Sep 2026 — GitHub Actions secrets configured
+
+- `SUPABASE_DB_URL` was set from the exact value already verified against the
+  live Postgres pooler.
+- A new `BACKUP_ENCRYPTION_KEY` was generated, stored in macOS Keychain as
+  the outside-GitHub copy, and set as the repository secret. `gh secret list`
+  confirmed both secret names without exposing either value.
 
 ### 12 Sep 2026 — user decisions: defer production contacts
 
