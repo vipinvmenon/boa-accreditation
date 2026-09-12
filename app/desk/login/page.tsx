@@ -51,9 +51,13 @@ function DeskLoginForm() {
     const isInviteOrRecovery = flow === 'invite' || flow === 'recovery'
 
     async function checkSession() {
-      const { data } = await supabase.auth.getSession()
+      // `getSession()` only trusts the JWT in storage. A deleted or otherwise
+      // invalid user can therefore look signed in forever and bounce between
+      // `/desk/login` and `/desk` (the desk API correctly rejects that token).
+      // Ask Auth to validate the session before redirecting.
+      const { data } = await supabase.auth.getUser()
       if (cancelled) return
-      const user = data.session?.user
+      const user = data.user
       if (!user) {
         setMode('sign-in')
         return

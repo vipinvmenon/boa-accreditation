@@ -27,7 +27,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
-import { runSql } from './lib/db.mjs'
+import { loadEnvLocal, runSql } from './lib/db.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const REF = join(root, 'design/reference')
@@ -137,6 +137,18 @@ async function wipeVisualInvite() {
   await runSql(`select private.boa_acc_wipe_org('${VISUAL_ORG}')`, root)
 }
 
+async function signInVisualOperator(context, email, password, base) {
+  const page = await context.newPage()
+  await page.goto(`${base}/desk/login`, { waitUntil: 'networkidle' })
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/desk', { timeout: 15000 }),
+    page.getByRole('button', { name: 'Sign in' }).click(),
+  ])
+  await page.close()
+}
+
 const freePort = () =>
   new Promise((res) => {
     const s = createServer()
@@ -180,6 +192,9 @@ const base = `http://127.0.0.1:${port}`
 let failures = 0
 const rows = []
 let mintedInvite = false
+let browser
+let operatorContext
+const env = { ...loadEnvLocal(root), ...process.env }
 
 try {
   if (!(await waitForServer(base))) {
@@ -187,7 +202,14 @@ try {
     process.exit(1)
   }
 
-  const browser = await chromium.launch()
+  browser = await chromium.launch()
+  const needsOperator = SCREENS.some((screen) => (!only || screen.slug === only) && screen.auth === 'operator')
+  const operatorEmail = env.VISUAL_OPERATOR_EMAIL
+  const operatorPassword = env.VISUAL_OPERATOR_PASSWORD
+  if (needsOperator && operatorEmail && operatorPassword) {
+    operatorContext = await browser.newContext()
+    await signInVisualOperator(operatorContext, operatorEmail, operatorPassword, base)
+  }
 
   for (const screen of SCREENS) {
     if (only && screen.slug !== only) continue
@@ -217,7 +239,11 @@ try {
       continue
     }
     if (auth) {
-      rows.push({ screen: screen.slug, status: 'BLOCKED', detail: `needs ${auth}` })
+      const detail =
+        auth === 'operator' && !operatorContext
+          ? 'needs operator — set VISUAL_OPERATOR_EMAIL and VISUAL_OPERATOR_PASSWORD'
+          : `needs ${auth}`
+      rows.push({ screen: screen.slug, status: 'BLOCKED', detail })
       continue
     }
 
@@ -230,7 +256,7 @@ try {
           continue
         }
 
-        const page = await browser.newPage({
+        const page = await (operatorContext ?? browser).newPage({
           viewport: { width: view.width, height: view.height },
           deviceScaleFactor: 1,
         })
@@ -284,8 +310,9 @@ try {
     }
   }
 
-  await browser.close()
 } finally {
+  await operatorContext?.close()
+  await browser?.close()
   server.kill('SIGTERM')
   if (mintedInvite) await wipeVisualInvite()
 }
