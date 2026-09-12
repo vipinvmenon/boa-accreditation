@@ -127,13 +127,13 @@ loses the camera, so the aeroplane-mode test asserts a decode with CSP
 
 ---
 
-## ADR-007 — Not a PWA; one service worker scoped to `/gate/`
+## ADR-007 — Not a PWA; one service worker scoped to `/gate`
 
 **Accepted 10 Sep 2026**, on the user's instruction that this is a responsive web
 app.
 
 No manifest, no install prompt, no update UI. The single service worker is
-registered only from `app/gate/layout.tsx` and scoped to `/gate/`.
+registered only from `app/gate/layout.tsx` and scoped to `/gate`.
 
 It is not optional there: without it, a volunteer who reloads a phone with no
 signal gets a white screen instead of a scanner, and the spec calls aeroplane-mode

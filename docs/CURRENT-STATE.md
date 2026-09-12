@@ -81,10 +81,10 @@ Verified on 10 Sep by running the commands, not by assertion:
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
 - **The deterministic aeroplane-mode spec now exists and passes**: it covers
   green/amber/red decisions, Dexie persistence, blank serials, duplicate
-  replay, 401 queue preservation, and 500 causal ordering. It does not claim
-  true cold service-worker navigation because the local worker did not reach
-  `navigator.serviceWorker.ready`; ACC-057 remains open until that gap and the
-  human acceptance conditions are resolved.
+  replay, 401 queue preservation, 500 causal ordering, and true cold
+  service-worker navigation with the radio disabled. ACC-057 remains in flight
+  only because its roadmap checkbox and the human acceptance conditions have
+  not been completed.
 - **`test:visual`** remains blocked for desk screens because the committed
   `design/reference/` artefacts are absent in this checkout; the harness now
   supports `VISUAL_OPERATOR_EMAIL` and `VISUAL_OPERATOR_PASSWORD`, but no
@@ -164,7 +164,7 @@ Checked against the live site rather than assumed:
 | Security headers | all five present (`nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`, HSTS, `Permissions-Policy` with `camera=(self)`) |
 | `x-powered-by` | absent — `poweredByHeader: false` took effect |
 | `/s/*`, `/p/*` | `X-Robots-Tag: noindex, nofollow` (they 404 — no routes yet) |
-| `/gate/sw.js` | `Service-Worker-Allowed: /gate/`, `Cache-Control: no-cache` |
+| `/gate/sw.js` | `Service-Worker-Allowed: /gate`, `Cache-Control: no-cache` |
 
 **A real bug was found and fixed by this check.** The generated service worker
 was precaching `/gate`, `/gate/vehicle` and `/gate/setup` — routes that do not
@@ -1182,13 +1182,16 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
 - `playwright.config.ts` now builds and starts a local production server on a
   configurable port. The suite also proves the 401/500 recovery behavior
   against actual browser IndexedDB, not an in-memory test double.
-- **Acceptance gap, verified rather than assumed:** the generated
-  `public/gate/sw.js` never reaches `navigator.serviceWorker.ready` under the
-  local `next start` fixture, so Playwright cannot yet perform a true cold
-  navigation with the radio disabled. The suite therefore reloads while
-  online, then disables the radio before exercising the cached UI and durable
-  writes. The remaining blocker is service-worker install/precache diagnosis;
-  the browser-level cold offline reload is not claimed complete.
+- **Verified 12 Sep:** the worker was registered with `/gate/` scope, which
+  excludes the exact `/gate` route. The browser could show an active
+  registration while `navigator.serviceWorker.ready` remained unresolved for
+  that page, so an offline reload failed. The fix uses `/gate` scope, serves
+  the matching `Service-Worker-Allowed` header in local Next and Vercel
+  config, hard-navigates from setup after the worker is active, and precaches
+  all emitted immutable JavaScript assets (Next 16 no longer emits the
+  assumed `app-build-manifest.json`). The E2E suite now asserts an activated
+  worker and performs the cold reload with radio disabled; all three tests
+  pass.
 
 ### 12 Sep 2026 — ACC-059/061 preparation templates
 

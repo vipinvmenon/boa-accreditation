@@ -79,8 +79,8 @@ const sw = await get('/gate/sw.js')
 check('/gate/sw.js served', sw.status === 200, `HTTP ${sw.status}`)
 if (sw.status === 200) {
   check(
-    'Service-Worker-Allowed: /gate/',
-    sw.headers.get('service-worker-allowed') === '/gate/',
+    'Service-Worker-Allowed: /gate',
+    sw.headers.get('service-worker-allowed') === '/gate',
     sw.headers.get('service-worker-allowed') ?? '(absent)',
   )
   check('sw.js is no-cache', /no-cache/.test(sw.headers.get('cache-control') ?? ''), sw.headers.get('cache-control') ?? '(absent)')

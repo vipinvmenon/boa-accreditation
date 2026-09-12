@@ -7,6 +7,18 @@ const config: NextConfig = {
   // reproduces them verbatim (docs/DESIGN-SYSTEM.md). Nothing here may rewrite them.
   poweredByHeader: false,
 
+  async headers() {
+    return [
+      {
+        source: '/gate/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache' },
+          { key: 'Service-Worker-Allowed', value: '/gate' },
+        ],
+      },
+    ]
+  },
+
   // Next 16 no longer accepts an `eslint` key here. Lint is its own gate
   // (`corepack pnpm lint`) and is a required CI job, which is the better place
   // for it: it runs on every push, not only on the builds someone remembers.

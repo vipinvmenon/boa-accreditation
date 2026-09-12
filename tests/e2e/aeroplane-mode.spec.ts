@@ -79,15 +79,19 @@ async function installFixture(page: Page, modes: IssueMode[]): Promise<{ page: P
   await page.getByLabel('Device token').fill(DEVICE_TOKEN)
   await page.getByRole('button', { name: 'Pull approved list' }).click()
   await expect(page).toHaveURL(/\/gate$/)
-  // Keep this fixture independent of service-worker installation. The test
-  // still exercises the real Dexie cache and offline write path; the exact
-  // cold-navigation worker gate is documented as an acceptance gap below.
-  await page.reload()
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.ready
+    if (registration.active?.state !== 'activated') {
+      throw new Error(`gate service worker is ${registration.active?.state ?? 'missing'}`)
+    }
+  })
   return { page, requests }
 }
 
 async function reloadColdOffline(page: Page) {
   await page.context().setOffline(true)
+  await page.reload()
   await expect(page.getByText(/Offline \|/)).toBeVisible()
 }
 

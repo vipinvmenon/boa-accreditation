@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { pullGate } from '@/gate/client'
+import { ensureGateServiceWorker } from '../register-sw'
 
 export const dynamic = 'force-static'
 
@@ -23,7 +24,15 @@ export default function GateSetupPage() {
       sessionStorage.setItem('boa-gate-device-token', token.trim())
       setCount(snapshot.roster.length)
       setAsOf(snapshot.meta.rosterAsOf)
-      router.replace('/gate')
+      if (await ensureGateServiceWorker()) {
+        // A soft navigation leaves this document uncontrolled until the next
+        // navigation. Make the first gate load a real navigation so the
+        // active worker can serve it when the radio is switched off.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.href = '/gate'
+      } else {
+        router.replace('/gate')
+      }
     } catch (cause: unknown) {
       setError(cause instanceof Error && cause.message === 'empty_roster'
         ? 'The pull returned no approved passes. The scanner stays locked.'
