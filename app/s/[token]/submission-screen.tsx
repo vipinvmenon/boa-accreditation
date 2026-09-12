@@ -20,9 +20,11 @@ import { useDomTheme } from '@/lib/use-theme'
  * The design's mock shows a two-button flow ("Add to list" then "Submit N for
  * approval") implying a local draft before one batch submit. The real
  * boa_acc_submit RPC (ACC-023/024) has no draft or batch concept — every call
- * inserts one person immediately, status 'submitted'. Both buttons therefore
- * do the same thing: submit the currently-filled-in person now. There is no
- * hidden draft state to lose.
+ * inserts one person immediately, status 'submitted'. ACC-032 made this
+ * honest rather than quietly wiring both buttons to the same action: the
+ * second slot is no longer a button. It is a live, non-interactive readout of
+ * how many people this token has submitted so far — there is nothing left to
+ * "submit", each add is already final and the desk approves later.
  *
  * "Your list" reflects only what THIS browser session has submitted (plain
  * React state, resets on reload) — boa_acc_org_view deliberately returns
@@ -42,12 +44,25 @@ type ListEntry = { name: string; role: string; state: 'Submitted'; dot: string }
 
 const ERROR_COPY: Record<string, string> = {
   not_found: 'This link is no longer valid.',
-  org_closed: 'Registration for this organisation is closed.',
-  quota_exceeded: "This organisation's quota is full.",
-  duplicate_phone: 'This phone number has already been registered for this organisation.',
-  rate_limited: 'Too many attempts — wait a moment and try again.',
+  org_closed: 'Registration for this organisation is closed. Nobody else can be added — contact the accreditation desk.',
+  quota_exceeded: "This organisation's quota is full. Contact the accreditation desk to raise it.",
+  rate_limited: 'Too many attempts from this link — wait a moment and try again.',
   invalid_body: 'Check the highlighted fields and try again.',
   internal: 'Something went wrong. Try again.',
+}
+
+/**
+ * Duplicate phone is not a mistake to fix by inventing a different number —
+ * the person is already registered. Named separately from ERROR_COPY because
+ * it needs the phone the coordinator just typed, not a generic sentence.
+ */
+function duplicatePhoneCopy(phone: string): string {
+  return `${phone} is already registered for this organisation. No action needed — they are already on the list.`
+}
+
+function errorMessage(code: string | null, phone: string): string {
+  if (code === 'duplicate_phone') return duplicatePhoneCopy(phone)
+  return (code && ERROR_COPY[code]) ?? ERROR_COPY['internal']!
 }
 
 const ruleVar = 'var(--rule,rgba(242,239,226,0.16))'
@@ -65,10 +80,10 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
   const [vehicleOn, setVehicleOn] = useState(false)
   const [vehicleReg, setVehicleReg] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ code: string | null; message: string } | null>(null)
+  const [confirmation, setConfirmation] = useState<string | null>(null)
   const [yourList, setYourList] = useState<ListEntry[]>([])
   const [addHover, setAddHover] = useState(false)
-  const [submitHover, setSubmitHover] = useState(false)
 
   const pct = org.quota > 0 ? Math.min(100, (org.used / org.quota) * 100) : 0
   const closed = org.status !== 'open'
@@ -77,6 +92,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
   async function handleAdd() {
     if (submitting || closed || full) return
     setError(null)
+    setConfirmation(null)
 
     const parsed = submissionSchema.safeParse({
       fullName: fields.fullName,
@@ -85,7 +101,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
       vehicleReg: vehicleOn ? vehicleReg : undefined,
     })
     if (!parsed.success) {
-      setError(ERROR_COPY['invalid_body'] ?? 'Check the highlighted fields and try again.')
+      setError({ code: 'invalid_body', message: ERROR_COPY['invalid_body'] ?? 'Check the highlighted fields and try again.' })
       return
     }
 
@@ -99,7 +115,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
       if (!res.ok) {
         const body: unknown = await res.json().catch(() => null)
         const code = body && typeof body === 'object' && 'error' in body ? String(body.error) : null
-        setError((code && ERROR_COPY[code]) ?? ERROR_COPY['internal'] ?? 'Something went wrong. Try again.')
+        setError({ code, message: errorMessage(code, parsed.data.phone) })
         return
       }
 
@@ -108,11 +124,12 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
         { name: parsed.data.fullName, role: parsed.data.roleText, state: 'Submitted', dot: PROP[theme].gold },
       ])
       setOrg((o) => ({ ...o, used: o.used + 1, remaining: Math.max(0, o.remaining - 1) }))
+      setConfirmation(`${parsed.data.fullName} added. Nothing else to do — the desk approves at check-in.`)
       setFields({ fullName: '', phone: '', roleText: '' })
       setVehicleOn(false)
       setVehicleReg('')
     } catch {
-      setError(ERROR_COPY['internal'] ?? 'Something went wrong. Try again.')
+      setError({ code: 'internal', message: ERROR_COPY['internal'] ?? 'Something went wrong. Try again.' })
     } finally {
       setSubmitting(false)
     }
@@ -266,8 +283,12 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                   </span>
                   <input
                     value={fields[f.key]}
-                    onChange={(e) => setFields((v) => ({ ...v, [f.key]: e.target.value }))}
+                    onChange={(e) => {
+                      setFields((v) => ({ ...v, [f.key]: e.target.value }))
+                      setConfirmation(null)
+                    }}
                     placeholder={f.placeholder}
+                    disabled={closed}
                     style={{
                       border: 'none',
                       background: 'transparent',
@@ -279,6 +300,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                       outline: 'none',
                       width: '100%',
                       minHeight: '30px',
+                      opacity: closed ? 0.5 : 1,
                     }}
                   />
                   <span style={{ fontSize: '11.5px', lineHeight: 1.4, color: ink3Var }}>{f.hint}</span>
@@ -290,6 +312,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
               type="button"
               role="switch"
               aria-checked={vehicleOn}
+              disabled={closed}
               onClick={() => setVehicleOn((v) => !v)}
               style={{
                 display: 'flex',
@@ -304,7 +327,8 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                 background: 'transparent',
                 textAlign: 'left',
                 font: 'inherit',
-                cursor: 'pointer',
+                cursor: closed ? 'not-allowed' : 'pointer',
+                opacity: closed ? 0.5 : 1,
               }}
             >
               <div
@@ -371,8 +395,12 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                 </span>
                 <input
                   value={vehicleReg}
-                  onChange={(e) => setVehicleReg(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    setVehicleReg(e.target.value.toUpperCase())
+                    setConfirmation(null)
+                  }}
                   placeholder="KA 05 MJ 8871"
+                  disabled={closed}
                   style={{
                     border: 'none',
                     background: 'transparent',
@@ -385,6 +413,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                     outline: 'none',
                     width: '100%',
                     minHeight: '34px',
+                    opacity: closed ? 0.5 : 1,
                   }}
                 />
               </label>
@@ -415,19 +444,14 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
               >
                 Add to list
               </button>
-              <button
-                type="button"
-                disabled={disableAdd}
-                onClick={handleAdd}
-                onMouseEnter={() => setSubmitHover(true)}
-                onMouseLeave={() => setSubmitHover(false)}
+              <div
+                role="status"
+                aria-live="polite"
                 style={{
-                  cursor: disableAdd ? 'not-allowed' : 'pointer',
                   flex: '1 1 200px',
                   border: `1px solid ${goldVar}`,
-                  background: submitHover && !disableAdd ? goldVar : 'transparent',
-                  color: submitHover && !disableAdd ? onVar : goldVar,
-                  opacity: disableAdd ? 0.5 : 1,
+                  background: 'transparent',
+                  color: goldVar,
                   padding: '17px 22px',
                   fontFamily: "'Oswald',sans-serif",
                   fontSize: '13.5px',
@@ -435,23 +459,42 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                   letterSpacing: '0.13em',
                   textTransform: 'uppercase',
                   minHeight: '52px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
                 }}
               >
-                Submit {org.used} for approval →
-              </button>
+                {org.used} added so far — the desk approves later
+              </div>
             </div>
 
             {error && (
-              <p style={{ marginTop: '14px', fontSize: '13px', color: 'var(--bad,#FF6B5A)' }}>{error}</p>
+              <p
+                role={error.code === 'duplicate_phone' ? 'status' : 'alert'}
+                style={{
+                  marginTop: '14px',
+                  fontSize: '13px',
+                  color: error.code === 'duplicate_phone' ? goldVar : 'var(--bad,#FF6B5A)',
+                }}
+              >
+                {error.message}
+              </p>
+            )}
+            {!error && confirmation && (
+              <p role="status" style={{ marginTop: '14px', fontSize: '13px', color: grnVar }}>
+                {confirmation}
+              </p>
             )}
             {!error && closed && (
               <p style={{ marginTop: '14px', fontSize: '13px', color: ink3Var }}>
-                This organisation is closed and cannot accept new registrations.
+                This organisation is closed. Registration will not reopen by retrying — contact the
+                accreditation desk if this is wrong.
               </p>
             )}
             {!error && !closed && full && (
               <p style={{ marginTop: '14px', fontSize: '13px', color: ink3Var }}>
-                This organisation&rsquo;s quota is full.
+                This organisation&rsquo;s quota is full. Contact the accreditation desk to raise it.
               </p>
             )}
           </div>
