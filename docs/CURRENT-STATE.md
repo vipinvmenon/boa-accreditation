@@ -1242,19 +1242,17 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
 
 - GitHub authentication is available locally: `gh auth status` reports the
   `vipinvmenon` account as active with `repo` and `workflow` scopes.
-- A manual `workflow_dispatch` was authorized and observed as run
-  [34702469104](https://github.com/vipinvmenon/boa-accreditation/actions/runs/34702469104).
-  It ran from remote `main` at `f53f1b4`, whose workflow still contained
-  `corepack pnpm verify:deploy -- "$URL"`, so it failed for the already-known
-  separator bug (`verify-deploy: --` and 12 of 15 checks failed). This is not
-  post-fix evidence: remote `main` is behind this checkout and the local fix
-  has not been pushed.
-- The local fixed invocation was run directly against
-  `https://accred.bangaloreopenair.com`: 17 of 18 checks passed. The one real
-  live mismatch is `Service-Worker-Allowed: /gate/` versus the verifier's
-  expected `/gate`; this is separate from the workflow separator failure.
-- No successful post-fix scheduled or manual GitHub Actions run was observed.
-  ACC-071 remains unclaimed.
+- A manual `workflow_dispatch` was previously observed as run
+  [34702469104](https://github.com/vipinvmenon/boa-accreditation/actions/runs/34702469104)
+  against an older remote revision and failed on the now-fixed separator bug.
+- Fresh verification on 12 Sep fetched `origin/main` and confirmed it is
+  byte-identical to this checkout at `a65463a`; both
+  `git log origin/main..HEAD` and `git log HEAD..origin/main` are empty.
+- `corepack pnpm verify:deploy https://accred.bangaloreopenair.com` now passes
+  all 18 checks against production, including `Service-Worker-Allowed: /gate`,
+  `sw.js` `no-cache`, and all 57 precached URLs.
+- A logged successful scheduled 08:00 IST run has not yet been observed.
+  ACC-071 remains an ongoing watch item, not a failed deployment claim.
 
 ## Template for the next session update
 
