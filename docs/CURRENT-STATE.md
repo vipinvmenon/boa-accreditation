@@ -274,6 +274,44 @@ Verified by attempting the thing, not by reading a grant table:
 > pre-existing `@next/next/no-img-element` warnings. Gate mobile/desktop and
 > vehicle mobile remain visual blockers; no design source or production fixture
 > defaults were changed.
+>
+> **12 Sep 2026 — the gate/vehicle gap was a real data-model omission, not a
+> fixture problem.** The seed above could only supply what
+> `boa_acc_gate_pull` sent over the wire, and that RPC never returned
+> `full_name`, `role_text`, `org.name`, `type_code`, or `day_validity` for the
+> approved roster — `app/gate/page.tsx` had nowhere to get a name, org, role,
+> category banner, held-zone chips, or the sticker-due box from, and rendered
+> `person.personId.slice(0, 8)` in place of a name. `gate/db.ts`'s own header
+> said as much: "this is deliberately only the storage foundation." Migration
+> `202609122010_boa_acc_gate_pull_identity.sql` adds those four columns to the
+> existing `boa_acc_gate_pull` roster projection (same signature, same grants);
+> `lib/schemas/gate.ts`, `gate/db.ts`, and `gate/roster.ts` carry them through;
+> `app/gate/page.tsx` and `app/gate/vehicle/vehicle-screen.tsx` render the real
+> name/org/role/category/zones/sticker-due and the real per-person "last
+> issued" line instead of a generic one. Category colour, band name, and held
+> zones are derived client-side from the existing `lib/design.ts` `TYPES`/
+> `passType()` source of truth — not duplicated server-side.
+>
+> Measured after the fix, `corepack pnpm test:visual`: **gate 0.53–0.54%
+> desktop (PASS), 1.83–1.88% mobile (FAIL); vehicle 0.15–0.16% desktop (PASS),
+> 3.00–3.21% mobile (FAIL)**. `typecheck`, `lint`, `test` (49/49), `build`, and
+> `check:sql` all pass. The two remaining mobile failures are **not** the data
+> gap this fixed — they were investigated separately:
+> - **Gate mobile:** a large share is the `WEB/MOB/LIGHT` viewport toggle in
+>   `GateChrome` always highlighting "Web". `lib/design.ts` documents this
+>   toggle as "a design-review affordance and is NOT shipped" — the reference
+>   PNG was captured with the design tool's own toggle set to its mobile
+>   preview state, which the shipped app has no equivalent of. Not changed.
+> - **Vehicle mobile:** the `fullPage` Playwright screenshot intermittently
+>   captures `GateChrome`'s `position: sticky` header re-painted mid-page with
+>   stale `0/0` props, consistent with Chromium's known sticky-element capture
+>   behaviour during full-page screenshot stitching. This reproduced
+>   identically before and after this change (baseline was already
+>   3.22–3.44%), so it predates this fix and is a harness/capture artifact,
+>   not a content regression.
+>
+> Neither of these two is verified as closed. They are recorded here rather
+> than asserted fixed.
 
 ## Session log
 

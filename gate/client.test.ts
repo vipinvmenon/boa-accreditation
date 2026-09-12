@@ -23,6 +23,11 @@ describe('gate pull boundary', () => {
       orgId,
       status: 'approved',
       updatedAt: occurredAt,
+      fullName: 'Existing Person',
+      roleText: 'Working crew',
+      orgName: 'Existing Org',
+      typeCode: 'crew',
+      dayValidity: 'build_show',
     })
     await gateDb.roster.put(existing)
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
@@ -49,7 +54,7 @@ describe('gate pull boundary', () => {
         gateLabel: 'Gate 1',
         volunteerName: 'Ravi',
         scope: 'crew',
-        roster: [{ passToken: 'pass-1', personId, orgId, status: 'approved', vehicleReg: null, updatedAt: occurredAt }],
+        roster: [{ passToken: 'pass-1', personId, orgId, status: 'approved', vehicleReg: null, updatedAt: occurredAt, fullName: 'Test Person', roleText: 'Working crew', orgName: 'Test Org', typeCode: 'crew', dayValidity: 'build_show' }],
         ledger: [{ id: '44444444-4444-4444-8444-444444444444', personId, kind: 'wristband', occurredAt, bandSerial: '', stickerNo: null, gateLabel: 'Gate 1', volunteerName: 'Ravi', isReissue: false }],
         rosterAsOf: occurredAt,
         ledgerAsOf: occurredAt,

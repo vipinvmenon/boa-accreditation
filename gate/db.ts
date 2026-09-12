@@ -22,6 +22,11 @@ export const rosterRowSchema = z.object({
   status: z.literal('approved'),
   vehicleReg: z.string().min(1).optional(),
   updatedAt: timestamp,
+  fullName: z.string().min(1),
+  roleText: z.string().min(1),
+  orgName: z.string().min(1),
+  typeCode: z.enum(['crew', 'stage', 'aaa']),
+  dayValidity: z.enum(['build', 'show', 'build_show']),
 })
 
 export type RosterRow = z.infer<typeof rosterRowSchema>

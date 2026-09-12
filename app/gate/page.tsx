@@ -6,7 +6,14 @@ import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
 import { drainOutbox, enqueueIssue, queuedCount, readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { scanFrame } from '@/gate/scanner'
+import { ALL_ZONES, DAY_VALIDITY, passType, typeColour, type PassTypeCode } from '@/lib/design'
+import { useDomTheme } from '@/lib/use-theme'
 import { GateChrome } from './gate-chrome'
+
+function zonesFor(typeCode: PassTypeCode) {
+  const held = new Set(passType(typeCode).zones)
+  return ALL_ZONES.map((zone) => ({ held: held.has(zone), text: held.has(zone) ? zone : `—— ${zone}` }))
+}
 
 export const dynamic = 'force-static'
 
@@ -126,10 +133,14 @@ export default function GatePage() {
     }
   }
 
+  const theme = useDomTheme()
   const colour = resolution.status === 'green' ? 'var(--grn,#00F5A5)' : resolution.status === 'amber' ? 'var(--gold,#E3BB72)' : 'var(--bad,#FF6B5A)'
   const verdict = resolution.status === 'green' ? 'Approved' : resolution.status === 'amber' ? 'Collected' : resolution.status === 'red' ? 'Refuse' : 'Ready'
   const person = resolution.status === 'red' ? null : resolution.person
+  const type = person ? passType(person.typeCode) : null
+  const stickerDue = resolution.status === 'green' && resolution.stickerDue
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
+  const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
 
   if (!snapshot) return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
@@ -166,7 +177,20 @@ export default function GatePage() {
           {cameraError && <div role="alert" style={{ color: 'var(--bad,#FF6B5A)', fontSize: 13 }}>{cameraError}</div>}
           <div style={{ borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: 16 }}>
             <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))', marginBottom: 10 }}>Last issued at this gate</div>
-            {recent.map((row) => <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}><span style={{ width: 7, height: 16, background: 'var(--grn,#00F5A5)' }} /><span style={{ flex: 1 }}>{row.kind} · {row.bandSerial ?? row.stickerNo ?? 'blank serial'}</span><button type="button" style={{ border: 0, background: 'transparent', color: 'var(--ink3)', fontFamily: "'Oswald',sans-serif", textTransform: 'uppercase' }}>Void</button></div>)}
+            {recent.map((row) => {
+              const holder = personById.get(row.personId)
+              const time = new Date(row.occurredAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+              return (
+                <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}>
+                  <span style={{ width: 7, height: 16, background: typeColour(holder?.typeCode ?? 'crew', theme) }} />
+                  <span style={{ flex: 1 }}>
+                    <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink,#F2EFE2)' }}>{holder?.fullName ?? row.kind}</div>
+                    <div style={{ textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>{holder ? passType(holder.typeCode).label : row.kind} | Band {(row.bandSerial ?? row.stickerNo ?? 'blank serial').replace(/^#/, '')} | {time}</div>
+                  </span>
+                  <button type="button" style={{ border: 0, background: 'transparent', color: 'var(--ink3)', fontFamily: "'Oswald',sans-serif", textTransform: 'uppercase' }}>Void</button>
+                </div>
+              )
+            })}
           </div>
           <div style={{ marginTop: 'auto', borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: 14, display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: '0.11em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}><span>{snapshot.ledger.filter((row) => row.kind === 'wristband').length} issued today</span><span>Ledger append-only</span></div>
         </div>
@@ -175,12 +199,26 @@ export default function GatePage() {
             <div className="g-verdict" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.92, textTransform: 'uppercase', color: colour }}>{verdict}</div>
             <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: colour, marginTop: 10 }}>{resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</div>
           </div>
-          {person && <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {person && type && <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ borderTop: '1px solid var(--rule2,rgba(242,239,226,0.32))', paddingTop: 18 }}>
-              <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 34, lineHeight: 1, textTransform: 'uppercase' }}>{person.personId.slice(0, 8)}</div>
-              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))' }}>Approved pass · {person.vehicleReg ?? 'no vehicle registered'}</div>
+              <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 34, lineHeight: 1, textTransform: 'uppercase', color: 'var(--ink,#F2EFE2)' }}>{person.fullName}</div>
+              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))', marginTop: 10 }}>{person.orgName}</div>
+              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))', marginTop: 3 }}>{person.roleText} · {person.dayValidity === 'build_show' ? 'Build + show day' : DAY_VALIDITY[person.dayValidity]}</div>
             </div>
-            <div style={{ border: '1px solid var(--grn,#00F5A5)' }}><div style={{ height: 12, background: 'var(--grn,#00F5A5)' }} /><div style={{ padding: 16 }}><div style={{ fontFamily: "'Anton',sans-serif", fontSize: 30, textTransform: 'uppercase', color: 'var(--grn,#00F5A5)' }}>Approved</div><div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>HAND OVER THE APPROVED BAND</div></div></div>
+            <div style={{ border: `1px solid ${typeColour(type.code, theme)}` }}>
+              <div style={{ height: 12, background: typeColour(type.code, theme) }} />
+              <div style={{ padding: 16 }}>
+                <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 30, lineHeight: 1, textTransform: 'uppercase', color: typeColour(type.code, theme) }}>{type.label}</div>
+                <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink,#F2EFE2)', marginTop: 8 }}>Hand over a {type.band.toLowerCase()} band</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 14px', marginTop: 14, borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: 12 }}>
+                  {zonesFor(type.code).map((zone) => <span key={zone.text} style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: '0.09em', textTransform: 'uppercase', color: zone.held ? 'var(--ink,#F2EFE2)' : 'var(--ink3,rgba(242,239,226,0.42))', padding: '2px 0' }}>{zone.text}</span>)}
+                </div>
+              </div>
+            </div>
+            {stickerDue && <div style={{ border: '1px solid var(--gold,#E3BB72)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--gold,#E3BB72)' }}>Sticker due</span>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 15, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--ink,#F2EFE2)' }}>{person.vehicleReg}</span>
+            </div>}
           </div>}
           {resolution.status === 'amber' && <div style={{ border: '1px solid var(--gold,#E3BB72)', padding: 16 }}><div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--gold,#E3BB72)', marginBottom: 10 }}>Already collected</div><div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 16, textTransform: 'uppercase' }}>An issue is already recorded or queued.</div><div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink2,rgba(242,239,226,0.72))', marginTop: 9 }}>A reissue needs a supervisor note. It adds a ledger row; it does not replace the first.</div></div>}
           {resolution.status === 'red' && <div style={{ border: '1px solid var(--bad,#FF6B5A)', padding: 16, fontSize: 14.5, lineHeight: 1.55 }}>This token is not on the approved list. Do not issue a wristband.</div>}

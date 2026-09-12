@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useDomTheme } from '@/lib/use-theme'
-import { PROP } from '@/lib/design'
+import { PROP, passType } from '@/lib/design'
 import { gateDb } from '@/gate/db'
 import { findActiveWristband, normalizePlate, queueVehicleEvent } from '@/gate/vehicle-flow'
 import { GateChrome } from '../gate-chrome'
@@ -11,6 +11,14 @@ type Result = {
   outcome: 'cleared' | 'turned_away'
   text: string
   colour: string
+  stickerNo?: string
+  plate?: string
+  wristbandDetail?: string
+  occurredAt?: string
+}
+
+function formatIssuedAt(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
 }
 
 export function VehicleScreen() {
@@ -45,6 +53,7 @@ export function VehicleScreen() {
         (row) => row.kind === 'vehicle_sticker' && row.stickerNo === sticker?.stickerNo,
       )
       const wristband = sticker ? findActiveWristband(ledger, sticker.personId) : undefined
+      const holder = sticker ? await gateDb.roster.where('personId').equals(sticker.personId).first() : undefined
       const cleared = Boolean(sticker && stickerIssue && wristband && plateVisual)
       const selectedReason = reason.trim()
 
@@ -70,6 +79,12 @@ export function VehicleScreen() {
         outcome: cleared ? 'cleared' : 'turned_away',
         text: cleared ? 'Cleared — event queued.' : 'Turned away — event queued.',
         colour: cleared ? p.grn : p.bad,
+        plate: plate.trim().toUpperCase(),
+        ...(stickerIssue?.stickerNo ? { stickerNo: stickerIssue.stickerNo } : {}),
+        ...(stickerIssue?.occurredAt ? { occurredAt: stickerIssue.occurredAt } : {}),
+        ...(holder && wristband
+          ? { wristbandDetail: `${passType(holder.typeCode).label} · ${passType(holder.typeCode).band} · Band ${wristband.bandSerial ?? 'blank serial'}` }
+          : {}),
       })
       setReason('')
       setPlate('')
@@ -97,11 +112,11 @@ export function VehicleScreen() {
           </div>
         </div>
         <div style={{ background: 'var(--panel,#101012)', borderTop: `4px solid ${cleared ? p.grn : result ? p.bad : p.grn}`, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div><div className="g-verdict" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.92, textTransform: 'uppercase', color: cleared || !result ? p.grn : p.bad }}>{cleared ? 'Cleared' : result ? 'Turned away' : 'Ready'}</div><div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: p.ink2, marginTop: 10 }}>{cleared ? 'STICKER + BAND VERIFIED' : result ? 'EVENT QUEUED OFFLINE' : `${queued} queued · offline`}</div></div>
+          <div><div className="g-verdict" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.92, textTransform: 'uppercase', color: cleared || !result ? p.grn : p.bad }}>{cleared ? 'Cleared' : result ? 'Turned away' : 'Ready'}</div><div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: p.ink2, marginTop: 10 }}>{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : result ? 'Event queued offline' : `${queued} queued · offline`}</div></div>
           <div style={{ borderTop: '1px solid var(--rule2,rgba(242,239,226,0.32))' }}>
             {[
-              ['Vehicle sticker', 'Sticker is bound to this registration'],
-              ['Crew wristband', 'Active wristband required'],
+              ['Vehicle sticker', cleared && result?.stickerNo && result.plate ? `${result.stickerNo} · Bound to ${result.plate}` : 'Sticker is bound to this registration'],
+              ['Crew wristband', cleared && result?.wristbandDetail ? result.wristbandDetail : 'Active wristband required'],
               ['Plate matches sticker', 'Visual check by the officer at the barrier'],
             ].map(([label, detail]) => <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 0', borderBottom: `1px solid ${p.rule}` }}><span style={{ width: 22, height: 22, background: cleared ? p.grn : 'transparent', border: `1px solid ${cleared ? p.grn : 'rgba(242,239,226,0.32)'}`, color: p.on, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flex: '0 0 auto' }}>{cleared ? '✓' : ''}</span><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 15, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: p.ink }}>{label}</div><div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, letterSpacing: '0.07em', textTransform: 'uppercase', color: p.ink3, marginTop: 3 }}>{detail}</div></div></div>)}
           </div>

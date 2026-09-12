@@ -71,6 +71,11 @@ describe('GateDatabase v1', () => {
       status: 'approved',
       vehicleReg: 'KA01AB1234',
       updatedAt: occurredAt,
+      fullName: 'Test Person',
+      roleText: 'Stage tech',
+      orgName: 'Test Org',
+      typeCode: 'stage',
+      dayValidity: 'build_show',
     })
     const ledger = ledgerRowSchema.parse({
       id: entryId,

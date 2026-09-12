@@ -24,6 +24,11 @@ const gateRosterRowSchema = z.object({
   status: z.literal('approved'),
   vehicleReg: z.string().nullable(),
   updatedAt: isoDateTime,
+  fullName: z.string().min(1),
+  roleText: z.string().min(1),
+  orgName: z.string().min(1),
+  typeCode: z.enum(['crew', 'stage', 'aaa']),
+  dayValidity: z.enum(['build', 'show', 'build_show']),
 })
 
 const gateLedgerRowSchema = z.object({

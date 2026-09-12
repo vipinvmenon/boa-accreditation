@@ -141,9 +141,21 @@ const GATE_PERSON = {
   passToken: 'visual-ranjith-pass',
   personId: '11111111-1111-4111-8111-111111111111',
   orgId: '22222222-2222-4222-8222-222222222222',
+  fullName: 'Ranjith Kumar',
+  roleText: 'Stage tech',
+  orgName: 'Chakra Sound & Light',
+  typeCode: 'stage',
+  dayValidity: 'build_show',
 }
 const GATE_PLATE = 'KA 05 MJ 8871'
 const GATE_TIME = '2026-10-09T08:14:00.000+05:30'
+// The three most-recently-issued entries shown in the design reference
+// (design/source/boa_design_body.html, lines 813-815).
+const RECENT_ISSUES = [
+  { suffix: '0182', personId: '55555555-5555-4555-8555-000000000182', fullName: 'Ganesh Rao', roleText: 'Working crew', typeCode: 'crew', bandSerial: '#0416', time: '2026-10-09T13:51:00.000+05:30' },
+  { suffix: '0183', personId: '55555555-5555-4555-8555-000000000183', fullName: 'Vinay Shetty', roleText: 'Stage', typeCode: 'stage', bandSerial: '#0417', time: '2026-10-09T13:58:00.000+05:30' },
+  { suffix: '0184', personId: '55555555-5555-4555-8555-000000000184', fullName: 'Meera Joseph', roleText: 'Working crew', typeCode: 'crew', bandSerial: '#0418', time: '2026-10-09T14:02:00.000+05:30' },
+]
 
 /**
  * Seed only the browser-local Dexie stores used by the gate references.
@@ -154,7 +166,7 @@ const GATE_TIME = '2026-10-09T08:14:00.000+05:30'
  * code or adding fixture defaults to a production route.
  */
 async function seedGateDexie(page, { vehicle = false } = {}) {
-  await page.evaluate(({ vehicle, person, plate, time }) => new Promise((resolve, reject) => {
+  await page.evaluate(({ vehicle, person, plate, time, recentIssues }) => new Promise((resolve, reject) => {
     const request = indexedDB.open('boa-accreditation-gate')
     request.onerror = () => reject(request.error)
     request.onsuccess = () => {
@@ -162,28 +174,47 @@ async function seedGateDexie(page, { vehicle = false } = {}) {
       const transaction = database.transaction(['roster', 'ledger', 'outbox', 'sticker', 'meta'], 'readwrite')
       for (const store of ['roster', 'ledger', 'outbox', 'sticker', 'meta']) transaction.objectStore(store).clear()
 
+      // The last three slots double as the three "last issued" people below,
+      // so the roster stays exactly 612 rather than 612 + 3.
       const roster = transaction.objectStore('roster')
       for (let i = 0; i < 612; i++) {
-        const id = i === 0 ? person.personId : `33333333-3333-4333-8333-${String(i).padStart(12, '0')}`
+        const recent = recentIssues[i - (612 - recentIssues.length)]
+        const id = i === 0 ? person.personId : recent ? recent.personId : `33333333-3333-4333-8333-${String(i).padStart(12, '0')}`
         roster.put({
-          passToken: i === 0 ? person.passToken : `visual-pass-${i}`,
+          passToken: i === 0 ? person.passToken : recent ? `visual-pass-recent-${recent.suffix}` : `visual-pass-${i}`,
           personId: id,
           orgId: person.orgId,
           status: 'approved',
+          fullName: i === 0 ? person.fullName : recent ? recent.fullName : `Visual crew ${i}`,
+          roleText: i === 0 ? person.roleText : recent ? recent.roleText : 'Working crew',
+          orgName: i === 0 ? person.orgName : 'Visual Org',
+          typeCode: i === 0 ? person.typeCode : recent ? recent.typeCode : 'crew',
+          dayValidity: i === 0 ? person.dayValidity : 'build_show',
           ...(i === 0 ? { vehicleReg: plate } : {}),
           updatedAt: time,
         })
       }
 
       const ledger = transaction.objectStore('ledger')
-      for (let i = 0; i < 184; i++) {
+      for (let i = 0; i < 181; i++) {
         const id = `44444444-4444-4444-8444-${String(i + 1).padStart(12, '0')}`
         ledger.put({
           id,
           personId: `55555555-5555-4555-8555-${String(i + 1).padStart(12, '0')}`,
           kind: 'wristband',
           occurredAt: time,
-          bandSerial: i >= 181 ? `#0${i - 177}` : undefined,
+          gateLabel: 'Gate 1',
+          volunteerName: 'Ravi',
+          isReissue: false,
+        })
+      }
+      for (const issue of recentIssues) {
+        ledger.put({
+          id: `44444444-4444-4444-8444-${issue.suffix.padStart(12, '0')}`,
+          personId: issue.personId,
+          kind: 'wristband',
+          occurredAt: issue.time,
+          bandSerial: issue.bandSerial,
           gateLabel: 'Gate 1',
           volunteerName: 'Ravi',
           isReissue: false,
@@ -242,7 +273,7 @@ async function seedGateDexie(page, { vehicle = false } = {}) {
       transaction.oncomplete = () => { database.close(); resolve() }
       transaction.onerror = () => reject(transaction.error)
     }
-  }), { vehicle, person: GATE_PERSON, plate: GATE_PLATE, time: GATE_TIME })
+  }), { vehicle, person: GATE_PERSON, plate: GATE_PLATE, time: GATE_TIME, recentIssues: RECENT_ISSUES })
 }
 
 async function signInVisualOperator(context, email, password, base) {

@@ -15,6 +15,11 @@ const person: RosterRow = {
   status: 'approved',
   vehicleReg: 'KA01AB1234',
   updatedAt: AT,
+  fullName: 'Test Person',
+  roleText: 'Stage tech',
+  orgName: 'Test Org',
+  typeCode: 'stage',
+  dayValidity: 'build_show',
 }
 
 const wristband: LedgerRow = {
