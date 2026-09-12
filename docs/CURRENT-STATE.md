@@ -230,20 +230,23 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
-### 12 Sep 2026 — merge audit: ACC-041 was not committed
+### 12 Sep 2026 — merge audit and recovery: ACC-041
 
-- The ACC-041 worktree had no commits or file changes beyond `main`, so there
-  was nothing safe to merge. Its live migration (`202609121800`) and the
-  `boa_acc_decide` / `boa_acc_approve_org` functions do exist in Supabase,
-  but the migration source, tests, and documentation are absent locally.
-  ACC-041 remains unchecked; this is schema drift to recover before relying
-  on that work.
-- The abandoned ACC-041 verification left exact throwaway fixtures in the
-  shared live project (three `acc041-…@invalid.test` operators, four named
-  organisations, six people, four invites, three throttle rows, and four
-  device rows). Those exact rows were removed with direct, scoped cleanup.
-  The five real operators remain. `boa_acc_checkin` stayed at zero throughout;
-  its immutable trigger was never disabled.
+- ACC-041 initially had no commit, but its worktree contained the uncommitted
+  migration, tests and ADR. Those files were recovered, committed, and merged.
+  `boa_acc_decide` and `boa_acc_approve_org` are now locally represented and
+  live; both are `VOLATILE`, active operators may decide, AAA requires an
+  approved unstamped nomination, and approval is the only path that creates a
+  `pass_token`.
+- The recovered tests caught and fixed two real same-statement hazards: four
+  assertions read `approve_org_result.id` although the CTE exposed `n`, and
+  the ledger test tried to delete a sibling-CTE device row. The latter now
+  uses a revoked test-only VOLATILE cleanup helper. The ledger suite never
+  writes a successful `boa_acc_checkin` row.
+- The abandoned verification left exact throwaway ACC-041 fixtures in the
+  shared live project; those rows were removed with scoped cleanup. The five
+  real operators remain. `boa_acc_checkin` stayed at zero throughout and its
+  immutable trigger was never disabled.
 
 ### 12 Sep 2026 — ACC-045: `/desk/devices` — mint/revoke, raw token shown once
 
