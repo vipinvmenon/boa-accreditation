@@ -1117,6 +1117,17 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   ACC-054 through ACC-057. No successful live ledger write was used as a
   disposable test because the check-in ledger is immutable.
 
+### 12 Sep 2026 — ACC-060: lossless gate logo optimisation
+
+- `scripts/extract-assets.mjs` now losslessly re-encodes only
+  `boa-logo.png`, reducing it from 296,554 bytes to 256,404 bytes while
+  verifying identical decoded RGBA pixels. Added
+  `tests/unit/assets.test.ts` for the size, dimensions, and pixel-fidelity
+  contract.
+- Typecheck, lint, unit tests, and production build passed. The logo remains
+  derived from `design/source/boa_design_bundle.html`; no second design asset
+  was introduced.
+
 ## Template for the next session update
 
 ```
