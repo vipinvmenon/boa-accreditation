@@ -1146,6 +1146,8 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   `corepack pnpm check:sql`, `corepack pnpm test:db`, and `corepack pnpm build`
   pass. The build emits all three gate routes and a precache containing the
   self-hosted WASM decoder.
+- `test:visual` now compares the gate routes, and currently reports large
+  diffs (gate 35–75%, vehicle 14–52%); pixel acceptance is not claimed.
 - **Not yet true:** aeroplane-mode E2E and real-phone acceptance remain
   ACC-057/ACC-058; the gate still needs the physical device-token rehearsal.
 
