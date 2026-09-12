@@ -155,9 +155,15 @@ export const NAV = [
 ] as const
 
 /**
- * The design's viewport toggle (vpTabs) is a design-review affordance and is
- * NOT shipped. Every `mob ? A : B` in renderVals() becomes a real media query
- * at this breakpoint, and shellMax 1280px becomes a max-width.
+ * Every `mob ? A : B` in renderVals() becomes a real media query at this
+ * breakpoint, and shellMax 1280px becomes a max-width.
+ *
+ * The design's viewport toggle (vpTabs) ships too, as a real indicator: the
+ * source highlights it in lockstep with `s.vp`, the same state that drives
+ * every `mob ? A : B`, so mobile layout with "Web" highlighted (or vice
+ * versa) is a combination the source never produces. GateChrome reflects it
+ * with the same media query, in app/responsive.css (`.g-vp-web`/`.g-vp-mob`),
+ * not JS/matchMedia — see docs/DESIGN-SYSTEM.md, "Responsive".
  */
 export const MOBILE_BREAKPOINT_PX = 768
 export const SHELL_MAX_PX = 1280

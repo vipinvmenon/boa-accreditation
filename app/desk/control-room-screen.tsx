@@ -176,6 +176,7 @@ export function ControlRoomScreen() {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <Link
                     href="/desk/queue"
+                    className="hov-invert-grn"
                     style={{
                       cursor: 'pointer',
                       border: `1px solid ${grnVar}`,
@@ -200,6 +201,7 @@ export function ControlRoomScreen() {
                   </Link>
                   <Link
                     href="/gate"
+                    className="hov-outline-grn"
                     style={{
                       cursor: 'pointer',
                       border: `1px solid ${rule2Var}`,
@@ -362,6 +364,7 @@ export function ControlRoomScreen() {
                 </div>
                 <Link
                   href="/desk/aaa"
+                  className="hov-invert-gold"
                   style={{
                     cursor: 'pointer',
                     border: `1px solid ${goldVar}`,

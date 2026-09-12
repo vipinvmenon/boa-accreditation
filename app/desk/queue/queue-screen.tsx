@@ -200,7 +200,7 @@ export function QueueScreen() {
             <option value="build">Build day</option>
             <option value="show">Show day</option>
           </select>
-          <button type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()} style={{ ...buttonStyle, marginLeft: 'auto', borderColor: 'var(--grn,#00F5A5)', background: selected.size > 0 && type !== 'aaa' ? 'var(--grn,#00F5A5)' : 'transparent', color: selected.size > 0 && type !== 'aaa' ? 'var(--on,#0A0A0A)' : undefined }}>
+          <button type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()} className="hov-invert-grn" style={{ ...buttonStyle, marginLeft: 'auto', borderColor: 'var(--grn,#00F5A5)', background: selected.size > 0 && type !== 'aaa' ? 'var(--grn,#00F5A5)' : 'transparent', color: selected.size > 0 && type !== 'aaa' ? 'var(--on,#0A0A0A)' : undefined }}>
             Approve selected
           </button>
         </section>
@@ -213,7 +213,7 @@ export function QueueScreen() {
                 <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>{org.kind} · {org.rows.length} pending in view</div>
                 <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '26px', lineHeight: 1.05, textTransform: 'uppercase', marginTop: '8px' }}>{org.name}</div>
               </div>
-              {filter === 'pending' && <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} style={{ ...buttonStyle, borderColor: 'var(--grn,#00F5A5)', color: 'var(--grn,#00F5A5)' }}>Approve all →</button>}
+              {filter === 'pending' && <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} className="hov-fill-grn" style={{ ...buttonStyle, borderColor: 'var(--grn,#00F5A5)', color: 'var(--grn,#00F5A5)' }}>Approve all →</button>}
             </div>
             {org.rows.map((row) => {
               const selectedRow = selected.has(row.id)
@@ -235,8 +235,8 @@ export function QueueScreen() {
                   ) : <span style={{ fontFamily: "'Oswald',sans-serif", color: rowColour, textTransform: 'uppercase' }}>{rowType.label}</span>}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', color: row.status === 'approved' ? 'var(--grn,#00F5A5)' : row.status === 'rejected' ? 'var(--bad,#FF6B5A)' : 'var(--gold,#E3BB72)', textTransform: 'uppercase' }}>{row.status}</span>
-                    {row.status === 'submitted' && <button type="button" disabled={busy} onClick={() => void decide(row.id, true)} style={{ ...buttonStyle, borderColor: 'var(--grn,#00F5A5)', color: 'var(--grn,#00F5A5)' }}>Approve</button>}
-                    {row.status === 'submitted' && (rejecting === row.id ? <><input aria-label={`Reason for rejecting ${row.full_name}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, maxWidth: '150px' }} /><button type="button" disabled={busy || reason.trim().length === 0} onClick={() => void decide(row.id, false, reason)} style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Confirm reject</button></> : <button type="button" disabled={busy} onClick={() => { setRejecting(row.id); setReason('') }} style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Reject</button>)}
+                    {row.status === 'submitted' && <button type="button" disabled={busy} onClick={() => void decide(row.id, true)} className="hov-fill-grn" style={{ ...buttonStyle, borderColor: 'var(--grn,#00F5A5)', color: 'var(--grn,#00F5A5)' }}>Approve</button>}
+                    {row.status === 'submitted' && (rejecting === row.id ? <><input aria-label={`Reason for rejecting ${row.full_name}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, maxWidth: '150px' }} /><button type="button" disabled={busy || reason.trim().length === 0} onClick={() => void decide(row.id, false, reason)} className="hov-fill-bad" style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Confirm reject</button></> : <button type="button" disabled={busy} onClick={() => { setRejecting(row.id); setReason('') }} className="hov-fill-bad" style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Reject</button>)}
                   </div>
                   {row.status === 'rejected' && row.decision_reason && <div style={{ gridColumn: '2 / -1', color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>Reason: {row.decision_reason}</div>}
                 </div>

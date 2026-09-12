@@ -109,10 +109,66 @@ against evidence, and recorded here.
 
 ## Responsive
 
-The design's Web/Mob toggle (`vpTabs`) is a **design-review affordance and is not
-shipped**. Every `mob ? A : B` in `renderVals()` becomes a real media query at
-`768px` (`MOBILE_BREAKPOINT_PX`), and `shellMax` becomes `max-width: 1280px`
+Every `mob ? A : B` in `renderVals()` becomes a real media query at `768px`
+(`MOBILE_BREAKPOINT_PX`), and `shellMax` becomes `max-width: 1280px`
 (`SHELL_MAX_PX`). Both live in `lib/design.ts`.
+
+The design's Web/Mob toggle (`vpTabs`) **ships**, as a real indicator rather
+than an interactive control. In the source, the toggle's highlight and the
+`s.vp` state that drives every `mob ? A : B` are the same variable — the
+source can never render mobile layout with "Web" highlighted, or desktop
+layout with "Mob" highlighted. Treating the toggle as inert furniture (an
+earlier decision, since reversed) produced exactly that impossible
+combination in the shipped app and was a measurable contributor to
+`test:visual` failing on gate-mobile and vehicle-mobile — see
+docs/CURRENT-STATE.md, 12 Sep 2026. `GateChrome` now reflects the toggle with
+the same `768px` media query as everything else in this section
+(`.g-vp-web`/`.g-vp-mob` in `app/responsive.css`), not JS or `matchMedia`, so
+there is no hydration mismatch or flash. There is still no click handler —
+switching device width is the only way to change it, exactly as before.
+
+## Active nav item
+
+`renderVals()` computes the active nav item's colours once (lines 624-632),
+shared by every screen: `background: grnbg` (an 8-10% green tint, not a solid
+fill) and `color: dark ? grn : ink` — light theme uses near-black `ink` for
+the label, not green, for contrast against the pale tint. Both `GateChrome`
+and `DeskChrome` render `NAV` independently (gate/desk have different routes
+visible), so this logic is duplicated rather than shared — keep both in sync
+by hand if it changes; `DeskChrome` previously rendered a **solid** green
+background with `on`-coloured text instead (fixed 12 Sep 2026).
+
+## Hover states
+
+The design source's own preview tool reads a non-standard `style-hover`
+attribute and swaps styles on mouseenter/leave; it never transcribes
+literally, but the 19 distinct hover treatments it encodes are real design
+intent, not review furniture. Until 12 Sep 2026 the shipped app implemented
+none of them — only the generic `a:hover { color:#E3BB72 }` transcribed
+verbatim from the helmet stylesheet, which is wrong for at least the nav
+links (the source specifies `color:var(--ink)` on hover there, not gold) and
+would have been invisible on "Manage list →" (gold text on its own gold
+background).
+
+`app/hover.css` defines one reusable class per distinct recipe (8 cover all
+19 instances) rather than one class per button, applied via `className` on
+every button/link that has one. Two recipes — `hov-fill-grn`/`hov-fill-bad` —
+aren't literal `style-hover` values; they cover controls whose base style in
+this app already sits at the design's *outline-on-hover* look (queue's
+Approve/Reject render a permanent coloured outline, not the design's neutral
+outline that only colours on hover), where an outline→outline hover would be
+invisible. Filling on hover keeps the affordance without redesigning that
+base style, which is a separate, larger divergence this pass did not attempt.
+`vehicle-screen.tsx`'s "Turn away — log reason" has no design counterpart at
+all (the mock has no refuse outcome) but reuses `hov-fill-bad` for the same
+reason "Reject" does.
+
+Colour/background on these elements is set per-instance inline (active,
+selected, enabled state), which beats any stylesheet rule regardless of
+specificity — so the `:hover` rules in `hover.css` carry `!important`,
+scoped to these classes only. `120ms` is the one explicit `transition` value
+in the source (the nav button); applied uniformly rather than invented anew
+per element.
 
 ## Additions to the design, and their justification
 

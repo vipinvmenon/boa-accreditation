@@ -57,8 +57,8 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
           </p>
         </div>
         <div className="passes-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={shareAll} style={ghostButtonStyle}>Send on WhatsApp</button>
-          <button type="button" onClick={() => window.print()} style={buttonStyle}>Print {passes.length} passes →</button>
+          <button type="button" onClick={shareAll} className="hov-outline-grn" style={ghostButtonStyle}>Send on WhatsApp</button>
+          <button type="button" onClick={() => window.print()} className="hov-invert-grn" style={buttonStyle}>Print {passes.length} passes →</button>
         </div>
       </header>
 
@@ -104,7 +104,7 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
               </div>}
 
               <div className="pass-card-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => share(link, `BOA pass for ${pass.fullName}`)} style={ghostButtonStyle}>Send on WhatsApp</button>
+                <button type="button" onClick={() => share(link, `BOA pass for ${pass.fullName}`)} className="hov-outline-grn" style={ghostButtonStyle}>Send on WhatsApp</button>
               </div>
               <div style={{ marginTop: 'auto', borderTop: `1px solid ${p.rule}`, paddingTop: '14px', fontSize: '12px', lineHeight: 1.5, color: p.ink3 }}>Bring this and a valid photo ID. Non-transferable. One person = one pass = one physical check-in = one wristband.</div>
             </article>

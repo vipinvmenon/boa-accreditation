@@ -9,9 +9,8 @@ import { useDomTheme } from '@/lib/use-theme'
 
 const rule = 'var(--rule,rgba(242,239,226,0.16))'
 const ink = 'var(--ink,#F2EFE2)'
-const ink3 = 'var(--ink3,rgba(242,239,226,0.42))'
+const ink3 = 'var(--ink3,rgba(242,239,226,0.52))'
 const green = 'var(--grn,#00F5A5)'
-const on = 'var(--on,#0A0A0A)'
 const panel = 'var(--panel,#101012)'
 
 export function DeskChrome({ children }: { children: React.ReactNode }) {
@@ -97,13 +96,14 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   key={item.id}
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
+                  className="hov-text-ink"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     border: 0,
                     borderRight: `1px solid ${rule}`,
-                    background: active ? green : 'transparent',
-                    color: active ? on : ink3,
+                    background: active ? p.grnbg : 'transparent',
+                    color: active ? (theme === 'dark' ? green : ink) : ink3,
                     padding: '11px 18px',
                     fontFamily: "'Oswald',sans-serif",
                     fontSize: '12px',
@@ -124,6 +124,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={toggleTheme}
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            className="hov-text-grn"
             style={{
               cursor: 'pointer',
               border: 0,

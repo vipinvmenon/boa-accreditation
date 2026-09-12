@@ -1,0 +1,75 @@
+/**
+ * Every `style-hover="..."` in design/source/boa_design_body.html, made real.
+ *
+ * The design tool's own preview JS reads a non-standard `style-hover`
+ * attribute and swaps styles on mouseenter/leave — not real CSS, so it never
+ * transcribes literally. But the 19 distinct hover treatments it encodes are
+ * real design intent (buttons that invert, outline, or recolour on hover),
+ * and every one of them was missing from the shipped app except one generic
+ * `a:hover` rule in globals.css (itself the design's own helmet stylesheet).
+ * That covered nothing correctly — it turns nav links and "Export CSV" gold
+ * instead of the ink/green the design specifies, and would turn "Manage
+ * list →" gold-on-gold since that link's background is already gold.
+ *
+ * There are only 8 distinct recipes across all 19 instances; this file
+ * defines one reusable class per recipe rather than one class per button.
+ * Two ("hov-fill-grn"/"hov-fill-bad") don't appear as literal style-hover
+ * values in the source — they cover buttons whose *base* style in this app
+ * already sits at the design's outline-on-hover look (queue's Approve/Reject
+ * controls use a permanent coloured outline, not the design's neutral-outline
+ * base), so an outline→outline hover would be invisible; filling on hover
+ * keeps hover meaning "something will happen" without redesigning the base
+ * style, which is a separate, larger divergence this file does not attempt
+ * to fix. `vehicle-screen.tsx`'s "Turn away — log reason" has no design
+ * counterpart at all (the mock has no refuse outcome), but reuses hov-fill-bad
+ * for the same reason "Reject" does: consistent semantics for a bad/red action.
+ *
+ * `!important` is necessary, not sloppy: colour/background here are set as
+ * per-instance inline styles (active/selected/enabled state), which always
+ * beats a stylesheet rule regardless of selector specificity. Only the
+ * `:hover` declarations carry it, scoped to these classes alone.
+ *
+ * `:not(:disabled)` keeps a disabled button visually inert on hover — `<a>`
+ * has no disabled state, so it's a no-op there, not a bug.
+ *
+ * 120ms is the one explicit `transition` value in the design source (the nav
+ * button, line 41); applied uniformly here rather than invented per-element.
+ */
+
+[class*='hov-'] {
+  transition: color 120ms, background-color 120ms, border-color 120ms;
+}
+
+.hov-text-ink:hover:not(:disabled) {
+  color: var(--ink) !important;
+}
+.hov-text-grn:hover:not(:disabled) {
+  color: var(--grn) !important;
+}
+.hov-text-bad:hover:not(:disabled) {
+  color: var(--bad) !important;
+}
+.hov-invert-grn:hover:not(:disabled) {
+  background: transparent !important;
+  color: var(--grn) !important;
+}
+.hov-invert-gold:hover:not(:disabled) {
+  background: transparent !important;
+  color: var(--gold) !important;
+}
+.hov-outline-grn:hover:not(:disabled) {
+  border-color: var(--grn) !important;
+  color: var(--grn) !important;
+}
+.hov-outline-bad:hover:not(:disabled) {
+  border-color: var(--bad) !important;
+  color: var(--bad) !important;
+}
+.hov-fill-grn:hover:not(:disabled) {
+  background: var(--grn) !important;
+  color: var(--on) !important;
+}
+.hov-fill-bad:hover:not(:disabled) {
+  background: var(--bad) !important;
+  color: var(--on) !important;
+}

@@ -61,7 +61,7 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       addresses routing to Vipin's personal inbox. Real addresses are deferred
       until the app is ready, but must replace the aliases before invite links
       go out on 20 Sep. **V** · *real addresses needed before launch*
-- [~] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
+- [x] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
       (ACC-026) has no screen — inviting anyone today means constructing a
       `curl` by hand. Added 12 Sep 2026 on Vipin's direct request after
       comparing against `boa-bar-control`'s `InviteCrewScreen.tsx`; that

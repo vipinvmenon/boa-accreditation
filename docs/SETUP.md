@@ -137,3 +137,19 @@ Then tick these in `docs/ROADMAP.md`:
 - **`api_keys:read` denied** → take the keys from
   <https://supabase.com/dashboard/project/tjbfvuboyvaephtewjwq/settings/api-keys>
   and paste them into `.env.local` by hand. The file's shape is in `.env.example`.
+
+## A new git worktree has no `.env.local` of its own
+
+`.env.local` is gitignored, so `git worktree add` (which is how a Claude Code
+session works — see `.claude/worktrees/*`) never copies it from the checkout
+it branched from. A dev server started in a fresh worktree without it will
+5xx on every route that touches Supabase server-side — `/s/[token]` in
+particular fails closed to its own `ErrorBoundaryHandler`, and
+`corepack pnpm test:visual` will silently compare that error screen against
+the design reference and report a huge, wrong diff (measured 12 Sep 2026: it
+reported Submission at 34%/56% off; the real figure, once `.env.local` was
+copied in, was 29.99%/26.65% — within the ADR-009 ceiling all along). If a
+screen that should render is throwing "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+not set", copy `.env.local` from the checkout this worktree came from — it is
+already-provisioned local dev credentials, not a new secret — rather than
+re-running `bootstrap`.

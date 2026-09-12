@@ -109,7 +109,7 @@ export function MasterScreen() {
             onChange={(event) => setQuery(event.target.value)}
             style={{ flex: '1 1 auto', minWidth: 0, border: 0, borderRight: `1px solid ${p.rule}`, background: 'transparent', color: 'var(--ink,#F2EFE2)', padding: '16px 18px', fontFamily: "'Oswald',sans-serif", fontSize: '11.5px', letterSpacing: '0.1em', textTransform: 'uppercase', outline: 'none' }}
           />
-          <a href={exportHref} download style={{ ...buttonStyle, display: 'flex', alignItems: 'center', border: 0, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          <a href={exportHref} download className="hov-text-grn" style={{ ...buttonStyle, display: 'flex', alignItems: 'center', border: 0, textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Export CSV
           </a>
         </div>

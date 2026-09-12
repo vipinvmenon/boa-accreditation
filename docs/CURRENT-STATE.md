@@ -478,6 +478,44 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-057 released 2026-09-12 (IST):** left in flight by an earlier session, never picked up this session; Vipin redirected this session to auth-flow work (ACC-026b) instead — releasing so that doesn't block the queue tool. Not evaluated for progress; resume fresh.
 
+> **ACC-026b done 2026-09-12 (IST): an invite-operator UI now exists.** Before
+> this, `/api/admin/invite-operator` (ACC-026) had no screen anywhere in the
+> app — the only way to invite Bhoopesh, Salman or an approver was the `curl`
+> commands ACC-026's own session log describes running by hand. Vipin asked
+> for this directly, first asking to model it on `boa-bar-control`'s invite
+> flow; checked that codebase's `api/invite-user.ts` and
+> `src/screens/settings/InviteCrewScreen.tsx` first and found its live flow is
+> the same email-invite-then-self-set-password model accreditation already
+> has (confirmed by reading `src/lib/auth.tsx`'s `PASSWORD_RECOVERY` handling
+> too) — so this is new UI on the existing API and RPC/RLS model, not a new
+> auth architecture. Also audited every `boa_acc_is_operator(...)` call site
+> across `supabase/migrations/*.sql`: every role-array check already includes
+> `admin`, and every no-argument call accepts any active operator — `admin`
+> already has unrestricted access at the database layer, and no client-side
+> code gates any desk screen by role either. Nothing needed changing there.
+>
+> **New:** `app/desk/operators/page.tsx`. Not part of the approved design
+> (same justification as `/desk/login`, ACC-026) and not one of the 7 screens
+> `scripts/visual-check.mjs` gates, so it reuses `DeskChrome` for the header
+> without editing it — the 4 pixel-gated desk screens are untouched. Not
+> linked from anywhere in the design's own nav (non-negotiable 1 forbids
+> adding to that literal 7-item list); reached directly at `/desk/operators`,
+> the same way `/desk/login` has no link pointing to it either. The form
+> itself does not pre-filter by caller role — the API already refuses a
+> non-lead/admin caller with `forbidden`, and non-negotiable 3 says that
+> refusal is the control, not a client-side hide.
+>
+> **Verified:** `typecheck`, `lint`, `test` (49/49), and `build` all pass
+> (`/desk/operators` compiles to a static route). Loaded it signed-out in the
+> Browser pane on `localhost:3000`: correctly redirected to `/desk/login`,
+> identical to every other `/desk/*` route — `DeskChrome`'s existing session
+> guard covers it with no new code. **Not verified:** an actual invite
+> send-through-submit, because that needs a signed-in lead/admin session and
+> this agent has no operator credentials and — per this project's own
+> rules — will not create one to get them. Vipin (or Bhoopesh/Salman) needs
+> to sign in at `/desk/login`, visit `/desk/operators`, and send one real
+> invite to close that gap.
+
 ## Session log
 
 ### 12 Sep 2026 — GitHub Actions secrets configured
