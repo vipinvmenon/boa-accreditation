@@ -312,6 +312,171 @@ Verified by attempting the thing, not by reading a grant table:
 >
 > Neither of these two is verified as closed. They are recorded here rather
 > than asserted fixed.
+>
+> **12 Sep 2026 — the gate-mobile toggle mismatch was real, and is now fixed;
+> both mobile failures persist for other, unrelated reasons.** Re-examined the
+> "Web/Mob/Light" note above: the design source ties the toggle's highlight to
+> `s.vp`, the exact same state that drives every `mob ? A : B` in
+> `renderVals()`, so the source can never render mobile layout with "Web"
+> highlighted (or desktop layout with "Mob" highlighted) — that combination
+> does not exist in the artefact. Treating the toggle as inert review
+> furniture, per the old `lib/design.ts` comment, was the bug: it made the
+> shipped app render exactly the impossible combination. `GateChrome` now
+> drives the toggle off the same `768px` media query as every other
+> `mob ? A : B` (`.g-vp-web`/`.g-vp-mob` in `app/responsive.css`, colours
+> threaded in from `lib/design.ts`'s PROP via `--vp-ink`/`--vp-on` custom
+> properties so no hex is hardcoded in the CSS), not JS/matchMedia, so there's
+> no hydration flash. `docs/DESIGN-SYSTEM.md`, "Responsive" is updated to
+> match; the toggle still has no click handler, exactly as before.
+>
+> Pixel-cropped the toggle region of `design/reference/gate-dark-mob.png`
+> against a freshly-generated build's screenshot: initially this looked like a
+> match at a glance, but it was not — see the correction immediately below.
+> `docs/DESIGN-SYSTEM.md`, "Responsive" is updated to match the shipped
+> behaviour; the toggle still has no click handler, exactly as before.
+>
+> **Self-correction, same day: the first version of this fix had the active
+> tab's colours backwards, and the visual numbers logged in the first draft of
+> this entry were measured against a stale `.next` build.** `test:visual` runs
+> `next start` against whatever `corepack pnpm build` last produced
+> (`scripts/visual-check.mjs`) — it does not rebuild — so a CSS-only edit
+> compared against yesterday's build silently compares the OLD code. Two
+> defects, found by pixel-diffing row-by-row rather than trusting the topline
+> percentage:
+> 1. `.g-vp-mob`/`.g-vp-web`'s active state used `background: var(--vp-on);
+>    color: var(--vp-ink)`, the reverse of the design's own mapping (active
+>    background is `PROP.ink`, the cream fill; active text is `PROP.on`, the
+>    near-black ink — see the original inline styles this replaced). This
+>    rendered the active tab as a dark-navy box with bold white text instead of
+>    the reference's cream box with dark text. Fixed by swapping the two
+>    `var()` calls in `app/responsive.css`.
+> 2. The percentages quoted in the first draft (1.59–1.63% / 2.65–2.87%) were
+>    against a build that predated the fix, because `corepack pnpm build`
+>    was not re-run before `corepack pnpm test:visual`. Rebuilding and
+>    re-measuring is the only way this class of self-deception gets caught —
+>    which is the entire reason this file insists on "if you cannot verify a
+>    claim, say so plainly" rather than trusting a script's exit code alone.
+>
+> After rebuilding, `corepack pnpm test:visual` (references regenerated with
+> `corepack pnpm design:reference` first, since `design/reference/` is
+> git-ignored): **gate desktop improved 0.69%→0.54%/0.53%; gate mobile
+> improved 1.83–1.88%→1.36%/1.41%; vehicle desktop improved 0.36%→0.16%/0.15%.**
+> All of these were affected because the same swapped-colour rule also drove
+> the desktop `@media (min-width: 768px)` override, so the bug was live on
+> every viewport, not just mobile — desktop still passed only because 50×N
+> pixels of wrong toggle colour is a small fraction of a 1360-wide screen.
+> Pixel-cropped the toggle again after the real fix: "Mob" now renders with
+> the same cream fill and dark text as the reference, byte-for-byte in the
+> region checked. `typecheck`, `lint` (`check-design-tokens.mjs` caught the
+> first draft's raw hex literals in the CSS before this correction, and passes
+> now that `lib/design.ts`'s PROP values are threaded in as `--vp-ink`/
+> `--vp-on` custom properties instead), `test` (49/49), and `build` all pass.
+>
+> **Gate mobile (1.36%/1.41%) still fails 0.8%, for a real, fully-diagnosed
+> reason unrelated to the toggle.** Border-row landmarks in the two 390×2073ish
+> screenshots line up pixel-for-pixel from the top of the page down to
+> y≈1595; the first divergence is the "Wristband serial — optional" input's
+> own bottom border, at y=1798 in the reference vs y=1799 in the build — the
+> input itself is 53px tall in the build against the reference's 52px, and
+> that single extra pixel cascades through everything below it (the "Issue
+> wristband" button, "Next person", the footer, and the final page height:
+> 390×2074 vs 390×2073). Confirmed by instrumenting `scripts/visual-check.mjs`
+> with a temporary `page.evaluate` (reverted after use, `git diff` on that file
+> is clean) to read the input's `getBoundingClientRect()` live during the real
+> seeded run: `font-size: 16px` (computed), `min-height: 52px`, `box-sizing:
+> border-box`, actual height **53px**. Setting `el.style.fontSize = '14px'` on
+> that same live element, in the same page, immediately measured **52px** —
+> exactly the reference's height. `design/source/boa_design_body.html` line
+> 497 specifies this input's `font-size` as `14px`; our port
+> (`app/gate/page.tsx`) does not set `font-size` on it at all, so it falls
+> through to the `16px` floor `app/globals.css` applies to all form controls
+> (DESIGN-SYSTEM.md, "Additions to the design", #1 — iOS zooms on focus below
+> 16px). At 16px, this one input's natural content height (padding + normal
+> line-height for JetBrains Mono) comes out 1px past its 52px `min-height`,
+> where at the design's spec'd 14px it lands exactly on it. This is a genuine
+> side effect of an already-deliberate, already-documented accessibility
+> override, not a transcription bug — but it has not been decided whether to
+> accept the 1px (and raise `min-height` to 53px to stop it fighting the
+> content box) or leave it. Not fixed; recorded here rather than asserted
+> closed, per this file's own rule.
+>
+> The residual vehicle-mobile diff (3.19%/3.00%, worse than the toggle-bug
+> numbers first logged, because those were measured against the stale build
+> too) is the harness artifact already recorded above: this run's
+> `vehicle-dark-mob` capture shows the entire `GateChrome` header (logo, nav,
+> the toggle included) missing from the top of the page — the same
+> `position: sticky` mid-page repaint this document already flagged. It
+> reproduced with identical percentages across repeated `test:visual` runs in
+> this environment, so "intermittent" may undersell it here; still a capture
+> artifact, not a shipped defect, and still not investigated further.
+>
+> **12 Sep 2026 — user-reported design fidelity gaps, two findings.** The user
+> compared the shipped app against the design prototype and reported
+> Submission "doesn't look similar at all" plus missing hover/animation
+> states. Investigated both rather than taking the impression at face value:
+>
+> 1. **Submission's apparent gap was this worktree's missing `.env.local`, not
+>    a design defect.** This git worktree never had its own `.env.local`
+>    (gitignored, and `git worktree add` doesn't copy it), so every
+>    `test:visual` run this session was silently comparing the design
+>    reference against `/s/[token]`'s own `ErrorBoundaryHandler` crash page
+>    ("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set"), not the real
+>    screen — reporting a meaningless ~34%/56% diff. Confirmed live via the
+>    Browser pane against a minted debug invite token, both before and after
+>    the fix. Copied `.env.local` from the checkout this worktree branched
+>    from (already-provisioned local dev credentials, not a new secret) and
+>    re-measured: **29.99%/29.97% desktop, 26.65%/26.57% mobile — within the
+>    already-documented 32% ADR-009 ceiling all along.** Documented the
+>    pitfall in docs/SETUP.md so the next worktree doesn't lose time to it.
+>    Submission's design-mocked two-button "Add to list"/"Submit N for
+>    approval" flow vs. the shipped single-button-plus-status-line is not a
+>    gap either — `submission-screen.tsx` (lines 20-27) already explains why:
+>    the real `boa_acc_submit` RPC has no draft/batch concept.
+> 2. **Hover states were a real, undocumented, app-wide gap — now fixed.** The
+>    design source defines 19 `style-hover` treatments across every screen;
+>    the shipped app implemented exactly one generic rule (`a:hover` in
+>    `app/globals.css`, wrong colour for nav links, would have been invisible
+>    on "Manage list →"). Added `app/hover.css` (8 reusable recipe classes
+>    covering all 19 instances) and applied it to every button/link with a
+>    design-specified hover across `gate-chrome.tsx`, `desk-chrome.tsx`,
+>    `control-room-screen.tsx`, `queue-screen.tsx`, `master-screen.tsx`,
+>    `passes-screen.tsx`, `gate/page.tsx`, and `vehicle-screen.tsx`. See
+>    docs/DESIGN-SYSTEM.md, "Hover states", for the recipes and the two
+>    non-literal extensions (`hov-fill-grn`/`hov-fill-bad`) and their
+>    rationale. Verified live in the Browser pane (nav-link hover now turns
+>    ink, not gold; "Can't scan — search by name" now outlines green on
+>    hover) and confirmed zero visual regression: `corepack pnpm test:visual`
+>    reports byte-identical percentages before and after, as expected since a
+>    static screenshot never triggers `:hover`. `typecheck`, `lint`, `test`
+>    (49/49), and `build` all pass.
+>
+> **12 Sep 2026 — DeskChrome's active nav item did not match the design; fixed.**
+> Flagged while implementing hover states above and fixed on request. The
+> design's `renderVals()` (line 624-632) computes active-nav `bg`/`fg` once,
+> shared by every screen: `bg = grnbg` (an 8-10% green tint, not a solid
+> fill), `fg = dark ? grn : ink` — light theme uses near-black `ink` for the
+> active label, not green, presumably for contrast against the light tint.
+> `GateChrome` already matched `bg` but not the light-theme `fg` nuance (it
+> used `p.grn` unconditionally); `DeskChrome` matched neither — it rendered a
+> **solid** green background with `on`-coloured text, a different look
+> entirely, in both themes. Fixed both to `background: active ? p.grnbg :
+> 'transparent'`, `color: active ? (theme === 'dark' ? grn : ink) : ink3`.
+> Also corrected `desk-chrome.tsx`'s local `ink3` fallback literal
+> (`rgba(...,0.42)` → `0.52`, matching `PROP.ink3`/`--ink3`; harmless in
+> practice since the real CSS var is always defined, but wrong if it were
+> ever hit). Verified live in the Browser pane: `/gate` in light theme now
+> shows "GATE" as dark ink text on the pale-green tint, matching the design,
+> where it previously would have been light green (GateChrome) or solid dark
+> green with white text (DeskChrome, unreachable to screenshot this session —
+> blocked on operator credentials, so verified by code inspection against the
+> now-shared logic plus GateChrome's live render, not a DeskChrome screenshot
+> itself). `corepack pnpm test:visual` afterward: same three screens
+> compared, same PASS/FAIL/KNOWN GAP pattern, no regression (gate/vehicle
+> desktop numbers moved by ≤0.01%, noise). `typecheck`, `lint`, `test`
+> (49/49), and `build` all pass.
+
+
+> **ACC-057 released 2026-09-12 (IST):** left in flight by an earlier session, never picked up this session; Vipin redirected this session to auth-flow work (ACC-026b) instead — releasing so that doesn't block the queue tool. Not evaluated for progress; resume fresh.
 
 ## Session log
 

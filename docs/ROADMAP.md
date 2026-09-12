@@ -61,6 +61,14 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       addresses routing to Vipin's personal inbox. Real addresses are deferred
       until the app is ready, but must replace the aliases before invite links
       go out on 20 Sep. **V** · *real addresses needed before launch*
+- [~] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
+      (ACC-026) has no screen — inviting anyone today means constructing a
+      `curl` by hand. Added 12 Sep 2026 on Vipin's direct request after
+      comparing against `boa-bar-control`'s `InviteCrewScreen.tsx`; that
+      screen's live flow turned out to be the same email-invite +
+      self-set-password model accreditation already has, not something
+      different, so this is new UI on the existing API, not a new auth
+      model. **V** · *added 12 Sep*
 - [x] **ACC-028** · `BACKUP_ENCRYPTION_KEY` GitHub secret. Replaces PITR
       (rejected 11 Sep — paid add-on, disproportionate cost for one event) with
       a nightly encrypted `pg_dump`, already built in
@@ -161,7 +169,7 @@ provably absent before approval · AAA unstampable without a nomination ·
 - [x] **ACC-054** · `/gate/setup`, `/gate` transcribed, `force-static`, **+ sticker input** · **C** · due Wed 30
 - [x] **ACC-055** · `/gate/vehicle` + `vehicle.test.sql` · **C** · due Thu 1 Oct
 - [x] **ACC-056** · `/api/gate/*`; SW precache incl. the `.wasm` · **C** · due Thu 1 Oct
-- [~] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
+- [ ] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
 - [ ] **ACC-058** · **Rehearsal: two real phones, one an iPhone, real aeroplane mode** · **V/B** · due **Sat 3 Oct**
 - [ ] **ACC-059** · Print the paper fallback: approved list by org, blank issue sheets · **B** · due Sat 3 Oct
 - [x] **ACC-060** · Optimise `boa-logo.png` — 290 KB is heavy for a gate precache · **C** · due Fri 2 Oct
