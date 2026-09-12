@@ -108,7 +108,7 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-023** · `boa_acc_mint_invite` / `org_view` / `submit` + `quota`, `tokens`, `throttle` tests · **C** · due Mon 14
 - [x] **ACC-024** · `/api/s/[token]` + ported `lib/rate-limit.ts` · **C** · due Tue 15
 - [x] **ACC-025** · `/s/[token]` — Submission screen, transcribed, both themes · **C** · due Wed 16
-- [ ] **ACC-026** · `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers · **C/V** · due Wed 16
+- [~] **ACC-026** · `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers · **C/V** · due Wed 16
 - [ ] **ACC-027** · `/desk/orgs` — create org, set quota, mint link, copy · **C** · due Thu 17
 - [ ] **ACC-028** · `BACKUP_ENCRYPTION_KEY` secret for the nightly encrypted
       backup (replaces PITR — see above) · **V** · due Thu 17
