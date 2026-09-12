@@ -37,9 +37,10 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       into Vercel env vars. **Done 11 Sep** — 15 vars across Production, Preview
       and Development; verified with `vercel env ls`.
 - [ ] **ACC-009b** · Authenticate the MCP servers (supabase, vercel, github,
-      playwright). `claude`, then `/mcp` → Authenticate each. **NO LONGER
-      BLOCKING** — migrations run through the Supabase Management API using the
-      CLI token, so this is now a convenience. **V** · *when convenient*
+      playwright). Supabase, Vercel and Playwright are authenticated; GitHub
+      remains outstanding. **NO LONGER BLOCKING** — migrations run through the
+      Supabase Management API using the CLI token, so this is now a
+      convenience. **V** · *when convenient*
 - [x] **ACC-009c** · `SUPABASE_DB_URL` **verified working locally, 11 Sep.**
       Took two rounds to get right — worth recording so nobody repeats them:
       (1) the password had three literal `@` characters, breaking URL parsing;

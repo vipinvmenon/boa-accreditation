@@ -63,12 +63,12 @@ Verified on 10 Sep by running the commands, not by assertion:
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
 - **No e2e / aeroplane-mode suite.** Playwright is installed but unconfigured.
 - **`test:visual`** still reports `NOTHING COMPARED — no screen is built yet`.
-- **Cursor MCP is only half-connected.** The Vercel *plugin* authenticated in
-  this session (`plugin-vercel-vercel` tools loaded). `list_teams` returned
-  `[]` and `list_projects` on `team_rDgA7v4RmDHjA3gFRapQoccp` failed — this
-  login cannot see the BOA team. Project servers from `.mcp.json` /
-  `.cursor/mcp.json` (`supabase`, `github`, `playwright`) are **not** in this
-  chat's tool catalog. **ACC-009b stays open.** Not ticked.
+- **Cursor MCP is nearly connected.** Vipin reports that Supabase, Vercel and
+  Playwright are authenticated; GitHub remains outstanding. The Vercel
+  *plugin* authenticated in this session (`plugin-vercel-vercel` tools loaded),
+  but `list_teams` returned `[]` and `list_projects` on
+  `team_rDgA7v4RmDHjA3gFRapQoccp` failed — this login cannot see the BOA team.
+  **ACC-009b stays open** until GitHub is authenticated.
 
 ## Supabase org — different from the siblings, Vercel is not
 
@@ -229,6 +229,12 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 12 Sep 2026 — ACC-009b: three MCPs authenticated
+
+- Vipin reports Supabase, Vercel and Playwright MCP authentication complete.
+  GitHub MCP authentication remains the only open part of ACC-009b, so the
+  task stays unchecked.
 
 ### 12 Sep 2026 — merge audit and recovery: ACC-041
 
