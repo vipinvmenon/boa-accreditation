@@ -164,7 +164,7 @@ provably absent before approval · AAA unstampable without a nomination ·
 - [ ] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
 - [ ] **ACC-058** · **Rehearsal: two real phones, one an iPhone, real aeroplane mode** · **V/B** · due **Sat 3 Oct**
 - [ ] **ACC-059** · Print the paper fallback: approved list by org, blank issue sheets · **B** · due Sat 3 Oct
-- [ ] **ACC-060** · Optimise `boa-logo.png` — 290 KB is heavy for a gate precache · **C** · due Fri 2 Oct
+- [~] **ACC-060** · Optimise `boa-logo.png` — 290 KB is heavy for a gate precache · **C** · due Fri 2 Oct
 - [ ] **ACC-061** · Mint device tokens for 4 phones · **B** · due Sat 3 Oct
 
 **Acceptance:** cold start with the radio off renders the scanner and the full
