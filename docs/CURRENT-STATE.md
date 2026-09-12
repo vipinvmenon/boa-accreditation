@@ -1224,6 +1224,24 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
 - This fixes the observed failure path. No post-fix scheduled run has been
   observed yet, so ACC-071 is not claimed complete.
 
+### 12 Sep 2026 — GitHub authentication and post-fix run check
+
+- GitHub authentication is available locally: `gh auth status` reports the
+  `vipinvmenon` account as active with `repo` and `workflow` scopes.
+- A manual `workflow_dispatch` was authorized and observed as run
+  [34702469104](https://github.com/vipinvmenon/boa-accreditation/actions/runs/34702469104).
+  It ran from remote `main` at `f53f1b4`, whose workflow still contained
+  `corepack pnpm verify:deploy -- "$URL"`, so it failed for the already-known
+  separator bug (`verify-deploy: --` and 12 of 15 checks failed). This is not
+  post-fix evidence: remote `main` is behind this checkout and the local fix
+  has not been pushed.
+- The local fixed invocation was run directly against
+  `https://accred.bangaloreopenair.com`: 17 of 18 checks passed. The one real
+  live mismatch is `Service-Worker-Allowed: /gate/` versus the verifier's
+  expected `/gate`; this is separate from the workflow separator failure.
+- No successful post-fix scheduled or manual GitHub Actions run was observed.
+  ACC-071 remains unclaimed.
+
 ## Template for the next session update
 
 ```

@@ -133,6 +133,17 @@ now passes the URL without that separator, and the script tolerates the
 separator for direct CLI use. This fixes the observed failure; it does not
 claim that a later scheduled run has succeeded.
 
+On the same day, local GitHub authentication was confirmed with `gh auth
+status` (`vipinvmenon`, `repo` and `workflow` scopes), and a manual dispatch was
+authorized. Run
+[34702469104](https://github.com/vipinvmenon/boa-accreditation/actions/runs/34702469104)
+used remote `main` at `f53f1b4`, which predates the local workflow fix, so it
+failed on the literal `--` before reaching the live-site checks. Remote `main`
+is 28 commits behind this checkout; no post-fix workflow evidence exists until
+the fix is pushed. A direct local run against production passed 17 of 18
+checks; the remaining mismatch is the live `Service-Worker-Allowed: /gate/`
+header versus the verifier's expected `/gate`, which is a separate issue.
+
 ## MCP servers
 
 All four are project-scoped in `.mcp.json`, so Cursor and Codex get them too.
