@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(57) as line
+  select 0 as n, plan(59) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -95,6 +95,8 @@ select line from (
   union all select 51, function_privs_are('private', 'boa_acc_test_reject_person', array['uuid', 'text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_reject_person')
   union all select 52, function_privs_are('private', 'boa_acc_test_wipe_aaa_nominations', array['text[]'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_wipe_aaa_nominations')
   union all select 53, function_privs_are('private', 'boa_acc_test_wipe_aaa_nominations', array['text[]'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_wipe_aaa_nominations')
+  union all select 58, function_privs_are('private', 'boa_acc_test_wipe_device', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_wipe_device')
+  union all select 59, function_privs_are('private', 'boa_acc_test_wipe_device', array['uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_wipe_device')
 
   -- ACC-045: mint/revoke_device are public, lead/admin-checked internally,
   -- same shape as boa_acc_create_org — anon gets nothing, authenticated gets
