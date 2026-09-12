@@ -4,8 +4,8 @@
     {
       "name": "accred-dev",
       "runtimeExecutable": "corepack",
-      "runtimeArgs": ["pnpm", "dev", "--port", "3200"],
-      "port": 3200
+      "runtimeArgs": ["pnpm", "dev", "--port", "3000"],
+      "port": 3000
     }
   ]
 }
