@@ -18,8 +18,8 @@ on interim placeholder emails (real addresses still needed before 20 Sep,
 ACC-026a), plus the user himself as `admin` on his own real address.
 `test:visual` on the desk screens remains blocked because the visual harness
 cannot authenticate an operator (ACC-043); `/gate/*` now has static screens,
-and the deterministic aeroplane-mode suite passes. True cold service-worker
-navigation and physical rehearsal remain unverified.
+and the deterministic aeroplane-mode suite passes, including true cold
+service-worker navigation. Physical rehearsal remains unverified.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
@@ -64,9 +64,9 @@ Verified on 10 Sep by running the commands, not by assertion:
   present. ACC-050 through ACC-056 are implemented, including the force-static
   `/gate`, `/gate/setup`, and `/gate/vehicle` screens, Dexie-only writes,
   service-worker precache, gate APIs, and database-authorized immutable
-  vehicle events. ACC-057's deterministic browser tests pass, but its true
-  cold service-worker acceptance gap and ACC-058 physical rehearsal remain
-  outstanding.
+  vehicle events. ACC-057's deterministic browser tests and true cold
+  service-worker navigation pass; the remaining gate acceptance is human
+  rehearsal/sign-off under ACC-057/ACC-058.
 - **ACC-052 design risk:** the v1 cached ledger row does not carry
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
