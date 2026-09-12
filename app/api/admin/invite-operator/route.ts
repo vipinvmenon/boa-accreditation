@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { supabaseServer } from '@/lib/supabase-server'
 import { inviteOperatorSchema } from '@/lib/schemas/operator'
+import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,16 @@ export const dynamic = 'force-dynamic'
  * target email on the list" is exactly as safe at any operator count as it
  * was at zero, and unblocks the real bootstrap batch that motivated this
  * endpoint. See .env.example.
+ *
+ * That trust is bounded, not unlimited: security review (12 Sep 2026) found
+ * that an unauthenticated caller who knows one bootstrap email could call
+ * this endpoint repeatedly — every call upserts, so a bootstrap address
+ * already set to `approver` could be silently re-promoted to `admin`, and
+ * every call also re-triggers a real invite email with no throttle, an
+ * unauthenticated remote email-send trigger. Fixed below: the rate limit
+ * applies here too, and the unauthenticated path may create a new operator
+ * or resend an identical invite, but can no longer change an existing
+ * operator's role or name — that always requires an authenticated lead/admin.
  */
 function bootstrapEmails(): string[] {
   return (process.env['BOA_ACC_OPERATOR_BOOTSTRAP'] ?? '')
@@ -27,6 +38,17 @@ function bootstrapEmails(): string[] {
 }
 
 export async function POST(request: Request) {
+  // A generous ceiling for a handful of desk operators, ever — this is not
+  // the 38-vendor invite path (that is boa_acc_mint_invite). Mainly a floor
+  // under the unauthenticated bootstrap branch below.
+  const limited = checkRateLimit(clientIp(request.headers), 10, 60 * 60_000)
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSec) } },
+    )
+  }
+
   let body: unknown
   try {
     body = await request.json()
@@ -40,8 +62,9 @@ export async function POST(request: Request) {
   }
 
   const admin = supabaseAdmin()
+  const isAuthenticatedCaller = !bootstrapEmails().includes(parsed.data.email)
 
-  if (!bootstrapEmails().includes(parsed.data.email)) {
+  if (isAuthenticatedCaller) {
     const server = await supabaseServer()
     const { data: sessionData } = await server.auth.getUser()
     if (!sessionData.user) {
@@ -74,18 +97,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invite_failed' }, { status: 502 })
   }
 
-  // upsert, not insert: inviteUserByEmail on an existing, unconfirmed user
-  // resends the email against the same user id rather than erroring, which
-  // is the normal way to get someone a fresh link — the operator row must
-  // tolerate that instead of failing on the primary key.
-  const { error: insertError } = await admin
+  const { data: existingOperator } = await admin
     .from('boa_acc_operator')
-    .upsert({
-      user_id: invited.user.id,
-      role: parsed.data.role,
-      display_name: parsed.data.displayName,
-    })
-  if (insertError) {
+    .select('role, display_name')
+    .eq('user_id', invited.user.id)
+    .maybeSingle()
+
+  // The unauthenticated bootstrap path may create a new operator, or resend
+  // an identical invite — never silently change an existing one's role or
+  // name. That always needs an authenticated lead/admin caller.
+  if (
+    existingOperator &&
+    !isAuthenticatedCaller &&
+    (existingOperator.role !== parsed.data.role || existingOperator.display_name !== parsed.data.displayName)
+  ) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
+  const { error: upsertError } = await admin.from('boa_acc_operator').upsert({
+    user_id: invited.user.id,
+    role: parsed.data.role,
+    display_name: parsed.data.displayName,
+  })
+  if (upsertError) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 

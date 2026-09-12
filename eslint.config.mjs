@@ -10,6 +10,10 @@ const config = [
       'public/**',
       'supabase/**',
       'next-env.d.ts',
+      // Parallel-agent worktrees (Agent tool, isolation: "worktree") are
+      // full, separate checkouts under here — their own WIP is linted
+      // inside their own worktree, not swept up by a run in this one.
+      '.claude/worktrees/**',
     ],
   },
   // eslint-config-next ships a flat-config ARRAY in Next 16 (it was a factory

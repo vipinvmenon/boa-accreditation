@@ -1,8 +1,25 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { supabaseServer } from '@/lib/supabase-server'
-import type { EmailOtpType } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
+
+// The only two types our own email templates ever send (config/auth's
+// mailer_templates_invite_content / ..._recovery_content) — not the full
+// Supabase EmailOtpType union, which includes flows this app doesn't use.
+const otpTypeSchema = z.enum(['invite', 'recovery'])
+
+// Only an in-app relative path — never an absolute URL. `next` is
+// attacker-controllable (it rides in the emailed link), and a bare
+// `new URL(next, origin)` treats a scheme-qualified `next` as absolute,
+// ignoring `origin` entirely: `?next=https://evil.example` would redirect a
+// just-authenticated session straight off-site. `//host/path` (a
+// protocol-relative URL) is rejected the same way — browsers resolve it
+// against the current scheme, so it is exactly as off-site as an absolute one.
+function safeNextPath(value: string | null): string {
+  if (value && value.startsWith('/') && !value.startsWith('//')) return value
+  return '/desk/login'
+}
 
 /**
  * Where the invite/recovery email templates now point (config/auth's
@@ -24,15 +41,16 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const tokenHash = searchParams.get('token_hash')
-  const type = searchParams.get('type') as EmailOtpType | null
-  const next = searchParams.get('next') ?? '/desk/login'
+  const parsedType = otpTypeSchema.safeParse(searchParams.get('type'))
+  const next = safeNextPath(searchParams.get('next'))
 
-  if (tokenHash && type) {
+  if (tokenHash && parsedType.success) {
+    const type = parsedType.data
     const supabase = await supabaseServer()
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
     if (!error) {
       const redirectUrl = new URL(next, origin)
-      if (type === 'invite' || type === 'recovery') redirectUrl.searchParams.set('flow', type)
+      redirectUrl.searchParams.set('flow', type)
       return NextResponse.redirect(redirectUrl)
     }
   }
