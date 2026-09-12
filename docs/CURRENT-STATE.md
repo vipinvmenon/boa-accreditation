@@ -61,6 +61,10 @@ Verified on 10 Sep by running the commands, not by assertion:
 - **The gate screens and sync flow are not built yet.** `/s/[token]` and the
   desk batch are present; `/gate/*` remains empty. The ACC-050 Dexie storage
   foundation is now implemented; ACC-051 is next for outbox policy.
+- **ACC-052 design risk:** the v1 cached ledger row does not carry
+  `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
+  projection, or a future versioned Dexie migration must add that identity; it
+  must never infer non-voided state from row ordering or serials.
 - **The authenticated desk shell now has the approved sticky navigation and
   live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
   `/desk/orgs`, and `/desk/passes`. The `Master list`, `Gate`, and `Vehicle`
