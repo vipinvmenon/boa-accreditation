@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(45) as line
+  select 0 as n, plan(53) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -80,6 +80,21 @@ select line from (
   union all select 43, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_revoke_invite')
   union all select 44, function_privs_are('private', 'boa_acc_wipe_email', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_email')
   union all select 45, function_privs_are('private', 'boa_acc_wipe_email', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_email')
+
+  -- ACC-033: the dashboard is a desk read, EXECUTE for authenticated only —
+  -- same shape as boa_acc_create_org, anon gets nothing.
+  union all select 46, function_privs_are('public', 'boa_acc_desk_dashboard', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_desk_dashboard')
+  union all select 47, function_privs_are('public', 'boa_acc_desk_dashboard', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_desk_dashboard')
+
+  -- Test-only fixtures (202609120011): the test runner calls these directly
+  -- as table owner, bypassing EXECUTE grants entirely, but every client role
+  -- still gets zero, same as boa_acc_wipe_org/wipe_email.
+  union all select 48, function_privs_are('private', 'boa_acc_test_approve_person', array['uuid', 'public.boa_acc_type_code', 'boolean'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_approve_person')
+  union all select 49, function_privs_are('private', 'boa_acc_test_approve_person', array['uuid', 'public.boa_acc_type_code', 'boolean'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_approve_person')
+  union all select 50, function_privs_are('private', 'boa_acc_test_reject_person', array['uuid', 'text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_reject_person')
+  union all select 51, function_privs_are('private', 'boa_acc_test_reject_person', array['uuid', 'text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_reject_person')
+  union all select 52, function_privs_are('private', 'boa_acc_test_wipe_aaa_nominations', array['text[]'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_wipe_aaa_nominations')
+  union all select 53, function_privs_are('private', 'boa_acc_test_wipe_aaa_nominations', array['text[]'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_wipe_aaa_nominations')
 
   -- The one column that must never be readable by a logged-in session —
   -- ADR-002's compensating control, checked at the column, not the table.
