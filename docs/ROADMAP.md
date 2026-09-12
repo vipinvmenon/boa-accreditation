@@ -91,7 +91,10 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-004** · Fonts via `@fontsource`; `audit-font-weights.mjs` gate
 - [x] **ACC-005** · `extract-assets.mjs` — logo + poster out of the bundle
 - [x] **ACC-006** · `build-gate-sw.mjs`, precaching only routes Next emitted
-- [x] **ACC-007** · Root dead end, 404, error boundary
+- [x] **ACC-007** · Root dead end, 404, error boundary. **Reversed 12 Sep
+      2026, ADR-013** — root now redirects to `/desk/login` on Vipin's direct
+      instruction. The 404 (`app/not-found.tsx`) is untouched; only the root
+      dead-end half of this task was reversed.
 - [x] **ACC-008** · `/docs`, `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`
 - [x] **ACC-010** · Vercel project live at `accred.bangaloreopenair.com`
 - [x] **ACC-012** · Design reference capture (28 refs) + `visual-check.mjs`

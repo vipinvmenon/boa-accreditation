@@ -367,6 +367,34 @@ in Resend's log after the fix.
 
 ---
 
+## ADR-013 — The root reverses ACC-007: it is the desk sign-in now, not a dead end
+
+**Accepted 12 Sep 2026, Vipin's direct instruction.**
+
+ACC-007 made `/` a deliberate dead end — no login link, no route list,
+nothing a stranger hitting the bare domain could use to learn what surfaces
+exist, on the reasoning that every real surface is reached by a credential
+someone already holds (an invite link, a pass link, a device token, or
+desk credentials). Reversed here: "Sign in should be the page. If you have
+access then you can login. This message page is not necessary."
+
+**Why this isn't a step back on non-negotiable 3** (authorisation enforced
+in the database): a sign-in *form* grants nothing by existing. It asks for
+credentials it never sees unless someone types them, same as the login page
+ACC-026 already built at `/desk/login` — this only changes *where* that form
+is reached from. The old copy at `/` was arguably more revealing than a bare
+"Desk sign in" heading: it explained the whole invitation model in prose
+("your contact has been sent a registration link... it will reach you on the
+number you were registered with"), where the new page says nothing about
+what the app is *for* at all.
+
+**Implementation:** `app/page.tsx` is now a server component that calls
+`redirect('/desk/login')` — no duplicate login UI, one source of truth.
+`/s/[token]` and `/p/[passToken]` links never route through `/` regardless
+of this change; only a bare, tokenless visit to the domain is affected.
+
+---
+
 ## Decisions taken by the user, 10 Sep 2026
 
 Recorded here so they are not re-opened by someone reading only the spec.

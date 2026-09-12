@@ -562,6 +562,49 @@ Verified by attempting the thing, not by reading a grant table:
 > `list-emails` will work. `typecheck`, `lint`, `test` (49/49), and `build`
 > all pass. **Vipin: check `vipinmenon16@gmail.com` (including spam) for the
 > reset link.**
+>
+> **12 Sep 2026 — the reset link took Vipin to production's root "Nobody
+> walks in unlisted" page, not `/desk/login`; investigated, root cause found,
+> and the root itself changed on his instruction (ADR-013).** Two separate
+> things were going on, checked rather than guessed:
+>
+> 1. **Nothing from this session was deployed.** `git rev-list --count
+>    origin/main..HEAD` showed this branch 5 commits ahead of `main` (the
+>    branch Vercel builds from) at the time — every fix today (the WEB/MOB
+>    toggle, hover states, nav colour, the invite-operator screen, and the
+>    forgot-password button itself) exists only on this local branch.
+>    Production's `/desk/login` is yesterday's version — confirmed live by
+>    loading `https://accred.bangaloreopenair.com/desk/login` in the Browser
+>    pane: the sign-in form renders correctly, but with no "Forgot password?"
+>    link, because that code has never been pushed.
+> 2. **The recovery email template and `/auth/confirm` route were not the
+>    problem.** Read the live Supabase Auth config directly (Management API,
+>    the same CLI keychain token `scripts/lib/db.mjs` already uses for
+>    `db:state`): `mailer_templates_recovery_content` links to
+>    `{{ .SiteURL }}/auth/confirm?token_hash=...&type={{ .Type }}&next=/desk/login`,
+>    `site_url` is `https://accred.bangaloreopenair.com`, and `main`'s
+>    already-deployed `app/auth/confirm/route.ts` (confirmed via `git show
+>    origin/main:...`) redirects a successful `verifyOtp` to exactly that
+>    `next` path, or to `/desk/login?error=invalid_link` on failure — neither
+>    branch can produce a landing on `/`. The most likely explanation is
+>    Vipin ended up at the bare domain separately (confusion, a bookmark, or
+>    exploring) rather than a single click-through redirect actually landing
+>    there; not fully reconstructed without the original email in hand.
+>
+> **Vipin's response, independent of that investigation:** the root dead end
+> (ACC-007) is not wanted at all — "Sign in should be the page... this
+> message page is not necessary." Implemented as ADR-013: `app/page.tsx` is
+> now `redirect('/desk/login')`, no separate copy, one source of truth for
+> the login UI. Verified live on `localhost:3000`: `/` renders the full sign-
+> in form (email, password, Sign in, Forgot password?). `app/not-found.tsx`
+> (the token-404 page) is untouched — only the root dead end was in scope.
+> `typecheck`, `lint`, `test` (49/49), and `build` all pass.
+>
+> **Still true and worth repeating: none of today's session is on `main` or
+> deployed.** Vipin has not been asked whether to push/deploy; everything
+> above is verified against `localhost:3000` and, for the diagnosis, direct
+> reads of the live Supabase config and the already-deployed `main` branch —
+> not against a new deployment.
 
 ## Session log
 
