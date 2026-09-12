@@ -1099,6 +1099,24 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   is implemented, but real iPhone decoding remains ACC-053b and the gate UI
   and service-worker route are not built until ACC-054.
 
+### 12 Sep 2026 — ACC-056: database-authorized gate sync boundary
+
+- Added `boa_acc_gate_pull` and `boa_acc_gate_issue` as service-role-only RPCs,
+  plus `/api/gate/pull` and `/api/gate/issue`. The database authenticates the
+  pasted device token, supplies the device identity, clamps device timestamps,
+  returns an approved roster and latest active non-voided ledger projection,
+  and appends issue/reissue/void actions by idempotency key. Blank physical
+  serials remain valid; no serial is pre-assigned.
+- Added Zod schemas and privilege assertions proving `anon` and
+  `authenticated` have zero EXECUTE on both gate RPCs. The migration was
+  applied to the live database, `check:sql`, `test:db`, typecheck, lint, unit
+  tests, and build passed. A throwaway live pull returned one roster row and
+  zero ledger rows, then was cleaned up.
+- **Not yet true:** vehicle-event API support, gate screens, service-worker
+  registration, outbox drain integration, and aeroplane-mode acceptance remain
+  ACC-054 through ACC-057. No successful live ledger write was used as a
+  disposable test because the check-in ledger is immutable.
+
 ## Template for the next session update
 
 ```

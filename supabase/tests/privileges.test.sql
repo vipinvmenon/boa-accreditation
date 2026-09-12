@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(63) as line
+  select 0 as n, plan(67) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -109,6 +109,13 @@ select line from (
   union all select 67, function_privs_are('public', 'boa_acc_approval_queue', array['text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_approval_queue')
   union all select 68, function_privs_are('public', 'boa_acc_passes', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_passes')
   union all select 69, function_privs_are('public', 'boa_acc_passes', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_passes')
+
+  -- ACC-056: gate RPCs are service-role-only route boundaries. The browser
+  -- never receives EXECUTE, and anon remains completely unable to call them.
+  union all select 70, function_privs_are('public', 'boa_acc_gate_pull', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_pull')
+  union all select 71, function_privs_are('public', 'boa_acc_gate_pull', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_pull')
+  union all select 72, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_issue')
+  union all select 73, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_issue')
 
   -- The one column that must never be readable by a logged-in session —
   -- ADR-002's compensating control, checked at the column, not the table.
