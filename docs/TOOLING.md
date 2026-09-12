@@ -108,6 +108,31 @@ Hooks are installed by `corepack pnpm install` (the `prepare` script points
 > the service worker precaching three routes that 404, which would have made
 > `caches.addAll()` reject and disabled offline support at the gate.
 
+### Watching ACC-071
+
+The workflow is observable in GitHub Actions, but a schedule entry is not a
+successful verification. Check both the event and conclusion:
+
+```bash
+gh run list --workflow deploy-verify.yml --event schedule --limit 20 \
+  --json databaseId,event,status,conclusion,createdAt,url
+```
+
+For a failed run, inspect the verifier output rather than inferring the cause
+from the red check:
+
+```bash
+gh run view <run-id> --log-failed
+```
+
+On 12 Sep 2026, the two observed scheduled runs (`34680327221` and
+`34574267838`) both failed before checking the site. Deployment-triggered runs
+showed the same issue: the workflow's `pnpm` invocation passed the separator
+`--` through to `verify-deploy.mjs`, which treated it as the host. The workflow
+now passes the URL without that separator, and the script tolerates the
+separator for direct CLI use. This fixes the observed failure; it does not
+claim that a later scheduled run has succeeded.
+
 ## MCP servers
 
 All four are project-scoped in `.mcp.json`, so Cursor and Codex get them too.

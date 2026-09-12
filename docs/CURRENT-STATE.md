@@ -1190,6 +1190,19 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   writes. The remaining blocker is service-worker install/precache diagnosis;
   the browser-level cold offline reload is not claimed complete.
 
+### 12 Sep 2026 — ACC-071: observed deploy-verification failure fixed
+
+- GitHub Actions evidence was checked directly. The two observed scheduled
+  `deploy-verify.yml` runs (`34680327221` and `34574267838`) both failed before
+  checking the site; deployment-triggered runs had the same failure.
+- The cause was in the workflow invocation: `corepack pnpm verify:deploy -- "$URL"`
+  passed the literal `--` through to `verify-deploy.mjs`, which used it as the
+  base URL. The workflow now passes the URL correctly, while the script also
+  tolerates the separator for direct CLI use and times out individual requests
+  after 15 seconds.
+- This fixes the observed failure path. No post-fix scheduled run has been
+  observed yet, so ACC-071 is not claimed complete.
+
 ## Template for the next session update
 
 ```

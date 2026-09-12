@@ -27,6 +27,9 @@ jobs:
       github.event_name != 'deployment_status' ||
       (github.event.deployment_status.state == 'success' &&
        github.event.deployment_status.environment == 'Production')
+    permissions:
+      contents: read
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,4 +46,4 @@ jobs:
           fi
           if [ -z "$URL" ]; then URL="https://accred.bangaloreopenair.com"; fi
           echo "Verifying $URL"
-          corepack pnpm verify:deploy -- "$URL"
+          corepack pnpm verify:deploy "$URL"

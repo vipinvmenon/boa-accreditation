@@ -14,7 +14,8 @@
 //   corepack pnpm verify:deploy -- https://foo.vercel.app
 
 const DEFAULT_HOST = 'https://accred.bangaloreopenair.com'
-const base = (process.argv[2] ?? DEFAULT_HOST).replace(/\/$/, '')
+const cliArgs = process.argv.slice(2).filter((arg) => arg !== '--')
+const base = (cliArgs[0] ?? DEFAULT_HOST).replace(/\/$/, '')
 
 let failed = 0
 const results = []
@@ -25,7 +26,11 @@ const check = (name, ok, detail) => {
 
 const get = async (path, init) => {
   try {
-    return await fetch(base + path, { redirect: 'manual', ...init })
+    return await fetch(base + path, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15_000),
+      ...init,
+    })
   } catch (e) {
     return { status: 0, headers: new Headers(), error: e.message, text: async () => '' }
   }
