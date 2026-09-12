@@ -46,6 +46,28 @@
   }
 }
 
+.g-shell {
+  width: 100%;
+  max-width: 420px;
+  border-left: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  border-right: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  min-height: 100%;
+}
+.g-pad-sec { padding: 28px 18px; }
+.g-h1 { font-size: 34px; }
+.g-grid { grid-template-columns: 1fr; }
+.g-verdict { font-size: 46px; }
+.g-vehicle-grid { grid-template-columns: 1fr; }
+
+@media (min-width: 768px) {
+  .g-shell { max-width: 1280px; border-left: none; border-right: none; }
+  .g-pad-sec { padding: 40px; }
+  .g-h1 { font-size: clamp(38px, 4.4vw, 58px); }
+  .g-grid { grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr); }
+  .g-verdict { font-size: 58px; }
+  .g-vehicle-grid { grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr); }
+}
+
 /**
  * ACC-033, the Control room (`isDash` block, renderVals() lines 826-850).
  * `d-` prefix, same convention as `s-` above. `.d-poster-scrim` and

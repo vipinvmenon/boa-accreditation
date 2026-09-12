@@ -1,23 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
 import { drainOutbox, enqueueIssue, queuedCount, readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { scanFrame } from '@/gate/scanner'
+import { GateChrome } from './gate-chrome'
 
 export const dynamic = 'force-static'
 
 const emptyResolution: GateResolution = { status: 'red', reason: 'invalid_token' }
 
-function formatAsOf(value: string | null): string {
-  return value ? new Date(value).toLocaleString() : 'pull time unavailable'
-}
-
 export default function GatePage() {
-  const router = useRouter()
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
   const [resolution, setResolution] = useState<GateResolution>(emptyResolution)
   const [serial, setSerial] = useState('')
@@ -30,13 +25,9 @@ export default function GatePage() {
 
   const loadCache = useCallback(async () => {
     const current = await readGateSnapshot()
-    if (current.roster.length === 0) {
-      router.replace('/gate/setup')
-      return
-    }
     setSnapshot(current)
     setQueued(await queuedCount())
-  }, [router])
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadCache(), 0)
@@ -140,39 +131,41 @@ export default function GatePage() {
   const person = resolution.status === 'red' ? null : resolution.person
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
 
-  if (!snapshot) {
-    return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', color: 'var(--ink,#F2EFE2)', padding: 32, fontFamily: "'JetBrains Mono',monospace" }}>Loading local gate cache…</main>
-  }
+  if (!snapshot) return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', color: 'var(--ink,#F2EFE2)', fontFamily: "'Archivo',sans-serif" }}>
-      <section style={{ padding: 'clamp(28px, 5vw, 64px) clamp(20px, 5vw, 72px)', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
+    <GateChrome bandsIssued={snapshot.ledger.filter((row) => row.kind === 'wristband').length} approved={snapshot.roster.length} bmsPending={0}>
+      <section className="g-pad-sec" style={{ borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
         <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--grn,#00F5A5)', marginBottom: 16 }}>Crew check-in</div>
-        <h1 style={{ fontFamily: "'Anton',sans-serif", fontSize: 'clamp(48px, 8vw, 82px)', lineHeight: 0.94, textTransform: 'uppercase', margin: '0 0 14px' }}>Three outcomes. No fourth.</h1>
-        <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0, maxWidth: 62 * 8 }}>The approved list is held on the device, so a scan resolves with the radio off and writes flush when signal returns.</p>
+        <h1 className="g-h1" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.94, textTransform: 'uppercase', color: 'var(--ink,#F2EFE2)', margin: '0 0 14px' }}>Three outcomes. No fourth.</h1>
+        <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0, maxWidth: '62ch' }}>The approved list is held on the device, so a scan resolves with the radio off and writes flush when signal returns. There is no ambiguous state and no discretion at the gate.</p>
       </section>
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 1, background: 'var(--rule,rgba(242,239,226,0.16))' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', overflowX: 'auto' }}>
+        {(['Scanning', 'Approved', 'Collected', 'Refuse'] as const).map((label) => <button key={label} type="button" style={{ cursor: 'pointer', border: 0, borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))', background: label === 'Approved' ? 'var(--grn,#00F5A5)' : 'transparent', color: label === 'Approved' ? 'var(--on,#0A0A0A)' : 'var(--ink3,rgba(242,239,226,0.42))', padding: '13px 18px', fontFamily: "'Oswald',sans-serif", fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>)}
+      </div>
+      <section className="g-grid" style={{ display: 'grid', gap: 1, background: 'var(--rule,rgba(242,239,226,0.16))' }}>
         <div style={{ background: 'var(--bg,#0A0A0A)', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>
             <span>{snapshot.meta.gateLabel} | {snapshot.meta.volunteerName}</span><span style={{ color: 'var(--gold,#E3BB72)' }}>{online ? 'Online' : 'Offline'} | {queued} queued</span>
           </div>
-          <div style={{ width: '100%', maxWidth: 360, margin: '0 auto', aspectRatio: '1', position: 'relative', border: '1px solid var(--rule,rgba(242,239,226,0.16))', background: 'var(--panel,#101012)', overflow: 'hidden' }}>
+          <div style={{ width: '100%', maxWidth: 280, margin: '0 auto', aspectRatio: '1', position: 'relative', border: '1px solid var(--rule,rgba(242,239,226,0.16))', background: 'var(--panel,#101012)', overflow: 'hidden' }}>
             <video ref={videoRef} muted playsInline aria-label="Gate camera scanner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div style={{ position: 'absolute', inset: 14, border: '2px solid var(--grn,#00F5A5)', opacity: 0.9 }} />
+            <div style={{ position: 'absolute', left: 14, right: 14, top: '50%', height: 2, background: 'var(--grn,#00F5A5)' }} />
           </div>
           <canvas ref={canvasRef} hidden />
-          <button type="button" onClick={() => void startCamera()} style={{ cursor: 'pointer', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink2,rgba(242,239,226,0.72))', padding: 15, fontFamily: "'Oswald',sans-serif", fontSize: 12.5, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 50 }}>Start camera scanner</button>
+          <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink,#F2EFE2)' }}>Point at the pass code<div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, fontWeight: 400, letterSpacing: '0.08em', color: 'var(--ink3,rgba(242,239,226,0.42))', marginTop: 7 }}>{snapshot.roster.length} approved passes held on this device</div></div>
+          <button type="button" onClick={() => void startCamera()} style={{ cursor: 'pointer', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink2,rgba(242,239,226,0.72))', padding: 15, fontFamily: "'Oswald',sans-serif", fontSize: 12.5, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 50 }}>Can&apos;t scan — search by name</button>
           {cameraError && <div role="alert" style={{ color: 'var(--bad,#FF6B5A)', fontSize: 13 }}>{cameraError}</div>}
-          <label htmlFor="manual-scan" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>Manual scanner input</label>
-          <input id="manual-scan" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} placeholder="BOA26: PASS CODE" style={{ border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink,#F2EFE2)', padding: '15px 16px', fontFamily: "'JetBrains Mono',monospace", minHeight: 52, width: '100%' }} />
-          <div style={{ borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: 16, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: 'var(--ink3,rgba(242,239,226,0.42))' }}>
-            {snapshot.roster.length} approved passes held · pulled {formatAsOf(snapshot.meta.rosterAsOf)}
+          <div style={{ borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: 16 }}>
+            <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))', marginBottom: 10 }}>Last issued at this gate</div>
+            {recent.map((row) => <div key={row.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}><span style={{ width: 7, height: 16, background: 'var(--grn,#00F5A5)' }} /><span style={{ flex: 1 }}>{row.kind} · {row.bandSerial ?? row.stickerNo ?? 'blank serial'}</span><button type="button" style={{ border: 0, background: 'transparent', color: 'var(--ink3)', fontFamily: "'Oswald',sans-serif", textTransform: 'uppercase' }}>Void</button></div>)}
           </div>
-          {recent.map((row) => <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', padding: '9px 0', fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}><span>{row.kind} · {row.bandSerial ?? row.stickerNo ?? 'blank serial'}</span><span>{new Date(row.occurredAt).toLocaleTimeString()}</span></div>)}
+          <div style={{ marginTop: 'auto', borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: 14, display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: '0.11em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}><span>{snapshot.ledger.filter((row) => row.kind === 'wristband').length} issued today</span><span>Ledger append-only</span></div>
         </div>
         <div style={{ background: 'var(--panel,#101012)', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20, borderTop: `4px solid ${colour}` }}>
           <div>
-            <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 'clamp(54px, 10vw, 96px)', lineHeight: 0.92, textTransform: 'uppercase', color: colour }}>{verdict}</div>
+            <div className="g-verdict" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.92, textTransform: 'uppercase', color: colour }}>{verdict}</div>
             <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: colour, marginTop: 10 }}>{resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</div>
           </div>
           {person && <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -191,6 +184,6 @@ export default function GatePage() {
           </div>
         </div>
       </section>
-    </main>
+    </GateChrome>
   )
 }
