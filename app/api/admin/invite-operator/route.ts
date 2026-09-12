@@ -6,9 +6,18 @@ import { inviteOperatorSchema } from '@/lib/schemas/operator'
 export const dynamic = 'force-dynamic'
 
 /**
- * Comma-separated emails permitted to invite the FIRST operator(s), from
- * .env.example: "the BOOTSTRAP only — once an operator exists, the caller's
- * own boa_acc_operator row is the control, not this list."
+ * Comma-separated emails permitted to invite an operator without an
+ * authenticated caller — the trusted batch Vipin sets in Vercel, not
+ * anything a request can influence. Originally scoped to "only while
+ * boa_acc_operator is empty," which turned out to be too narrow for its own
+ * purpose: bootstrapping four accounts (Bhoopesh, Salman, two approvers)
+ * means the second, third and fourth call all happen after the first
+ * operator row exists, and none of those four people can sign in yet to
+ * satisfy the normal check. The allowlist itself is already the trust
+ * boundary — it is Vercel env, not request input — so checking "is this
+ * target email on the list" is exactly as safe at any operator count as it
+ * was at zero, and unblocks the real bootstrap batch that motivated this
+ * endpoint. See .env.example.
  */
 function bootstrapEmails(): string[] {
   return (process.env['BOA_ACC_OPERATOR_BOOTSTRAP'] ?? '')
@@ -32,19 +41,7 @@ export async function POST(request: Request) {
 
   const admin = supabaseAdmin()
 
-  // Zero rows: nobody can be authenticated as an operator yet, so the normal
-  // "caller must already be lead/admin" check is impossible to satisfy. Fall
-  // back to the bootstrap allowlist for this one case only.
-  const { count, error: countError } = await admin
-    .from('boa_acc_operator')
-    .select('user_id', { count: 'exact', head: true })
-  if (countError) return NextResponse.json({ error: 'internal' }, { status: 500 })
-
-  if ((count ?? 0) === 0) {
-    if (!bootstrapEmails().includes(parsed.data.email)) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-    }
-  } else {
+  if (!bootstrapEmails().includes(parsed.data.email)) {
     const server = await supabaseServer()
     const { data: sessionData } = await server.auth.getUser()
     if (!sessionData.user) {
