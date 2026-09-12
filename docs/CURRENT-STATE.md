@@ -238,6 +238,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-047 released 2026-09-12 (IST):** Implementation and manual browser verification are complete, but test:visual cannot authenticate desk screens; control-room, queue and passes remain BLOCKED, so pixel acceptance is not verified.
 
+
+> **ACC-042 released 2026-09-12 (IST):** Implementation and local browser verification are complete, but test:visual cannot authenticate the operator; master is now a route but remains BLOCKED for pixel comparison.
+
 ## Session log
 
 ### 12 Sep 2026 — GitHub Actions secrets configured
@@ -1025,6 +1028,20 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
 - `test:visual` remains unable to compare authenticated desk screens because
   its harness has no operator credential; it reported control-room, queue, and
   passes as `BLOCKED`, not passing. No visual acceptance is claimed.
+
+### 12 Sep 2026 — ACC-042: master list
+
+- Added the database-backed `/desk/master` screen and
+  `/api/desk/master`. It supports search across name, phone, organisation,
+  vehicle registration, band serial and pass reference; CSV export; In BMS /
+  Not in BMS filters; and explicit latest non-voided wristband/sticker state
+  derived from the append-only check-in ledger.
+- Verified locally in a real browser with the Vipin operator account: the
+  navigation, live zero-state, search control, BMS filters and CSV link render.
+  `typecheck`, `lint`, unit tests and `build` passed. No database rows were
+  created or changed.
+- `test:visual` now finds `/desk/master` but reports it `BLOCKED` because the
+  harness has no operator credential. Pixel acceptance is not claimed.
 
 ## Template for the next session update
 

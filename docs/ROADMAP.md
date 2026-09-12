@@ -137,7 +137,7 @@ Runs while submissions arrive.
 
 - [x] **ACC-040** · Approval queue — filters, per-row type, bulk, *Approve all →*, reasons · **C** · due Tue 22
 - [x] **ACC-041** · `boa_acc_decide` + `approve_org` + `ledger`/`reissue` tests · **C** · due Tue 22
-- [~] **ACC-042** · Master list — search, CSV, In BMS / Not in BMS column · **C** · due Wed 23
+- [ ] **ACC-042** · Master list — search, CSV, In BMS / Not in BMS column · **C** · due Wed 23
 - [x] **ACC-043** · Passes — server-rendered QR SVG, A4 print CSS, WhatsApp share · **C** · due Thu 24
 - [x] **ACC-044** · `/desk/aaa` + nomination guard + `aaa.test.sql` · **C** · due Fri 25
 - [x] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25

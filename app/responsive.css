@@ -92,6 +92,9 @@
 .d-org-cols {
   grid-template-columns: 1fr; /* orgCols, mobile */
 }
+.d-master-cols {
+  grid-template-columns: 1fr; /* masterCols, mobile */
+}
 .d-poster {
   width: 100%; /* posterW, mobile */
   background-position: 50% 8%; /* posterPos, mobile */
@@ -143,6 +146,9 @@
   }
   .d-org-cols {
     grid-template-columns: minmax(0, 2.4fr) 1.2fr 1fr 1fr; /* orgCols, desktop */
+  }
+  .d-master-cols {
+    grid-template-columns: minmax(0, 2.4fr) 1.2fr 1fr 1fr 1fr 1.2fr; /* masterCols, desktop */
   }
   .d-poster {
     width: min(56%, 720px); /* posterW, desktop */
