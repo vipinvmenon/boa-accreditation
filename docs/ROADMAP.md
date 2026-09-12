@@ -142,6 +142,7 @@ Runs while submissions arrive.
 - [x] **ACC-044** · `/desk/aaa` + nomination guard + `aaa.test.sql` · **C** · due Fri 25
 - [x] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25
 - [ ] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
+- [~] **ACC-047** · Shared desk shell — sticky nav, live status bar, theme toggle · **C** · due Sat 26
 
 **Acceptance:** 100 real submissions approved through the real queue · 14 passes
 print one per A4 and **a phone decodes the QR off the paper** · `pass_token`
