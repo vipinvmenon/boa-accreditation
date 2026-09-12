@@ -1087,6 +1087,18 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   void state from ordering or serials.
 - Verified `typecheck`, `lint`, unit tests (40 passing), and `build`.
 
+### 12 Sep 2026 — ACC-053: offline camera scanner
+
+- Added `gate/scanner.ts` with a native `BarcodeDetector` path and a
+  `zxing-wasm` fallback. The fallback explicitly loads
+  `/gate/zxing_reader.wasm`; `scripts/extract-assets.mjs` copies that binary
+  from the installed package during builds, and `build-gate-sw.mjs` precaches
+  it under the `/gate/` service-worker scope.
+- Added focused tests for native decoding, the local-WASM fallback, and a
+  no-result frame. `typecheck`, `lint`, `test`, and `build` passed. The scanner
+  is implemented, but real iPhone decoding remains ACC-053b and the gate UI
+  and service-worker route are not built until ACC-054.
+
 ## Template for the next session update
 
 ```

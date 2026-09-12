@@ -17,7 +17,7 @@
 // next/font (Anton, Oswald, Archivo, JetBrains Mono). Pulling the bundle's woff2
 // subsets would give us a second, differently-subsetted copy of the same faces.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,6 +25,8 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BUNDLE = join(root, 'design/source/boa_design_bundle.html')
 const OUT = join(root, 'public/assets')
+const GATE_OUT = join(root, 'public/gate')
+const ZXING_WASM = join(root, 'node_modules/zxing-wasm/dist/reader/zxing_reader.wasm')
 
 // The two ids the design markup actually references, and the names we give them.
 // Named explicitly rather than "extract every image" so that an unreferenced asset
@@ -69,3 +71,12 @@ for (const [id, name] of Object.entries(WANTED)) {
 }
 
 console.log(`extract-assets: ${written} asset(s) -> public/assets/`)
+
+// iOS Safari has no BarcodeDetector. Copy the reader binary into the gate
+// service-worker scope so the fallback is available with the radio off.
+if (!existsSync(ZXING_WASM)) {
+  throw new Error(`missing zxing-wasm reader binary: ${ZXING_WASM}`)
+}
+mkdirSync(GATE_OUT, { recursive: true })
+copyFileSync(ZXING_WASM, join(GATE_OUT, 'zxing_reader.wasm'))
+console.log('extract-assets: zxing_reader.wasm -> public/gate/')
