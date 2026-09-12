@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(67) as line
+  select 0 as n, plan(70) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -116,6 +116,19 @@ select line from (
   union all select 71, function_privs_are('public', 'boa_acc_gate_pull', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_pull')
   union all select 72, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_issue')
   union all select 73, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_issue')
+
+  -- ACC-055: vehicle events are written only through the service-role route.
+  -- The device token is checked inside the SECURITY DEFINER function; neither
+  -- browser role receives EXECUTE.
+  union all select 74, function_privs_are('public', 'boa_acc_gate_vehicle',
+    array['text','uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'],
+    'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_vehicle')
+  union all select 75, function_privs_are('public', 'boa_acc_gate_vehicle',
+    array['text','uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'],
+    'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_vehicle')
+  union all select 76, function_privs_are('public', 'boa_acc_gate_vehicle',
+    array['text','uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'],
+    'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_gate_vehicle')
 
   -- The one column that must never be readable by a logged-in session —
   -- ADR-002's compensating control, checked at the column, not the table.

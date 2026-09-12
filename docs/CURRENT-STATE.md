@@ -58,11 +58,13 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 ## What does NOT exist yet
 
-- **The gate screens and sync flow are not built yet.** `/s/[token]` and the
-  desk batch are present; `/gate/*` remains empty. The ACC-050 Dexie storage
-  foundation and ACC-051 pure outbox policy are now implemented; ACC-052 is
-  implemented with an explicit active-ledger projection boundary; ACC-053 is
-  next for the camera scanner.
+- **The gate screens and sync flow are incomplete.** `/s/[token]` and the desk
+  batch are present. ACC-050 through ACC-053 are implemented, and ACC-055 now
+  adds `/gate/vehicle`, the Dexie-only vehicle-event flow, the
+  `/api/gate/vehicle` proxy, and the database-authorized immutable vehicle-event
+  RPC. `/gate` and `/gate/setup` remain unbuilt under ACC-054, so the service
+  worker build deliberately refuses a partial gate and full offline acceptance
+  remains blocked until ACC-054/056/057.
 - **ACC-052 design risk:** the v1 cached ledger row does not carry
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
@@ -1116,6 +1118,23 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   registration, outbox drain integration, and aeroplane-mode acceptance remain
   ACC-054 through ACC-057. No successful live ledger write was used as a
   disposable test because the check-in ledger is immutable.
+
+### 12 Sep 2026 — ACC-055: vehicle gate
+
+- Added `gate/vehicle-flow.ts` and `/gate/vehicle`. The screen normalises
+  plates, reads local sticker/ledger projections, and queues every barrier
+  event in Dexie with one persisted idempotency key; it never calls the
+  network directly.
+- Added `/api/gate/vehicle` with Zod validation and
+  `202609121955_boa_acc_gate_vehicle.sql`. The RPC authenticates the device
+  token, enforces vehicle scope and plate shape, requires a turn-away reason,
+  and requires sticker + wristband + visual-plate checks before a clear event.
+  Vehicle events remain append-only; the migration grants the RPC only to
+  `service_role`, preserving zero anon/authenticated function grants.
+- `vehicle.test.sql` covers invalid device, plate, reason, and clearance
+  evidence without committing an immutable event. `test:db`, typecheck, lint,
+  unit tests, and `check:sql` passed. Full `build` is now unblocked by the
+  complete `/gate` route set; aeroplane-mode acceptance remains ACC-057.
 
 ### 12 Sep 2026 — ACC-060: lossless gate logo optimisation
 
