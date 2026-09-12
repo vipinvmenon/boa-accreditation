@@ -3,17 +3,20 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 12 September 2026 (tenth update)._
+_Last updated: 12 September 2026 (eleventh update)._
 
 ## In one line
 
 Phase 0 (foundation) is complete. **The schema, the public-surface RPCs, the
-`/api/s/[token]` route and the real Submission screen are live** — mint,
-org_view, submit, quota lock, per-token throttle, the register-your-crew UI —
-verified by `corepack pnpm test:db`, `corepack pnpm db:state` and real curl /
-browser sessions against production and the live database, not asserted.
-`anon` still has zero grants. `test:visual` on Submission is not a pass yet
-(ADR-009 — see below); `/desk/*` and `/gate/*` are still empty (ACC-026+).
+Submission screen and the desk login/invite path are all live** — mint,
+org_view, submit, quota lock, per-token throttle, register-your-crew,
+`/desk/login`, `/api/admin/invite-operator` — verified by `corepack pnpm
+test:db`, `corepack pnpm db:state`, Resend's own delivery log, and real curl /
+browser sessions against production, not asserted. `anon` still has zero
+grants. **All four operators exist** (Bhoopesh=lead, Salman=admin, two
+approvers) on interim placeholder emails — real addresses still needed before
+20 Sep (ACC-026a). `test:visual` on Submission is not a pass yet (ADR-009);
+no `/desk/*` page past `/login` exists yet (ACC-027); `/gate/*` is still empty.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
@@ -225,6 +228,50 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 12 Sep 2026 — ACC-026: /desk/login, invite-operator, and real SMTP
+
+- **`lib/supabase-browser.ts` / `lib/supabase-server.ts`** — the
+  publishable-key clients for `/desk/*`: a browser client for the login page,
+  a server (`@supabase/ssr` + cookies) client for "who is signed in" checks.
+  Neither is `lib/supabase-admin.ts`; that stays service-role-only.
+- **`app/api/admin/invite-operator/route.ts`** — implements what
+  `BOA_ACC_OPERATOR_BOOTSTRAP` in `.env.example` described but nothing had
+  built yet. Redesigned once, live, from what shipped first: the initial
+  version only allowed the bootstrap allowlist while `boa_acc_operator` was
+  literally empty, which closed after Bhoopesh's invite and blocked Salman
+  and both approvers (none of them can sign in yet to satisfy the normal
+  lead/admin check). Changed to: allow any email on the allowlist regardless
+  of operator count, since the allowlist is already the trust boundary
+  (Vercel env, not request input) — inviting anyone else still requires a
+  signed-in lead/admin.
+- **`app/desk/login/page.tsx`** — not part of the approved design (no login
+  screen exists in `design/source/boa_design_body.html`), so built from the
+  design's own tokens rather than transcribed, and not gated by
+  `test:visual`. One page, two flows: a brand-new invite (detected via
+  `user.last_sign_in_at === null`) is asked to set a password; a returning
+  operator gets the normal sign-in form.
+- **ADR-010 (docs/DECISIONS.md): Resend, direct signup, for Supabase Auth
+  SMTP.** Discovered mid-task: Supabase's built-in mailer caps at 2
+  emails/hour — Bhoopesh's invite sent, Salman's failed immediately. Fixed
+  with a real provider (Resend, direct signup — free, no Vercel plan
+  change — using the user's existing verified `accred.bangaloreopenair.com`
+  domain from their `boa-bar-control` Resend account), wired into
+  `config/auth` via the Supabase Management API. A **second**, independent
+  rate limit (`rate_limit_email_sent`, unaffected by SMTP config) then
+  blocked the 4th invite and was raised to 30 the same way.
+- **All four operators invited and verified live**, not asserted: `boa_acc_operator`
+  and `auth.users` both at 4 (`db:state`), Resend's own `/emails` log shows
+  3 of the 4 `delivered` (the first went out before SMTP was live, via
+  Supabase's default mailer). Bhoopesh = `lead`, Salman = `admin`, two
+  `approver` placeholders — all four still on the interim
+  `vipinmenon16+<role>@gmail.com` addresses per ACC-026a; **real addresses
+  are still needed before 20 Sep**, and re-inviting to swap them will need
+  the same admin/lead-authenticated path once real desk pages exist.
+- **Not yet true:** no `/desk/*` page exists past `/login` — a successful
+  sign-in redirects to `/desk`, which 404s until ACC-027. The Resend API key
+  used was full-access, not scoped to sending-only (noted in ADR-010).
+- 26/60 tasks done.
 
 ### 12 Sep 2026 — ACC-025: the Submission screen, real data, one recorded gap
 

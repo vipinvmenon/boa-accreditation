@@ -215,6 +215,47 @@ screen is held to. See docs/CURRENT-STATE.md, ACC-025, for the measured number.
 
 ---
 
+## ADR-010 — Resend, via direct signup, for Supabase Auth's SMTP
+
+**Accepted 12 Sep 2026.**
+
+Supabase's built-in mailer (no custom SMTP configured) caps at
+`rate_limit_email_sent: 2` per hour with `smtp_max_frequency: 60` seconds
+between sends — discovered the hard way, mid-invite: Bhoopesh's invite sent,
+Salman's failed immediately after. Unworkable for four operator invites today,
+let alone resends before 20 Sep.
+
+**Provider: Resend**, matching `boa-bar-control`'s own choice — but that
+project never actually finished this step (its own `CURRENT-STATE.md`: *"Resend
+SMTP/domain configuration and live OTP delivery have not been verified"*), so
+there was no working credential or config to copy, only the same open task.
+
+**Installed by direct signup at resend.com, not the Vercel Marketplace.**
+The Marketplace path (`vercel integration add resend-email`) requires the
+Vercel project on a paid plan for its billing; direct signup is free (100
+emails/day) and Supabase Auth only needs SMTP host/port/user/pass, which
+Resend hands out the same way either route. `accred.bangaloreopenair.com` was
+already verified on the user's existing Resend account. Wired directly into
+Supabase's `config/auth` via the Management API: `smtp_host=smtp.resend.com`,
+port `465`, user `resend`, password = the Resend API key, sender
+`noreply@accred.bangaloreopenair.com`.
+
+**A second, separate rate limit surfaced after SMTP was live**:
+`rate_limit_email_sent` (2/hour) is a Supabase Auth setting independent of
+SMTP — configuring a real provider does not raise it. Raised to `30` via the
+same Management API call. This is now the number to revisit if operator
+invites or resends ever need to happen faster than 30/hour.
+
+Verified for real: `GET /v1/projects/.../config/auth` before and after;
+Resend's own `/emails` log shows 3 of the 4 operator invites `delivered`
+(Bhoopesh's went out before SMTP was configured, via the default mailer —
+also delivered, per Supabase). Not yet done: Resend was installed with a
+full-access API key sent over chat rather than generated as a
+sending-scoped key — fine for this one-time bootstrap, worth tightening
+(a `sending_access`-only key) before this becomes a routine path.
+
+---
+
 ## Decisions taken by the user, 10 Sep 2026
 
 Recorded here so they are not re-opened by someone reading only the spec.
