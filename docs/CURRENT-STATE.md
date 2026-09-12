@@ -973,6 +973,22 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   Mono 600 and `<strong>` inherits UA bold 700 on Archivo. Both were missing
   from the imports; `scripts/audit-font-weights.mjs` now makes that a gate.
 
+### 12 Sep 2026 — ACC-043: passes
+
+- Added `/desk/passes` with an authorized `boa_acc_passes()` RPC. It returns
+  only approved pass fields through an active-operator check; `pass_token`
+  remains absent from authenticated table grants and is never returned by a
+  table read.
+- Pass QR codes are generated as server-rendered SVG from `BOA26:<pass_token>`.
+  The screen has per-pass and all-pass WhatsApp links, print controls, and A4
+  print CSS with one pass per printed sheet.
+- Verified `typecheck`, `lint`, unit tests, `check:sql`, `test:db`, and `build`.
+  `db:state` before and after showed zero organisations, people, invites and
+  check-ins; the immutable check-in trigger was not touched. A live
+  authenticated-operator RPC call returned the validated empty pass list.
+  `test:visual -- --screen passes` remains blocked because the visual harness
+  has no operator session; it did not compare pixels.
+
 ## Template for the next session update
 
 ```

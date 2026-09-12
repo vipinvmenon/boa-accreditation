@@ -185,3 +185,5 @@ export type DayValidity = keyof typeof DAY_VALIDITY
  *  one startsWith before touching the roster index, and stops a stray camera
  *  app from opening anything. See docs/SECURITY.md. */
 export const QR_SCHEME = 'BOA26:'
+export const QR_DARK = '#0A0A0A'
+export const QR_LIGHT = '#FFFFFF'
