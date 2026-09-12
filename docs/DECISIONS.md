@@ -286,6 +286,71 @@ persists the session as a cookie via `@supabase/ssr`'s server client
 result only from the query string (`?flow=invite` / `?flow=recovery`,
 appended by the confirm route on success), never from a fragment.
 
+---
+
+## ADR-012 — "Reissue" means the physical article, at the gate; never a new `pass_token`
+
+**Accepted 12 Sep 2026, while building ACC-041.**
+
+ACC-041's brief asked whether "reissue" means (a) minting a fresh `pass_token`
+for an already-approved person (invalidating the old one), or (b) an
+append-only ledger row recording that a physical wristband or vehicle sticker
+was handed over a second time. It is **(b), and only (b)** — confirmed by
+reading, not guessed:
+
+- `design/source/boa_design_body.html`'s own scan-screen copy, twice, in
+  identical words: *"A reissue needs a supervisor note. It adds a ledger row,
+  it does not replace the first."* This is the amber ("already collected")
+  path — a second scan of the same approved pass, not a compromised or lost
+  credential.
+- `docs/OPERATIONS.md`'s amber-scan section: *"A reissue needs a supervisor
+  note and **appends** a row; it does not replace the first."*
+- `docs/DATA-MODEL.md`: "A reissue appends with `is_reissue = true` and a
+  mandatory supervisor note" — a `boa_acc_checkin` row, not a `boa_acc_person`
+  mutation.
+
+Nowhere in the design, `docs/OPERATIONS.md`, or `docs/DATA-MODEL.md` does
+"reissue" mean re-minting a person's credential. `pass_token` is generated
+exactly once, at approval (`boa_acc_person_pass_only_when_approved`), and
+ADR-002 already accepted the residual risk of that token being visible in a
+backup rather than designing for rotation.
+
+**What this means for ACC-041, concretely:** `boa_acc_decide` /
+`boa_acc_approve_org` (this task) touch `boa_acc_person` only. Neither writes
+to `boa_acc_checkin`. The actual reissue-writing RPC — the one a gate device
+calls after a supervisor confirms a second wristband handout — is **Phase 4
+scope** (ACC-052 `gate/resolve.ts`, ACC-056 `/api/gate/*`), not built here,
+because it depends on the offline outbox and device-auth model
+(`docs/OFFLINE-SYNC.md`) that Phase 4 owns and that does not exist yet.
+Building it now, disconnected from that design, risks a second, incompatible
+write path to the ledger before the real one exists — exactly the kind of
+premature architecture non-negotiable #10 and this project's own founding
+lesson (see CLAUDE.md, "How the sibling project got here") warn against.
+
+**What ACC-041 does prove about the ledger, without writing a real row to
+it:** `boa_acc_checkin`'s `ENABLE ALWAYS` immutability trigger has no delete
+path for anyone (see `supabase/tests/dashboard.test.sql`'s header, and the
+session before this one, which had to disable-then-re-enable that trigger by
+hand — with the user's explicit approval — to remove two accidental fixture
+rows from the live ledger). A pgTAP test that *successfully* inserts a
+checkin row therefore can never clean itself up. `supabase/tests/ledger.test.sql`
+sidesteps this entirely: every assertion in it is a `throws_ok` against one of
+`boa_acc_checkin`'s own CHECK constraints (`reissue_needs_note`,
+`void_targets_a_row`, `sticker_needs_plate`) — a failing `INSERT` is rolled
+back by Postgres before it commits anything, so no row, live or otherwise, is
+ever created. This is real, permanent, automated coverage of the ledger's
+reissue/void shape, not a one-time hand check — it just never needs a
+*successful* write to prove those three rules hold.
+
+**Left open, on purpose:** what happens if a `pass_token` is actually
+compromised (leaked photo of the QR, phone stolen) rather than a wristband
+simply being re-collected. Nothing in the design or `docs/OPERATIONS.md`
+describes a desk-side remedy for that case, and ADR-002 already accepted the
+underlying risk rather than designing rotation. A `boa_acc_void_person` /
+re-approve path is a plausible answer but is a new decision, not an
+extension of "reissue" as this codebase already uses the word — flagging it
+here rather than quietly inventing one.
+
 **Verified end-to-end for real**, not asserted: a throwaway account
 (`vipinmenon16+logintest@gmail.com`, minted with `generateLink` and wiped
 after) walked the confirm link → saw "Set your password" → set one →
