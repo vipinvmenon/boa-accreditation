@@ -107,7 +107,7 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-025** · `/s/[token]` — Submission screen, transcribed, both themes · **C** · due Wed 16
 - [x] **ACC-026** · `/desk/login` + `/api/admin/invite-operator`; invite B, SN, 2 approvers · **C/V** · due Wed 16
 - [x] **ACC-027** · `/desk/orgs` — create org, set quota, mint link, copy · **C** · due Thu 17
-- [ ] **ACC-028** · `BACKUP_ENCRYPTION_KEY` secret for the nightly encrypted
+- [x] **ACC-028** · `BACKUP_ENCRYPTION_KEY` secret for the nightly encrypted
       backup (replaces PITR — see above) · **V** · due Thu 17
 
 **Acceptance — all four, or Phase 1 is not done:**
@@ -137,12 +137,12 @@ Runs while submissions arrive.
 
 - [x] **ACC-040** · Approval queue — filters, per-row type, bulk, *Approve all →*, reasons · **C** · due Tue 22
 - [x] **ACC-041** · `boa_acc_decide` + `approve_org` + `ledger`/`reissue` tests · **C** · due Tue 22
-- [ ] **ACC-042** · Master list — search, CSV, In BMS / Not in BMS column · **C** · due Wed 23
+- [x] **ACC-042** · Master list — search, CSV, In BMS / Not in BMS column · **C** · due Wed 23
 - [x] **ACC-043** · Passes — server-rendered QR SVG, A4 print CSS, WhatsApp share · **C** · due Thu 24
 - [x] **ACC-044** · `/desk/aaa` + nomination guard + `aaa.test.sql` · **C** · due Fri 25
 - [x] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25
 - [ ] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
-- [ ] **ACC-047** · Shared desk shell — sticky nav, live status bar, theme toggle · **C** · due Sat 26
+- [x] **ACC-047** · Shared desk shell — sticky nav, live status bar, theme toggle · **C** · due Sat 26
 
 **Acceptance:** 100 real submissions approved through the real queue · 14 passes
 print one per A4 and **a phone decodes the QR off the paper** · `pass_token`

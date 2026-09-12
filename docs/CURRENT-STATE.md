@@ -73,9 +73,9 @@ Verified on 10 Sep by running the commands, not by assertion:
   acceptable for radio-off operation; no scanner is claimed yet.
 - **The authenticated desk shell now has the approved sticky navigation and
   live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
-  `/desk/orgs`, and `/desk/passes`. The `Master list`, `Gate`, and `Vehicle`
+  `/desk/orgs`, `/desk/passes`, and `/desk/master`. The `Gate` and `Vehicle`
   links are visible as design navigation but their routes remain unbuilt
-  (ACC-042 and Phase 4).
+  (Phase 4).
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
 - **No e2e / aeroplane-mode suite.** Playwright is installed but unconfigured.
 - **`test:visual`** remains blocked for desk screens because the harness has no
