@@ -53,7 +53,10 @@ export async function drainOutbox(deviceToken: string): Promise<void> {
         nextAttemptAt: Date.now() + nextAttemptDelayMs(attempts),
         lastError: error instanceof Error ? error.message : String(error),
       })
-      if (kind === 'invalid') break
+      // A failed action blocks every later action in the causal queue. Do not
+      // let a reissue or vehicle event overtake work whose server result is
+      // unknown, even when the failure is transient.
+      break
     }
   }
 }

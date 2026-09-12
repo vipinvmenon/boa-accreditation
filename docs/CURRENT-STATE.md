@@ -1146,8 +1146,11 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   `corepack pnpm check:sql`, `corepack pnpm test:db`, and `corepack pnpm build`
   pass. The build emits all three gate routes and a precache containing the
   self-hosted WASM decoder.
-- `test:visual` now compares the gate routes, and currently reports large
-  diffs (gate 35–75%, vehicle 14–52%); pixel acceptance is not claimed.
+- `test:visual` now compares the gate routes. Vehicle desktop passes at
+  0.64%/0.63%, vehicle mobile remains 1.95–1.97%, and gate remains
+  19.21–19.23% desktop and 32.89–33.04% mobile because the harness lacks the
+  populated Dexie state used by the approved reference; pixel acceptance is
+  not claimed.
 - **Not yet true:** aeroplane-mode E2E and real-phone acceptance remain
   ACC-057/ACC-058; the gate still needs the physical device-token rehearsal.
 
@@ -1162,12 +1165,25 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   derived from `design/source/boa_design_bundle.html`; no second design asset
   was introduced.
 
-### 12 Sep 2026 — ACC-057: Playwright gate-test boundary
+### 12 Sep 2026 — ACC-057: deterministic aeroplane-mode suite
 
 - Added `playwright.config.ts` with deterministic Chromium settings and
-  `tests/e2e`-only discovery. At the time of this boundary commit, no
-  aeroplane-mode spec was fabricated because the gate flow was not yet
-  integrated. ACC-057 remains open for the real offline spec and failure paths.
+  `tests/e2e`-only discovery.
+- Added `tests/e2e/aeroplane-mode.spec.ts` with a local-only mocked pull/issue
+  boundary. It seeds the real `/gate/setup` flow, persists the roster and
+  outbox in Dexie, covers green/amber/red decisions, blank serials, duplicate
+  replay, 401 queue preservation, and 500 causal ordering. No production
+  credentials, Supabase rows, or production routes are used.
+- `playwright.config.ts` now builds and starts a local production server on a
+  configurable port. The suite also proves the 401/500 recovery behavior
+  against actual browser IndexedDB, not an in-memory test double.
+- **Acceptance gap, verified rather than assumed:** the generated
+  `public/gate/sw.js` never reaches `navigator.serviceWorker.ready` under the
+  local `next start` fixture, so Playwright cannot yet perform a true cold
+  navigation with the radio disabled. The suite therefore reloads while
+  online, then disables the radio before exercising the cached UI and durable
+  writes. The remaining blocker is service-worker install/precache diagnosis;
+  the browser-level cold offline reload is not claimed complete.
 
 ## Template for the next session update
 

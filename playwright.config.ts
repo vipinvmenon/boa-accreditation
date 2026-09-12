@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const port = process.env['PLAYWRIGHT_PORT'] ?? '4173'
+const baseURL = process.env['PLAYWRIGHT_BASE_URL'] ?? `http://127.0.0.1:${port}`
+
 /**
  * Browser-test boundary for the gate.
  *
@@ -7,9 +10,8 @@ import { defineConfig, devices } from '@playwright/test'
  * manufacture a browser flow before /gate and /api/gate/* exist; the suite
  * will intentionally report "No tests found" until that interface is built.
  *
- * The eventual aeroplane-mode test must provide its seeded local Supabase
- * environment and server through the invoking CI job. This config does not
- * point at production and does not invent credentials or fixtures.
+ * The suite uses deterministic API mocks in tests/e2e rather than production
+ * credentials or a live Supabase seed. The web server is always local.
  */
 export default defineConfig({
   testDir: './tests/e2e',
@@ -21,11 +23,17 @@ export default defineConfig({
   forbidOnly: true,
   reporter: 'line',
   use: {
-    baseURL: process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://127.0.0.1:3000',
+    baseURL,
     browserName: 'chromium',
     ...devices['Desktop Chrome'],
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
     video: 'off',
+  },
+  webServer: {
+    command: `corepack pnpm build && corepack pnpm exec next start -p ${port}`,
+    url: `${baseURL}/gate/setup`,
+    reuseExistingServer: false,
+    timeout: 180_000,
   },
 })

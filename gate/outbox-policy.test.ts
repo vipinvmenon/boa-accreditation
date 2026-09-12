@@ -93,6 +93,7 @@ describe('classifyFailure', () => {
   it('treats duplicate writes as success', () => {
     expect(classifyFailure(new Error('duplicate key value violates unique constraint'))).toBe('duplicate')
     expect(classifyFailure({ message: 'already recorded', code: '23505' })).toBe('duplicate')
+    expect(classifyFailure({ message: '{"error":"duplicate"}', code: '409' })).toBe('duplicate')
   })
 
   it('stops on database or prose auth failures', () => {

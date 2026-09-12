@@ -53,7 +53,7 @@ function failureParts(error: unknown): { message: string; code: string } {
 export function classifyFailure(error: unknown): FailureKind {
   const { message, code } = failureParts(error)
 
-  if (code === '23505' || /duplicate key|\balready (issued|exists|recorded)\b/.test(message)) {
+  if (code === '23505' || code === '409' || /duplicate|duplicate key|\balready (issued|exists|recorded)\b/.test(message)) {
     return 'duplicate'
   }
 
