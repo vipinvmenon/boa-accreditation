@@ -155,7 +155,7 @@ provably absent before approval · AAA unstampable without a nomination ·
 
 - [x] **ACC-050** · `gate/db.ts` Dexie v1 · **C** · due Mon 28
 - [x] **ACC-051** · Port `outbox-policy.ts` from bar-control + unit tests · **C** · due Mon 28
-- [~] **ACC-052** · `gate/resolve.ts` — pure green/amber/red incl. pending-outbox amber · **C** · due Tue 29
+- [x] **ACC-052** · `gate/resolve.ts` — pure green/amber/red incl. pending-outbox amber · **C** · due Tue 29
 - [ ] **ACC-053** · `gate/scanner.ts` — BarcodeDetector + zxing-wasm fallback · **C** · due Tue 29
 - [ ] **ACC-053b** · **Prove zxing-wasm on a real iPhone.** Not deferrable — see R1 · **V** · due **Tue 29**
 - [ ] **ACC-054** · `/gate/setup`, `/gate` transcribed, `force-static`, **+ sticker input** · **C** · due Wed 30

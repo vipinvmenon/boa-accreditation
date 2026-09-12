@@ -61,7 +61,8 @@ Verified on 10 Sep by running the commands, not by assertion:
 - **The gate screens and sync flow are not built yet.** `/s/[token]` and the
   desk batch are present; `/gate/*` remains empty. The ACC-050 Dexie storage
   foundation and ACC-051 pure outbox policy are now implemented; ACC-052 is
-  next for read-only green/amber/red resolution.
+  implemented with an explicit active-ledger projection boundary; ACC-053 is
+  next for the camera scanner.
 - **ACC-052 design risk:** the v1 cached ledger row does not carry
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
@@ -1073,6 +1074,18 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   invalid terminal failures; and applies capped transient retry backoff.
 - Verified `typecheck`, `lint`, unit tests (32 passing), and `build`. The
   policy performs no network, Supabase, server-action, or deletion operation.
+
+### 12 Sep 2026 — ACC-052: pure gate resolution
+
+- Added `gate/resolve.ts` with Zod-validated red/green/amber outcomes. It
+  accepts only `BOA26:<token>`, returns red for malformed or unknown scans,
+  returns green with `stickerDue` when appropriate, and returns amber for an
+  active wristband or pending outbox action before drain.
+- The resolver is pure and read-only: it performs no IO, network access,
+  mutation, or serial assignment. Because Dexie v1 lacks `voidsCheckinId`, it
+  requires an already-filtered active-ledger projection and never guesses
+  void state from ordering or serials.
+- Verified `typecheck`, `lint`, unit tests (40 passing), and `build`.
 
 ## Template for the next session update
 
