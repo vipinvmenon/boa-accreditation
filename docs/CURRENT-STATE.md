@@ -230,6 +230,21 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 12 Sep 2026 — merge audit: ACC-041 was not committed
+
+- The ACC-041 worktree had no commits or file changes beyond `main`, so there
+  was nothing safe to merge. Its live migration (`202609121800`) and the
+  `boa_acc_decide` / `boa_acc_approve_org` functions do exist in Supabase,
+  but the migration source, tests, and documentation are absent locally.
+  ACC-041 remains unchecked; this is schema drift to recover before relying
+  on that work.
+- The abandoned ACC-041 verification left exact throwaway fixtures in the
+  shared live project (three `acc041-…@invalid.test` operators, four named
+  organisations, six people, four invites, three throttle rows, and four
+  device rows). Those exact rows were removed with direct, scoped cleanup.
+  The five real operators remain. `boa_acc_checkin` stayed at zero throughout;
+  its immutable trigger was never disabled.
+
 ### 12 Sep 2026 — ACC-045: `/desk/devices` — mint/revoke, raw token shown once
 
 Built in parallel with another agent's ACC-041 (`boa_acc_decide`), in a
