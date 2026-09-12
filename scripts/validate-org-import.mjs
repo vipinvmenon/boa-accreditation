@@ -1,0 +1,160 @@
+import { readFile } from 'node:fs/promises'
+import { z } from 'zod'
+
+const HEADERS = ['name', 'kind', 'quota', 'contact_name', 'contact_phone', 'default_type']
+const ORG_KINDS = ['vendor', 'crew', 'sponsor', 'media', 'security', 'contractor']
+const ORG_TYPE_CODES = ['crew', 'stage', 'aaa']
+const orgCreateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  kind: z.enum(ORG_KINDS),
+  quota: z.coerce.number().int().min(0).max(500),
+  contactName: z.string().trim().min(2).max(80),
+  contactPhone: z.string().trim().regex(/^\+91[6-9][0-9]{9}$/, 'Enter a 10-digit Indian mobile number'),
+  defaultType: z.enum(ORG_TYPE_CODES).optional(),
+})
+
+function parseCsv(input) {
+  const rows = []
+  let row = []
+  let field = ''
+  let quoted = false
+
+  for (let index = 0; index < input.length; index += 1) {
+    const character = input[index]
+    const next = input[index + 1]
+
+    if (quoted) {
+      if (character === '"' && next === '"') {
+        field += '"'
+        index += 1
+      } else if (character === '"') {
+        quoted = false
+      } else {
+        field += character
+      }
+    } else if (character === '"') {
+      if (field.length !== 0) throw new Error('a quote may only start a CSV field')
+      quoted = true
+    } else if (character === ',') {
+      row.push(field)
+      field = ''
+    } else if (character === '\n' || character === '\r') {
+      if (character === '\r' && next === '\n') index += 1
+      row.push(field)
+      if (row.some((value) => value !== '')) rows.push(row)
+      row = []
+      field = ''
+    } else {
+      field += character
+    }
+  }
+
+  if (quoted) throw new Error('unterminated quoted CSV field')
+  if (field !== '' || row.length > 0) {
+    row.push(field)
+    if (row.some((value) => value !== '')) rows.push(row)
+  }
+  return rows
+}
+
+function usage() {
+  console.error('Usage: corepack pnpm validate:org-import -- path/to/organisations.csv [--json]')
+}
+
+function formatIssues(rowNumber, issues) {
+  return issues.map((issue) => {
+    const path = issue.path.length > 0 ? ` ${issue.path.join('.')}` : ''
+    return `row ${rowNumber}${path}: ${issue.message}`
+  })
+}
+
+async function main() {
+  const args = process.argv.slice(2).filter((argument) => argument !== '--')
+  const json = args.includes('--json')
+  const file = args.find((argument) => argument !== '--json')
+  if (!file) {
+    usage()
+    process.exitCode = 2
+    return
+  }
+
+  const source = (await readFile(file, 'utf8')).replace(/^\uFEFF/, '')
+  let rows
+  try {
+    rows = parseCsv(source)
+  } catch (error) {
+    console.error(`Invalid CSV: ${error instanceof Error ? error.message : 'parse error'}`)
+    process.exitCode = 1
+    return
+  }
+
+  const header = rows.shift()
+  if (!header || header.length !== HEADERS.length || header.some((value, index) => value !== HEADERS[index])) {
+    console.error(`Invalid header. Expected exactly: ${HEADERS.join(',')}`)
+    process.exitCode = 1
+    return
+  }
+  if (rows.length === 0) {
+    console.error('The organisation file contains no data rows.')
+    process.exitCode = 1
+    return
+  }
+  if (rows.length !== 38) {
+    console.error(`Expected exactly 38 organisation rows, received ${rows.length}.`)
+    process.exitCode = 1
+    return
+  }
+
+  const organisations = []
+  const errors = []
+  const names = new Map()
+
+  rows.forEach((values, index) => {
+    const rowNumber = index + 2
+    if (values.length !== HEADERS.length) {
+      errors.push(`row ${rowNumber}: expected ${HEADERS.length} columns, received ${values.length}`)
+      return
+    }
+
+    const [name, kind, quota, contactName, contactPhone, defaultType] = values
+    const parsed = orgCreateSchema.safeParse({
+      name,
+      kind,
+      quota,
+      contactName,
+      contactPhone,
+      defaultType: defaultType || undefined,
+    })
+    if (!parsed.success) {
+      errors.push(...formatIssues(rowNumber, parsed.error.issues))
+      return
+    }
+
+    const key = parsed.data.name.toLocaleLowerCase('en-IN')
+    const previousRow = names.get(key)
+    if (previousRow !== undefined) {
+      errors.push(`row ${rowNumber} name: duplicate of row ${previousRow} (case-insensitive)`)
+      return
+    }
+    names.set(key, rowNumber)
+    organisations.push(parsed.data)
+  })
+
+  if (errors.length > 0) {
+    errors.forEach((error) => console.error(error))
+    process.exitCode = 1
+    return
+  }
+
+  if (json) {
+    process.stdout.write(`${JSON.stringify(organisations, null, 2)}\n`)
+    return
+  }
+
+  const totalQuota = organisations.reduce((sum, organisation) => sum + organisation.quota, 0)
+  console.log(`Valid organisation import: ${organisations.length} rows`)
+  console.log(`Total quota declared: ${totalQuota}`)
+  console.log('No database writes were performed.')
+}
+
+await main()
