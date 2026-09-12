@@ -1100,8 +1100,7 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   it under the `/gate/` service-worker scope.
 - Added focused tests for native decoding, the local-WASM fallback, and a
   no-result frame. `typecheck`, `lint`, `test`, and `build` passed. The scanner
-  is implemented, but real iPhone decoding remains ACC-053b and the gate UI
-  and service-worker route are not built until ACC-054.
+  is implemented; real iPhone decoding remains ACC-053b.
 
 ### 12 Sep 2026 — ACC-056: database-authorized gate sync boundary
 
@@ -1116,10 +1115,9 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   applied to the live database, `check:sql`, `test:db`, typecheck, lint, unit
   tests, and build passed. A throwaway live pull returned one roster row and
   zero ledger rows, then was cleaned up.
-- **Not yet true:** vehicle-event API support, gate screens, service-worker
-  registration, outbox drain integration, and aeroplane-mode acceptance remain
-  ACC-054 through ACC-057. No successful live ledger write was used as a
-  disposable test because the check-in ledger is immutable.
+- **Not yet true:** aeroplane-mode acceptance remains ACC-057. No successful
+  live ledger write was used as a disposable test because the check-in ledger
+  is immutable.
 
 ### 12 Sep 2026 — ACC-055: vehicle gate
 
@@ -1165,10 +1163,9 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
 ### 12 Sep 2026 — ACC-057: Playwright gate-test boundary
 
 - Added `playwright.config.ts` with deterministic Chromium settings and
-  `tests/e2e`-only discovery. No aeroplane-mode spec was fabricated: the gate
-  UI, service-worker registration, and local Supabase seed environment are
-  still absent. Playwright correctly reports no tests found, so ACC-057
-  remains open until ACC-054 through ACC-056 provide the real flow.
+  `tests/e2e`-only discovery. At the time of this boundary commit, no
+  aeroplane-mode spec was fabricated because the gate flow was not yet
+  integrated. ACC-057 remains open for the real offline spec and failure paths.
 
 ## Template for the next session update
 
