@@ -103,6 +103,10 @@ async function queueWristband(page: Page, token: string) {
   await page.getByRole('button', { name: 'Issue wristband' }).click()
 }
 
+async function expectVerdict(page: Page, value: string) {
+  await expect(page.locator('.g-verdict').filter({ hasText: new RegExp(`^${value}$`) })).toBeVisible()
+}
+
 async function makePendingEntriesReady(page: Page) {
   await page.evaluate(async () => {
     const request = indexedDB.open('boa-accreditation-gate')
@@ -157,13 +161,13 @@ test.describe('gate aeroplane mode', () => {
     await queueWristband(gate, PEOPLE[0].passToken)
     await expect(gate.getByText(/Offline \| 1 queued/)).toBeVisible()
     await scan(gate, 'garbage')
-    await expect(gate.getByText('Refuse', { exact: true })).toBeVisible()
+    await expectVerdict(gate, 'Refuse')
     await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
-    await expect(gate.getByText('Collected', { exact: true })).toBeVisible()
+    await expectVerdict(gate, 'Collected')
 
     await expect.poll(() => outboxStatuses(gate)).toEqual(['pending'])
     await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
-    await expect(gate.getByText('Collected', { exact: true })).toBeVisible()
+    await expectVerdict(gate, 'Collected')
 
     await gate.context().setOffline(false)
     await gate.waitForFunction(() => navigator.onLine)

@@ -154,6 +154,13 @@ export default function GatePage() {
             <div style={{ position: 'absolute', left: 14, right: 14, top: '50%', height: 2, background: 'var(--grn,#00F5A5)' }} />
           </div>
           <canvas ref={canvasRef} hidden />
+          <input
+            aria-label="Manual scanner input"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void resolve(event.currentTarget.value)
+            }}
+            style={{ position: 'absolute', left: -10000, width: 1, height: 1 }}
+          />
           <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink,#F2EFE2)' }}>Point at the pass code<div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, fontWeight: 400, letterSpacing: '0.08em', color: 'var(--ink3,rgba(242,239,226,0.42))', marginTop: 7 }}>{snapshot.roster.length} approved passes held on this device</div></div>
           <button type="button" onClick={() => void startCamera()} style={{ cursor: 'pointer', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink2,rgba(242,239,226,0.72))', padding: 15, fontFamily: "'Oswald',sans-serif", fontSize: 12.5, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 50 }}>Can&apos;t scan — search by name</button>
           {cameraError && <div role="alert" style={{ color: 'var(--bad,#FF6B5A)', fontSize: 13 }}>{cameraError}</div>}
