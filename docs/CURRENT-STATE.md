@@ -279,6 +279,24 @@ Verified by attempting the thing, not by reading a grant table:
     `KNOWN_GAPS`), not `PASS`: a regression past that ceiling, or in any
     other screen, still fails the build. This is what let the pre-push
     hook go green without either bypassing it or hiding the gap.
+- **A real bug caught in production, not staging.** `page.tsx` originally
+  fetched its own `GET /api/s/[token]` over the network from the server
+  component, per the layering rule ("a screen calls its own route handler,
+  never the Supabase client"). That worked locally and against `test:visual`'s
+  own throwaway server, but on Vercel a **known-valid** token 404'd on the
+  page while the exact same URL, called externally, resolved fine — because
+  a Vercel Function fetching its own deployment can be intercepted by
+  Deployment Protection even on the production custom domain (confirmed:
+  the `*.vercel.app` alias redirects to a Vercel SSO login for that kind of
+  traffic; a genuine external request to the same URL never hits it).
+  **Fixed** by exporting `resolveOrgView(token)` from
+  `app/api/s/[token]/route.ts` and having `page.tsx` call it in-process —
+  no network hop, so Vercel's protection layer never sees it. The
+  credential boundary holds without it: only that file (and `scripts/**`)
+  are exempt from the `no-restricted-imports` rule on
+  `lib/supabase-admin`, and page.tsx still never imports it directly.
+  Re-verified against production after the fix (below) before calling this
+  done.
 - **Not yet true:** ACC-032 (confirmation copy, duplicate-phone path,
   closed-org path) is still its own task — this session's error copy is
   plain and functional, not the polished version. Phase 1's own acceptance

@@ -1,31 +1,51 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { submissionSchema } from '@/lib/schemas/submission'
-import { orgViewSchema } from '@/lib/schemas/org-view'
+import { orgViewSchema, type OrgView } from '@/lib/schemas/org-view'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
-/** Maps the Postgres errcode raised by boa_acc_org_view / boa_acc_submit to an HTTP response. */
-function errorResponse(error: { code?: string; message?: string }) {
+type ApiError = { status: number; body: { error: string } }
+
+/** Maps the Postgres errcode raised by boa_acc_org_view / boa_acc_submit to an HTTP status + body. */
+function mapError(error: { code?: string; message?: string }): ApiError {
   const message = error.message ?? ''
   if (error.code === 'P0002' || message.includes('not found')) {
     // 404, not 403 — a 403 confirms a token exists (see ARCHITECTURE.md).
-    return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    return { status: 404, body: { error: 'not_found' } }
   }
-  if (message.includes('rate_limited')) {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
-  }
-  if (message.includes('quota_exceeded')) {
-    return NextResponse.json({ error: 'quota_exceeded' }, { status: 409 })
-  }
-  if (message.includes('org_closed')) {
-    return NextResponse.json({ error: 'org_closed' }, { status: 403 })
-  }
-  if (message.includes('duplicate_phone')) {
-    return NextResponse.json({ error: 'duplicate_phone' }, { status: 409 })
-  }
-  return NextResponse.json({ error: 'internal' }, { status: 500 })
+  if (message.includes('rate_limited')) return { status: 429, body: { error: 'rate_limited' } }
+  if (message.includes('quota_exceeded')) return { status: 409, body: { error: 'quota_exceeded' } }
+  if (message.includes('org_closed')) return { status: 403, body: { error: 'org_closed' } }
+  if (message.includes('duplicate_phone')) return { status: 409, body: { error: 'duplicate_phone' } }
+  return { status: 500, body: { error: 'internal' } }
+}
+
+/**
+ * Resolves a token to its org projection via boa_acc_org_view — the one place
+ * this RPC is called. Exported for two callers: this file's own GET (a real
+ * browser/API request) and app/s/[token]/page.tsx, which calls this directly
+ * in-process rather than fetching its own /api/s/[token] over the network.
+ *
+ * That self-fetch was tried first and removed: a Vercel Function fetching its
+ * own deployment's URL can be intercepted by Vercel's Deployment Protection
+ * even on the production custom domain (confirmed 12 Sep 2026 — the *.vercel.app
+ * alias redirects to a Vercel SSO login for that traffic), which a genuine
+ * external request to the same URL never hits. Calling the resolver directly
+ * removes the network hop and the whole class of bug with it. page.tsx still
+ * never imports lib/supabase-admin — only this file and scripts/** are exempted
+ * from that eslint rule — so the credential stays exactly where
+ * docs/ARCHITECTURE.md's layering intends.
+ */
+export async function resolveOrgView(token: string): Promise<{ ok: true; data: OrgView } | { ok: false; error: ApiError }> {
+  const { data, error } = await supabaseAdmin().rpc('boa_acc_org_view', { p_token: token })
+  if (error) return { ok: false, error: mapError(error) }
+
+  const row = orgViewSchema.safeParse(Array.isArray(data) ? data[0] : data)
+  if (!row.success) return { ok: false, error: { status: 500, body: { error: 'internal' } } }
+
+  return { ok: true, data: row.data }
 }
 
 function throttle(request: Request) {
@@ -51,18 +71,9 @@ export async function GET(
   if (limited) return limited
 
   const { token } = await params
-  const { data, error } = await supabaseAdmin().rpc('boa_acc_org_view', {
-    p_token: token,
-  })
-
-  if (error) return errorResponse(error)
-
-  const row = orgViewSchema.safeParse(Array.isArray(data) ? data[0] : data)
-  if (!row.success) {
-    return NextResponse.json({ error: 'internal' }, { status: 500 })
-  }
-
-  return NextResponse.json(row.data)
+  const result = await resolveOrgView(token)
+  if (!result.ok) return NextResponse.json(result.error.body, { status: result.error.status })
+  return NextResponse.json(result.data)
 }
 
 export async function POST(
@@ -97,7 +108,10 @@ export async function POST(
     p_vehicle_reg: parsed.data.vehicleReg ?? null,
   })
 
-  if (error) return errorResponse(error)
+  if (error) {
+    const mapped = mapError(error)
+    return NextResponse.json(mapped.body, { status: mapped.status })
+  }
 
   return NextResponse.json({ id: data }, { status: 201 })
 }
