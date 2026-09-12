@@ -58,8 +58,9 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 ## What does NOT exist yet
 
-- **The gate is not built.** `/s/[token]` and the desk batch are now present;
-  `/gate/*` remains empty. ACC-050 is next for the gate's Dexie foundation.
+- **The gate screens and sync flow are not built yet.** `/s/[token]` and the
+  desk batch are present; `/gate/*` remains empty. The ACC-050 Dexie storage
+  foundation is now implemented; ACC-051 is next for outbox policy.
 - **The authenticated desk shell now has the approved sticky navigation and
   live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
   `/desk/orgs`, and `/desk/passes`. The `Master list`, `Gate`, and `Vehicle`
@@ -1042,6 +1043,18 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   created or changed.
 - `test:visual` now finds `/desk/master` but reports it `BLOCKED` because the
   harness has no operator credential. Pixel acceptance is not claimed.
+
+### 12 Sep 2026 — ACC-050: gate database foundation
+
+- Added `gate/db.ts` with Dexie version 1 and the five required local stores:
+  `roster`, `ledger`, `outbox`, `sticker`, and `meta`. Zod schemas validate
+  every row shape; outbox idempotency/retry fields and blank physical serials
+  are preserved.
+- Added `gate/db.test.ts` using `fake-indexeddb`. Verified store/index
+  declarations, validated inserts, blank serial support, idempotency-key
+  lookup, and persistence across close/reopen. `typecheck`, `lint`, unit
+  tests (18 passing), and `build` passed. No network or database code was
+  added.
 
 ## Template for the next session update
 
