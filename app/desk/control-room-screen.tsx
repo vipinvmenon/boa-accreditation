@@ -15,10 +15,9 @@ import { useDomTheme } from '@/lib/use-theme'
  * script's own header). Verified by hand instead: signed in as a real
  * operator, against the real deployed route.
  *
- * The shared desk NAV / BMS status bar the design bundle wraps every screen
- * in is NOT included, for the same reason submission-screen.tsx excludes it
- * (docs/DESIGN-SYSTEM.md) — it is review-bundle furniture, not part of any
- * one screen's own content.
+ * The shared desk NAV / BMS status bar is supplied by DeskChrome, which wraps
+ * every authenticated desk route. The public submission screen remains
+ * intentionally outside that shell.
  *
  * The org list's `status` column is boa_acc_org.status itself (open/
  * submitted/approved/closed), not a derived label — nothing sets it past

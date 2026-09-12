@@ -60,6 +60,11 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 - **The gate is not built.** `/s/[token]` and the desk batch are now present;
   `/gate/*` remains empty. ACC-050 is next for the gate's Dexie foundation.
+- **The authenticated desk shell now has the approved sticky navigation and
+  live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
+  `/desk/orgs`, and `/desk/passes`. The `Master list`, `Gate`, and `Vehicle`
+  links are visible as design navigation but their routes remain unbuilt
+  (ACC-042 and Phase 4).
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
 - **No e2e / aeroplane-mode suite.** Playwright is installed but unconfigured.
 - **`test:visual`** remains blocked for desk screens because the harness has no
@@ -229,6 +234,9 @@ Verified by attempting the thing, not by reading a grant table:
 | authenticated `select full_name` | allowed |
 | `update`/`delete` on the ledger, **as table owner** | refused, `55000` |
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
+
+
+> **ACC-047 released 2026-09-12 (IST):** Implementation and manual browser verification are complete, but test:visual cannot authenticate desk screens; control-room, queue and passes remain BLOCKED, so pixel acceptance is not verified.
 
 ## Session log
 
@@ -1005,6 +1013,18 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   or bypassed.
 - ACC-043 visual comparison remains blocked by the unavailable operator
   session; no visual pass is claimed.
+
+### 12 Sep 2026 — ACC-047: shared desk shell
+
+- Added the design-contract sticky desk navigation, logo/home link, active-route
+  state, live BMS/bands status bar, and dark/light theme toggle to every built
+  authenticated desk route. Public submission screens remain outside the shell.
+- Verified locally in a real browser with the Vipin operator account:
+  `/desk` and `/desk/queue` rendered the navigation and live zero-state data.
+  `typecheck`, `lint`, unit tests, and `build` passed.
+- `test:visual` remains unable to compare authenticated desk screens because
+  its harness has no operator credential; it reported control-room, queue, and
+  passes as `BLOCKED`, not passing. No visual acceptance is claimed.
 
 ## Template for the next session update
 
