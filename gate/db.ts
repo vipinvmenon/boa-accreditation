@@ -79,6 +79,8 @@ export const metaKeySchema = z.enum([
   'rosterAsOf',
   'ledgerAsOf',
   'schemaVersion',
+  'gateLabel',
+  'volunteerName',
 ])
 
 export const metaRowSchema = z.object({
