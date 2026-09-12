@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useDomTheme } from '@/lib/use-theme'
 import { PROP, passType } from '@/lib/design'
 import { gateDb } from '@/gate/db'
+import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { findActiveWristband, normalizePlate, queueVehicleEvent } from '@/gate/vehicle-flow'
 import { GateChrome } from '../gate-chrome'
 
@@ -30,10 +31,15 @@ export function VehicleScreen() {
   const [result, setResult] = useState<Result | null>(null)
   const [queued, setQueued] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
 
   useEffect(() => {
     void gateDb.outbox.where('status').equals('pending').count().then(setQueued)
   }, [result])
+
+  useEffect(() => {
+    void readGateSnapshot().then(setSnapshot)
+  }, [])
 
   const normalized = useMemo(() => {
     try {
@@ -96,7 +102,11 @@ export function VehicleScreen() {
 
   const cleared = result?.outcome === 'cleared'
   return (
-    <GateChrome>
+    <GateChrome
+      bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0}
+      approved={snapshot?.roster.length ?? 0}
+      bmsPending={0}
+    >
       <section className="g-pad-sec" style={{ borderBottom: `1px solid ${p.rule}` }}>
         <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: p.gold, marginBottom: 16 }}>Vehicle entrance</div>
         <h1 className="g-h1" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.94, textTransform: 'uppercase', color: p.ink, margin: '0 0 14px' }}>Sticker and band. Both.</h1>

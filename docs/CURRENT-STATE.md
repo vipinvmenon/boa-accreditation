@@ -605,6 +605,45 @@ Verified by attempting the thing, not by reading a grant table:
 > above is verified against `localhost:3000` and, for the diagnosis, direct
 > reads of the live Supabase config and the already-deployed `main` branch —
 > not against a new deployment.
+>
+> **12 Sep 2026 — correcting the earlier "harness/capture artifact, not
+> investigated further" claim about vehicle-mobile: it was investigated, by
+> a parallel session, and it is fixed.** Before pushing this branch, checked
+> for other local work first and found `claude/relaxed-raman-f838de`
+> (unpushed, never merged) — a separate session's real, reproduced diagnosis
+> of the same vehicle-mobile failure this document had labelled "not
+> investigated further." Their finding: the vehicle capture flow fills the
+> plate input and clicks a button twice, scrolling the page down before the
+> `fullPage` screenshot fires; confirmed via `page.evaluate(() =>
+> window.scrollY)` returning 477, not 0. Chromium's `fullPage` screenshot
+> resizes the viewport to full document height without restoring scroll
+> position first, so `GateChrome`'s `position: sticky` header gets captured
+> frozen at its old scrolled offset — exactly the "header missing from the
+> top" symptom this document described without explaining. Fixed by
+> `window.scrollTo(0, 0)` right before every screenshot in
+> `scripts/visual-check.mjs`, for every screen, not just vehicle.
+>
+> That same branch also found a real, independent correctness bug:
+> `VehicleScreen` rendered `<GateChrome>` with no props at all, so its header
+> always showed "0 / 0 BANDS ISSUED" regardless of the real cached
+> roster/ledger, unlike `app/gate/page.tsx`, which already wires
+> `readGateSnapshot()` into `bandsIssued`/`approved`. Both fixes integrated
+> into this branch (not cherry-picked wholesale — their third fix, for the
+> WEB/MOB toggle, duplicated this session's own toggle fix above via a
+> different mechanism, a `useIsMobileViewport()` matchMedia hook instead of
+> a CSS media query; kept this session's CSS-only version instead, since it
+> needs no hook and has no hydration-time flash, and dropped theirs rather
+> than ship two competing fixes for the same element).
+>
+> **Verified after integrating:** rebuilt and reran `corepack pnpm
+> test:visual`: **vehicle-dark-mob and vehicle-light-mob now PASS at
+> 0.31%/0.29%** (was 3.19%/3.00%), matching the other session's own measured
+> numbers exactly. Gate-mobile is unaffected by this fix (its capture flow
+> never scrolls) and remains at 1.19%/1.24%, still the separate, already-
+> diagnosed font-floor cascade. `typecheck`, `lint`, `test` (49/49), and
+> `build` all pass. The line above claiming vehicle-mobile's diff was an
+> uninvestigated capture artifact is superseded by this entry, not deleted,
+> so the record shows what was believed and when it changed.
 
 ## Session log
 

@@ -422,6 +422,14 @@ try {
         }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
         await page.evaluate(() => document.fonts.ready)
+        // Filling inputs and clicking buttons (the gate/vehicle flows above)
+        // can leave the page scrolled away from the top. A `fullPage`
+        // screenshot resizes the viewport to the full document height without
+        // reflowing scroll position first, so a `position: sticky` header
+        // gets captured frozen at its old scrolled offset — rendering twice:
+        // once as a blank gap where it scrolled from, once frozen mid-page.
+        // Resetting scroll before the shot is the fix, not a settle delay.
+        await page.evaluate(() => window.scrollTo(0, 0))
         await page.waitForTimeout(250)
 
         const shotPath = join(OUT, `${screen.slug}-${theme}-${view.slug}.actual.png`)
