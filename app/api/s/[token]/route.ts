@@ -1,21 +1,10 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { submissionSchema } from '@/lib/schemas/submission'
+import { orgViewSchema } from '@/lib/schemas/org-view'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
-
-const orgViewRow = z.object({
-  org_id: z.string(),
-  name: z.string(),
-  kind: z.string(),
-  status: z.string(),
-  quota: z.number(),
-  used: z.number(),
-  remaining: z.number(),
-  default_type: z.string(),
-})
 
 /** Maps the Postgres errcode raised by boa_acc_org_view / boa_acc_submit to an HTTP response. */
 function errorResponse(error: { code?: string; message?: string }) {
@@ -68,7 +57,7 @@ export async function GET(
 
   if (error) return errorResponse(error)
 
-  const row = orgViewRow.safeParse(Array.isArray(data) ? data[0] : data)
+  const row = orgViewSchema.safeParse(Array.isArray(data) ? data[0] : data)
   if (!row.success) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }

@@ -1,0 +1,47 @@
+/**
+ * Every `mob ? A : B` in the design's renderVals() becomes a real media query
+ * here, at MOBILE_BREAKPOINT_PX (lib/design.ts) — docs/DESIGN-SYSTEM.md,
+ * "Responsive". Every screen needs the same handful of breakpoint-switched
+ * values (padSec, h1b, shellMax, formCols, ...), so this is shared rather than
+ * duplicated per screen file. It is not the helmet stylesheet app/globals.css
+ * transcribes verbatim, so it does not belong there. Class names are the
+ * design's own variable names, mobile-first (design source line references
+ * are in design/source/boa_design_body.html's renderVals()).
+ */
+
+.s-shell {
+  width: 100%;
+  max-width: 420px; /* shellMax, mobile */
+  border-left: 1px solid var(--rule, rgba(242, 239, 226, 0.16)); /* shellEdge, mobile */
+  border-right: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  min-height: 100%;
+}
+
+.s-pad-sec {
+  padding: 28px 18px; /* padSec, mobile */
+}
+
+.s-h1 {
+  font-size: 34px; /* h1b, mobile */
+}
+
+.s-form-grid {
+  grid-template-columns: 1fr; /* formCols, mobile */
+}
+
+@media (min-width: 768px) {
+  .s-shell {
+    max-width: 1280px; /* shellMax, desktop */
+    border-left: none; /* shellEdge, desktop */
+    border-right: none;
+  }
+  .s-pad-sec {
+    padding: 40px; /* padSec, desktop */
+  }
+  .s-h1 {
+    font-size: clamp(38px, 4.4vw, 58px); /* h1b, desktop */
+  }
+  .s-form-grid {
+    grid-template-columns: repeat(3, 1fr); /* formCols, desktop */
+  }
+}

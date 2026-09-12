@@ -27,6 +27,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
+import { runSql } from './lib/db.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const REF = join(root, 'design/reference')
@@ -62,6 +63,61 @@ const THEMES = ['dark', 'light']
 
 const args = process.argv.slice(2)
 const only = args.includes('--screen') ? args[args.indexOf('--screen') + 1] : null
+
+// Same name and quota the design's own mock uses (design/source/boa_design_body.html
+// renderVals(), the `submitted` / org-header literals) so the header and quota bar
+// match the approved reference exactly. "Your list" cannot: see submission-screen.tsx's
+// header comment for why that gap is accepted rather than faked.
+const VISUAL_ORG = 'Chakra Sound & Light'
+
+/**
+ * `invite-token` auth used to mean "the gate cannot mint this yet," which was
+ * true before ACC-023. It can now: mint the same way the pgTAP fixtures do
+ * (org + invite inserted directly, same as quota.test.sql), so the Submission
+ * screen gets a real comparison instead of a permanent BLOCKED. Wiped in the
+ * `finally` below either way — this must never leave rows in a real database.
+ */
+async function mintVisualInvite() {
+  const sql = `
+    with wiped as materialized (
+      select private.boa_acc_wipe_org('${VISUAL_ORG}')
+    ),
+    org as (
+      insert into public.boa_acc_org (name, kind, quota, contact_name, contact_phone)
+      select '${VISUAL_ORG}', 'vendor', 22, 'Visual Check', '+919800000000'
+       where (select count(*) from wiped) >= 0
+      returning *
+    ),
+    tok as materialized (
+      select private.boa_acc_new_token() as token from org
+    ),
+    inv as (
+      insert into public.boa_acc_org_invite (org_id, token_hash, token_hint)
+      select (select id from org), private.boa_acc_hash_token(tok.token), left(tok.token, 6)
+        from tok
+      returning id
+    ),
+    fill as materialized (
+      -- 14, matching the mock's "14 / 22 SEATS USED" and 64% bar.
+      select public.boa_acc_submit(
+               (select token from tok),
+               'Visual Person ' || i,
+               '+9198' || lpad(i::text, 8, '0'),
+               'Crew'
+             ) as person_id
+        from generate_series(1, 14) i
+       where (select id from inv) is not null
+    )
+    select tok.token from tok, inv
+     where (select count(*) from fill) = 14;
+  `
+  const rows = await runSql(sql, root)
+  return rows[0]?.token ?? null
+}
+
+async function wipeVisualInvite() {
+  await runSql(`select private.boa_acc_wipe_org('${VISUAL_ORG}')`, root)
+}
 
 const freePort = () =>
   new Promise((res) => {
@@ -105,6 +161,7 @@ const base = `http://127.0.0.1:${port}`
 
 let failures = 0
 const rows = []
+let mintedInvite = false
 
 try {
   if (!(await waitForServer(base))) {
@@ -117,16 +174,32 @@ try {
   for (const screen of SCREENS) {
     if (only && screen.slug !== only) continue
 
+    let route = screen.route
+    let auth = screen.auth
+
+    if (auth === 'invite-token') {
+      try {
+        const token = await mintVisualInvite()
+        mintedInvite = true
+        if (!token) throw new Error('mint returned no token')
+        route = route.replace('__VISUAL_TOKEN__', token)
+        auth = null
+      } catch (err) {
+        rows.push({ screen: screen.slug, status: 'BLOCKED', detail: `could not mint invite-token: ${err.message}` })
+        continue
+      }
+    }
+
     // Does the route exist in this build?
-    const probe = await fetch(base + screen.route, { redirect: 'manual' })
+    const probe = await fetch(base + route, { redirect: 'manual' })
     const exists = probe.status !== 404
 
     if (!exists) {
-      rows.push({ screen: screen.slug, status: 'NO ROUTE', detail: screen.route })
+      rows.push({ screen: screen.slug, status: 'NO ROUTE', detail: route })
       continue
     }
-    if (screen.auth) {
-      rows.push({ screen: screen.slug, status: 'BLOCKED', detail: `needs ${screen.auth}` })
+    if (auth) {
+      rows.push({ screen: screen.slug, status: 'BLOCKED', detail: `needs ${auth}` })
       continue
     }
 
@@ -143,7 +216,7 @@ try {
           viewport: { width: view.width, height: view.height },
           deviceScaleFactor: 1,
         })
-        await page.goto(base + screen.route, { waitUntil: 'networkidle' })
+        await page.goto(base + route, { waitUntil: 'networkidle' })
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
         await page.evaluate(() => document.fonts.ready)
         await page.waitForTimeout(250)
@@ -191,6 +264,7 @@ try {
   await browser.close()
 } finally {
   server.kill('SIGTERM')
+  if (mintedInvite) await wipeVisualInvite()
 }
 
 // ── Report ────────────────────────────────────────────────────────────────

@@ -48,6 +48,7 @@ import '@fontsource/jetbrains-mono/700.css'
 
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import './responsive.css'
 
 export const metadata: Metadata = {
   title: 'BOA Accreditation',

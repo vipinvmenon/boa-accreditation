@@ -180,6 +180,41 @@ protects "I need the app exactly like the design".
 
 ---
 
+## ADR-009 — The desk chrome does not ship on public (invite-token / pass-token) screens
+
+**Accepted 12 Sep 2026, user confirmed.**
+
+The design bundle wraps every screen — including Submission — in one persistent
+shell: logo, "Accred desk" nav linking to `/desk/*`, a WEB/MOB/LIGHT review
+toggle, and a live "184/612 BANDS ISSUED · 14 NOT IN BMS" status strip. The
+reference screenshots therefore include all of it.
+
+DESIGN-SYSTEM.md already excludes the WEB/MOB/LIGHT toggle as review-bundle
+furniture, but says nothing about the rest of that same bar. Shipping it
+literally would put desk navigation and live operational numbers behind a
+public, unauthenticated vendor link — the opposite of ARCHITECTURE.md's surface
+split (invite-token / pass-token vs. operator login), and `/s/[token]` would
+need `boa_acc_desk_dashboard()`-shaped data it has no business seeing.
+
+**Decided:** the entire top bar is review furniture on public surfaces, same
+category as the viewport toggle. `/s/[token]` (and `/p/[passToken]` when built)
+ship only the screen's own content — header, quota bar, form, list, the shared
+footer line. `scripts/capture-design-reference.mjs` hides that bar (`PUBLIC_SCREENS`)
+before capturing the reference for these screens, so the reference matches what
+actually ships rather than the review tool's frame.
+
+**Consequence accepted:** the Submission screen's "Your list" also cannot
+pixel-match the reference's four named, differently-stated rows — that data
+requires either a client-only list of *this session's own* additions (no new
+API, no new PII exposure) or a new org-roster RPC exposing every teammate's
+name/phone/status to anyone holding the invite link. The user chose the
+session-only option (12 Sep 2026); `test:visual` on Submission therefore shows a
+real, understood gap (~28-30%, entirely the empty "Your list" region plus the
+vehicle-toggle default, both deliberate) rather than the ≤0.8% every other
+screen is held to. See docs/CURRENT-STATE.md, ACC-025, for the measured number.
+
+---
+
 ## Decisions taken by the user, 10 Sep 2026
 
 Recorded here so they are not re-opened by someone reading only the spec.

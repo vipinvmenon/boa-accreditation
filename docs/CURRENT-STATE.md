@@ -3,14 +3,17 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 11 September 2026 (ninth update)._
+_Last updated: 12 September 2026 (tenth update)._
 
 ## In one line
 
-Phase 0 (foundation) is complete. **The schema and the public-surface RPCs
-are live** — mint, org_view, submit, quota lock, per-token throttle — verified
-by `corepack pnpm test:db` and `corepack pnpm db:state`, not asserted.
-`anon` still has zero grants. No submission *screen* yet (ACC-024 / ACC-025).
+Phase 0 (foundation) is complete. **The schema, the public-surface RPCs, the
+`/api/s/[token]` route and the real Submission screen are live** — mint,
+org_view, submit, quota lock, per-token throttle, the register-your-crew UI —
+verified by `corepack pnpm test:db`, `corepack pnpm db:state` and real curl /
+browser sessions against production and the live database, not asserted.
+`anon` still has zero grants. `test:visual` on Submission is not a pass yet
+(ADR-009 — see below); `/desk/*` and `/gate/*` are still empty (ACC-026+).
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
@@ -222,6 +225,62 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 12 Sep 2026 — ACC-025: the Submission screen, real data, one recorded gap
+
+- **`app/s/[token]/page.tsx` + `submission-screen.tsx`** — the first real screen.
+  Server component fetches `GET /api/s/[token]` (same-origin, via `headers()`,
+  never the Supabase client directly — ARCHITECTURE.md rule 1) and calls
+  `notFound()` on a miss, reusing the existing global 404. The client
+  component holds the form, POSTs to the same route, and updates the quota
+  bar and "Your list" from the real response — no fixture data.
+- **ADR-009 (docs/DECISIONS.md): the desk chrome does not ship on public
+  screens.** The approved reference screenshot wraps every screen in the
+  design bundle's own nav+status bar (logo, "Accred desk" links to
+  `/desk/*`, live BMS numbers). Confirmed with the user this is
+  review-bundle furniture, the same category as the WEB/MOB/LIGHT toggle
+  DESIGN-SYSTEM.md already excludes — a public invite-token link must not
+  show desk navigation or ops data. `scripts/capture-design-reference.mjs`
+  now hides that bar (`PUBLIC_SCREENS`) before capturing Submission's
+  reference, so the reference matches what actually ships.
+- **"Your list" is session-only** (plain React state, resets on reload) —
+  confirmed with the user rather than guessed. `boa_acc_org_view` returns
+  counts only, never names, and no RPC exists to hand an anonymous token
+  holder the org's roster; building one was explicitly declined for now
+  (privacy scope, not a quick add).
+- **`app/responsive.css`** — new, shared. The design's `mob ? A : B` values
+  (padSec, h1b, formCols, shellMax/shellEdge) become real `@media (min-width:
+  768px)` rules here, per DESIGN-SYSTEM.md's "Responsive" section, since
+  inline React styles cannot express a breakpoint. One shared file because
+  every future screen needs the same handful of values, not specific to
+  Submission.
+- **`lib/use-theme.ts`** — `useDomTheme()`, a `MutationObserver` on
+  `<html data-theme>`. Needed because the design's layer-2 colours (C8)
+  arrive as literal props, not `var(--x)`, so only JS can resolve them per
+  theme — and `scripts/visual-check.mjs` flips the attribute at runtime to
+  capture both themes, which a `useState` initializer alone would miss.
+- **Verified for real, not asserted:**
+  - `corepack pnpm typecheck / lint / test / build` all green.
+  - Interactively in a real browser against the live database (dev server,
+    a minted org+invite, wiped after): add-person updates the quota bar and
+    "Your list" live; a duplicate phone shows the mapped error and leaves
+    quota untouched; an unknown token renders the same "This link is not
+    valid" page ACC-024 already proved 404s correctly.
+  - `corepack pnpm test:visual -- --screen submission`: **not** a pass.
+    Dark/web is 29.96% against the ≤0.8% gate (light/web 29.94%, dark/mob
+    27.99%, light/mob 27.91%) — one screen, `0 blocked`. The fixture org is
+    named and seeded to match the mock exactly (`Chakra Sound & Light`,
+    14/22 real submissions via `boa_acc_submit`, wiped after), so the entire
+    measured diff is the two accepted gaps: the empty "Your list" region
+    (ADR-009) and the vehicle toggle's real default (off) vs. the mock's
+    fixed-on mock state. Every other pixel — header, quota bar, all three
+    form fields, both buttons, footer, both themes — matches. Recorded here
+    rather than claimed as a pass it is not.
+- **Not yet true:** ACC-032 (confirmation copy, duplicate-phone path,
+  closed-org path) is still its own task — this session's error copy is
+  plain and functional, not the polished version. Phase 1's own acceptance
+  line ("all four, or Phase 1 is not done") still needs ACC-026/027/028.
+- 25/60 tasks done.
 
 ### 11 Sep 2026 — ACC-024: `/api/s/[token]` route handler, verified on production
 

@@ -45,6 +45,19 @@ const VIEWPORTS = [
 
 const THEMES = ['dark', 'light']
 
+/**
+ * Screens whose real route is a PUBLIC surface (docs/ARCHITECTURE.md: invite
+ * token or pass token, no login) rather than the desk. The bundle renders every
+ * screen inside one persistent shell — logo, "Accred desk" nav to /desk/*, the
+ * live BMS status strip — which is itself review furniture like the WEB/MOB/
+ * LIGHT toggle DESIGN-SYSTEM.md already excludes: a vendor holding an invite
+ * link is not an operator and must not see desk navigation or live ops numbers
+ * that do not exist for them (boa_acc_desk_dashboard() is desk-only). Decided
+ * 12 Sep 2026; see docs/CURRENT-STATE.md, ACC-025. The reference for these
+ * screens is captured with that shell hidden so it matches what actually ships.
+ */
+const PUBLIC_SCREENS = new Set(['submission'])
+
 /** Click a button by its exact trimmed text. The design has no test ids. */
 async function clickByText(page, text) {
   const ok = await page.evaluate((t) => {
@@ -123,6 +136,16 @@ for (const view of VIEWPORTS) {
       await setTheme(page, theme)
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(150)
+
+      // Hide the shared shell for public screens (see PUBLIC_SCREENS above),
+      // restore it otherwise — the SPA keeps one page across every screen in
+      // this loop, so a hide from a previous iteration must not leak forward.
+      await page.evaluate((hide) => {
+        const chrome = [...document.querySelectorAll('div')].find(
+          (el) => getComputedStyle(el).position === 'sticky',
+        )
+        if (chrome) chrome.style.display = hide ? 'none' : ''
+      }, PUBLIC_SCREENS.has(screen.slug))
 
       const file = `${screen.slug}-${theme}-${view.slug}.png`
       await page.screenshot({ path: join(OUT, file), fullPage: true })
