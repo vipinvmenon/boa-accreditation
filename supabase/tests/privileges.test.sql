@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(53) as line
+  select 0 as n, plan(57) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -95,6 +95,14 @@ select line from (
   union all select 51, function_privs_are('private', 'boa_acc_test_reject_person', array['uuid', 'text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_reject_person')
   union all select 52, function_privs_are('private', 'boa_acc_test_wipe_aaa_nominations', array['text[]'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_wipe_aaa_nominations')
   union all select 53, function_privs_are('private', 'boa_acc_test_wipe_aaa_nominations', array['text[]'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_wipe_aaa_nominations')
+
+  -- ACC-045: mint/revoke_device are public, lead/admin-checked internally,
+  -- same shape as boa_acc_create_org — anon gets nothing, authenticated gets
+  -- EXECUTE (the operator-role check happens inside the function body).
+  union all select 54, function_privs_are('public', 'boa_acc_mint_device', array['text','text','text','timestamptz'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_mint_device')
+  union all select 55, function_privs_are('public', 'boa_acc_mint_device', array['text','text','text','timestamptz'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_mint_device')
+  union all select 56, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_device')
+  union all select 57, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_revoke_device')
 
   -- The one column that must never be readable by a logged-in session —
   -- ADR-002's compensating control, checked at the column, not the table.
