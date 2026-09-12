@@ -1190,6 +1190,24 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   writes. The remaining blocker is service-worker install/precache diagnosis;
   the browser-level cold offline reload is not claimed complete.
 
+### 12 Sep 2026 — ACC-059/061 preparation templates
+
+- Added `docs/PAPER-FALLBACK.md` with a non-secret approved-roster CSV schema,
+  blank append-only issue-sheet template, print/checklist instructions, and
+  paper reconciliation guidance.
+- Added `scripts/validate-paper-fallback.mjs`, exposed as
+  `corepack pnpm validate:paper`. It validates exact headers, CSV shape,
+  required values, duplicate `pass_ref` values, and rejects token-like
+  columns. It does not query Supabase or claim that supplied rows are
+  approved.
+- Added `docs/DEVICE-TOKEN-HANDOFF.md` with the four-phone handoff record and
+  setup/offline verification checklist. No physical paper was printed and no
+  device token was minted or recorded by this work.
+- **Still not true:** ACC-059 needs Bhoopesh's authoritative roster, physical
+  printing, legibility/count checks, and desk/lead sign-off. ACC-061 needs four
+  physical phones, four authorised mints, four successful non-empty pulls,
+  offline checks, and handoff sign-off. These remain human-dependent.
+
 ### 12 Sep 2026 — ACC-071: observed deploy-verification failure fixed
 
 - GitHub Actions evidence was checked directly. The two observed scheduled
