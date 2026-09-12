@@ -230,6 +230,103 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 12 Sep 2026 — ACC-045: `/desk/devices` — mint/revoke, raw token shown once
+
+Built in parallel with another agent's ACC-041 (`boa_acc_decide`), in a
+separate worktree against the same live Supabase project — a deliberate,
+disclosed exception to roadmap ordering (ACC-045 only touches
+`public.boa_acc_device`, which nothing else in Phase 3 depends on).
+
+- **`supabase/migrations/202609121900_boa_acc_devices.sql`** —
+  `public.boa_acc_mint_device` and `public.boa_acc_revoke_device`. Both
+  `public`, lead/admin-checked internally (same predicate and array literal
+  as `boa_acc_create_org`/`boa_acc_mint_invite`), EXECUTE granted only to
+  `authenticated`. Reuses `private.boa_acc_new_token()` /
+  `private.boa_acc_hash_token()` verbatim — no new token scheme. Checked how
+  invite revocation is actually wired end-to-end before choosing the shape
+  for device revoke: `private.boa_acc_revoke_invite` exists but **no route
+  anywhere calls it** — it is not wired up at all yet. So device revoke
+  follows the `boa_acc_create_org` precedent (a `public` SECURITY DEFINER
+  function checked internally) rather than inventing a second, unprecedented
+  "public route → private function via service-role" path.
+- **`p_expires_at` is overridable, defaulting to the column's own literal**
+  (`2026-10-11 06:00+05:30`, the show's own end time) so a caller who does
+  not override gets exactly what a bare INSERT would have given; an explicit
+  override in the past, or an explicit NULL, is refused as `invalid_expiry`
+  rather than silently doing something surprising.
+- **`supabase/migrations/202609121901_boa_acc_wipe_email_devices.sql`** — a
+  real bug found while writing the test: `private.boa_acc_wipe_email`
+  (202609110008) deletes the operator row then `auth.users`, but
+  `boa_acc_device.created_by` references `auth.users(id)` with no `ON
+  DELETE` action. ACC-045 is the first test to mint a device from a
+  throwaway operator, so cleanup hit
+  `boa_acc_device_created_by_fkey` — confirmed live (`test:db` failed with
+  exactly that FK error, and the whole single-statement test rolled back
+  atomically, leaving no orphaned rows; `db:state` after the failure matched
+  the pre-run baseline exactly). Fixed the same way `boa_acc_wipe_org` was
+  already fixed once: one more sequential `DELETE` inside the same
+  `VOLATILE` plpgsql body, ahead of the other two.
+- **`app/api/desk/devices/route.ts`** (GET list / POST mint) and
+  **`app/api/desk/devices/[id]/route.ts`** (DELETE revoke) — both hold
+  `lib/supabase-server.ts` only, never `lib/supabase-admin.ts`, same as
+  `/desk/orgs`. GET selects the column list already granted to
+  `authenticated` (202609110002) — never `token_hash`, which isn't even in
+  the grant. `lib/schemas/device.ts` mirrors `lib/schemas/org.ts`'s
+  conventions.
+- **No approved design for this screen** (the 7 screens in
+  `scripts/visual-check.mjs` are the whole pixel contract; devices is not
+  one of them) — `app/desk/devices/devices-screen.tsx` is built from the
+  design's own tokens, following `app/desk/orgs/orgs-screen.tsx`'s exact
+  precedent (client component, `fetch` to own API routes only, 401 →
+  `/desk/login`, error-copy mapping object) including its "shown once, copy
+  it now" pattern for the raw token. Not gated by `test:visual`.
+- **`supabase/tests/devices.test.sql`** (13 assertions, one statement,
+  sequential materialized CTEs calling the two new `VOLATILE` functions
+  rather than re-reading the table directly — same shape as
+  `tokens.test.sql`): mint requires lead/admin, an approver is refused, a
+  signed-out caller is refused, the default expiry matches the show's end
+  time exactly, an explicit override is honoured, a past override is
+  refused, revoking twice or revoking an unknown id is refused rather than
+  silently repeated. `supabase/tests/privileges.test.sql` extended to
+  `plan(57)`: anon gets zero EXECUTE on both new functions, authenticated
+  gets EXECUTE on both (the existing `boa_acc_device.token_hash` column-privs
+  assertion already covered the new write path — still accurate, re-checked).
+- **Verified for real, end to end, not asserted.** A throwaway lead-operator
+  account (created via the admin API) drove the actual UI on a dev server
+  running from this worktree: minted a real device (`Main gate — lane 2`,
+  scope `crew`) — the raw 22-char token rendered exactly once with a working
+  copy button — then revoked it, and the row updated to "revoked" live with
+  no reload. The list correctly showed the other agent's concurrent
+  `ACC-041 Gate` device rows alongside mine, untouched. Both the throwaway
+  device row and the throwaway operator/`auth.users` row were deleted
+  afterward via the service-role key directly (matched by exact `created_by`
+  / `user_id`, never by a broad filter that could have caught the other
+  agent's rows). `db:state` before and after this session: `boa_acc_device`
+  4→4, `boa_acc_operator` 6→6, `auth.users` 6→6 — all three already reflect
+  the other agent's own in-flight ACC-041 work, not a stale baseline; this
+  session added and removed exactly one device and one operator/user, net
+  zero.
+- **A real, unrelated tooling bug found during verification, not fixed
+  here:** the harness's `preview_start` tool launched `accred-dev` bound to
+  the **main repo checkout**, not this worktree — `/desk/devices` 404'd
+  there because the new route only exists in this worktree's filesystem,
+  while `/desk/login` and `/desk` 200'd because those already existed on
+  main. Diagnosed via `lsof`/`ps` (the listening process's cwd was
+  `boa-accreditation/node_modules`, not the worktree). Worked around by
+  starting `next dev` directly from this worktree on a different port.
+  Anyone else hitting a stale-looking `/desk/*` 404 or a route that "should
+  exist" in a worktree session should check this first.
+- **Also hit, and already-documented:** the pre-existing stale-session
+  redirect loop between `/desk` and `/desk/login` (`task_b7f0fddb`, flagged
+  in the ACC-033 entry below) — cleared with `localStorage.clear()` +
+  cookie clear before signing in. Still not fixed; not this task's scope.
+- **`typecheck`/`lint`/`test`/`build`/`check:sql`/`test:db`** all green.
+  `next dev` (run for the browser verification above) auto-appended a
+  `<!-- BEGIN:nextjs-agent-rules -->` block to `AGENTS.md` — reverted with
+  `git checkout -- AGENTS.md` before committing, since it is a dev-server
+  side effect unrelated to this task, not a real change.
+- 30/60 tasks done.
+
 ### 12 Sep 2026 — ACC-033: `/desk`, the Control room, live from one RPC
 
 - **`supabase/migrations/202609120010_boa_acc_desk_dashboard.sql`** —
