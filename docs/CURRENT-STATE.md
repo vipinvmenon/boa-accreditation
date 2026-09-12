@@ -230,6 +230,62 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 12 Sep 2026 — ACC-032, a security review, and a Phase-4 gate bug found early
+
+- **ACC-032: confirmation copy, duplicate-phone, closed-org.** Built by a
+  parallel agent, cherry-picked in. The gold "Submit N for approval →"
+  button — which called the identical RPC as "Add to list" since the backend
+  has no draft/batch concept — is now a non-interactive live readout ("N
+  added so far — the desk approves later"), and each successful add shows a
+  transient named confirmation. Duplicate-phone now names the number and
+  says the person is already on the list (gold/status, not red/alert — it
+  is not a mistake to fix). Closed-org now actually disables every input,
+  not just the buttons. `test:visual -- --screen submission`: 29.99% /
+  29.97% / 26.65% / 26.57% — still `KNOWN GAP`, still under the 32%
+  ceiling, essentially flat against ACC-025's baseline.
+- **A parallel, read-only security review** of everything ACC-026 shipped
+  found two real, fixed issues (not the copy-editing task above — a
+  separate pass): `app/auth/confirm/route.ts`'s `next` query param went
+  straight into `new URL(next, origin)` with no check — an absolute or
+  protocol-relative `next` (`?next=https://evil.example`,
+  `?next=//evil.example`) redirected a just-authenticated session off-site.
+  Now only an in-app relative path is accepted. `type` was cast `as
+  EmailOtpType` with no runtime check; now a zod enum of the two types this
+  app's own templates send. Separately, `/api/admin/invite-operator`'s
+  unauthenticated bootstrap path (`BOA_ACC_OPERATOR_BOOTSTRAP`) had no rate
+  limit — an unthrottled trigger for a real invite email — and its `upsert`
+  let a repeat call silently change an existing operator's role (e.g.
+  `approver` → `admin`) with no authentication. Fixed: the same per-IP
+  throttle used elsewhere now applies here too, and the unauthenticated
+  path may create a new operator or resend an identical invite, but
+  changing an existing operator's role or name now always requires an
+  authenticated lead/admin. Verified locally (invalid `type` and both
+  open-redirect shapes fall back to `/desk/login?error=invalid_link`; 11
+  rapid calls show 429 on the 11th) and the redirect fix re-verified live
+  on production.
+- **A real bug found by `corepack pnpm verify:deploy`, not by inspection:
+  `scripts/build-gate-sw.mjs` cannot predict Vercel's actual asset URLs.**
+  It reads `.next/static/` right after `next build` and finds
+  `/_next/static/chunks/<hash>.css` — but Vercel repackages static assets
+  under `/_next/static/immutable/chunks/<different-hash>.css` as a
+  platform-level step that happens *after* `next build` finishes, which is
+  after this script already ran and wrote `public/gate/sw.js`. Confirmed
+  directly: the deployed sw.js's own precached CSS path 404s under both the
+  `immutable/` and non-`immutable/` forms — it is simply the wrong hash,
+  unknowable at `next build` time. **Zero current impact** — `/gate` does
+  not exist yet (`0 routes, 0 chunks` in every build log this session), so
+  there is nothing for the service worker to actually serve offline; the
+  only casualty today is that its font/CSS precache entries are already
+  wrong. **This must be solved before ACC-054 (Phase 4)** — precaching
+  routes Next never built was exactly the failure mode CURRENT-STATE
+  already caught once (11 Sep); this is the same failure mode one layer
+  deeper, in the platform's own asset pipeline rather than Next's route
+  manifest. No fix attempted yet — needs either reading Vercel's own
+  post-build output manifest (`.vercel/output/`, if building via `vercel
+  build` rather than plain `next build`) or moving the precache-list step
+  to run after deployment against the live asset paths.
+- 27/60 tasks done.
+
 ### 12 Sep 2026 — ACC-026: /desk/login, invite-operator, and real SMTP
 
 - **`lib/supabase-browser.ts` / `lib/supabase-server.ts`** — the
