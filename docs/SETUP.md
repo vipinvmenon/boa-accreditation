@@ -39,7 +39,11 @@ corepack pnpm exec supabase login
 
 ## Step 2 · Log the Vercel CLI in
 
-The token on this Mac is expired (`invalidToken`).
+**Done, 12 Sep 2026.** `vercel whoami` returns `vipinmenon006` and
+`.vercel/project.json` is linked to `boa-accreditation`
+(`team_rDgA7v4RmDHjA3gFRapQoccp`). `vercel --prod` works as a direct deploy
+path — useful when the GitHub integration is slow or its status is unclear.
+If this ever needs redoing:
 
 ```bash
 corepack pnpm exec vercel login

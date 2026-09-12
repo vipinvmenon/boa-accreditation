@@ -279,24 +279,37 @@ Verified by attempting the thing, not by reading a grant table:
     `KNOWN_GAPS`), not `PASS`: a regression past that ceiling, or in any
     other screen, still fails the build. This is what let the pre-push
     hook go green without either bypassing it or hiding the gap.
-- **A real bug caught in production, not staging.** `page.tsx` originally
-  fetched its own `GET /api/s/[token]` over the network from the server
-  component, per the layering rule ("a screen calls its own route handler,
-  never the Supabase client"). That worked locally and against `test:visual`'s
-  own throwaway server, but on Vercel a **known-valid** token 404'd on the
-  page while the exact same URL, called externally, resolved fine — because
-  a Vercel Function fetching its own deployment can be intercepted by
-  Deployment Protection even on the production custom domain (confirmed:
-  the `*.vercel.app` alias redirects to a Vercel SSO login for that kind of
-  traffic; a genuine external request to the same URL never hits it).
-  **Fixed** by exporting `resolveOrgView(token)` from
-  `app/api/s/[token]/route.ts` and having `page.tsx` call it in-process —
-  no network hop, so Vercel's protection layer never sees it. The
-  credential boundary holds without it: only that file (and `scripts/**`)
-  are exempt from the `no-restricted-imports` rule on
-  `lib/supabase-admin`, and page.tsx still never imports it directly.
-  Re-verified against production after the fix (below) before calling this
-  done.
+- **A production scare that turned out to be a bug in the verification, not
+  the app — recorded because it wasted real time and the mistake is worth
+  not repeating.** After deploying, this session's own `curl`/`grep` checks
+  against `accred.bangaloreopenair.com` kept reporting a **known-valid**
+  token as 404 on `/s/[token]` while the identical URL's `GET /api/s/[token]`
+  resolved fine — repeatedly, across three redeploys (including two direct
+  `vercel --prod` CLI deploys once the GitHub-integration deploy appeared
+  stuck). The actual cause: every check grepped for `"REGISTER YOUR CREW"`
+  (uppercase), but the DOM text is `"Register your crew"` — uppercase only
+  via CSS `text-transform`. The page had been rendering correctly the whole
+  time. Confirmed by opening the real production URL in a browser: the
+  add-person flow works end to end — quota bar moves, "Your list" updates,
+  cleaned up after (`private.boa_acc_wipe_org`).
+  **Kept anyway, on its own merit:** `page.tsx` originally fetched its own
+  `GET /api/s/[token]` over the network from the server component. That was
+  replaced with `resolveOrgView(token)`, exported from
+  `app/api/s/[token]/route.ts` and called in-process from `page.tsx` — no
+  network hop. This is good hygiene independent of the false alarm: a Vercel
+  Function fetching its own deployment's public URL can be intercepted by
+  Vercel's Deployment Protection (independently confirmed — the
+  `*.vercel.app` alias redirects to a Vercel SSO login for that traffic; a
+  genuine external request to the custom domain never hits it), so avoiding
+  the self-fetch removes a real, documented class of risk even though it
+  was not what happened here. The credential boundary is unchanged: only
+  that route file (and `scripts/**`) are exempt from the
+  `no-restricted-imports` rule on `lib/supabase-admin`, and `page.tsx`
+  still never imports it directly.
+  **The Vercel CLI is now authenticated** on this machine (`vercel whoami`
+  → `vipinmenon006`) — SETUP.md's "CLI token expired" note is stale;
+  `vercel --prod` works as a direct deploy path when the GitHub integration
+  is slow or its status is unclear.
 - **Not yet true:** ACC-032 (confirmation copy, duplicate-phone path,
   closed-org path) is still its own task — this session's error copy is
   plain and functional, not the polished version. Phase 1's own acceptance
