@@ -17,11 +17,12 @@ grants. **Five operators exist**: Bhoopesh=lead, Salman=admin, two approvers
 on interim placeholder emails (real addresses still needed before 20 Sep,
 ACC-026a), plus the user himself as `admin` on his own real address.
 `test:visual` on the desk screens remains blocked because the visual harness
-cannot authenticate an operator (ACC-043); `/gate/*` is still empty.
+cannot authenticate an operator (ACC-043); `/gate/*` now has static screens,
+but the aeroplane-mode suite and physical rehearsal are not complete.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
-(`bom1`). Supabase project `tjbfvuboyvaephtewjwq` has 19 local migrations applied.
+(`bom1`). Supabase project `tjbfvuboyvaephtewjwq` has 21 local migrations applied.
 
 ## Dates
 
@@ -58,30 +59,31 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 ## What does NOT exist yet
 
-- **The gate screens and sync flow are incomplete.** `/s/[token]` and the desk
-  batch are present. ACC-050 through ACC-053 are implemented, and ACC-055 now
-  adds `/gate/vehicle`, the Dexie-only vehicle-event flow, the
-  `/api/gate/vehicle` proxy, and the database-authorized immutable vehicle-event
-  RPC. `/gate` and `/gate/setup` remain unbuilt under ACC-054, so the service
-  worker build deliberately refuses a partial gate and full offline acceptance
-  remains blocked until ACC-054/056/057.
+- **The gate is not fully accepted yet.** `/s/[token]` and the desk batch are
+  present. ACC-050 through ACC-056 are implemented, including the force-static
+  `/gate`, `/gate/setup`, and `/gate/vehicle` screens, Dexie-only writes,
+  service-worker precache, gate APIs, and database-authorized immutable
+  vehicle events. ACC-057 aeroplane-mode tests and ACC-058 physical rehearsal
+  remain outstanding.
 - **ACC-052 design risk:** the v1 cached ledger row does not carry
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
   must never infer non-voided state from row ordering or serials.
-- **ACC-053 prerequisite:** the QR scanner fallback must self-host the
-  `zxing-wasm` binary under the `/gate/` service-worker scope and run under the
-  enforced camera/WASM CSP. The package's default CDN location is not
-  acceptable for radio-off operation; no scanner is claimed yet.
+- **ACC-053b prerequisite:** the QR scanner fallback still needs proof on a
+  real iPhone under the enforced camera/WASM CSP. The package's default CDN
+  location is not acceptable; the binary is now self-hosted and precached.
 - **The authenticated desk shell now has the approved sticky navigation and
   live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
-  `/desk/orgs`, `/desk/passes`, and `/desk/master`. The `Gate` and `Vehicle`
-  links are visible as design navigation but their routes remain unbuilt
-  (Phase 4).
+  `/desk/orgs`, `/desk/passes`, and `/desk/master`. The force-static `Gate` and
+  `Vehicle` routes now exist under `/gate`.
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
-- **No e2e / aeroplane-mode suite.** Playwright is installed but unconfigured.
-- **`test:visual`** remains blocked for desk screens because the harness has no
-  authenticated operator session; it does not report a visual pass.
+- **No aeroplane-mode spec yet.** Playwright is now configured for
+  `tests/e2e`, but the real offline suite still depends on the integrated gate
+  flow and a deterministic seeded test environment.
+- **`test:visual`** remains blocked for desk screens because the committed
+  `design/reference/` artefacts are absent in this checkout; the harness now
+  supports `VISUAL_OPERATOR_EMAIL` and `VISUAL_OPERATOR_PASSWORD`, but no
+  pixel pass is claimed.
 - **Cursor MCP is nearly connected.** Vipin reports that Supabase, Vercel and
   Playwright are authenticated; GitHub remains outstanding. The Vercel
   *plugin* authenticated in this session (`plugin-vercel-vercel` tools loaded),
@@ -1135,6 +1137,19 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   evidence without committing an immutable event. `test:db`, typecheck, lint,
   unit tests, and `check:sql` passed. Full `build` is now unblocked by the
   complete `/gate` route set; aeroplane-mode acceptance remains ACC-057.
+
+### 12 Sep 2026 — ACC-054: offline gate screens
+
+- Added force-static `/gate/setup` and `/gate` screens, service-worker
+  registration, Dexie-backed cache reads, scanner resolution, blank wristband
+  serial input, and outbox-only issue writes. Setup refuses to expose a
+  scanner until a non-empty roster pull succeeds.
+- `corepack pnpm typecheck`, `corepack pnpm lint`, `corepack pnpm test`,
+  `corepack pnpm check:sql`, `corepack pnpm test:db`, and `corepack pnpm build`
+  pass. The build emits all three gate routes and a precache containing the
+  self-hosted WASM decoder.
+- **Not yet true:** aeroplane-mode E2E and real-phone acceptance remain
+  ACC-057/ACC-058; the gate still needs the physical device-token rehearsal.
 
 ### 12 Sep 2026 — ACC-060: lossless gate logo optimisation
 
