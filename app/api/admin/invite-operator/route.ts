@@ -74,11 +74,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invite_failed' }, { status: 502 })
   }
 
-  const { error: insertError } = await admin.from('boa_acc_operator').insert({
-    user_id: invited.user.id,
-    role: parsed.data.role,
-    display_name: parsed.data.displayName,
-  })
+  // upsert, not insert: inviteUserByEmail on an existing, unconfirmed user
+  // resends the email against the same user id rather than erroring, which
+  // is the normal way to get someone a fresh link — the operator row must
+  // tolerate that instead of failing on the primary key.
+  const { error: insertError } = await admin
+    .from('boa_acc_operator')
+    .upsert({
+      user_id: invited.user.id,
+      role: parsed.data.role,
+      display_name: parsed.data.displayName,
+    })
   if (insertError) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }

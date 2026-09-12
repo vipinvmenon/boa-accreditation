@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 
 /**
@@ -13,66 +13,64 @@ import { supabaseBrowser } from '@/lib/supabase-browser'
  *
  * Two flows, one page, per docs/ARCHITECTURE.md ("Supabase email + password"):
  *
- * 1. A brand-new invite (ACC-026's /api/admin/invite-operator calls
- *    auth.admin.inviteUserByEmail, which redirects here with a session
- *    already established from the emailed link). Detected by
- *    `user.last_sign_in_at === null` — an invited user who has never signed
- *    in before — and handled by asking them to set a password
- *    (`updateUser({ password })`), not by signing in with one they were
- *    never given.
+ * 1. A brand-new invite/recovery: app/auth/confirm/route.ts verifies the
+ *    email link server-side and redirects here with `?flow=invite` (or
+ *    `recovery`) — the session is already a cookie by the time this page's
+ *    JS runs, so no client-side token parsing happens at all.
  * 2. A returning operator: the normal email + password form
  *    (`signInWithPassword`).
+ *
+ * Two things that were tried and were wrong, kept here so nobody repeats
+ * them: (1) `user.last_sign_in_at === null` to detect a fresh invite —
+ * Supabase sets it the moment the invite link establishes a session, not
+ * after a password is set. (2) Parsing `#access_token=...&type=invite` from
+ * the URL fragment client-side — `@supabase/ssr`'s `createBrowserClient`
+ * hardcodes `flowType: "pkce"` (confirmed by reading its source), which only
+ * recognises `?code=`, so the fragment was silently never parsed. Both
+ * failed the same way: straight to `/desk` (404, ACC-027 not built) with no
+ * error, no password ever set. See app/auth/confirm/route.ts's own comment.
  */
-export default function DeskLoginPage() {
+function DeskLoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = supabaseBrowser()
+  const flow = searchParams.get('flow')
+  const linkError = searchParams.get('error') === 'invalid_link'
 
   const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in'>('checking')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    linkError ? 'That link is invalid or has expired. Ask for a new one.' : null,
+  )
 
   useEffect(() => {
     let cancelled = false
+    const isInviteOrRecovery = flow === 'invite' || flow === 'recovery'
 
     async function checkSession() {
       const { data } = await supabase.auth.getSession()
       if (cancelled) return
       const user = data.session?.user
-      if (user) {
-        if (user.last_sign_in_at) {
-          setMode('redirecting')
-          router.replace('/desk')
-        } else {
-          setMode('set-password')
-        }
-      } else {
+      if (!user) {
         setMode('sign-in')
+        return
+      }
+      if (isInviteOrRecovery) {
+        setMode('set-password')
+      } else {
+        setMode('redirecting')
+        router.replace('/desk')
       }
     }
     void checkSession()
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled) return
-      const user = session?.user
-      if (user) {
-        if (user.last_sign_in_at) {
-          setMode('redirecting')
-          router.replace('/desk')
-        } else {
-          setMode('set-password')
-        }
-      }
-    })
-
     return () => {
       cancelled = true
-      sub.subscription.unsubscribe()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [flow])
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
@@ -234,5 +232,13 @@ export default function DeskLoginPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function DeskLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <DeskLoginForm />
+    </Suspense>
   )
 }

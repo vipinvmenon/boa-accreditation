@@ -256,6 +256,52 @@ sending-scoped key — fine for this one-time bootstrap, worth tightening
 
 ---
 
+## ADR-011 — Email links verify server-side (`token_hash`), never client-side
+
+**Accepted 12 Sep 2026.**
+
+The first version of `/desk/login` redirected invite/recovery links straight
+at itself and tried to read the session from the URL fragment
+(`#access_token=...&type=invite`) client-side. It silently never worked: no
+error, no session, just a quiet fall-through to the plain sign-in form —
+discovered because five real operator invites all failed to show a
+set-password prompt.
+
+**Root cause, confirmed by reading the library source**:
+`@supabase/ssr`'s `createBrowserClient` hardcodes `flowType: "pkce"` in its
+own implementation — any `auth.flowType` passed in is spread first and then
+unconditionally overwritten on the next line. A PKCE-flow client only
+recognises `?code=` in the URL; it does not parse `#access_token=` at all,
+implicit or not. There is no client-side option that fixes this against
+`createBrowserClient` in `@supabase/ssr` 0.5.2.
+
+**Fixed to Supabase's own documented pattern for this exact situation:**
+the invite and recovery email templates (`config/auth`,
+`mailer_templates_invite_content` / `..._recovery_content`) now link to
+`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}&next=/desk/login`
+— a route handler (`app/auth/confirm/route.ts`) that calls
+`supabaseServer().auth.verifyOtp({ type, token_hash })` server-side, which
+persists the session as a cookie via `@supabase/ssr`'s server client
+*before* the browser runs a line of client JS. `/desk/login` reads the
+result only from the query string (`?flow=invite` / `?flow=recovery`,
+appended by the confirm route on success), never from a fragment.
+
+**Verified end-to-end for real**, not asserted: a throwaway account
+(`vipinmenon16+logintest@gmail.com`, minted with `generateLink` and wiped
+after) walked the confirm link → saw "Set your password" → set one →
+landed on `/desk` (404, ACC-027 not built — expected) → signed out → signed
+back in with email + the just-set password → same result. All five real
+operators' original invite emails were sent *before* this fix and were
+therefore dead; each was re-invited (`inviteUserByEmail` resends against the
+same `auth.users` row for an unconfirmed user) and reconfirmed `delivered`
+in Resend's log after the fix.
+
+**A second, smaller bug found in the same pass:** `invite-operator`'s
+`boa_acc_operator` write was a plain `insert`, which fails on a resend
+(the row already exists for that `user_id`). Changed to `upsert`.
+
+---
+
 ## Decisions taken by the user, 10 Sep 2026
 
 Recorded here so they are not re-opened by someone reading only the spec.

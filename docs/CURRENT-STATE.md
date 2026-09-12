@@ -261,20 +261,35 @@ Verified by attempting the thing, not by reading a grant table:
   `config/auth` via the Supabase Management API. A **second**, independent
   rate limit (`rate_limit_email_sent`, unaffected by SMTP config) then
   blocked the 4th invite and was raised to 30 the same way.
-- **Five operators invited and verified live**, not asserted:
-  `boa_acc_operator` and `auth.users` both at 5 (`db:state`), Resend's own
-  `/emails` log shows `delivered` for every one sent through it (the first,
-  Bhoopesh's, went out before SMTP was live, via Supabase's default mailer).
-  Bhoopesh = `lead`, Salman = `admin`, two `approver` placeholders on interim
+- **ADR-011: every invite sent before this point was actually dead** — the
+  user reported "I haven't received any set password links, only
+  invitation" after all five went out. Root cause, confirmed by reading
+  `@supabase/ssr`'s own source: `createBrowserClient` hardcodes
+  `flowType: "pkce"` and silently discards any `auth.flowType` passed to
+  it, so the client-side page could never have parsed the
+  `#access_token=...&type=invite` fragment Supabase's hosted verify
+  endpoint redirects with — no error, just a quiet fall-through to the
+  plain sign-in form. **Fixed** with Supabase's own documented pattern:
+  `app/auth/confirm/route.ts` verifies `token_hash`+`type` server-side
+  (`verifyOtp`), which sets the session cookie before any client JS runs;
+  the invite/recovery email templates (`config/auth`) now link there
+  instead of `{{ .ConfirmationURL }}`. Verified end-to-end for real with a
+  throwaway account: confirm link → set-password form → password set →
+  `/desk` (404, expected) → signed out → signed back in with the new
+  password → same result. Also fixed in the same pass: `invite-operator`'s
+  operator-row write was a plain `insert`, which fails on a resend against
+  an existing `user_id` — changed to `upsert`.
+- **Five operators, all re-invited after the fix and all confirmed
+  `delivered`** in Resend's own `/emails` log — the five sent before ADR-011
+  are dead and nobody should try those links. Bhoopesh = `lead`, Salman =
+  `admin`, two `approver` placeholders on interim
   `vipinmenon16+<role>@gmail.com` addresses per ACC-026a — **real addresses
-  are still needed before 20 Sep**, and re-inviting to swap them will need
-  the same admin/lead-authenticated path once real desk pages exist. The
-  user also asked to be added on his own real address, `vipinmenon16@gmail.com`,
-  role `admin` — not a placeholder, a real account, added to
-  `BOA_ACC_OPERATOR_BOOTSTRAP` alongside the four interim addresses.
+  are still needed before 20 Sep** — plus the user's own real address,
+  `vipinmenon16@gmail.com`, role `admin`.
 - **Not yet true:** no `/desk/*` page exists past `/login` — a successful
-  sign-in redirects to `/desk`, which 404s until ACC-027. The Resend API key
-  used was full-access, not scoped to sending-only (noted in ADR-010).
+  sign-in redirects to `/desk`, which 404s until ACC-027 (confirmed, not
+  assumed, during the end-to-end test above). The Resend API key used was
+  full-access, not scoped to sending-only (noted in ADR-010).
 - 26/60 tasks done.
 
 ### 12 Sep 2026 — ACC-025: the Submission screen, real data, one recorded gap
