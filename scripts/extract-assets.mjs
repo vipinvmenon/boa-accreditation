@@ -21,6 +21,7 @@ import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync } from
 import { gunzipSync } from 'node:zlib'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PNG } from 'pngjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BUNDLE = join(root, 'design/source/boa_design_bundle.html')
@@ -52,6 +53,27 @@ const assets = manifest(html)
 
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true })
 
+function optimiseLogo(bytes) {
+  const source = PNG.sync.read(bytes)
+  const optimised = PNG.sync.write(source, {
+    deflateLevel: 9,
+    deflateStrategy: 0,
+    filterType: 0,
+  })
+  const roundTrip = PNG.sync.read(optimised)
+
+  // Compression may change the file bytes, but never the rendered pixels.
+  if (
+    source.width !== roundTrip.width ||
+    source.height !== roundTrip.height ||
+    !source.data.equals(roundTrip.data)
+  ) {
+    throw new Error('lossless logo optimisation changed the rendered pixels')
+  }
+
+  return optimised
+}
+
 let written = 0
 for (const [id, name] of Object.entries(WANTED)) {
   const entry = assets[id]
@@ -65,8 +87,12 @@ for (const [id, name] of Object.entries(WANTED)) {
   if (!ext) throw new Error(`asset ${id} has unexpected mime ${entry.mime}`)
   if (!name.endsWith('.' + ext)) throw new Error(`asset ${id} is ${entry.mime} but named ${name}`)
 
+  const originalSize = bytes.length
+  if (name === 'boa-logo.png') bytes = optimiseLogo(bytes)
+
   writeFileSync(join(OUT, name), bytes)
-  console.log(`  ${name}  ${(bytes.length / 1024).toFixed(0)} KB  ${entry.mime}`)
+  const saving = originalSize === bytes.length ? '' : ` (from ${(originalSize / 1024).toFixed(0)} KB)`
+  console.log(`  ${name}  ${(bytes.length / 1024).toFixed(0)} KB${saving}  ${entry.mime}`)
   written++
 }
 
