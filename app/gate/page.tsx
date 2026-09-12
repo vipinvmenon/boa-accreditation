@@ -161,7 +161,10 @@ export default function GatePage() {
           </div>
           <div style={{ width: '100%', maxWidth: 280, margin: '0 auto', aspectRatio: '1', position: 'relative', border: '1px solid var(--rule,rgba(242,239,226,0.16))', background: 'var(--panel,#101012)', overflow: 'hidden' }}>
             <video ref={videoRef} muted playsInline aria-label="Gate camera scanner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', inset: 14, border: '2px solid var(--grn,#00F5A5)', opacity: 0.9 }} />
+            <div style={{ position: 'absolute', top: 14, left: 14, width: 38, height: 38, borderTop: '2px solid var(--grn,#00F5A5)', borderLeft: '2px solid var(--grn,#00F5A5)' }} />
+            <div style={{ position: 'absolute', top: 14, right: 14, width: 38, height: 38, borderTop: '2px solid var(--grn,#00F5A5)', borderRight: '2px solid var(--grn,#00F5A5)' }} />
+            <div style={{ position: 'absolute', bottom: 14, left: 14, width: 38, height: 38, borderBottom: '2px solid var(--grn,#00F5A5)', borderLeft: '2px solid var(--grn,#00F5A5)' }} />
+            <div style={{ position: 'absolute', bottom: 14, right: 14, width: 38, height: 38, borderBottom: '2px solid var(--grn,#00F5A5)', borderRight: '2px solid var(--grn,#00F5A5)' }} />
             <div style={{ position: 'absolute', left: 14, right: 14, top: '50%', height: 2, background: 'var(--grn,#00F5A5)' }} />
           </div>
           <canvas ref={canvasRef} hidden />

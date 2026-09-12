@@ -515,6 +515,26 @@ Verified by attempting the thing, not by reading a grant table:
 > rules — will not create one to get them. Vipin (or Bhoopesh/Salman) needs
 > to sign in at `/desk/login`, visit `/desk/operators`, and send one real
 > invite to close that gap.
+>
+> **12 Sep 2026 — resumed the design audit; found and fixed the gate scanner's
+> corner brackets.** `app/gate/page.tsx`'s camera-target overlay was one div
+> with `inset:14, border:2px solid var(--grn)` — a full rectangle. The design
+> (`design/source/boa_design_body.html`, lines 413-417) is four separate
+> 38×38px corner-bracket divs, each bordered on only two adjacent sides, plus
+> the horizontal centre line — a viewfinder look, not a box. Confirmed by
+> cropping both renders side by side: visually distinct, not a rendering
+> nuance. Fixed to the four-div version; re-cropped after and the two now
+> match exactly. Measured: **gate desktop 0.54%/0.53%→0.45%/0.44%; gate
+> mobile 1.36%/1.41%→1.19%/1.24%.** Gate mobile still fails 0.8% — the
+> remaining diff was checked row-by-row and is the same already-diagnosed
+> font-floor 1px cascade above (confirmed by finding the same 1px vertical
+> offset in the "last issued" list's text rows, not new content). Vehicle
+> mobile's 3.19%/3.00% is still the same sticky-header capture artifact,
+> reconfirmed by re-cropping: the header is still absent from the top of that
+> one capture. No other differences found on gate, vehicle, or submission
+> beyond what is already recorded above. `typecheck`, `lint`, `test` (49/49),
+> and `build` all pass. Control-room, queue, master and passes remain
+> unaudited — still blocked on operator credentials.
 
 ## Session log
 
