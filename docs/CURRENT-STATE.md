@@ -18,7 +18,8 @@ on interim placeholder emails (real addresses still needed before 20 Sep,
 ACC-026a), plus the user himself as `admin` on his own real address.
 `test:visual` on the desk screens remains blocked because the visual harness
 cannot authenticate an operator (ACC-043); `/gate/*` now has static screens,
-but the aeroplane-mode suite and physical rehearsal are not complete.
+and the deterministic aeroplane-mode suite passes. True cold service-worker
+navigation and physical rehearsal remain unverified.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
@@ -63,8 +64,9 @@ Verified on 10 Sep by running the commands, not by assertion:
   present. ACC-050 through ACC-056 are implemented, including the force-static
   `/gate`, `/gate/setup`, and `/gate/vehicle` screens, Dexie-only writes,
   service-worker precache, gate APIs, and database-authorized immutable
-  vehicle events. ACC-057 aeroplane-mode tests and ACC-058 physical rehearsal
-  remain outstanding.
+  vehicle events. ACC-057's deterministic browser tests pass, but its true
+  cold service-worker acceptance gap and ACC-058 physical rehearsal remain
+  outstanding.
 - **ACC-052 design risk:** the v1 cached ledger row does not carry
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
@@ -77,9 +79,12 @@ Verified on 10 Sep by running the commands, not by assertion:
   `/desk/orgs`, `/desk/passes`, and `/desk/master`. The force-static `Gate` and
   `Vehicle` routes now exist under `/gate`.
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
-- **No aeroplane-mode spec yet.** Playwright is now configured for
-  `tests/e2e`, but the real offline suite still depends on the integrated gate
-  flow and a deterministic seeded test environment.
+- **The deterministic aeroplane-mode spec now exists and passes**: it covers
+  green/amber/red decisions, Dexie persistence, blank serials, duplicate
+  replay, 401 queue preservation, and 500 causal ordering. It does not claim
+  true cold service-worker navigation because the local worker did not reach
+  `navigator.serviceWorker.ready`; ACC-057 remains open until that gap and the
+  human acceptance conditions are resolved.
 - **`test:visual`** remains blocked for desk screens because the committed
   `design/reference/` artefacts are absent in this checkout; the harness now
   supports `VISUAL_OPERATOR_EMAIL` and `VISUAL_OPERATOR_PASSWORD`, but no
