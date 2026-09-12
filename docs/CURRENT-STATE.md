@@ -60,7 +60,8 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 - **The gate screens and sync flow are not built yet.** `/s/[token]` and the
   desk batch are present; `/gate/*` remains empty. The ACC-050 Dexie storage
-  foundation is now implemented; ACC-051 is next for outbox policy.
+  foundation and ACC-051 pure outbox policy are now implemented; ACC-052 is
+  next for read-only green/amber/red resolution.
 - **ACC-052 design risk:** the v1 cached ledger row does not carry
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
@@ -1063,6 +1064,15 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   lookup, and persistence across close/reopen. `typecheck`, `lint`, unit
   tests (18 passing), and `build` passed. No network or database code was
   added.
+
+### 12 Sep 2026 — ACC-051: outbox policy
+
+- Added the pure `gate/outbox-policy.ts` policy and focused tests. It preserves
+  causal order, idempotency keys, and completed/failed evidence; stops on
+  authentication failures; treats duplicate success as success; classifies
+  invalid terminal failures; and applies capped transient retry backoff.
+- Verified `typecheck`, `lint`, unit tests (32 passing), and `build`. The
+  policy performs no network, Supabase, server-action, or deletion operation.
 
 ## Template for the next session update
 
