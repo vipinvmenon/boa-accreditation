@@ -230,6 +230,46 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 12 Sep 2026 — ACC-027: `/desk/orgs`, the desk's first real screen
+
+- **`supabase/migrations/202609120009_boa_acc_create_org.sql`** —
+  `boa_acc_create_org`, the desk's only way to add an organisation.
+  `SECURITY DEFINER`, checks `private.boa_acc_is_operator(lead/admin)`
+  internally exactly as `boa_acc_mint_invite` does — an `approver` cannot
+  create an org even if the screen offered the form. Normalises
+  `contact_phone` the same way `boa_acc_submit` normalises a person's
+  phone, so a human typing "+91 98450 12345" doesn't trip the CHECK
+  constraint with an unreadable `23514`.
+- **`app/api/desk/orgs/route.ts`** (GET list / POST create) and
+  **`app/api/desk/orgs/[id]/invites/route.ts`** (GET list / POST mint,
+  calling the existing `boa_acc_mint_invite`) — both hold
+  `lib/supabase-server.ts` (the operator's own cookie session), never the
+  service-role client. `app/desk/orgs/page.tsx` + `orgs-screen.tsx` never
+  import a Supabase client at all. `app/desk/page.tsx` now redirects to
+  `/desk/orgs` instead of 404ing — the Control room itself is ACC-033, not
+  built.
+- **No approved design for this screen** (the 7 screens in
+  `scripts/visual-check.mjs` are the whole pixel contract; orgs is not one
+  of them) — built from the design's own tokens, same precedent as
+  `/desk/login`. Not gated by `test:visual`.
+- **A live-database race, found and reconciled rather than fought:** an
+  earlier, interrupted attempt at this same task (a background-agent
+  session hit a rate limit mid-run) had already pushed
+  `boa_acc_create_org` to the shared database under this exact migration
+  filename before this attempt started. Confirmed via `db:state` and the
+  function's live `pg_get_functiondef`; the migration file was rewritten
+  to match the live definition byte-for-byte so git history reflects what
+  is actually running, rather than fighting the live DB or shipping a
+  second, differently-shaped function under the same name.
+- **Verified for real, end to end, not asserted:** a throwaway lead-operator
+  account (created via the admin API, deleted after) drove the actual UI —
+  created an org, minted an invite, and confirmed the resulting `/s/[token]`
+  link 200s and renders the real Submission screen. Duplicate org name →
+  409. An `approver`-role account → 403 on create. Every route → 401 with
+  no session. `db:state` after cleanup: orgs/operators/`auth.users` back to
+  their prior counts (0 orgs, 5 operators unchanged).
+- 28/60 tasks done.
+
 ### 12 Sep 2026 — ACC-032, a security review, and a Phase-4 gate bug found early
 
 - **ACC-032: confirmation copy, duplicate-phone, closed-org.** Built by a
