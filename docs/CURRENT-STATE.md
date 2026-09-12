@@ -123,8 +123,13 @@ These cannot proceed without Vipin, and Phase 1 cannot start without the first:
    - **Environment variables are not set in Vercel.** The deployed build has no
      Supabase credentials, so it can only serve the static dead-end page.
 3. **The 38 organisations** — names, kinds, quotas, contact names and phones.
-   Needed by 17 Sep for Phase 2.
-4. **Email addresses** for Bhoopesh, Salman and the two approvers.
+   Bhoopesh is expected to provide the authoritative list; it is needed before
+   production invite links are minted and sent, not to build the remaining app
+   screens. Target: 17 Sep for Phase 2.
+4. **Real email addresses** for Bhoopesh, Salman and the two approvers are
+   deferred until the app is ready. Test identities already use unique Gmail
+   `+alias` addresses routing to Vipin's personal inbox; replace them before
+   production invite links go out.
 
 ## Production, verified 11 Sep
 
@@ -229,6 +234,15 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 12 Sep 2026 — user decisions: defer production contacts
+
+- The 38-organisation data is Bhoopesh's authoritative input. It is required
+  before production invite links are minted and sent, but does not block the
+  remaining app screens.
+- Real operator email addresses are deferred until the app is ready. Testing
+  continues with unique Gmail `+alias` identities routing to Vipin's personal
+  inbox; those aliases must be replaced before production invites go out.
 
 ### 12 Sep 2026 — ACC-009b: three MCPs authenticated
 

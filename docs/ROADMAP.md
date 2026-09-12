@@ -60,11 +60,10 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       contact phone. **V/B** · *needed 17 Sep*
 - [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.
       `auth.users` is currently 0, so nobody can sign in to the desk at all.
-      **Interim decision, 11 Sep:** all four operator accounts will be created
-      with `vipinmenon16@gmail.com` as a placeholder so ACC-026 is not blocked
-      on real addresses. Swap in real emails before invite links go out on
-      20 Sep — a placeholder identity signing off an AAA approval is not
-      acceptable past that date. **V** · *real addresses needed 16 Sep*
+      **Interim decision:** the four test identities use unique Gmail `+alias`
+      addresses routing to Vipin's personal inbox. Real addresses are deferred
+      until the app is ready, but must replace the aliases before invite links
+      go out on 20 Sep. **V** · *real addresses needed before launch*
 - [ ] **ACC-028** · `BACKUP_ENCRYPTION_KEY` GitHub secret. Replaces PITR
       (rejected 11 Sep — paid add-on, disproportionate cost for one event) with
       a nightly encrypted `pg_dump`, already built in
