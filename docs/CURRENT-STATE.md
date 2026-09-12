@@ -1128,6 +1128,14 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   derived from `design/source/boa_design_bundle.html`; no second design asset
   was introduced.
 
+### 12 Sep 2026 — ACC-057: Playwright gate-test boundary
+
+- Added `playwright.config.ts` with deterministic Chromium settings and
+  `tests/e2e`-only discovery. No aeroplane-mode spec was fabricated: the gate
+  UI, service-worker registration, and local Supabase seed environment are
+  still absent. Playwright correctly reports no tests found, so ACC-057
+  remains open until ACC-054 through ACC-056 provide the real flow.
+
 ## Template for the next session update
 
 ```
