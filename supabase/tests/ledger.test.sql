@@ -44,8 +44,9 @@
 --
 -- ONE statement. The only rows this file creates permanently, for the
 -- duration of the statement, are one throwaway org/person (cleaned up via
--- private.boa_acc_wipe_org) and one throwaway device (a plain DELETE —
--- boa_acc_device carries no immutability trigger, unlike boa_acc_checkin).
+-- private.boa_acc_wipe_org). The device is removed by the test-only
+-- VOLATILE cleanup helper (202609121802), because a sibling DELETE CTE cannot
+-- see a freshly inserted device row under the statement snapshot.
 
 with
   wiped as materialized (
@@ -123,15 +124,13 @@ with
   kept as materialized (
     select n, line from results
   ),
-  device_deleted as materialized (
-    delete from public.boa_acc_device
-     where id = (select id from device)
-       and (select count(*) from kept) >= 0
-    returning 1
+  device_cleaned as materialized (
+    select private.boa_acc_test_wipe_device((select id from device))
+     where (select count(*) from kept) >= 0
   ),
   clean as materialized (
     select private.boa_acc_wipe_org('ACC-041 ledger')
-     where (select count(*) from device_deleted) >= 0
+     where (select count(*) from device_cleaned) >= 0
   )
 select line from (
   select n, line from kept

@@ -295,19 +295,19 @@ with
   -- above and that migration's own header.
   q4_after as materialized (
     select private.boa_acc_test_read_person((select id from q4_already_rejected)) as r
-     where (select id from approve_org_result) is not null
+     where (select n from approve_org_result) is not null
   ),
   q1_after as materialized (
     select private.boa_acc_test_read_person((select id from q1)) as r
-     where (select id from approve_org_result) is not null
+     where (select n from approve_org_result) is not null
   ),
   q2_after as materialized (
     select private.boa_acc_test_read_person((select id from q2)) as r
-     where (select id from approve_org_result) is not null
+     where (select n from approve_org_result) is not null
   ),
   q3_after as materialized (
     select private.boa_acc_test_read_person((select id from q3)) as r
-     where (select id from approve_org_result) is not null
+     where (select n from approve_org_result) is not null
   ),
 
   -- Negative: approve_org refuses aaa as a bulk type, after the real bulk
