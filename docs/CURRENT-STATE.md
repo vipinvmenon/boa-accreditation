@@ -65,6 +65,10 @@ Verified on 10 Sep by running the commands, not by assertion:
   `voidsCheckinId`. The resolver must consume an already-filtered active-ledger
   projection, or a future versioned Dexie migration must add that identity; it
   must never infer non-voided state from row ordering or serials.
+- **ACC-053 prerequisite:** the QR scanner fallback must self-host the
+  `zxing-wasm` binary under the `/gate/` service-worker scope and run under the
+  enforced camera/WASM CSP. The package's default CDN location is not
+  acceptable for radio-off operation; no scanner is claimed yet.
 - **The authenticated desk shell now has the approved sticky navigation and
   live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
   `/desk/orgs`, and `/desk/passes`. The `Master list`, `Gate`, and `Vehicle`
