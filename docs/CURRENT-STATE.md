@@ -13,9 +13,10 @@ org_view, submit, quota lock, per-token throttle, register-your-crew,
 `/desk/login`, `/api/admin/invite-operator` — verified by `corepack pnpm
 test:db`, `corepack pnpm db:state`, Resend's own delivery log, and real curl /
 browser sessions against production, not asserted. `anon` still has zero
-grants. **All four operators exist** (Bhoopesh=lead, Salman=admin, two
-approvers) on interim placeholder emails — real addresses still needed before
-20 Sep (ACC-026a). `test:visual` on Submission is not a pass yet (ADR-009);
+grants. **Five operators exist**: Bhoopesh=lead, Salman=admin, two approvers
+on interim placeholder emails (real addresses still needed before 20 Sep,
+ACC-026a), plus the user himself as `admin` on his own real address.
+`test:visual` on Submission is not a pass yet (ADR-009);
 no `/desk/*` page past `/login` exists yet (ACC-027); `/gate/*` is still empty.
 
 **The app is deployed** at
@@ -260,14 +261,17 @@ Verified by attempting the thing, not by reading a grant table:
   `config/auth` via the Supabase Management API. A **second**, independent
   rate limit (`rate_limit_email_sent`, unaffected by SMTP config) then
   blocked the 4th invite and was raised to 30 the same way.
-- **All four operators invited and verified live**, not asserted: `boa_acc_operator`
-  and `auth.users` both at 4 (`db:state`), Resend's own `/emails` log shows
-  3 of the 4 `delivered` (the first went out before SMTP was live, via
-  Supabase's default mailer). Bhoopesh = `lead`, Salman = `admin`, two
-  `approver` placeholders — all four still on the interim
-  `vipinmenon16+<role>@gmail.com` addresses per ACC-026a; **real addresses
+- **Five operators invited and verified live**, not asserted:
+  `boa_acc_operator` and `auth.users` both at 5 (`db:state`), Resend's own
+  `/emails` log shows `delivered` for every one sent through it (the first,
+  Bhoopesh's, went out before SMTP was live, via Supabase's default mailer).
+  Bhoopesh = `lead`, Salman = `admin`, two `approver` placeholders on interim
+  `vipinmenon16+<role>@gmail.com` addresses per ACC-026a — **real addresses
   are still needed before 20 Sep**, and re-inviting to swap them will need
-  the same admin/lead-authenticated path once real desk pages exist.
+  the same admin/lead-authenticated path once real desk pages exist. The
+  user also asked to be added on his own real address, `vipinmenon16@gmail.com`,
+  role `admin` — not a placeholder, a real account, added to
+  `BOA_ACC_OPERATOR_BOOTSTRAP` alongside the four interim addresses.
 - **Not yet true:** no `/desk/*` page exists past `/login` — a successful
   sign-in redirects to `/desk`, which 404s until ACC-027. The Resend API key
   used was full-access, not scoped to sending-only (noted in ADR-010).
