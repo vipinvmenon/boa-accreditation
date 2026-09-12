@@ -65,6 +65,12 @@ export async function POST(request: Request) {
     { redirectTo: `${siteUrl}/desk/login` },
   )
   if (inviteError || !invited.user) {
+    // Logged, not returned: auth.admin.inviteUserByEmail's error can include
+    // provider/rate-limit detail (e.g. "email rate limit exceeded" — the
+    // Supabase Auth rate_limit_email_sent config, separate from SMTP setup
+    // and separate from lib/rate-limit.ts) that is useful server-side but
+    // not something to hand back over this API.
+    console.error('[invite-operator] inviteUserByEmail failed:', inviteError?.message)
     return NextResponse.json({ error: 'invite_failed' }, { status: 502 })
   }
 
