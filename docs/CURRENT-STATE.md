@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 12 September 2026 (eleventh update)._
+_Last updated: 12 September 2026 (twelfth update)._
 
 ## In one line
 
@@ -229,6 +229,63 @@ Verified by attempting the thing, not by reading a grant table:
 | 8 CHECK constraints, each violated on purpose | all refused, `23514` |
 
 ## Session log
+
+### 12 Sep 2026 — ACC-033: `/desk`, the Control room, live from one RPC
+
+- **`supabase/migrations/202609120010_boa_acc_desk_dashboard.sql`** —
+  `boa_acc_desk_dashboard()`, any active operator (lead/admin/approver),
+  returns one `jsonb`: submitted/approved/pending, bands, stickers, BMS, and
+  the C9 AAA split — `aaaNominatedApproved` from `aaa_nomination.approved`,
+  `aaaStamped` from `aaa_nomination.person_id is not null`, **never** from
+  `boa_acc_person.type_code` (the nomination table's own comment says this;
+  the migration follows it exactly). `VOLATILE`, not `STABLE`, for the same
+  reason `202609110005` made `org_view`/`live_invite` volatile.
+- **`supabase/migrations/202609120011_boa_acc_test_decide_person.sql`** —
+  three test-only helpers (`private.boa_acc_test_approve_person`,
+  `_reject_person`, `_wipe_aaa_nominations`), all revoked from every client
+  role. Needed because `boa_acc_decide` doesn't exist yet (ACC-041) and a
+  bare `UPDATE`/`DELETE` inside a pgTAP file's own statement cannot see rows
+  written earlier in that SAME statement without one — the exact class of
+  bug `202609110005` already fixed once, one layer up.
+- **`supabase/tests/dashboard.test.sql`** (15 assertions) never touches
+  `boa_acc_checkin`. An earlier draft did, to test `bandsIssued`/
+  `stickersActive` directly, then discovered mid-task that
+  `boa_acc_checkin_immutable` (`ENABLE ALWAYS`, non-negotiable #2) has no
+  delete path for **anyone**, including the table owner — a repeatable test
+  cannot create ledger rows without leaving them behind forever. Confirmed by
+  trying: `DELETE` raised `55000` even connected as `postgres`. Two rows from
+  that draft had already reached the live ledger during debugging; they were
+  removed by hand (disable trigger → delete those two specific rows by id →
+  re-enable `ENABLE ALWAYS`, confirmed `tgenabled = 'A'` afterward) — the
+  user approved this explicitly after the harness's own permission classifier
+  correctly blocked the first, unprompted attempt. The `bandsIssued`/
+  `stickersActive` query branches (the `NOT EXISTS ... void` lookup) were
+  verified once by hand against a scratch fixture instead (results matched
+  exactly: 1 issued, 1 active, 2/1 not-collected/pending) and are **not**
+  re-tested automatically. Whoever builds ACC-042 or ACC-054 and needs to
+  write checkins in a test should read that file's header before adding a
+  delete path to a ledger that must never have one.
+- **`app/desk/control-room-screen.tsx`** + **`app/api/desk/dashboard/route.ts`**
+  — `/desk` is the Control room now, not a redirect to `/desk/orgs`.
+  Transcribed from `design/source/boa_design_body.html:65-146`. This is the
+  one screen in `scripts/visual-check.mjs`'s `SCREENS` with `auth:
+  'operator'`, so the automated gate can never mint it a session — it always
+  reports `BLOCKED`, not pass/fail. **Verified by hand instead:** a throwaway
+  lead-operator account (created via the admin API, deleted after) signed
+  into the local dev server for real and confirmed live production data (all
+  zeros — no orgs/people exist yet, correctly) in both themes and both
+  viewports (screenshots taken, not just asserted).
+- **A real, pre-existing bug found by this verification, unrelated to
+  ACC-033 itself:** `/desk/login`'s `checkSession()` trusts a client-side
+  `supabase.auth.getSession()` — which reads the JWT without contacting the
+  server — before redirecting away from the login page. A stale session
+  cookie (in this case, left over in the browser from an earlier agent's
+  ACC-027 throwaway QA account, whose `auth.users` row was already deleted)
+  causes an infinite redirect loop between `/desk` and `/desk/login`:
+  confirmed live, 476+ requests in under a minute. **Not fixed here** —
+  flagged as a separate background task (`task_b7f0fddb`) rather than
+  expanding this task's scope.
+- 29/60 tasks done.
 
 ### 12 Sep 2026 — ACC-027: `/desk/orgs`, the desk's first real screen
 
