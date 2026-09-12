@@ -16,12 +16,12 @@ browser sessions against production, not asserted. `anon` still has zero
 grants. **Five operators exist**: Bhoopesh=lead, Salman=admin, two approvers
 on interim placeholder emails (real addresses still needed before 20 Sep,
 ACC-026a), plus the user himself as `admin` on his own real address.
-`test:visual` on Submission is not a pass yet (ADR-009);
-no `/desk/*` page past `/login` exists yet (ACC-027); `/gate/*` is still empty.
+`test:visual` on the desk screens remains blocked because the visual harness
+cannot authenticate an operator (ACC-043); `/gate/*` is still empty.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
-(`bom1`). Supabase project `tjbfvuboyvaephtewjwq` has 8 migrations applied.
+(`bom1`). Supabase project `tjbfvuboyvaephtewjwq` has 19 local migrations applied.
 
 ## Dates
 
@@ -58,11 +58,12 @@ Verified on 10 Sep by running the commands, not by assertion:
 
 ## What does NOT exist yet
 
-- **No public or desk screens.** `/s/[token]`, `/desk/*`, `/gate/*` are empty.
-  ACC-024 is next: the route handler that calls `boa_acc_org_view` / `boa_acc_submit`.
+- **The gate is not built.** `/s/[token]` and the desk batch are now present;
+  `/gate/*` remains empty. ACC-050 is next for the gate's Dexie foundation.
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
 - **No e2e / aeroplane-mode suite.** Playwright is installed but unconfigured.
-- **`test:visual`** still reports `NOTHING COMPARED — no screen is built yet`.
+- **`test:visual`** remains blocked for desk screens because the harness has no
+  authenticated operator session; it does not report a visual pass.
 - **Cursor MCP is nearly connected.** Vipin reports that Supabase, Vercel and
   Playwright are authenticated; GitHub remains outstanding. The Vercel
   *plugin* authenticated in this session (`plugin-vercel-vercel` tools loaded),
@@ -988,6 +989,22 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   authenticated-operator RPC call returned the validated empty pass list.
   `test:visual -- --screen passes` remains blocked because the visual harness
   has no operator session; it did not compare pixels.
+
+### 12 Sep 2026 — ACC-040 and ACC-044: approval queue and AAA
+
+- Added the authorized approval queue at `/desk/approvals`, including filters,
+  per-row type and reason, bulk selection, and the `Approve all →` flow.
+- Added `/desk/aaa` with database-authorized nomination and approval paths.
+  The AAA nomination functions are `VOLATILE`; the live migration history
+  records this migration as `20260912124451_boa_acc_aaa_nomination`.
+- Verified on merged `main`: `typecheck`, `lint`, unit tests, `check:sql`,
+  `test:db`, and `build` all passed. `db:push` reports every local migration
+  already applied. `db:state` before and after remained at five operators,
+  three types, and zero rows in every other `boa_acc_` table; `anon` has zero
+  table and function grants. The append-only check-in trigger was not disabled
+  or bypassed.
+- ACC-043 visual comparison remains blocked by the unavailable operator
+  session; no visual pass is claimed.
 
 ## Template for the next session update
 
