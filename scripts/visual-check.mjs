@@ -137,6 +137,114 @@ async function wipeVisualInvite() {
   await runSql(`select private.boa_acc_wipe_org('${VISUAL_ORG}')`, root)
 }
 
+const GATE_PERSON = {
+  passToken: 'visual-ranjith-pass',
+  personId: '11111111-1111-4111-8111-111111111111',
+  orgId: '22222222-2222-4222-8222-222222222222',
+}
+const GATE_PLATE = 'KA 05 MJ 8871'
+const GATE_TIME = '2026-10-09T08:14:00.000+05:30'
+
+/**
+ * Seed only the browser-local Dexie stores used by the gate references.
+ *
+ * The approved bundle is a static artboard, so its 612/184/3 values have to
+ * be represented by the data layer before the real screen is captured. This
+ * deliberately uses IndexedDB's public API rather than importing application
+ * code or adding fixture defaults to a production route.
+ */
+async function seedGateDexie(page, { vehicle = false } = {}) {
+  await page.evaluate(({ vehicle, person, plate, time }) => new Promise((resolve, reject) => {
+    const request = indexedDB.open('boa-accreditation-gate')
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const database = request.result
+      const transaction = database.transaction(['roster', 'ledger', 'outbox', 'sticker', 'meta'], 'readwrite')
+      for (const store of ['roster', 'ledger', 'outbox', 'sticker', 'meta']) transaction.objectStore(store).clear()
+
+      const roster = transaction.objectStore('roster')
+      for (let i = 0; i < 612; i++) {
+        const id = i === 0 ? person.personId : `33333333-3333-4333-8333-${String(i).padStart(12, '0')}`
+        roster.put({
+          passToken: i === 0 ? person.passToken : `visual-pass-${i}`,
+          personId: id,
+          orgId: person.orgId,
+          status: 'approved',
+          ...(i === 0 ? { vehicleReg: plate } : {}),
+          updatedAt: time,
+        })
+      }
+
+      const ledger = transaction.objectStore('ledger')
+      for (let i = 0; i < 184; i++) {
+        const id = `44444444-4444-4444-8444-${String(i + 1).padStart(12, '0')}`
+        ledger.put({
+          id,
+          personId: `55555555-5555-4555-8555-${String(i + 1).padStart(12, '0')}`,
+          kind: 'wristband',
+          occurredAt: time,
+          bandSerial: i >= 181 ? `#0${i - 177}` : undefined,
+          gateLabel: 'Gate 1',
+          volunteerName: 'Ravi',
+          isReissue: false,
+        })
+      }
+      if (vehicle) {
+        const sticker = transaction.objectStore('sticker')
+        sticker.put({ plate: plate.replace(/\s+/g, ''), stickerNo: '#V-0231', personId: person.personId, issuedAt: time })
+        ledger.put({
+          id: '99999999-9999-4999-8999-999999999999',
+          personId: person.personId,
+          kind: 'vehicle_sticker',
+          occurredAt: time,
+          stickerNo: '#V-0231',
+          gateLabel: 'Gate 1',
+          volunteerName: 'Ravi',
+          isReissue: false,
+        })
+        ledger.put({
+          id: '66666666-6666-4666-8666-666666666666',
+          personId: person.personId,
+          kind: 'wristband',
+          occurredAt: time,
+          bandSerial: '#0412',
+          gateLabel: 'Gate 1',
+          volunteerName: 'Ravi',
+          isReissue: false,
+        })
+      }
+
+      const outbox = transaction.objectStore('outbox')
+      for (let i = 0; i < (vehicle ? 2 : 3); i++) {
+        outbox.put({
+          id: `77777777-7777-4777-8777-${String(i + 1).padStart(12, '0')}`,
+          kind: 'wristband',
+          idempotencyKey: `88888888-8888-4888-8888-${String(i + 1).padStart(12, '0')}`,
+          status: 'pending',
+          nextAttemptAt: Date.now(),
+          createdAt: Date.now(),
+          payload: {
+            passToken: `visual-queued-${i}`,
+            kind: 'wristband',
+            bandSerial: '',
+            vehicleReg: null,
+            isReissue: false,
+            idempotencyKey: `88888888-8888-4888-8888-${String(i + 1).padStart(12, '0')}`,
+          },
+          attempts: 0,
+        })
+      }
+      const meta = transaction.objectStore('meta')
+      meta.put({ key: 'gateLabel', value: 'Gate 1' })
+      meta.put({ key: 'volunteerName', value: 'Ravi' })
+      meta.put({ key: 'rosterAsOf', value: time })
+      meta.put({ key: 'ledgerAsOf', value: time })
+      transaction.oncomplete = () => { database.close(); resolve() }
+      transaction.onerror = () => reject(transaction.error)
+    }
+  }), { vehicle, person: GATE_PERSON, plate: GATE_PLATE, time: GATE_TIME })
+}
+
 async function signInVisualOperator(context, email, password, base) {
   const page = await context.newPage()
   await page.goto(`${base}/desk/login`, { waitUntil: 'networkidle' })
@@ -261,6 +369,26 @@ try {
           deviceScaleFactor: 1,
         })
         await page.goto(base + route, { waitUntil: 'networkidle' })
+        if (screen.slug === 'gate' || screen.slug === 'vehicle') {
+          await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
+          await page.reload({ waitUntil: 'networkidle' })
+          if (screen.slug === 'gate') {
+            await page.context().setOffline(true)
+            const input = page.getByLabel('Manual scanner input')
+            await input.fill(`BOA26:${GATE_PERSON.passToken}`)
+            await input.press('Enter')
+            await page.getByText('Approved', { exact: true }).first().waitFor()
+          } else {
+            await page.context().setOffline(true)
+            await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
+            await page.getByRole('button', { name: 'Log entry & open gate' }).click()
+            // The real control records the visual check on the first click and
+            // evaluates it on the next render; repeat the user action so the
+            // screenshot reaches the approved design's cleared state.
+            await page.getByRole('button', { name: 'Log entry & open gate' }).click()
+            await page.getByText('Cleared', { exact: true }).waitFor()
+          }
+        }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
         await page.evaluate(() => document.fonts.ready)
         await page.waitForTimeout(250)

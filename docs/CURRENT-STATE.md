@@ -261,6 +261,20 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-042 released 2026-09-12 (IST):** Implementation and local browser verification are complete, but test:visual cannot authenticate the operator; master is now a route but remains BLOCKED for pixel comparison.
 
+> **12 Sep 2026 — visual harness/data-layer update:** `scripts/visual-check.mjs`
+> now seeds the real browser Dexie stores before `/gate` and `/gate/vehicle`
+> captures: 612 approved roster rows, Gate 1/Ravi metadata, 184 ledger rows,
+> three pending gate actions, and the approved vehicle fixture (`KA 05 MJ 8871`,
+> `#V-0231`, `#0412`). Measured with `corepack pnpm test:visual`: gate fell
+> from 19.21–33.04% to **7.74% desktop / 20.49–20.50% mobile**; vehicle is
+> **0.25–0.26% desktop (PASS) / 3.22–3.44% mobile (FAIL)**. The complete run
+> compared 3/7 screens, with submission still a documented KNOWN GAP and
+> control-room, queue, master and passes still BLOCKED on operator credentials.
+> `corepack pnpm typecheck` passed; `corepack pnpm lint` passed with the three
+> pre-existing `@next/next/no-img-element` warnings. Gate mobile/desktop and
+> vehicle mobile remain visual blockers; no design source or production fixture
+> defaults were changed.
+
 ## Session log
 
 ### 12 Sep 2026 — GitHub Actions secrets configured
