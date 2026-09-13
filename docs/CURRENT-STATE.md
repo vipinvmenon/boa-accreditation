@@ -1992,6 +1992,74 @@ that rebase found and changed.
   exist. If a future task adds a real void-a-person or save-draft RPC,
   `seed-dummy.mjs` should be extended to exercise it, not patched around it.
 
+### 13 Sep 2026 — ACC-04B: profile menu replaces `DeskChrome`'s lone theme button
+
+**Design-contract-scope decision, checked rather than assumed:** the task
+brief for this ticket suggested `DeskChrome` might be app-authored chrome
+like `/desk/login` or `/desk/users`, not the literal design. Checked
+directly: `design/source/boa_design_body.html` lines 26–45 are one shared
+header template (logo, `nav`, `vpTabs`, then a single `toggleTheme` button)
+that the design tool renders for every screen, and `scripts/visual-check.mjs`'s
+`SCREENS` array shows four of the seven pixel-gated screens
+(`control-room`, `queue`, `master`, `passes`) render through `DeskChrome`.
+So the button this task replaces **is** part of the pixel contract for those
+four screens — recorded as `docs/DECISIONS.md` ADR-015, per non-negotiable
+#1, rather than changed without a paper trail.
+
+**What was built:**
+- `app/desk/desk-chrome.tsx` — the lone `Light`/`Dark` button is replaced by
+  a disclosure button in the exact same slot (same border/padding/font)
+  showing the signed-in operator's display name, with `aria-haspopup`,
+  `aria-expanded`, click-outside dismissal, and `Escape`-to-close. The
+  dropdown (`role="menu"`, items `role="menuitem"`) contains: name + role,
+  the theme toggle (`toggleTheme()` itself unchanged — only relocated), a
+  "Manage users" link to `/desk/users`, and "Sign out"
+  (`supabaseBrowser().auth.signOut()` then `router.replace('/desk/login')`,
+  the same client the rest of `/desk/*` already uses for auth).
+- **No new endpoint was needed.** `GET /api/desk/operators` (ACC-049)
+  already returns `{ operators, callerId }`, RLS-scoped to the caller's own
+  row unless they're lead/admin — the caller's own row is always present
+  regardless of role, so `operators.find(o => o.user_id === callerId)`
+  gives exactly `display_name` + `role`, nothing beyond it. Non-negotiable
+  #9 is unaffected: this reads an existing field, collects nothing new.
+- `app/gate/gate-chrome.tsx` was not touched — ACC-04B is scoped to desk
+  screens only, and that file's own WEB/MOB toggle situation was resolved by
+  a separate, already-recorded change.
+
+**Verified, not asserted:**
+- `corepack pnpm typecheck && lint && test && build` — all green.
+  `lint`'s 3 warnings are the same pre-existing `@next/next/no-img-element`
+  ones this file already documents; `test` is 49/49, unchanged; `build`
+  produces the same route list as before this change.
+- `corepack pnpm test:visual`, after copying `.env.local` from the main
+  checkout (this worktree had none, the same worktree gap this file's 12 Sep
+  entry already documents) and regenerating `design/reference/`: **gate and
+  vehicle (unaffected by this change) still PASS at the same numbers as the
+  last recorded run** (gate 0.36–0.67%, vehicle 0.13–0.31%), confirming no
+  regression; submission stays within the documented ADR-009 32% ceiling.
+  **The four screens this change actually touches — control-room, queue,
+  master, passes — are still `BLOCKED` ("needs operator — set
+  VISUAL_OPERATOR_EMAIL and VISUAL_OPERATOR_PASSWORD")**, the same
+  pre-existing credential gap every prior session touching `DeskChrome` has
+  hit (ACC-047, ACC-042, and others above). **The pixel fidelity of the
+  actual profile-menu change on those four screens is therefore NOT
+  verified** — saying so plainly per non-negotiable #10 rather than
+  claiming a pixel pass that did not run.
+- **Not verified: a real signed-in browser session.** No operator password
+  is available in this environment (same gap `docs/SETUP.md` and this
+  file's ACC-049 entry already document). What *was* verified live in the
+  Browser pane against `localhost:3000` with real production Supabase
+  credentials: `/desk` while signed out still correctly redirects to
+  `/desk/login` (the sign-in form renders, unaffected by this change) — the
+  only part of the new code path reachable without an operator session.
+  The menu's open/close, the operator-identity fetch, "Manage users"
+  navigation, the theme toggle inside the menu, and sign-out were reviewed
+  by code inspection against the existing patterns they reuse
+  (`app/desk/users/users-screen.tsx`'s fetch style, `app/desk/login`'s
+  `supabaseBrowser()` usage), not clicked through live. Vipin, Bhoopesh, or
+  Salman need to sign in at `/desk/login` and open the menu to close this
+  gap.
+
 ## Template for the next session update
 
 ```

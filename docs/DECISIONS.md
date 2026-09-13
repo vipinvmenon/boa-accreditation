@@ -464,3 +464,51 @@ scope below) rather than left to be discovered by trying. "Salman approves
 AAA" (the 10-Sep decision, restated in v2) remains the **named, intended**
 workflow — it describes who does it operationally, not a database
 restriction on who is capable of it.
+
+## ADR-015 — `DeskChrome`'s theme-toggle slot becomes a profile menu (ACC-04B)
+
+**Accepted 13 Sep 2026.**
+
+`design/source/boa_design_body.html`'s header (lines 26–45) is one shared
+template — logo, `nav` list, `vpTabs`, then a single `toggleTheme` button —
+rendered by the design tool for every screen, `/desk/*` included. Four of
+the seven pixel-gated screens (`control-room`, `queue`, `master`, `passes`;
+see `scripts/visual-check.mjs`'s `SCREENS` array) render through
+`DeskChrome`, and `DeskChrome`'s header — logo, `NAV`, then a lone
+`Light`/`Dark` button in that exact slot — is a direct transcription of that
+template (`GateChrome` transcribes the same template's `vpTabs` too;
+`DeskChrome` already omits `vpTabs`, a pre-existing, undocumented-here
+divergence not touched by this ADR). So the button ACC-04B replaces **is**
+part of the pixel contract for those four screens, not app-authored
+chrome like `/desk/login` or `/desk/users` — non-negotiable #1 applies, and
+this ADR is the record it asks for.
+
+**The change:** the lone theme-toggle button is replaced by a disclosure
+button in the same slot (same border, padding, font — `JetBrains Mono`
+10px/700/0.12em, matching every other control in that header row) that
+shows the signed-in operator's display name and role, and opens a dropdown
+containing: name + role (repeated, for when the trigger truncates on
+narrow viewports), the theme toggle (identical behaviour, just relocated —
+`toggleTheme()` is unchanged), a "Manage users" link to `/desk/users`, and
+"Sign out". The design source has no menu of this shape anywhere — it was
+built for a single design-tool session with one implicit operator, never an
+authenticated multi-operator desk — so its contents beyond the toggle are
+new, justified by the operator identity, RBAC and sign-out capabilities this
+app added long after the design bundle was produced (`boa_acc_operator`,
+ACC-026/049), none of which exist in the source at all.
+
+**Why this is the right trade rather than a new dead-end screen:** the
+alternative — a lone theme button plus a *second*, unrelated control for
+sign-out/Manage-users — would add a second visual element the design never
+had, which is a bigger deviation than folding all of it behind one
+disclosure in the toggle's existing slot. Collapsed, the header's pixel
+footprint for a signed-out-state render (no menu open) changes only in the
+button's label text and width; the closed state's box model (border,
+padding, background) is unchanged.
+
+**Verification obligation this creates:** `corepack pnpm test:visual` must
+be run after this change and its real percentage recorded in
+`docs/CURRENT-STATE.md` for `control-room`, `queue`, `master`, and `passes`
+— not assumed passing because the button "still looks similar." See the
+session log entry for the actual numbers, or the documented reason they
+could not be measured.

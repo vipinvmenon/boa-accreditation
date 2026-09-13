@@ -212,7 +212,7 @@ Runs while submissions arrive.
       `/api/admin/invite-operator`), activate/deactivate; lead/admin-checked
       in the database, self-deactivation and last-admin guards ·
       **C** · due Wed 23
-- [~] **ACC-04B** · Profile menu (name, role, theme, Manage users, sign out)
+- [x] **ACC-04B** · Profile menu (name, role, theme, Manage users, sign out)
       replacing the desk's loose theme button — desk screens only, own ADR
       if the design needs reconciling (ADR-014 is already taken by the v2
       reconciliation above) · **C** · due Thu 24
