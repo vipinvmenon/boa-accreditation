@@ -1687,7 +1687,7 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
 Vipin handed over a document titled "Festival Readiness Plan & Checklist
 (v2)" plus the design deck PDF and the design HTML bundle, calling it "the
 single source of truth for this module." Read against the repository rather
-than assumed correct — see **ADR-013** for the full reconciliation.
+than assumed correct — see **ADR-014** for the full reconciliation.
 
 - **Confirmed identical, not new information:** `BOA Accreditation App.html`
   is sha1-identical to `design/source/boa_design_bundle.html`. The PDF is
@@ -1726,6 +1726,46 @@ than assumed correct — see **ADR-013** for the full reconciliation.
   this session only reconciled the plan and recorded it. The next session
   (Claude, Cursor, or Codex) should run `corepack pnpm task` and pick up
   ACC-034 first, per `docs/ROADMAP.md`'s own ordering.
+
+### 13 Sep 2026 — ACC-034: bundle-content gate added; toggle-strip half corrected, not shipped
+
+This session started from a local branch that had diverged from `origin/main`
+by ~30 commits (multiple concurrent sessions working this repo in parallel).
+Rebased onto `origin/main` before finishing this task — see below for what
+that rebase found and changed.
+
+- **`scripts/check-bundle-content.mjs`** is new and wired into both `build`
+  and `verify:deploy` (`package.json`). It walks `app/`, `lib/`,
+  `components/` source (the same surface `check-design-tokens.mjs` covers,
+  not the compiled `.next` output — that bundles vendor code such as
+  `@supabase/supabase-js`'s own `console.log` calls, which this project does
+  not control) for finance vocabulary (invoice, payment, price, billing,
+  refund, checkout, subtotal, discount, currency, rupee, wallet, or a literal
+  `₹`) per non-negotiable #8, and `console.log`. **Mutation-tested, not
+  assumed**: a planted `price` literal and a planted `console.log` were each
+  confirmed to fail the check before being reverted; the clean tree passes.
+- **The WEB/MOB toggle strip in `app/gate/gate-chrome.tsx` was reverted
+  during the rebase, not shipped.** ACC-034 originally read
+  `docs/DESIGN-SYSTEM.md` as calling `vpTabs` "a design-review affordance and
+  is not shipped" and removed it accordingly. `origin/main` had since
+  corrected that section: the toggle **ships**, as a real indicator of the
+  active layout — in the design source, the toggle's highlight and the state
+  driving every `mob ? A : B` are the same variable, so the source can never
+  render one layout with the other's tab highlighted. Treating it as inert
+  furniture was reading the source wrong. Confirmed by reading
+  `docs/DESIGN-SYSTEM.md`'s current Responsive section and
+  `app/responsive.css`'s `.g-vp-web`/`.g-vp-mob` rules on `origin/main`
+  before resolving the rebase conflict in `gate-chrome.tsx` in origin's
+  favour. The `check-bundle-content.mjs` toggle-detection check was removed
+  to match — it would otherwise permanently fail against the real, intended UI.
+- `corepack pnpm typecheck && lint && test && build` all green — `build`
+  now runs the new gate as a real step (`extract-assets → check-bundle-content
+  → next build → build-gate-sw`); the `lint` warnings are the same 3
+  pre-existing `@next/next/no-img-element` warnings, unchanged.
+- **Not done by this task:** ACC-035 (dummy-data seed) and ACC-036 (copy
+  inventory) don't exist as roadmap items on `origin/main` — that "Phase 1b"
+  section was only ever added on the diverged local branch and isn't part of
+  the current roadmap. See the rebase note above.
 
 ## Template for the next session update
 

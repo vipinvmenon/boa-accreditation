@@ -412,7 +412,7 @@ Recorded here so they are not re-opened by someone reading only the spec.
 
 ---
 
-## ADR-013 — The "v2 Readiness Plan" is a gap list, not a replacement source of truth
+## ADR-014 — The "v2 Readiness Plan" is a gap list, not a replacement source of truth
 
 **Accepted 13 Sep 2026.**
 
@@ -458,7 +458,7 @@ role argument — the predicate `boa_acc_decide`, `boa_acc_aaa_nominate` and
 lead/admin-gated function (`create_org`, `mint_invite`, devices) already
 accepts `admin`. So an admin account, Vipin's included, can already do
 everything in the app end to end for testing, AAA approval included; no
-schema change is needed for that. What ADR-013 changes is only that this is
+schema change is needed for that. What ADR-014 changes is only that this is
 now stated explicitly and proven by a test (`admin_reach.test.sql`, ACC-0
 scope below) rather than left to be discovered by trying. "Salman approves
 AAA" (the 10-Sep decision, restated in v2) remains the **named, intended**

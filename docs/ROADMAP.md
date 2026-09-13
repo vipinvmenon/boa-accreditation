@@ -130,18 +130,44 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 ## Phase 1b — v2 reconciliation gap-fill · Sun 13 – Sat 19 Sep
 
 Added 13 Sep after reconciling the "Festival Readiness Plan (v2)" handoff
-against the shipped app — see ADR-013. Real gaps v2 found, not previously
+against the shipped app — see ADR-014. Real gaps v2 found, not previously
 tracked as ACC tasks.
 
-- [~] **ACC-034** · Strip the WEB/MOB review toggle from `GateChrome`; add
-      `scripts/check-bundle-content.mjs` (₹, finance terms, `console.log`,
-      the toggle) gating `build` and `verify:deploy` · **C** · due Tue 15
+**13 Sep, later the same day — provenance note:** this whole phase was added
+on a local branch that turned out to have diverged from `origin/main` by
+~30 commits (several concurrent sessions had been pushing independently).
+Rebased onto `origin/main` before continuing; `origin/main` never had this
+phase, so ACC-034 through ACC-04B are new roadmap entries as of this rebase,
+not something the other sessions already knew about or had rejected.
+ACC-034's original scope (stripping the WEB/MOB toggle) was already wrong by
+the time of the rebase — `docs/DESIGN-SYSTEM.md` had been corrected upstream
+to say the toggle ships. Treat every item below as freshly re-verified
+against `origin/main`'s actual current state, not carried over on faith.
+
+- [x] **ACC-034** · `scripts/check-bundle-content.mjs` (₹, finance terms,
+      `console.log`) gating `build` and `verify:deploy` · **C** · due Tue 15.
+      **Scope corrected 13 Sep:** originally also set out to strip the
+      WEB/MOB review toggle from `GateChrome`, but `docs/DESIGN-SYSTEM.md`'s
+      Responsive section was corrected in the meantime — the toggle **ships**
+      as a real layout indicator, not a debug affordance — so that half of
+      this task is superseded, not done differently. See `app/gate/gate-chrome.tsx`.
 - [ ] **ACC-035** · `scripts/seed-dummy.mjs` / `wipe-dummy.mjs` — 6 `TEST — `
       orgs, 18 people across all statuses/types, one over-quota, through the
-      real RPCs, never touching `boa_acc_checkin` · **C** · due Tue 15
-- [ ] **ACC-036** · Copy inventory (`docs/COPY.md`), design-contract vs ours,
+      real RPCs, never touching `boa_acc_checkin` · **C** · due Tue 15.
+      Confirmed still missing on `origin/main` (13 Sep) — a real gap, not
+      already done elsewhere.
+- [x] **ACC-036** · Copy inventory (`docs/COPY.md`), design-contract vs ours,
       rewritten in the deck's voice · **C** · Submission strings by Sat 19,
-      desk strings folded into Phase 3
+      desk strings folded into Phase 3. **Done 13 Sep**: `docs/COPY.md`
+      transcribes the Submission screen against `design/source/` field by
+      field, spot-checks the other design-matched desk screens, and covers
+      every screen with no design counterpart. Found and fixed real drift:
+      an identical generic `"Something went wrong. Try again."` fallback had
+      been independently duplicated across 6 files' `internal` error case,
+      rewritten consistently; one Submission error message referenced
+      "highlighted" fields that don't exist in the code. `test:visual` could
+      not be run in that session (no `.env.local`/`design/reference/`
+      baseline in that worktree) — not claimed passing.
 
 **Milestone A precondition:** `wipe-dummy` run, 0 `TEST — ` orgs remaining,
 before ACC-031 mints the 38 real invite tokens.
@@ -173,16 +199,23 @@ Runs while submissions arrive.
 - [x] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25
 - [ ] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
 - [x] **ACC-047** · Shared desk shell — sticky nav, live status bar, theme toggle · **C** · due Sat 26
-- [ ] **ACC-048** · Forgot-password link on `/desk/login`, using
+- [x] **ACC-048** · Forgot-password link on `/desk/login`, using
       `resetPasswordForEmail` + the existing `/auth/confirm` recovery path ·
-      **C** · due Mon 21
+      **C** · due Mon 21. **Already done, confirmed 13 Sep during the
+      rebase**: built independently on `origin/main` in `3750cc8
+      feat(desk/login): add a forgot-password flow`, hardened by `1704833
+      fix(auth): don't verify recovery/invite tokens on GET` (a real
+      production bug — a mail-security link-prescanner was burning
+      single-use recovery/invite tokens via `GET` before the recipient could
+      click). Both already merged; no new work needed.
 - [ ] **ACC-049** · `/desk/users` Manage Users — list, invite (reuses
       `/api/admin/invite-operator`), activate/deactivate; lead/admin-checked
       in the database, self-deactivation and last-admin guards ·
       **C** · due Wed 23
 - [ ] **ACC-04B** · Profile menu (name, role, theme, Manage users, sign out)
-      replacing the desk's loose theme button — ADR-014, desk screens only ·
-      **C** · due Thu 24
+      replacing the desk's loose theme button — desk screens only, own ADR
+      if the design needs reconciling (ADR-014 is already taken by the v2
+      reconciliation above) · **C** · due Thu 24
 
 **Acceptance:** 100 real submissions approved through the real queue · 14 passes
 print one per A4 and **a phone decodes the QR off the paper** · `pass_token`
