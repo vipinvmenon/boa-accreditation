@@ -644,6 +644,30 @@ Verified by attempting the thing, not by reading a grant table:
 > `build` all pass. The line above claiming vehicle-mobile's diff was an
 > uninvestigated capture artifact is superseded by this entry, not deleted,
 > so the record shows what was believed and when it changed.
+>
+> **12 Sep 2026 — gate-mobile's font-floor 1px cascade is fixed, and `test:visual`
+> now passes on every unblocked screen.** This was blocking `git push` — the
+> pre-push hook runs `test:visual` and refuses a push while any screen fails.
+> First attempt was wrong: bumped the wristband-serial input's `min-height`
+> from 52 to 53, which changed nothing, because the box was never
+> min-height-constrained in the first place — its *content* (16px font,
+> default line-height) already computed taller than 52px, so raising the
+> floor it wasn't hitting was a no-op. The real fix: added `lineHeight: 1.2`
+> to that input, which brings its content height back under 52px
+> (padding 30 + 16×1.2 = 49.2), so `min-height: 52` — the design's own
+> spec'd value — governs again instead of being overridden by content. Box
+> renders at exactly 52px, matching the reference, with no min-height change
+> at all. This is the same category of addition as the 16px font floor
+> itself (`docs/DESIGN-SYSTEM.md`, "Additions to the design"): a minimal,
+> justified side-effect fix for an accessibility override the design's own
+> 14px spec never had to account for.
+>
+> **Verified:** `corepack pnpm test:visual` — **gate-dark-mob 0.67%, gate-
+> light-mob 0.66%** (was 1.19%/1.24%), both now PASS, and the reference/actual
+> heights match exactly (`390x2073` both sides — no more +1px). All three
+> unblocked screens (gate, vehicle) now pass in full; submission remains
+> within its documented ADR-009 ceiling. `typecheck`, `lint`, `test` (49/49),
+> and `build` all pass.
 
 ## Session log
 
