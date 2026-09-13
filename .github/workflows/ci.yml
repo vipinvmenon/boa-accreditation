@@ -114,3 +114,33 @@ jobs:
             test-results/visual/
             design/reference/manifest.json
           retention-days: 14
+
+  gate-e2e:
+    name: gate aeroplane-mode suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm exec playwright install --with-deps chromium
+
+      # tests/e2e/aeroplane-mode.spec.ts (ACC-057) is local-only and mocked at
+      # the pull/issue boundary — no Supabase credentials, no production
+      # routes. playwright.config.ts's webServer builds and serves the app
+      # itself, so this needs no prior build step. Covers green/amber/red
+      # decisions, blank-serial idempotency, and the two failure paths (401
+      # queue preservation, 500 causal ordering) against real browser Dexie
+      # with a true cold service-worker reload.
+      - run: corepack pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-traces
+          # playwright.config.ts uses the 'line' reporter (no HTML report);
+          # this is where retry-on-failure traces/screenshots actually land.
+          path: test-results/
+          retention-days: 14

@@ -2060,6 +2060,44 @@ four screens — recorded as `docs/DECISIONS.md` ADR-015, per non-negotiable
   Salman need to sign in at `/desk/login` and open the menu to close this
   gap.
 
+### 13 Sep 2026 — ACC-057 ticked for real: aeroplane-mode suite verified green, wired into CI
+
+This roadmap line has bounced between sessions since 12 Sep — built, fixed,
+released as stale in-flight without being re-evaluated, ticked once on a
+branch that turned out to be diverged from `origin/main` and had to be
+un-ticked during the rebase documented above. Rather than trust any of that
+history, this entry is a fresh, direct verification against the current tree.
+
+- **Ran `corepack pnpm test:e2e` directly, for real, right now**: `3 passed
+  (7.2s)` — `tests/e2e/aeroplane-mode.spec.ts`'s three specs (cold reload
+  green/amber/red plus idempotent blank-serial drain; 401 queue preservation
+  through recovery; 500 causal ordering) all pass. This is exactly what the
+  roadmap line asks for ("`aeroplane-mode.spec.ts` + the two failure-path
+  tests").
+- **`test:e2e` was not previously run in CI at all** — confirmed by reading
+  `.github/workflows/ci.yml` before touching it; only `typecheck`/`lint`/
+  `test`/`build` (the `app` job), `test:db` (the `db` job), and `test:visual`
+  (the `design` job) ran. Added a new `gate-e2e` job that installs Chromium
+  and runs `corepack pnpm test:e2e`, uploading `test-results/` (traces/
+  screenshots on failure — the config's `line` reporter produces no HTML
+  report, so that is the real artifact path, not `playwright-report/`).
+  This directly serves Phase 4's acceptance line ("every step of the
+  aeroplane-mode spec asserted in CI"), though that acceptance line covers
+  the whole phase, not just this task, and is not itself being claimed done
+  here.
+- Also corrected `playwright.config.ts`'s header comment, which still said
+  the suite "will intentionally report 'No tests found'" — stale since
+  ACC-054–056 landed; it now describes what the suite actually covers and
+  where it runs.
+- `typecheck`, `lint` (same 3 pre-existing `@next/next/no-img-element`
+  warnings), `test` (49/49), and `build` all green.
+- **Not claimed by this entry:** ACC-058 (two real phones, one an iPhone,
+  real aeroplane mode, the mock vehicle-entrance dual check, and an Amber →
+  supervisor-note reissue) is a separate, human-dependent line and remains
+  open. The new `gate-e2e` CI job has not yet had a chance to run on GitHub
+  Actions itself (this change hasn't been pushed at the time of writing) —
+  a local pass is not the same claim as a green Actions run.
+
 ## Template for the next session update
 
 ```
