@@ -208,7 +208,7 @@ Runs while submissions arrive.
       production bug — a mail-security link-prescanner was burning
       single-use recovery/invite tokens via `GET` before the recipient could
       click). Both already merged; no new work needed.
-- [~] **ACC-049** · `/desk/users` Manage Users — list, invite (reuses
+- [x] **ACC-049** · `/desk/users` Manage Users — list, invite (reuses
       `/api/admin/invite-operator`), activate/deactivate; lead/admin-checked
       in the database, self-deactivation and last-admin guards ·
       **C** · due Wed 23

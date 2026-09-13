@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(70) as line
+  select 0 as n, plan(72) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -109,6 +109,13 @@ select line from (
   union all select 67, function_privs_are('public', 'boa_acc_approval_queue', array['text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_approval_queue')
   union all select 68, function_privs_are('public', 'boa_acc_passes', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_passes')
   union all select 69, function_privs_are('public', 'boa_acc_passes', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_passes')
+
+  -- ACC-049: set_operator_active is public, lead/admin-checked internally,
+  -- same shape as boa_acc_mint_device/boa_acc_create_org — anon gets
+  -- nothing, authenticated gets EXECUTE (the role/self/last-admin checks
+  -- happen inside the function body).
+  union all select 77, function_privs_are('public', 'boa_acc_set_operator_active', array['uuid','boolean'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_set_operator_active')
+  union all select 78, function_privs_are('public', 'boa_acc_set_operator_active', array['uuid','boolean'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_set_operator_active')
 
   -- ACC-056: gate RPCs are service-role-only route boundaries. The browser
   -- never receives EXECUTE, and anon remains completely unable to call them.

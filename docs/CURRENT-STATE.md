@@ -705,6 +705,104 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 13 Sep 2026 — ACC-049: `/desk/users` Manage Users — list, invite, activate/deactivate
+
+**Page-location decision, made deliberately per the task brief:** `app/desk/operators/page.tsx`
+(ACC-026b, invite-only) is superseded by a new `app/desk/users/page.tsx`, not
+extended in place. Reasoning: `docs/ROADMAP.md` names the path literally as
+`/desk/users`, and the next task, ACC-04B, adds a profile-menu "Manage users"
+entry that will need somewhere to point — `/desk/users` is that destination,
+not the old ACC-026b path. Grepped the whole repo first (`grep -rn
+"desk/operators"`) and found exactly one hit, the old page's own header
+comment — nothing else links to it, so nothing breaks by moving. Old-URL
+compatibility (in case anyone bookmarked it during the ACC-026b days) is a
+plain `redirect('/desk/users')` left at `app/desk/operators/page.tsx`, not a
+404. The new screen also drops the old page's one Supabase-client import in
+a screen file (a `docs/ARCHITECTURE.md` rule-1 violation the old page
+predated) — `app/desk/users/users-screen.tsx` now does everything through
+`app/api/desk/operators/**` and the pre-existing
+`app/api/admin/invite-operator`, cookie-session only, same shape as
+`app/desk/devices/devices-screen.tsx`.
+
+**What was built:**
+- `supabase/migrations/202609130900_boa_acc_operator_active.sql` —
+  `public.boa_acc_set_operator_active(p_user_id, p_active)`. lead/admin only
+  (`private.boa_acc_is_operator`), same shape as `boa_acc_mint_device`/
+  `boa_acc_create_org`. Self-deactivation is refused
+  (`cannot_deactivate_self`, P0001). Deactivating the last active admin is
+  refused (`cannot_deactivate_last_admin`, P0001) — counted by querying
+  `boa_acc_operator` for other active admins at call time, not by any
+  client-supplied count. Granted to `authenticated` only, `anon`/
+  `service_role` explicitly revoked.
+- `app/api/desk/operators/route.ts` (GET, list — relies on the existing
+  `boa_acc_operator_read` RLS policy: own row, or every row for lead/admin)
+  and `app/api/desk/operators/[id]/route.ts` (PATCH, calls the RPC via the
+  operator's own session, never the service-role client).
+- `lib/schemas/operator.ts` — added `operatorRowSchema`,
+  `setOperatorActiveSchema`, `setOperatorActiveResultSchema`.
+- `app/desk/users/{page,users-screen}.tsx` — invite form (unchanged
+  behaviour from ACC-026b, reusing `/api/admin/invite-operator`) plus the
+  operator list with an activate/deactivate button per row. Self-row shows
+  "Cannot change your own status" instead of a button — a usability
+  affordance only; non-negotiable #3's actual enforcement is the RPC's own
+  guard, proven below by pgTAP, not this disablement.
+- `supabase/tests/operator-active.test.sql` — new pgTAP file, 6 guarantees:
+  lead/admin can deactivate someone else; self-deactivation refused; last-
+  admin refused; an approver cannot call the function at all (not just "the
+  UI hides the button"); a signed-out caller cannot call it; an unknown
+  operator id is refused, not silently ignored.
+  **One real bug caught and fixed during this task, worth recording:** the
+  first version of this test failed test 4 (last-admin guard) with "caught:
+  no exception" — not a function bug, a test-design bug. This pgTAP suite
+  runs against the **real production database**, which already has real
+  active admins (Salman, plus the project owner — see "Five operators
+  exist" above), so deactivating two synthetic test admins never actually
+  reaches zero active admins *globally*, which is what the guard correctly
+  checks. Fixed by neutralising every real active admin's `active` flag for
+  the lifetime of this one atomic SQL statement and restoring it before the
+  statement ends — safe specifically because a single Postgres statement is
+  atomic: either everything in it completes, restore included, or (on a
+  genuine uncaught error) none of it applies and the real rows are
+  untouched. Re-ran after the fix; passed. A second, separate ordering bug
+  was also found and fixed in the same file: a materialized CTE's
+  `set_config` side effect fires on its *first textual reference* in a
+  `UNION ALL` (Postgres evaluates Append branches in written order), not at
+  its point of declaration — referencing `jwt_lead_again` too early forced
+  the whole approver/none/lead-again identity chain to resolve prematurely
+  and left the session stuck on `lead` for later assertions. Reordered to
+  match `devices.test.sql`'s proven branch order (lead-context assertions
+  first, then the first reference to each later identity, in the order the
+  switches must happen).
+- `supabase/tests/privileges.test.sql` — added the anon/authenticated EXECUTE
+  pair for `boa_acc_set_operator_active` (`plan(70)` → `plan(72)`).
+
+**Verified, not asserted:**
+- `corepack pnpm db:push` — applied `202609130900_boa_acc_operator_active.sql`
+  against the real project (`tjbfvuboyvaephtewjwq`) via the Management API
+  transport. Real output: `[ ok ] 202609130900_boa_acc_operator_active.sql`.
+- `corepack pnpm test:db` — **green, for real, against the real database**:
+  all 9 `.test.sql` files pass, including the new `operator-active.test.sql`
+  (6/6 guarantees) and the updated `privileges.test.sql` (72/72 assertions,
+  including `anon: zero EXECUTE on boa_acc_set_operator_active` and
+  `authenticated: EXECUTE on boa_acc_set_operator_active`).
+- `corepack pnpm typecheck && corepack pnpm lint && corepack pnpm test &&
+  corepack pnpm check:sql && corepack pnpm build` — all green (`task done
+  ACC-049` also ran typecheck/lint/test itself and ticked the box). `lint`
+  shows the same 3 pre-existing `@next/next/no-img-element` warnings this
+  file already documents elsewhere; no new warnings or errors.
+- **NOT verified: a real browser session as a signed-in operator.** No
+  operator password is available in this environment (this file's own
+  "Five operators exist" note and `docs/SETUP.md` are both explicit that
+  credentials require a browser/email step no agent can do), so
+  activate/deactivate, the self-row disablement, and an approver's refused
+  attempt were **not** clicked through in `/desk/users` in a live browser.
+  What stands in for that here is the database-level proof above (pgTAP
+  calling the RPC under a real lead JWT, a real approver JWT, and a signed-
+  out session) plus `typecheck`/`build` proving the screen and routes
+  compile and produce the expected route list. Saying this plainly per
+  non-negotiable #10 rather than claiming a UI verification that did not
+  happen.
+
 ### 13 Sep 2026 — copy inventory (`docs/COPY.md`); requested as "ACC-036", which does not exist
 
 Requested as ACC-036. **ACC-036 is not in `docs/ROADMAP.md`** — IDs run
