@@ -24,7 +24,7 @@ const ERROR_COPY: Record<string, string> = {
   duplicate_name: 'An org with that name already exists.',
   invalid_body: 'Check the form — something did not match the required shape.',
   not_found: 'That org no longer exists.',
-  internal: 'Something went wrong. Try again.',
+  internal: "That didn't go through. Try again.",
 }
 
 function copyForError(body: unknown): string {

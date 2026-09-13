@@ -29,7 +29,7 @@ import { useDomTheme } from '@/lib/use-theme'
 const ERROR_COPY: Record<string, string> = {
   not_authenticated: 'Your session has expired. Sign in again.',
   not_authorized: 'Only an active operator can view the Control room.',
-  internal: 'Something went wrong. Try again.',
+  internal: "That didn't go through. Try again.",
 }
 
 function copyForError(body: unknown): string {

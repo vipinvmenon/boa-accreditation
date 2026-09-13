@@ -47,7 +47,7 @@ const errorCopy: Record<string, string> = {
   reason_required: 'A rejection reason is required.',
   decision_rejected: 'That row has already been decided, or AAA needs its named nomination.',
   not_found: 'That person is no longer on the queue.',
-  internal: 'Something went wrong. Try again.',
+  internal: "That didn't go through. Try again.",
 }
 
 export function QueueScreen() {

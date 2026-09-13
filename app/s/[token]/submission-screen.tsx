@@ -47,8 +47,8 @@ const ERROR_COPY: Record<string, string> = {
   org_closed: 'Registration for this organisation is closed. Nobody else can be added — contact the accreditation desk.',
   quota_exceeded: "This organisation's quota is full. Contact the accreditation desk to raise it.",
   rate_limited: 'Too many attempts from this link — wait a moment and try again.',
-  invalid_body: 'Check the highlighted fields and try again.',
-  internal: 'Something went wrong. Try again.',
+  invalid_body: 'Check what you typed and try again.',
+  internal: "That didn't go through. Try again.",
 }
 
 /**
@@ -101,7 +101,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
       vehicleReg: vehicleOn ? vehicleReg : undefined,
     })
     if (!parsed.success) {
-      setError({ code: 'invalid_body', message: ERROR_COPY['invalid_body'] ?? 'Check the highlighted fields and try again.' })
+      setError({ code: 'invalid_body', message: ERROR_COPY['invalid_body'] ?? 'Check what you typed and try again.' })
       return
     }
 
@@ -129,7 +129,7 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
       setVehicleOn(false)
       setVehicleReg('')
     } catch {
-      setError({ code: 'internal', message: ERROR_COPY['internal'] ?? 'Something went wrong. Try again.' })
+      setError({ code: 'internal', message: ERROR_COPY['internal'] ?? "That didn't go through. Try again." })
     } finally {
       setSubmitting(false)
     }

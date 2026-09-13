@@ -25,7 +25,7 @@ const ERROR_COPY: Record<string, string> = {
   invalid_expiry: 'The expiry must be a real time in the future.',
   invalid_body: 'Check the form — something did not match the required shape.',
   not_found: 'That device no longer exists, or is already revoked.',
-  internal: 'Something went wrong. Try again.',
+  internal: "That didn't go through. Try again.",
 }
 
 function copyForError(body: unknown): string {
