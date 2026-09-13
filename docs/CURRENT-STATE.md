@@ -668,6 +668,40 @@ Verified by attempting the thing, not by reading a grant table:
 > unblocked screens (gate, vehicle) now pass in full; submission remains
 > within its documented ADR-009 ceiling. `typecheck`, `lint`, `test` (49/49),
 > and `build` all pass.
+>
+> **All of the above pushed to `main` and confirmed live in production**
+> (`f9a84fa`, 13 Sep 2026): `/` on `accred.bangaloreopenair.com` now renders
+> the desk sign-in form directly (verified by loading it in the browser),
+> and the pre-push `build` + `test:visual` gate passed for real on the pushed
+> commit, not just locally beforehand.
+>
+> **13 Sep 2026 — `/auth/confirm`'s GET handler was calling `verifyOtp`
+> directly, so any automated link-prescanner burned the one-time token before
+> the real recipient ever clicked.** Found by reading Supabase's own auth
+> logs after Vipin reported his password-reset link "still redirects to the
+> sign-in page" even on a freshly-sent email: a `/verify` request for his
+> recovery token failed with `otp_expired` / `"One-time token not found"` at
+> `07:03:49`, from `13.204.68.125` — an IP that never once appeared in any of
+> his own `/recover` or `/token` calls (all from `49.47.197.117`). That
+> request landed *before* he could have clicked the email that was sent one
+> second earlier — consistent with a mail-security link-prescanner (common on
+> Google Workspace and corporate mail gateways) fetching every link in the
+> message to check it, which for a single-use recovery token is
+> indistinguishable from the recipient using it. No code bug in the token
+> verification itself; the bug was doing a side-effecting, token-consuming
+> action on a plain `GET`, which anything can trigger.
+>
+> **Fix:** `app/auth/confirm/route.ts`'s `GET` no longer calls `verifyOtp`. It
+> renders a minimal interstitial page (styled with the same design tokens as
+> `/desk/login`, not gated by `test:visual` for the same reason that page
+> isn't) with the token carried in a hidden form field and a single "Continue"
+> button. `verifyOtp` now runs only on `POST`, which a prescanner's plain GET
+> cannot trigger. Verified locally: a `GET` with a bogus token renders the
+> interstitial without any Supabase call, and clicking "Continue" (`POST`)
+> correctly redirects to `/desk/login?error=invalid_link`. `typecheck`,
+> `lint`, and `test` (49/49) all pass. Not yet pushed — this is the very next
+> thing to ship, since the reset flow is currently broken in production for
+> exactly this reason.
 
 ## Session log
 
