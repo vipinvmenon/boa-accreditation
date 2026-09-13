@@ -705,6 +705,44 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
+
+The `design fidelity` GitHub Actions job had been red for hours across
+multiple unrelated commits (since `fix(gate): line-height, not min-height,
+was the actual 1px fix needed`), failing `gate` and `vehicle` at 1.8–3.6%
+while the identical `corepack pnpm test:visual` passed locally on macOS at
+0.13–0.67%. `docs/DESIGN-SYSTEM.md` (new dated section, "CI-vs-local text
+rendering") has the full writeup with evidence; short version:
+
+- Downloaded CI's own `visual-diffs` artifact (run 34770874991) and opened
+  the real `.diff.png` files — every screen showed fringing on essentially
+  every glyph, on every line, while vector chrome (borders, dividers, the
+  outcome-tab underline) stayed pixel-identical. That is the signature of
+  Chromium text-rendering nondeterminism between two separate Linux headless
+  process launches (`capture-design-reference.mjs` and `visual-check.mjs`
+  each call their own `chromium.launch()` in the same job), not a layout or
+  colour defect — neither the UI nor `design/source/` needed to change.
+- Fix: `scripts/lib/browser.mjs` (new) exports `FONT_STABLE_ARGS`
+  (`--font-render-hinting=none --disable-lcd-text
+  --disable-font-subpixel-positioning --force-color-profile=srgb`), applied
+  to both `chromium.launch()` calls. `THRESHOLD` in `scripts/visual-check.mjs`
+  was **not** touched.
+- Proved in CI before merging, not just locally: pushed to scratch branch
+  `fix/ci-visual-parity`, watched the workflow run to completion, and
+  confirmed green — run
+  [34775382247](https://github.com/vipinvmenon/boa-accreditation/actions/runs/34775382247)
+  shows `gate PASS` and `vehicle PASS` at 0.10–0.65% on all four viewport/theme
+  combinations each, plus `database (pgTAP)`, `app`, and `gate aeroplane-mode
+  suite` all green. The scratch branch was deleted after.
+- Not this task's problem, and still true: `control-room`, `queue`, `master`,
+  and `passes` remain `BLOCKED` (need an operator credential CI cannot mint —
+  ACC-043), and locally in this session's worktree `submission` fails at
+  ~34–56% for an unrelated reason — the screen renders "THIS SCREEN DID NOT
+  LOAD" — confirmed present on `main` before this fix too (same failure with
+  the pre-fix scripts checked out), so it is a pre-existing, environment-side
+  issue in this worktree, not a regression from this change and not touched
+  here.
+
 ### 13 Sep 2026 — ACC-049: `/desk/users` Manage Users — list, invite, activate/deactivate
 
 **Page-location decision, made deliberately per the task brief:** `app/desk/operators/page.tsx`

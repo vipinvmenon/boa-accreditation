@@ -107,6 +107,47 @@ not by opinion. If the reference shows unsynthesised Anton, the fix is
 `font-weight: 400` on those headings — a change to the transcription, made
 against evidence, and recorded here.
 
+### CI-vs-local text rendering — CLOSED, 13 Sep 2026
+
+`corepack pnpm test:visual`'s `THRESHOLD = 0.008` (`scripts/visual-check.mjs`)
+absorbs "font antialiasing between the bundle's own woff2 and @fontsource's,
+and nothing more" — but from the line-height fix commit onward, GitHub
+Actions' `design fidelity` job failed on `gate` and `vehicle` at 1.8–3.6%
+while the identical command passed locally on macOS at 0.13–0.67%, on two
+unrelated commits with byte-identical failure percentages (deterministic, not
+flaky).
+
+Both `capture-design-reference.mjs` (the approved bundle) and
+`visual-check.mjs` (our app) run in the **same CI job, same run**, each
+launching its own `chromium.launch()` to screenshot a different document, so
+a real cross-platform difference has to come from something that diverges
+between those two launches on that one Linux runner. Downloaded CI's own
+`visual-diffs` artifact (run 34770874991) and opened the `.diff.png` files
+directly rather than guessing: every screen showed fringing on essentially
+every glyph, on every line of text, while vector chrome — the sticky-nav
+borders, the divider rules, the outcome-tab underline — stayed pixel-identical
+between the reference and our app. A real layout or colour regression shows
+as solid mismatched blocks or shifted/missing elements; 100% of text and 0%
+of vectors is the signature of AA/hinting nondeterminism, not a defect in
+either document.
+
+Root cause: on Linux, Chromium's default LCD-subpixel text path is not
+guaranteed to rasterize identically across two separate process launches —
+FreeType's hinting can round differently depending on GPU/software
+rasterizer state at each process's start. macOS's CoreGraphics backend
+smooths this over, which is why the same command never showed it locally.
+
+Fix (`scripts/lib/browser.mjs`, `FONT_STABLE_ARGS`, applied to both
+`chromium.launch()` calls): force both launches onto the same deterministic,
+non-LCD, grayscale text path —
+`--font-render-hinting=none --disable-lcd-text
+--disable-font-subpixel-positioning --force-color-profile=srgb`. Verified on
+a scratch branch (`fix/ci-visual-parity`, CI run
+[34775382247](https://github.com/vipinvmenon/boa-accreditation/actions/runs/34775382247)):
+`gate` and `vehicle` now pass in the same CI environment at 0.10–0.65%,
+matching local numbers. `THRESHOLD` itself was not touched — the fix is in
+the harness, not a loosened gate.
+
 ## Responsive
 
 Every `mob ? A : B` in `renderVals()` becomes a real media query at `768px`
