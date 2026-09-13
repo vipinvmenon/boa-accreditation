@@ -21,6 +21,7 @@ import { chromium } from '@playwright/test'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { FONT_STABLE_ARGS } from './lib/browser.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(root, 'design/reference')
@@ -83,7 +84,7 @@ async function setTheme(page, want) {
   if (now !== want) throw new Error(`theme toggle did not reach ${want} (got ${now})`)
 }
 
-const browser = await chromium.launch()
+const browser = await chromium.launch({ args: FONT_STABLE_ARGS })
 rmSync(OUT, { recursive: true, force: true })
 mkdirSync(OUT, { recursive: true })
 

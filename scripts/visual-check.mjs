@@ -28,6 +28,7 @@ import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import { loadEnvLocal, runSql } from './lib/db.mjs'
+import { FONT_STABLE_ARGS } from './lib/browser.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const REF = join(root, 'design/reference')
@@ -341,7 +342,7 @@ try {
     process.exit(1)
   }
 
-  browser = await chromium.launch()
+  browser = await chromium.launch({ args: FONT_STABLE_ARGS })
   const needsOperator = SCREENS.some((screen) => (!only || screen.slug === only) && screen.auth === 'operator')
   const operatorEmail = env.VISUAL_OPERATOR_EMAIL
   const operatorPassword = env.VISUAL_OPERATOR_PASSWORD
