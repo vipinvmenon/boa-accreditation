@@ -28,7 +28,9 @@
     "task": "node scripts/task.mjs",
     "bootstrap": "node scripts/bootstrap.mjs",
     "db:push": "node scripts/db-push.mjs",
-    "db:dry": "node scripts/db-push.mjs --dry"
+    "db:dry": "node scripts/db-push.mjs --dry",
+    "seed:dummy": "node scripts/seed-dummy.mjs",
+    "wipe:dummy": "node scripts/wipe-dummy.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

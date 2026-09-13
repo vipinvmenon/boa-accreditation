@@ -1827,6 +1827,73 @@ that rebase found and changed.
   section was only ever added on the diverged local branch and isn't part of
   the current roadmap. See the rebase note above.
 
+### 13 Sep 2026 — ACC-035: `scripts/seed-dummy.mjs` / `wipe-dummy.mjs`
+
+- **New: `scripts/seed-dummy.mjs` and `scripts/wipe-dummy.mjs`**, wired into
+  `package.json` as `seed:dummy` / `wipe:dummy`. Every row either script
+  touches goes through a real SECURITY DEFINER RPC — `boa_acc_create_org`,
+  `boa_acc_mint_invite`, `boa_acc_submit`, `boa_acc_nominate_aaa`,
+  `boa_acc_approve_aaa_nomination`, `boa_acc_decide` for seeding;
+  `private.boa_acc_wipe_org` (the same function `supabase/tests/*.test.sql`
+  already uses for cleanup) for wiping. No raw INSERT/UPDATE against
+  `boa_acc_org`/`boa_acc_person`/`boa_acc_aaa_nomination`, and neither script
+  references `boa_acc_checkin` at all. Operator-gated RPCs are called by
+  setting `request.jwt.claims` to a real, existing active lead/admin
+  operator's `user_id` for the duration of one statement — the identical
+  technique `supabase/tests/decide.test.sql` etc. already use to exercise
+  these functions; it is not a bypass, `private.boa_acc_is_operator()` still
+  runs its real check.
+- **Verified by actually running both against the live database**, not
+  asserted:
+  - Pre-seed `corepack pnpm db:state`: `boa_acc_org`, `boa_acc_person`,
+    `boa_acc_org_invite`, `boa_acc_aaa_nomination` all 0 rows.
+  - `corepack pnpm seed:dummy` created exactly 6 `TEST — ` orgs (one per
+    `boa_acc_org_kind` value: vendor/crew/sponsor/media/security/contractor)
+    and exactly 18 `boa_acc_person` rows, confirmed by a direct query
+    grouping by org: every org has 3 people, all three `person_status`
+    values reachable through a real RPC are present (`submitted` x5,
+    `approved` x10, `rejected` x3), all three `type_code` values are present
+    (`crew`, `stage`, `aaa` — the `aaa` one via a real
+    `boa_acc_nominate_aaa` → `boa_acc_approve_aaa_nomination` →
+    `boa_acc_decide` chain), and all three `day_validity` values are
+    present.
+  - **The over-quota case is a real rejection, not a row count assumption.**
+    `TEST — Vendor Co` was created with `quota=3` and 3 people submitted to
+    fill it; the script then submitted a 4th person against the same live
+    token and the RPC raised `quota_exceeded` (P0001) — caught, logged, and
+    the org's non-voided person count was re-queried afterward and confirmed
+    still exactly 3, proving the refused row did not leak in.
+  - Re-running `corepack pnpm seed:dummy` with the 6 orgs already present is
+    a genuine no-op (checked the printed output: "6 TEST — org(s) already
+    exist. Not touching anything.").
+  - `corepack pnpm wipe:dummy` removed all 6 orgs and the 1 AAA nomination,
+    printed what it removed, and a post-wipe `corepack pnpm db:state` showed
+    `boa_acc_org`/`boa_acc_person`/`boa_acc_org_invite`/
+    `boa_acc_aaa_nomination` back to exactly 0 rows each — identical to the
+    pre-seed baseline.
+  - Running `wipe:dummy` again against that clean state exited non-zero
+    ("Found 0 TEST — orgs. Expected at least one to wipe.") as required.
+  - Left the database seeded once more, then wiped clean again as the final
+    state before the quality gates below (so `test:db`'s own pgTAP fixtures
+    ran against a state this task didn't leave dirty).
+  - `corepack pnpm typecheck && lint && test && build` all green (49/49
+    unit tests; lint's 3 warnings are the same pre-existing
+    `@next/next/no-img-element` ones). `corepack pnpm check:sql` (22
+    migrations) and `corepack pnpm test:db` (full pgTAP suite, including
+    `quota.test.sql`, `throttle.test.sql`, `tokens.test.sql`,
+    `vehicle.test.sql`) both pass against the current schema.
+- **What is deliberately NOT seeded, and why**: `boa_acc_person_status` has
+  five values — `draft`, `submitted`, `approved`, `rejected`, `voided`. Only
+  the middle three are reachable through any shipped RPC today.
+  `boa_acc_submit` always inserts `status='submitted'` directly (`draft` is
+  only ever the column's own default, never an RPC's output), and no
+  migration contains any code path that moves a person to `voided` — that
+  word only exists as `boa_acc_checkin`'s own `void` ledger-entry kind on a
+  different table/enum. Faking either with a raw UPDATE would both violate
+  "never hand-insert via raw SQL" and assert a code path that does not
+  exist. If a future task adds a real void-a-person or save-draft RPC,
+  `seed-dummy.mjs` should be extended to exercise it, not patched around it.
+
 ## Template for the next session update
 
 ```
