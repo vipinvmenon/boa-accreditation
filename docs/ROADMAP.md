@@ -151,7 +151,7 @@ against `origin/main`'s actual current state, not carried over on faith.
       Responsive section was corrected in the meantime — the toggle **ships**
       as a real layout indicator, not a debug affordance — so that half of
       this task is superseded, not done differently. See `app/gate/gate-chrome.tsx`.
-- [ ] **ACC-035** · `scripts/seed-dummy.mjs` / `wipe-dummy.mjs` — 6 `TEST — `
+- [~] **ACC-035** · `scripts/seed-dummy.mjs` / `wipe-dummy.mjs` — 6 `TEST — `
       orgs, 18 people across all statuses/types, one over-quota, through the
       real RPCs, never touching `boa_acc_checkin` · **C** · due Tue 15.
       Confirmed still missing on `origin/main` (13 Sep) — a real gap, not
