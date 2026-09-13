@@ -409,3 +409,58 @@ Recorded here so they are not re-opened by someone reading only the spec.
 | AAA | **Salman gets his own account** and approves nominations himself |
 | Pass distribution | The org invite link shows approved pass links; the vendor contact distributes |
 | Retention | Personal data retained until BOA 2027 planning begins. Review task dated 9 Nov 2026 in OPERATIONS.md |
+
+---
+
+## ADR-013 — The "v2 Readiness Plan" is a gap list, not a replacement source of truth
+
+**Accepted 13 Sep 2026.**
+
+Vipin handed over a document titled "BOA Accreditation App — Festival
+Readiness Plan & Checklist (v2)" (plus the design deck PDF and the design
+HTML bundle) and called it "the single source of truth for this module."
+Read against the actual repository state (46/61 tasks done at the time),
+v2 turns out to be a snapshot written before most of Phase 1–4 existed, and
+it contradicts several already-accepted decisions. Per non-negotiable #10
+and the lesson in "How the sibling project got here," those contradictions
+are recorded here rather than quietly overridden or quietly ignored.
+
+**Confirmed identical, not contradicting:** `BOA Accreditation App.html` is
+byte-identical (sha1) to `design/source/boa_design_bundle.html`, and the PDF
+is the same six-page deck already governing `design/source/`. v2's pass-type
+table, the 3×7 zone matrix, and the three-outcome gate model all match what
+`lib/design.ts` and the migrations already implement — nothing there is new
+information.
+
+**Where v2 conflicts with an accepted decision, the repository wins:**
+
+| v2 says | This repo does | Why the repo wins |
+|---|---|---|
+| 5 tables, prefix `boa_acc_` | 10 tables | ADR-001 — five tables cannot express the dashboard's own statistics beyond "Submitted" |
+| Allocation desk lives inside `boa-bar-control` (the existing crew app) | The desk lives in **this** app, at `/desk/*` | ADR-001 — the design's own nav bundles all seven screens into one app; already built, deployed, and operator-tested |
+| Only 3 anon-callable RPCs plus 2 device RPCs | `anon` has **zero** table grants and **zero** function EXECUTE, full stop; every public path (including devices) is a route handler calling a `service_role`-only or internally-checked RPC | ADR-004 — the public surface is route handlers, not anon RPCs, so this isn't a smaller/larger number of the same thing, it's a different security boundary |
+| Engineering + testing done by 26 Sep | Phase 4 (the gate) runs to 3 Oct; Phase 5 (live) runs through 10 Oct | The roadmap's dates were set from the real four dates (links 20 Sep, gate live 4 Oct, build 5–9 Oct, show 10 Oct) and from work that didn't exist when v2 was written. Compressing verified, working code onto a stale timeline is not a improvement. |
+| AAA: "Vipin supplies these names directly, bypassing the normal flow" | AAA nomination and approval is Salman's, per the 10-Sep decision above and the design deck itself ("approved directly by Salman") | Named ownership doesn't change; see the privileges note below for what an admin account can still do |
+| "Nobody outside crew gets a Supabase account" / "existing crew login" implies the desk reuses `boa-bar-control`'s auth | `/desk/*` has its own operator table (`boa_acc_operator`) and its own invite → set-password flow (ACC-026), independent of `boa-bar-control` | Consequence of the desk-location decision above, not a separate disagreement |
+
+**Where v2 identifies a real gap, it is taken as one and added to the
+roadmap** (ACC-034 through ACC-04B, ACC-036, ACC-048, ACC-049): the WEB/MOB
+debug toggle actually ships in `app/gate/gate-chrome.tsx` and must be
+stripped; there was no automated ₹/finance-term/debug-marker gate on the
+build output; there was no dummy-data seed for QA; there was no
+forgot-password flow, no Manage Users screen, and no profile/theme menu on
+the desk. None of these were previously tracked as ACC tasks.
+
+**Vipin's own access:** Vipin is already an `admin` operator
+(`vipinmenon16@gmail.com`, ACC-026). `private.boa_acc_is_operator()` with no
+role argument — the predicate `boa_acc_decide`, `boa_acc_aaa_nominate` and
+`boa_acc_aaa_approve` all use — accepts **any** active operator, and every
+lead/admin-gated function (`create_org`, `mint_invite`, devices) already
+accepts `admin`. So an admin account, Vipin's included, can already do
+everything in the app end to end for testing, AAA approval included; no
+schema change is needed for that. What ADR-013 changes is only that this is
+now stated explicitly and proven by a test (`admin_reach.test.sql`, ACC-0
+scope below) rather than left to be discovered by trying. "Salman approves
+AAA" (the 10-Sep decision, restated in v2) remains the **named, intended**
+workflow — it describes who does it operationally, not a database
+restriction on who is capable of it.

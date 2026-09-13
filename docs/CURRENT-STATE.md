@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 12 September 2026 (twelfth update)._
+_Last updated: 13 September 2026 (thirteenth update)._
 
 ## In one line
 
@@ -1681,6 +1681,51 @@ refuses to reveal Secret values (correctly), so it has to come from Vipin.
   `sw.js` `no-cache`, and all 57 precached URLs.
 - A logged successful scheduled 08:00 IST run has not yet been observed.
   ACC-071 remains an ongoing watch item, not a failed deployment claim.
+
+### 13 Sep 2026 — v2 "Readiness Plan" reconciled; ACC-057 ticked; 6 new tasks added
+
+Vipin handed over a document titled "Festival Readiness Plan & Checklist
+(v2)" plus the design deck PDF and the design HTML bundle, calling it "the
+single source of truth for this module." Read against the repository rather
+than assumed correct — see **ADR-013** for the full reconciliation.
+
+- **Confirmed identical, not new information:** `BOA Accreditation App.html`
+  is sha1-identical to `design/source/boa_design_bundle.html`. The PDF is
+  the same six-page deck already governing `design/source/`. v2's pass-type
+  table and 3×7 zone matrix already match `lib/design.ts:90-125`.
+- **Where v2 conflicts with an accepted decision (5 vs 10 tables, desk
+  location, the 26 Sep timeline, "3 anon RPCs"), the repository's decisions
+  stand.** v2 was written before most of Phase 1–4 existed; it is now
+  treated as a gap list, not a replacement source of truth.
+- **Real gaps v2 found, not previously tracked:** the design's
+  review-bundle WEB/MOB toggle actually ships in `app/gate/gate-chrome.tsx`
+  (confirmed by reading the file, not assumed); there was no automated gate
+  against ₹/finance terms or debug markers reaching the build output
+  (confirmed by grep: none currently present, but nothing prevented one
+  landing); there was no dummy-data seed for QA on empty tables; there was
+  no forgot-password flow, no Manage Users screen, and no profile/theme
+  menu on the desk. Added as **ACC-034, ACC-035, ACC-036, ACC-048, ACC-049,
+  ACC-04B** in `docs/ROADMAP.md`.
+- **Vipin's access confirmed, not changed:** read
+  `20260912124451_boa_acc_aaa_nomination.sql` and
+  `202609121800_boa_acc_decide.sql` directly — every AAA and decide function
+  calls `private.boa_acc_is_operator()` with no role argument, which accepts
+  any active operator, `admin` included. Vipin is already `admin`
+  (`vipinmenon16@gmail.com`, ACC-026). No schema change was made. What is
+  still open: a real pgTAP proof (`admin_reach.test.sql`, planned under
+  ACC-049's migration) that an admin can call every desk/AAA RPC
+  end-to-end — not yet written, so not yet claimed passing.
+- **ACC-057 ticked via `corepack pnpm task done ACC-057`**, gates run for
+  real: `typecheck` green, `lint` green (3 pre-existing
+  `@next/next/no-img-element` warnings, unchanged), `test` 49/49 green. This
+  reflects the code and the deterministic aeroplane-mode suite already
+  documented as passing on 12 Sep — the roadmap checkbox had simply not
+  been ticked. **Not changed by this**: ACC-058's human phone rehearsal is
+  still open and unticked; it is a separate line.
+- **Not yet done:** none of ACC-034/035/036/048/049/04B has been built yet —
+  this session only reconciled the plan and recorded it. The next session
+  (Claude, Cursor, or Codex) should run `corepack pnpm task` and pick up
+  ACC-034 first, per `docs/ROADMAP.md`'s own ordering.
 
 ## Template for the next session update
 

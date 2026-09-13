@@ -127,6 +127,25 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 3. It refuses the 61st submission in an hour.
 4. `test:db` green and **required** in CI; `test:visual` on Submission ≤0.8% in both themes.
 
+## Phase 1b — v2 reconciliation gap-fill · Sun 13 – Sat 19 Sep
+
+Added 13 Sep after reconciling the "Festival Readiness Plan (v2)" handoff
+against the shipped app — see ADR-013. Real gaps v2 found, not previously
+tracked as ACC tasks.
+
+- [ ] **ACC-034** · Strip the WEB/MOB review toggle from `GateChrome`; add
+      `scripts/check-bundle-content.mjs` (₹, finance terms, `console.log`,
+      the toggle) gating `build` and `verify:deploy` · **C** · due Tue 15
+- [ ] **ACC-035** · `scripts/seed-dummy.mjs` / `wipe-dummy.mjs` — 6 `TEST — `
+      orgs, 18 people across all statuses/types, one over-quota, through the
+      real RPCs, never touching `boa_acc_checkin` · **C** · due Tue 15
+- [ ] **ACC-036** · Copy inventory (`docs/COPY.md`), design-contract vs ours,
+      rewritten in the deck's voice · **C** · Submission strings by Sat 19,
+      desk strings folded into Phase 3
+
+**Milestone A precondition:** `wipe-dummy` run, 0 `TEST — ` orgs remaining,
+before ACC-031 mints the 38 real invite tokens.
+
 ## Phase 2 — Ready to send · Fri 18 – Sat 19 Sep
 
 - [ ] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
@@ -154,6 +173,16 @@ Runs while submissions arrive.
 - [x] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25
 - [ ] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
 - [x] **ACC-047** · Shared desk shell — sticky nav, live status bar, theme toggle · **C** · due Sat 26
+- [ ] **ACC-048** · Forgot-password link on `/desk/login`, using
+      `resetPasswordForEmail` + the existing `/auth/confirm` recovery path ·
+      **C** · due Mon 21
+- [ ] **ACC-049** · `/desk/users` Manage Users — list, invite (reuses
+      `/api/admin/invite-operator`), activate/deactivate; lead/admin-checked
+      in the database, self-deactivation and last-admin guards ·
+      **C** · due Wed 23
+- [ ] **ACC-04B** · Profile menu (name, role, theme, Manage users, sign out)
+      replacing the desk's loose theme button — ADR-014, desk screens only ·
+      **C** · due Thu 24
 
 **Acceptance:** 100 real submissions approved through the real queue · 14 passes
 print one per A4 and **a phone decodes the QR off the paper** · `pass_token`
