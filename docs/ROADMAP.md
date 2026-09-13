@@ -133,7 +133,7 @@ Added 13 Sep after reconciling the "Festival Readiness Plan (v2)" handoff
 against the shipped app — see ADR-013. Real gaps v2 found, not previously
 tracked as ACC tasks.
 
-- [ ] **ACC-034** · Strip the WEB/MOB review toggle from `GateChrome`; add
+- [~] **ACC-034** · Strip the WEB/MOB review toggle from `GateChrome`; add
       `scripts/check-bundle-content.mjs` (₹, finance terms, `console.log`,
       the toggle) gating `build` and `verify:deploy` · **C** · due Tue 15
 - [ ] **ACC-035** · `scripts/seed-dummy.mjs` / `wipe-dummy.mjs` — 6 `TEST — `
