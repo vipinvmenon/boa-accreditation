@@ -705,6 +705,66 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 13 Sep 2026 — copy inventory (`docs/COPY.md`); requested as "ACC-036", which does not exist
+
+Requested as ACC-036. **ACC-036 is not in `docs/ROADMAP.md`** — IDs run
+ACC-030 → ACC-033 then jump to ACC-040; nothing in ACC-034–ACC-039 exists
+anywhere in the repo (migrations, tests, this file). `corepack pnpm task
+start ACC-036` correctly refused ("ACC-036 is not in docs/ROADMAP.md") and was
+not forced. Per this project's own rule against quietly reordering the
+roadmap, no entry was invented and `task start`/`task done` was not run
+against a fake ID. The deliverable itself — a copy inventory, design-contract
+vs shipped, in the deck's voice — is real and useful independent of ticket
+numbering, so it was built anyway; flagging here so whoever owns the roadmap
+can fold it into a real task ID or confirm none was needed.
+
+- **New: `docs/COPY.md`.** Transcribes the Submission screen's design-contract
+  copy (`design/source/boa_design_body.html` lines 246–317 + shared footer
+  556–559) against `app/s/[token]/submission-screen.tsx` field-by-field, then
+  does a real (not exhaustive) pass over the other 6 design-matched screens
+  (Control room, Approval queue, Master list, Passes — spot-checked headings/
+  buttons directly against the design source, all identical; Gate/Vehicle —
+  deferred to this file's own extensive prior pixel-level audit rather than
+  re-claiming a fresh check) plus every screen with no design counterpart
+  (`/desk/login`, `/desk/orgs`, `/desk/aaa`, `/desk/devices`,
+  `/desk/operators`, `/gate/setup`).
+- **Real, unintentional drift found and fixed, string-literal only:** the
+  identical fallback `'Something went wrong. Try again.'` was independently
+  duplicated as the `internal` error case in **six** files
+  (`app/s/[token]/submission-screen.tsx`,
+  `app/desk/control-room-screen.tsx`, `app/desk/orgs/orgs-screen.tsx`,
+  `app/desk/aaa/aaa-screen.tsx`, `app/desk/queue/queue-screen.tsx`,
+  `app/desk/devices/devices-screen.tsx`) — the one generic, apologetic string
+  in each file, next to otherwise specific, declarative error copy. Rewritten
+  in all six to `"That didn't go through. Try again."` Also fixed
+  Submission's `invalid_body` message, which claimed fields are "highlighted"
+  on error — no such highlighting exists anywhere in the code — rewritten to
+  "Check what you typed and try again." No logic, layout, or structure
+  touched in any of the seven edits.
+- **Checked and deliberately left alone** (design fixture data correctly not
+  copied verbatim, or already in-voice): the Submission screen's two-button
+  design mock vs. the shipped single-button-plus-live-readout (already
+  documented, ACC-032 — the real RPC has no draft/batch concept), the vehicle
+  toggle's default-ON mock state, the Approval queue's reason-capture UI (the
+  design's static mock can't depict an interaction that the reject RPC
+  requires), and `/desk/login`'s entire copy set (already specific, not
+  generic).
+- **Gates actually run, not assumed:** `corepack pnpm typecheck` — clean.
+  `corepack pnpm lint` — clean except the same 3 pre-existing
+  `@next/next/no-img-element` warnings this file already documents elsewhere
+  (unrelated to this change). `corepack pnpm test` — 49/49, unchanged from
+  baseline. `corepack pnpm build` — succeeds, same route list as before.
+  **`corepack pnpm test:visual` was NOT run successfully** — this worktree has
+  no `.env.local` (the same gap already noted above and in `docs/SETUP.md`)
+  and no `design/reference/` baseline (`design/reference/` is git-ignored), so
+  the script refuses immediately ("no references. Run `corepack pnpm
+  design:reference` first"). Not claiming a visual pass that did not happen.
+  For what it's worth: every string changed is error-path copy (`internal`
+  fallback, `invalid_body`) that never renders in the default/success states
+  `test:visual` captures, so even a working harness would not have exercised
+  these particular lines — but that is a note, not a substitute for actually
+  running the gate.
+
 ### 12 Sep 2026 — GitHub Actions secrets configured
 
 - `SUPABASE_DB_URL` was set from the exact value already verified against the

@@ -41,7 +41,7 @@ const ERROR_COPY: Record<string, string> = {
   not_authorized: 'Only an active operator may manage the AAA list.',
   already_decided: 'That nomination has already been approved.',
   invalid_body: 'Check the name and Indian mobile number.',
-  internal: 'Something went wrong. Try again.',
+  internal: "That didn't go through. Try again.",
 }
 
 function errorCopy(body: unknown): string {
