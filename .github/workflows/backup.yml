@@ -41,8 +41,26 @@ jobs:
             exit 1
           fi
 
-      - name: Install postgresql-client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Install postgresql-client (pinned to the server's major version)
+        # Found 14 Sep 2026: every run of this workflow since it was created
+        # had failed — `pg_dump: error: aborting because of server version
+        # mismatch` (server 17.6, unversioned `postgresql-client` on Ubuntu
+        # 24.04 runners resolves to 16.x, and pg_dump refuses to dump a newer
+        # server than itself). Zero encrypted backups had ever actually been
+        # produced; the workflow only looked fine because nobody had checked
+        # `gh run list` against it. The PGDG apt repo is the standard way to
+        # get a pg_dump matching Supabase's Postgres major version rather than
+        # whatever Ubuntu's own repo happens to ship.
+        run: |
+          sudo apt-get update && sudo apt-get install -y curl ca-certificates gnupg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
 
       - name: Dump and encrypt
         env:

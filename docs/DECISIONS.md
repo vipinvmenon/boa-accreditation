@@ -122,8 +122,16 @@ translating the design into classes, which ADR-001 and DESIGN-SYSTEM.md forbid.
 `script-src` remains nonce-based with `'strict-dynamic'`, which is where the
 actual XSS risk lives. `'wasm-unsafe-eval'` is additionally required for the
 zxing scanning fallback on iOS; without it every iPhone at the gate silently
-loses the camera, so the aeroplane-mode test asserts a decode with CSP
-**enforced**, not disabled.
+loses the camera.
+
+**Correction, 14 Sep 2026: this ADR describes a decision, not a shipped
+fact — `script-src`/`middleware.ts` were never actually implemented, and the
+aeroplane-mode test does not assert anything about CSP.** Found while
+auditing for exactly this class of drift (a doc claiming a verification that
+was never performed, CLAUDE.md's own warning). `docs/SECURITY.md`'s "CSP"
+section carried the same false claim and has the same correction. The `style-
+src 'unsafe-inline'` decision above is still the intended design; the
+`script-src`/nonce half is still open work, not yet built.
 
 ---
 

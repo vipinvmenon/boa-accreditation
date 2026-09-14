@@ -40,10 +40,19 @@ jobs:
       - run: corepack pnpm install --frozen-lockfile
       - name: Verify what is actually live
         run: |
+          # deployment_status.environment_url is Vercel's unique per-deployment
+          # alias (e.g. boa-accreditation-<hash>-vipin-menon.vercel.app), NOT
+          # the custom domain — even for a Production deployment_status event.
+          # That alias sits behind Vercel Deployment Protection (SSO) by
+          # default and 302s to vercel.com/sso-api, which is not what a real
+          # visitor ever hits. Found 14 Sep 2026: every deployment_status-
+          # triggered run had been failing on this since the workflow's own
+          # creation, unnoticed because nobody had checked `gh run list`
+          # against it — the exact "document asserts a verification never
+          # performed" pattern CLAUDE.md warns about. The custom domain is the
+          # only URL worth verifying for an automatic run; only a manual
+          # workflow_dispatch may override it.
           URL="${{ github.event.inputs.url }}"
-          if [ -z "$URL" ] && [ "${{ github.event_name }}" = "deployment_status" ]; then
-            URL="${{ github.event.deployment_status.environment_url }}"
-          fi
           if [ -z "$URL" ]; then URL="https://accred.bangaloreopenair.com"; fi
           echo "Verifying $URL"
           corepack pnpm verify:deploy "$URL"
