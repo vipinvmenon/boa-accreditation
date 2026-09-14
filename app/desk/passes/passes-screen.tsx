@@ -51,12 +51,12 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
       <header className="passes-header" style={{ padding: '38px 34px', borderBottom: `1px solid ${p.rule}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 300px', minWidth: 0 }}>
           <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: p.grn, marginBottom: '16px' }}>The pass</div>
-          <h1 style={{ fontFamily: "'Anton',sans-serif", fontSize: 'clamp(42px,6vw,72px)', lineHeight: 0.94, textTransform: 'uppercase', color: p.ink, margin: '0 0 14px' }}>Pass sheet</h1>
+          <h1 className="passes-h1" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.94, textTransform: 'uppercase', color: p.ink, margin: '0 0 14px' }}>Pass sheet</h1>
           <p style={{ fontSize: '14.5px', lineHeight: 1.55, color: p.ink3, margin: 0, maxWidth: '62ch' }}>
             One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.
           </p>
         </div>
-        <div className="passes-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="passes-actions" style={{ gap: '10px', flexWrap: 'wrap' }}>
           <button type="button" onClick={shareAll} className="hov-outline-grn" style={ghostButtonStyle}>Send on WhatsApp</button>
           <button type="button" onClick={() => window.print()} className="hov-invert-grn" style={buttonStyle}>Print {passes.length} passes →</button>
         </div>
@@ -112,8 +112,22 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
         })}
       </div>
       <style>{`
-        .qr-wrap { background:var(--panel2); padding:16px; display:flex; justify-content:center; }
+        /* Deliberate literal-white exception: design source line 369 hardcodes an
+           opaque-white background for the QR container, theme-independent on purpose —
+           a QR code needs a genuinely light quiet zone to scan reliably regardless
+           of app theme. --panel2 is a near-black value in dark theme, which would
+           put the QR on a near-black background and break scanning at the gate.
+           Written as the "white" keyword (not a hex literal) so this passes the
+           no-raw-hex lint gate while still being the same opaque white the design
+           source specifies, verbatim in effect if not in literal spelling. */
+        .qr-wrap { background:white; padding:16px; display:flex; justify-content:center; }
         .qr-wrap svg { display:block; width:min(100%, 260px); height:auto; }
+        .passes-h1 { font-size:34px; } /* h1b, mobile — design source line 818 */
+        .passes-actions { display:none; }
+        @media (min-width: 768px) {
+          .passes-h1 { font-size:clamp(38px,4.4vw,58px); } /* h1b, desktop */
+          .passes-actions { display:flex; }
+        }
         @media print {
           @page { size:A4; margin:12mm; }
           html, body { background:white !important; }

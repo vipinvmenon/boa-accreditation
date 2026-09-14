@@ -196,7 +196,7 @@ export function ControlRoomScreen() {
                   >
                     Clear the queue
                     <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: 700 }}>
-                      {dash.pendingTotal} left
+                      {dash.pendingTotal}
                     </span>
                   </Link>
                   <Link

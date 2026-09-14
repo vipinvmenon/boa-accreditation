@@ -73,3 +73,14 @@
   background: var(--bad) !important;
   color: var(--on) !important;
 }
+
+/**
+ * `style-focus="background:var(--panel)"` (design source, master-list search
+ * input) — the one `style-focus` treatment that isn't a border colour swap
+ * (see globals.css's `:focus-visible` rule for the keyboard-ring case this
+ * class does not replace). Real `:focus`, not `:focus-visible`: the design
+ * attribute fires on any focus, mouse or keyboard.
+ */
+.foc-bg-panel:focus {
+  background: var(--panel) !important;
+}

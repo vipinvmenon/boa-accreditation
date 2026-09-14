@@ -89,7 +89,7 @@ export function MasterScreen() {
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', color: 'var(--ink,#F2EFE2)', paddingBottom: '64px' }}>
       <div className="d-shell">
-        <header style={{ padding: '40px 18px 24px', borderBottom: `1px solid ${p.rule}` }}>
+        <header className="d-pad-sec" style={{ borderBottom: `1px solid ${p.rule}` }}>
           <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--grn,#00F5A5)', marginBottom: '16px' }}>
             Master list
           </div>
@@ -107,6 +107,7 @@ export function MasterScreen() {
             placeholder="SEARCH NAME, PHONE, COMPANY, BAND SERIAL"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            className="foc-bg-panel"
             style={{ flex: '1 1 auto', minWidth: 0, border: 0, borderRight: `1px solid ${p.rule}`, background: 'transparent', color: 'var(--ink,#F2EFE2)', padding: '16px 18px', fontFamily: "'Oswald',sans-serif", fontSize: '11.5px', letterSpacing: '0.1em', textTransform: 'uppercase', outline: 'none' }}
           />
           <a href={exportHref} download className="hov-text-grn" style={{ ...buttonStyle, display: 'flex', alignItems: 'center', border: 0, textDecoration: 'none', whiteSpace: 'nowrap' }}>
