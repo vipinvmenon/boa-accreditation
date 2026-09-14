@@ -2176,6 +2176,44 @@ ever run directly rather than through `corepack pnpm test:db`'s normal path.
 Worth a second pass before writing another test in this family that mutates
 real rows mid-statement.
 
+### 14 Sep 2026 — design-fidelity audit: Control Room, Master List, Passes fixed; Queue open for Cursor
+
+Vipin reported design differences on several desk screens persisting despite
+the 12–13 Sep fixes already logged above. Since `test:visual` still can't
+authenticate an operator in CI, these screens have never been pixel-verified
+— ran a code-level audit instead (four parallel read-only passes against the
+exact `design/source/boa_design_body.html` ranges for Control Room, Queue,
+Master List, Passes). Full findings, decisions still needed from Vipin, and
+the Cursor-assigned Queue task list are in `docs/DESIGN-QA-2026-09-14.md`.
+
+**Fixed:** Control Room's "Clear the queue N left" → bare `N` (matches design
+exactly, and makes `docs/COPY.md`'s pre-existing "identical" claim true rather
+than false). Master List's hardcoded header padding, wrong `.d-master-cols`
+column ratios, and missing search-input focus background. Passes' QR
+quiet-zone background — was `var(--panel2)` (near-black in dark theme, a real
+scan-reliability risk at the gate, not just cosmetic) — now the design's
+literal white; header actions now hide below 768px per the design's `isWeb`
+guard; H1 now uses the correct responsive token (the fix agent caught that my
+own briefing pointed at the wrong existing class, `.d-h1`, which actually
+carries a different token than the one this screen needs, and self-corrected
+rather than following bad instructions).
+
+**Verified:** typecheck/lint/test all green (49/49, no stray hex). Logged in
+live via a generated recovery link for the `+lead` test operator (same
+admin-API technique used for Vipin's 12 Sep password reset) — confirmed
+Control Room and Master List render correctly. **Not verified:** the Passes
+QR fix's actual rendering — zero approved people exist in the database right
+now, so no pass card exists to render it against; code review only, stated
+here rather than overclaimed.
+
+**Open:** Queue has 10 findings, the largest gap of the four (missing bulk
+org-level Reject button, missing footer summary strip, missing type-colour
+swatch, hardcoded non-responsive H1/padding/grid, a filter tab silently
+swapped from "AAA flagged" to "All"). Deliberately left untouched so Cursor
+can pick it up in parallel with zero merge risk — see the plan doc for exact
+file:line findings. Three items also need a decision from Vipin (documented
+in the plan doc), not a code fix.
+
 ## Template for the next session update
 
 ```
