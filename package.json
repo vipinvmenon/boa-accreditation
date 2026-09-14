@@ -30,7 +30,9 @@
     "db:push": "node scripts/db-push.mjs",
     "db:dry": "node scripts/db-push.mjs --dry",
     "seed:dummy": "node scripts/seed-dummy.mjs",
-    "wipe:dummy": "node scripts/wipe-dummy.mjs"
+    "wipe:dummy": "node scripts/wipe-dummy.mjs",
+    "orgs:load": "node scripts/load-orgs.mjs",
+    "orgs:wipe": "node scripts/wipe-orgs.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

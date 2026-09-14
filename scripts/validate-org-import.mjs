@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 
-const HEADERS = ['name', 'kind', 'quota', 'contact_name', 'contact_phone', 'default_type']
-const ORG_KINDS = ['vendor', 'crew', 'sponsor', 'media', 'security', 'contractor']
+export const HEADERS = ['name', 'kind', 'quota', 'contact_name', 'contact_phone', 'default_type']
+export const ORG_KINDS = ['vendor', 'crew', 'sponsor', 'media', 'security', 'contractor']
 const ORG_TYPE_CODES = ['crew', 'stage', 'aaa']
-const orgCreateSchema = z.object({
+export const orgCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   kind: z.enum(ORG_KINDS),
   quota: z.coerce.number().int().min(0).max(500),
@@ -13,7 +13,7 @@ const orgCreateSchema = z.object({
   defaultType: z.enum(ORG_TYPE_CODES).optional(),
 })
 
-function parseCsv(input) {
+export function parseCsv(input) {
   const rows = []
   let row = []
   let field = ''
@@ -68,41 +68,31 @@ function formatIssues(rowNumber, issues) {
   })
 }
 
-async function main() {
-  const args = process.argv.slice(2).filter((argument) => argument !== '--')
-  const json = args.includes('--json')
-  const file = args.find((argument) => argument !== '--json')
-  if (!file) {
-    usage()
-    process.exitCode = 2
-    return
-  }
-
+/**
+ * Reads and validates an organisation CSV, exactly the ACC-030a shape.
+ * Returns { organisations, errors }. `organisations` is only populated when
+ * `errors` is empty. Shared by the CLI validator below and by any script
+ * (e.g. scripts/load-orgs.mjs) that needs the same validated rows before
+ * writing anything to the database.
+ */
+export async function loadOrgFile(file) {
   const source = (await readFile(file, 'utf8')).replace(/^\uFEFF/, '')
   let rows
   try {
     rows = parseCsv(source)
   } catch (error) {
-    console.error(`Invalid CSV: ${error instanceof Error ? error.message : 'parse error'}`)
-    process.exitCode = 1
-    return
+    return { organisations: [], errors: [`Invalid CSV: ${error instanceof Error ? error.message : 'parse error'}`] }
   }
 
   const header = rows.shift()
   if (!header || header.length !== HEADERS.length || header.some((value, index) => value !== HEADERS[index])) {
-    console.error(`Invalid header. Expected exactly: ${HEADERS.join(',')}`)
-    process.exitCode = 1
-    return
+    return { organisations: [], errors: [`Invalid header. Expected exactly: ${HEADERS.join(',')}`] }
   }
   if (rows.length === 0) {
-    console.error('The organisation file contains no data rows.')
-    process.exitCode = 1
-    return
+    return { organisations: [], errors: ['The organisation file contains no data rows.'] }
   }
   if (rows.length !== 38) {
-    console.error(`Expected exactly 38 organisation rows, received ${rows.length}.`)
-    process.exitCode = 1
-    return
+    return { organisations: [], errors: [`Expected exactly 38 organisation rows, received ${rows.length}.`] }
   }
 
   const organisations = []
@@ -139,6 +129,22 @@ async function main() {
     names.set(key, rowNumber)
     organisations.push(parsed.data)
   })
+
+  if (errors.length > 0) return { organisations: [], errors }
+  return { organisations, errors: [] }
+}
+
+async function main() {
+  const args = process.argv.slice(2).filter((argument) => argument !== '--')
+  const json = args.includes('--json')
+  const file = args.find((argument) => argument !== '--json')
+  if (!file) {
+    usage()
+    process.exitCode = 2
+    return
+  }
+
+  const { organisations, errors } = await loadOrgFile(file)
 
   if (errors.length > 0) {
     errors.forEach((error) => console.error(error))

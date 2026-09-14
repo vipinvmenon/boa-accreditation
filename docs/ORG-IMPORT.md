@@ -62,3 +62,35 @@ Do not put raw tokens in git, logs, screenshots, the database, or this
 repository. Do not mark ACC-031 complete until all 38 URLs have been copied,
 labelled, spot-checked, and sent by the human operator. Real operator/contact
 emails remain human-dependent per `docs/CURRENT-STATE.md`.
+
+## Placeholder data — rehearsal only, not ACC-030/031
+
+Added 14 Sep 2026 while ACC-030a was still blocked on Bhoopesh's real list, at
+Vipin's request, so desk-screen work could proceed without waiting.
+`data/orgs-placeholder.csv` is 38 fabricated rows in exactly this format, every
+name prefixed `PLACEHOLDER — `, validated by `corepack pnpm validate:org-import
+-- data/orgs-placeholder.csv`. **This is not the real 38 and must never be
+treated as satisfying ACC-030a, ACC-030, or ACC-031.**
+
+`scripts/load-orgs.mjs` loads any validated CSV — this placeholder file or,
+later, the real one — into the database through the same
+`boa_acc_create_org` / `boa_acc_mint_invite` RPCs the app itself calls
+(the technique `scripts/seed-dummy.mjs`/ACC-035 already uses), skipping any
+organisation whose name already exists:
+
+```bash
+node scripts/load-orgs.mjs data/orgs-placeholder.csv --out data/placeholder-invites.local.csv
+```
+
+The `--out` file holds the raw invite URLs (tokens included) and is
+`.gitignore`d by the `*.local.csv` pattern — never commit it, delete it once
+you're done rehearsing. `scripts/wipe-orgs.mjs --prefix "PLACEHOLDER — "`
+removes every placeholder org (and its people/invites) by the same cascade
+`wipe-dummy.mjs` uses, the same way the roadmap already requires 0 `TEST — `
+orgs before the real 38 go out — run it before loading the real list.
+
+This script is deliberately **not** how the real 38 should be loaded: the
+"Human input required" sections above still apply to real organisations —
+one at a time through `/desk/orgs`, reviewed against Bhoopesh's source,
+tokens copied by a human straight into the WhatsApp handoff document. Bulk
+loading real orgs by script would skip that review step.

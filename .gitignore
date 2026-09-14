@@ -30,6 +30,11 @@ supabase/.branches/
 /playwright-report/
 /coverage/
 
+# scripts/load-orgs.mjs writes raw invite tokens here. Never commit these —
+# see docs/ORG-IMPORT.md, "Do not put raw tokens in git, logs, screenshots,
+# the database, or this repository."
+/data/*.local.csv
+
 # `vercel link` appends a blanket `.env*`. Keep it — belt and braces over the
 # specific rules above — but negate the one env file that IS the contract.
 # .env.example carries no values, only the shape, and every new agent needs it.
