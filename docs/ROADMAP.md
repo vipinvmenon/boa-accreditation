@@ -174,7 +174,7 @@ before ACC-031 mints the 38 real invite tokens.
 
 ## Phase 2 — Ready to send · Fri 18 – Sat 19 Sep
 
-- [ ] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
+- [~] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
 - [ ] **ACC-031** · Mint + label 38 invite tokens; export a WhatsApp-ready list · **C** · due Fri 18
 - [x] **ACC-032** · Confirmation copy, duplicate-phone path, closed-org path · **C** · due Sat 19
 - [x] **ACC-033** · `/desk` Control room on `boa_acc_desk_dashboard()` · **C** · due Sat 19
