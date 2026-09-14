@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const QUEUE_FILTERS = ['pending', 'approved', 'rejected', 'all'] as const
+export const QUEUE_FILTERS = ['pending', 'approved', 'rejected', 'aaa'] as const
 export const queueFilterSchema = z.enum(QUEUE_FILTERS)
 export type QueueFilter = z.infer<typeof queueFilterSchema>
 
@@ -30,7 +30,7 @@ export const queueResponseSchema = z.object({
     pending: z.number().int().nonnegative(),
     approved: z.number().int().nonnegative(),
     rejected: z.number().int().nonnegative(),
-    all: z.number().int().nonnegative(),
+    aaa: z.number().int().nonnegative(),
   }),
 })
 
@@ -48,6 +48,11 @@ export const queueActionSchema = z.discriminatedUnion('action', [
     orgId: z.string().uuid(),
     typeCode: z.enum(['crew', 'stage']),
     dayValidity: queueDayValiditySchema,
+  }),
+  z.object({
+    action: z.literal('reject_org'),
+    orgId: z.string().uuid(),
+    reason: z.string().trim().min(1).max(300),
   }),
 ])
 

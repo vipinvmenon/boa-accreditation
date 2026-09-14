@@ -56,11 +56,17 @@ export async function POST(request: Request) {
       p_decision_reason: action.approve ? null : action.reason ?? null,
     })
     if (error) return mutationError(error.code)
-  } else {
+  } else if (action.action === 'approve_org') {
     const { error } = await supabase.rpc('boa_acc_approve_org', {
       p_org_id: action.orgId,
       p_type_code: action.typeCode,
       p_day_validity: action.dayValidity,
+    })
+    if (error) return mutationError(error.code)
+  } else {
+    const { error } = await supabase.rpc('boa_acc_reject_org', {
+      p_org_id: action.orgId,
+      p_decision_reason: action.reason,
     })
     if (error) return mutationError(error.code)
   }

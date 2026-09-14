@@ -154,6 +154,9 @@
 .d-master-cols {
   grid-template-columns: 1fr; /* masterCols, mobile */
 }
+.d-queue-cols {
+  grid-template-columns: auto minmax(0, 1fr); /* qCols, mobile */
+}
 .d-poster {
   width: 100%; /* posterW, mobile */
   background-position: 50% 8%; /* posterPos, mobile */
@@ -208,6 +211,9 @@
   }
   .d-master-cols {
     grid-template-columns: minmax(0, 2fr) 1.1fr 0.8fr 1.1fr 0.9fr 1.3fr; /* mCols, desktop */
+  }
+  .d-queue-cols {
+    grid-template-columns: auto minmax(0, 2.2fr) 1.5fr auto; /* qCols, desktop */
   }
   .d-poster {
     width: min(56%, 720px); /* posterW, desktop */

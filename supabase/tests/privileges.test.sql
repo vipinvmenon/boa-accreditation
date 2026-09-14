@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(72) as line
+  select 0 as n, plan(74) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -107,6 +107,8 @@ select line from (
   union all select 57, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_revoke_device')
   union all select 66, function_privs_are('public', 'boa_acc_approval_queue', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_approval_queue')
   union all select 67, function_privs_are('public', 'boa_acc_approval_queue', array['text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_approval_queue')
+  union all select 79, function_privs_are('public', 'boa_acc_reject_org', array['uuid','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_reject_org')
+  union all select 80, function_privs_are('public', 'boa_acc_reject_org', array['uuid','text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_reject_org')
   union all select 68, function_privs_are('public', 'boa_acc_passes', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_passes')
   union all select 69, function_privs_are('public', 'boa_acc_passes', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_passes')
 
