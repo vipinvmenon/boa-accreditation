@@ -2266,6 +2266,33 @@ When the real list lands: `node scripts/wipe-orgs.mjs --prefix "PLACEHOLDER —
 "` first, then follow `docs/ORG-IMPORT.md`'s real-org process, then
 `corepack pnpm task done ACC-030`.
 
+### 14 Sep 2026 — ACC-071 done: verify-deploy was silently red since ADR-013, not "awaiting evidence"
+
+Asked to consolidate what's left on the roadmap and found ACC-071 ("watch
+verify-deploy, awaiting logged scheduled-run evidence") looked like a passive
+wait. Checked with `gh run list --workflow=deploy-verify.yml` instead of
+assuming: **every run today was `failure`**, including the 08:02 UTC scheduled
+one against the real production domain — 4 of 18 checks failing, every day,
+since 13 Sep.
+
+**Root cause:** `scripts/verify-deploy.mjs`'s root checks (`root responds
+200`, page title, `<meta robots>`, serving region) were never updated after
+ADR-013 changed `/` from a rendered 200 page to `redirect('/desk/login')`.
+The script kept asserting a 200 body existed at `/`, which stopped being true
+the moment ADR-013 shipped — an already-landed, correct product change was
+failing CI for a day because the verifier was checking the old contract.
+
+**Fix:** root is now checked only for the redirect itself (`307` to
+`/desk/login`); the page-content checks (title, `<meta robots>` noindex,
+serving region) moved to `/desk/login`, the page a visitor is actually shown
+(confirmed by `curl` against production first, not guessed: the noindex meta
+tag and app title both live there, and security headers are present on both
+the redirect and the final page, so those checks were untouched).
+
+**Verified:** `corepack pnpm verify:deploy` against the real production
+domain — **18/18**, the exact number ACC-071's roadmap line names.
+`typecheck`/`lint`/`test` (49/49) all green.
+
 ## Template for the next session update
 
 ```

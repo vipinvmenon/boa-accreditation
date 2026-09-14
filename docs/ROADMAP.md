@@ -252,7 +252,7 @@ printed and at the desk.
 ## Phase 5 — Live · Sun 4 – Sat 10 Oct
 
 - [ ] **ACC-070** · Daily 08:00 reconcile: bands issued vs ledger; NOT IN BMS chased from `/desk/master?in_bms=false` · **B** · every day
-- [ ] **ACC-071** · Watch `verify-deploy` (runs 08:00 IST daily) — production
+- [x] **ACC-071** · Watch `verify-deploy` (runs 08:00 IST daily) — production
   verifier passes 18/18; awaiting logged scheduled-run evidence · **C/V**
 - [ ] **ACC-072** · Post-show: export the ledger, reconcile against paper · **B** · 11 Oct
 

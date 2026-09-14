@@ -39,14 +39,24 @@ const get = async (path, init) => {
 console.log(`verify-deploy: ${base}\n`)
 
 // ── 1. The site is up and is ours ─────────────────────────────────────────
+// ADR-013 (13 Sep 2026): root is `redirect('/desk/login')`, not a rendered
+// 200 page — "Sign in should be the page," per Vipin's own words in
+// docs/CURRENT-STATE.md. So root itself is checked only for that redirect;
+// the actual page content (title, noindex meta, serving region) is checked
+// on /desk/login, the page a visitor is actually shown.
 const root = await get('/')
-check('root responds 200', root.status === 200, `HTTP ${root.status}${root.error ? ' ' + root.error : ''}`)
-const html = root.status === 200 ? await root.text() : ''
+check(
+  'root redirects to /desk/login',
+  root.status === 307 && root.headers.get('location') === '/desk/login',
+  `HTTP ${root.status} -> ${root.headers.get('location') ?? '(no location)'}${root.error ? ' ' + root.error : ''}`,
+)
+const login = await get('/desk/login')
+const html = login.status === 200 ? await login.text() : ''
 check('serves this app', /BOA Accreditation/.test(html), html ? 'found <title>' : 'no body')
 check(
   'served from bom1 (Mumbai)',
-  (root.headers.get('x-vercel-id') ?? '').includes('bom1'),
-  root.headers.get('x-vercel-id') ?? '(no x-vercel-id)',
+  (login.headers.get('x-vercel-id') ?? '').includes('bom1'),
+  login.headers.get('x-vercel-id') ?? '(no x-vercel-id)',
 )
 
 // ── 2. Security headers. Each is one silently-wrong `source` away from absent ──
@@ -65,7 +75,7 @@ for (const [h, want] of Object.entries(wantHeaders)) {
 check('x-powered-by suppressed', root.headers.get('x-powered-by') === null, root.headers.get('x-powered-by') ?? 'absent')
 
 // ── 3. Nothing indexable. A crawled /p/<pass_token> publishes a credential ──
-check('<meta robots> noindex', /name="robots"[^>]*noindex/.test(html), 'in <head>')
+check('/desk/login <meta robots> noindex', /name="robots"[^>]*noindex/.test(html), 'in <head>')
 for (const p of ['/s/probe', '/p/probe']) {
   const r = await get(p)
   check(`${p} X-Robots-Tag noindex`, /noindex/.test(r.headers.get('x-robots-tag') ?? ''), r.headers.get('x-robots-tag') ?? '(absent)')
