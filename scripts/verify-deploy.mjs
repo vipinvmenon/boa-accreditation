@@ -23,6 +23,11 @@ const check = (name, ok, detail) => {
   results.push({ name, ok, detail })
   if (!ok) failed++
 }
+// For a claim this script cannot reliably prove either way from wherever it
+// happens to run — never a pass/fail signal, always printed.
+const info = (name, detail) => {
+  results.push({ name, ok: true, detail, info: true })
+}
 
 const get = async (path, init) => {
   try {
@@ -53,11 +58,16 @@ check(
 const login = await get('/desk/login')
 const html = login.status === 200 ? await login.text() : ''
 check('serves this app', /BOA Accreditation/.test(html), html ? 'found <title>' : 'no body')
-check(
-  'served from bom1 (Mumbai)',
-  (login.headers.get('x-vercel-id') ?? '').includes('bom1'),
-  login.headers.get('x-vercel-id') ?? '(no x-vercel-id)',
-)
+// Informational, not pass/fail — found 14 Sep 2026 failing on every CI run.
+// /desk/login is a static/prerendered route, so Vercel's edge CDN serves it
+// from whichever POP is nearest the REQUESTER, not from vercel.json's
+// `regions: ["bom1"]` (that setting pins serverless FUNCTION execution only,
+// which this static response never invokes). A GitHub Actions runner far
+// from Mumbai will legitimately show a different POP — that is not a
+// deployment defect, so it must never fail this script. What actually
+// matters (function region) is already static config in vercel.json, not
+// something an edge-cached static page can prove either way at request time.
+info('serving edge POP (informational, region-cache is requester-local, not "regions":["bom1"])', login.headers.get('x-vercel-id') ?? '(no x-vercel-id)')
 
 // ── 2. Security headers. Each is one silently-wrong `source` away from absent ──
 const wantHeaders = {
@@ -121,10 +131,11 @@ if (sw.status === 200) {
 
 // ── Report ────────────────────────────────────────────────────────────────
 const pad = (s, n) => String(s).padEnd(n)
-for (const r of results) console.log(`  [${r.ok ? 'ok' : 'XX'}] ${pad(r.name, 40)} ${r.detail}`)
+for (const r of results) console.log(`  [${r.info ? 'in' : r.ok ? 'ok' : 'XX'}] ${pad(r.name, 40)} ${r.detail}`)
 
+const scored = results.filter((r) => !r.info)
 if (failed) {
-  console.error(`\nverify-deploy FAILED: ${failed} of ${results.length} checks.`)
+  console.error(`\nverify-deploy FAILED: ${failed} of ${scored.length} checks.`)
   process.exit(1)
 }
-console.log(`\nverify-deploy OK — ${results.length} checks against the live site.`)
+console.log(`\nverify-deploy OK — ${scored.length} checks against the live site.`)
