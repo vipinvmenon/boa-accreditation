@@ -2293,6 +2293,77 @@ the redirect and the final page, so those checks were untouched).
 domain — **18/18**, the exact number ACC-071's roadmap line names.
 `typecheck`/`lint`/`test` (49/49) all green.
 
+### 14 Sep 2026 — CI audit: two workflows had a 100% failure rate, unnoticed; both fixed and proven green for real
+
+Asked to consolidate remaining roadmap work, then to keep digging for the
+class of bug ACC-071's fix already exposed once today (a doc claiming
+something works that nobody had actually re-checked). Spawned three
+parallel read-only audits (GitHub Actions workflows, the offline gate
+subsystem, hidden prep work behind "human-only" roadmap items) rather than
+assume the earlier "nothing left to distribute" conclusion was complete.
+
+**`deploy-verify.yml` was still broken after this morning's ACC-071 fix** —
+that fix corrected `scripts/verify-deploy.mjs`'s own logic (ADR-013's root
+redirect), but the *workflow* was separately broken: every `deployment_status`
+-triggered run (its primary, automatic trigger) had been failing since the
+workflow's creation, because `github.event.deployment_status.environment_url`
+is Vercel's per-deployment alias — behind Vercel Deployment Protection (SSO),
+which 302s before any real check runs — not the custom domain, even for a
+Production event. Fixed: automatic runs always verify
+`accred.bangaloreopenair.com`. **Proven, not assumed**: watched the actual
+next `deployment_status` run (34860856284) go `success` in `gh run list`.
+
+A third, smaller issue surfaced in that same real run: "served from bom1"
+failed because `/desk/login` is static/prerendered and Vercel's edge CDN
+serves it from whichever POP is nearest the *requester*, not from
+`vercel.json`'s `regions: ["bom1"]` (that pins serverless function execution
+only). A CI runner far from Mumbai will always show a different POP —
+not a defect. Downgraded to an always-printed informational line.
+
+**`backup.yml` has never once succeeded — zero encrypted backups existed
+until today.** `gh run list` showed 100% failure since the workflow's
+creation; `docs/CURRENT-STATE.md`'s own 11 Sep note ("not yet run to
+confirm") was never revisited even after three real scheduled failures.
+Root cause: unversioned `postgresql-client` on the Ubuntu 24.04 runner
+resolves to pg_dump 16.x, which refuses to dump the real server's Postgres
+17.6. Fixed via the PGDG apt repo, pinned to `postgresql-client-17`. **The
+fix itself had a bug**, caught by actually triggering the workflow
+(`gh workflow run backup.yml`) rather than waiting for tonight's 03:00 IST
+schedule: `gpg --dearmor` needs `--batch --yes` to run non-interactively in
+CI (`gpg: cannot open '/dev/tty'`). Fixed and re-triggered.
+**Verified for real, not assumed**: run 34861187638 succeeded end-to-end —
+`boa-accred-20260914-151751.sql.gpg`, 66,530 bytes, a genuine encrypted
+`pg_dump` artifact, first one this project has ever actually produced.
+
+**Also corrected a false claim, not a bug in running code**:
+`docs/SECURITY.md`'s "CSP" section and ADR-006 (`docs/DECISIONS.md`)
+described a nonce-based CSP in `middleware.ts` as already shipped.
+`middleware.ts` has never existed in this repo's git history; no CSP header
+is set anywhere; `tests/e2e/aeroplane-mode.spec.ts` has no CSP/nonce
+reference despite the doc's claim that it asserts a decode with CSP
+enforced. Both docs corrected to say plainly what's true; the real
+implementation is now the one substantial piece of open work, handed to
+Cursor via `docs/NEXT-STEPS-2026-09-14.md` with the full spec and an
+explicit warning not to ship it without re-verifying the gate scanner
+(zxing-wasm/`'wasm-unsafe-eval'`) under the real policy.
+
+**Also built ahead of their due dates**, found as gaps during the third
+audit: `app/api/desk/export/route.ts` (ACC-072's ledger export — the stub
+directory had no route at all; the only existing export drops voided rows
+and dedupes, so it couldn't reconstruct real history) and
+`scripts/reconcile-paper-fallback.mjs` (ACC-059 — the existing validator
+only checked CSV shape, never whether rows were still true against the live
+database). Both verified against the real database by their building
+subagents.
+
+**Verified throughout**: `typecheck`/`lint`/`test` (49/49) green after every
+commit; `test:db` (10/10 pgTAP files) green with the 38 placeholder orgs
+still present; `check:sql` green; `corepack pnpm verify:deploy` — 17/18
+scored checks pass against production, 1 informational.
+
+See `docs/NEXT-STEPS-2026-09-14.md` for the consolidated Claude/Cursor split
+going forward.
+
 ## Template for the next session update
 
 ```
