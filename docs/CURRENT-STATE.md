@@ -710,6 +710,9 @@ Verified by attempting the thing, not by reading a grant table:
 > thing to ship, since the reset flow is currently broken in production for
 > exactly this reason.
 
+
+> **ACC-030 released 2026-09-14 (IST):** Blocked on ACC-030a (Bhoopesh's real 38-org list). 38 PLACEHOLDER orgs are loaded; resume when the list lands.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
