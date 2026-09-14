@@ -53,6 +53,10 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-010b** · Vercel scope confirmed **fine**. `vercel link` reports
       orgId `team_rDgA7v4RmDHjA3gFRapQoccp` — the same team as the siblings. The
       `vipin-menon` slug in the dashboard URL only looks personal. **Done 11 Sep.**
+- [ ] **ACC-090a** · Create the `qa-visual` operator at `/desk/users`; set
+      `VISUAL_OPERATOR_EMAIL`/`VISUAL_OPERATOR_PASSWORD` in `.env.local` (both
+      checkouts) and as GitHub Actions secrets. Without it four desk screens
+      stay unmeasured — see `docs/PLAN-DESIGN-FIDELITY.md` · **V** · due Tue 15
 - [ ] **ACC-030a** · The 38 organisations: name, kind, quota, contact name,
       contact phone. **V/B** · *needed 17 Sep*
 - [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.
@@ -169,12 +173,35 @@ against `origin/main`'s actual current state, not carried over on faith.
       not be run in that session (no `.env.local`/`design/reference/`
       baseline in that worktree) — not claimed passing.
 
+**14 Sep — design-fidelity lane split (added, not reordered).** Vipin
+reported Submission, Master List and Passes still differ from the design.
+Root cause: four desk screens have never been pixel-measured (no operator
+login in `test:visual`) and Submission passes only via a 32% exemption.
+Full plan, file ownership and findings: `docs/PLAN-DESIGN-FIDELITY.md`.
+Claude = **C**, Cursor = **CU**, run in parallel.
+
+- [~] **ACC-090** · Visual harness: desk API fixtures (Zod-parsed design
+      data), operator sign-in, named masks replace `KNOWN_GAPS`, anti-hardcode
+      and stale-build guards, review page, published baseline · **C** · due Tue 15
+- [ ] **ACC-091** · `boa_acc_org_roster(p_token)` + `roster.test.sql` +
+      privileges + ADR-016 · **C** · due Wed 16
+- [ ] **ACC-092** · Submission: drafts + "Submit N for approval →" batch,
+      roster-backed "Your list", ≤0.8% on 4 variants · **C** · due Thu 17
+- [ ] **ACC-093** · Merge both lanes; 7/7 screens PASS, 0 BLOCKED, 0 KNOWN
+      GAP; Vipin review; deploy verified · **C** · due Fri 18
+- [ ] **ACC-095** · Contract schemas (K0) + shared shell: footer, logo
+      filter, BMS link, `.d-h1b` · **CU** · due Tue 15
+- [ ] **ACC-096** · Master List M1–M8 at ≤0.8% · **CU** · due Wed 16
+- [ ] **ACC-097** · Passes P1–P7 at ≤0.8% · **CU** · due Thu 17
+- [ ] **ACC-098** · Queue (10 findings) + Control Room at ≤0.8% · **CU** · due Thu 17
+- [ ] **ACC-099** · Cursor lane sign-off, measured numbers in CURRENT-STATE · **CU** · due Fri 18
+
 **Milestone A precondition:** `wipe-dummy` run, 0 `TEST — ` orgs remaining,
 before ACC-031 mints the 38 real invite tokens.
 
 ## Phase 2 — Ready to send · Fri 18 – Sat 19 Sep
 
-- [~] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
+- [ ] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
 - [ ] **ACC-031** · Mint + label 38 invite tokens; export a WhatsApp-ready list · **C** · due Fri 18
 - [x] **ACC-032** · Confirmation copy, duplicate-phone path, closed-org path · **C** · due Sat 19
 - [x] **ACC-033** · `/desk` Control room on `boa_acc_desk_dashboard()` · **C** · due Sat 19
