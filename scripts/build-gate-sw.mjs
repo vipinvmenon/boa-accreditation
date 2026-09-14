@@ -1,9 +1,10 @@
 // Generates public/gate/sw.js from the REAL build output, after next build.
 //
-// The gate is the one surface that has to work with the radio off, and the
-// thing that makes that possible is not clever code — it is that /gate,
-// /gate/vehicle and /gate/setup are force-static, so they are files a service
-// worker can precache by URL. Everything dynamic they need comes from IndexedDB.
+// The gate is the one surface that has to work with the radio off. Its route
+// responses are cached during service-worker installation, while everything
+// dynamic they need comes from IndexedDB. The routes render dynamically so
+// Next can thread the per-request CSP nonce into its bootstrap scripts; the
+// service worker captures each response, including its matching CSP header.
 //
 // This script reads the asset URLs Next actually emitted rather than guessing
 // them, because a hashed asset name that changes between build and precache
@@ -75,18 +76,34 @@ const localWasm = existsSync(join(root, 'public/gate/zxing_reader.wasm'))
  * the offline gate off. Verified against production on 11 Sep: /gate,
  * /gate/vehicle and /gate/setup were all in the precache list and all 404ing.
  *
- * The prerender manifest is the ground truth for what was emitted. Ask it,
- * do not assume.
+ * As of 14 Sep 2026 the gate routes render dynamically (`force-dynamic`), not
+ * statically — required so middleware.ts's per-request CSP nonce can thread
+ * into Next's App Router script propagation. They no longer appear in
+ * prerender-manifest.json (that file only lists statically-generated routes),
+ * so a build-time check against it would silently stop checking anything and
+ * this exact class of bug could ship again unnoticed — the online-install
+ * safety net in the generated service worker below is real, but it only
+ * catches a missing route live, in a real browser, possibly at the gate
+ * itself; the whole point of this file's original check was to catch it in
+ * CI before a deploy ever happens. app-path-routes-manifest.json is Next's
+ * ground truth for every App Router page it actually built, static or
+ * dynamic — ask it instead of assuming these three still exist.
  */
-function emittedRoutes() {
-  const manifestPath = join(NEXT, 'prerender-manifest.json')
+function emittedAppRoutes() {
+  const manifestPath = join(NEXT, 'app-path-routes-manifest.json')
   if (!existsSync(manifestPath)) return []
-  const routes = Object.keys(JSON.parse(readFileSync(manifestPath, 'utf8')).routes ?? {})
-  return ['/gate', '/gate/vehicle', '/gate/setup'].filter((r) => routes.includes(r))
+  return Object.values(JSON.parse(readFileSync(manifestPath, 'utf8')))
 }
 
-const routes = emittedRoutes()
-const missing = ['/gate', '/gate/vehicle', '/gate/setup'].filter((r) => !routes.includes(r))
+const emitted = emittedAppRoutes()
+const routes = ['/gate', '/gate/vehicle', '/gate/setup']
+const missing = routes.filter((r) => !emitted.includes(r))
+if (missing.length) {
+  console.error(
+    `build-gate-sw: ${missing.join(', ')} not found in app-path-routes-manifest.json — refusing to precache a route Next did not actually build.`,
+  )
+  process.exit(1)
+}
 
 const PRECACHE = [
   ...routes,
@@ -163,16 +180,6 @@ writeFileSync(OUT, sw)
 console.log(
   `build-gate-sw: ${PRECACHE.length} precached (${routes.length} routes, ${scripts.length} scripts, ${css.length} css, ${fonts.length} fonts, ${wasm.length + localWasm.length} wasm) -> public/gate/sw.js`,
 )
-if (missing.length) {
-  console.warn(`build-gate-sw: ${missing.join(', ')} not built yet — excluded. The gate has no offline support until they exist (Phase 4, ACC-054).`)
-}
 if (wasm.length + localWasm.length === 0) {
   console.warn('build-gate-sw: NOTE no .wasm precached yet — the zxing fallback lands in Phase 4 (iOS has no BarcodeDetector).')
-}
-
-// Once the gate exists, a missing route is a build error, not a warning: it
-// means the SW would ship an install that always rejects.
-if (routes.length > 0 && missing.length > 0) {
-  console.error(`build-gate-sw: some gate routes are built and some are not (${missing.join(', ')}). Refusing to emit a precache list that would fail to install.`)
-  process.exit(1)
 }

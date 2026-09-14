@@ -15,8 +15,6 @@ function zonesFor(typeCode: PassTypeCode) {
   return ALL_ZONES.map((zone) => ({ held: held.has(zone), text: held.has(zone) ? zone : `—— ${zone}` }))
 }
 
-export const dynamic = 'force-static'
-
 const emptyResolution: GateResolution = { status: 'red', reason: 'invalid_token' }
 
 export default function GatePage() {

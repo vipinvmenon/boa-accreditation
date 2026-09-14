@@ -2364,6 +2364,56 @@ scored checks pass against production, 1 informational.
 See `docs/NEXT-STEPS-2026-09-14.md` for the consolidated Claude/Cursor split
 going forward.
 
+### 14 Sep 2026 — nonce CSP shipped and verified against the offline gate
+
+- Added `middleware.ts`, which generates a fresh per-request nonce, passes the
+  policy to Next's App Router during rendering, and emits:
+  `script-src 'self' 'nonce-…' 'strict-dynamic' 'wasm-unsafe-eval'`,
+  `style-src 'self' 'unsafe-inline'`, and `font-src 'self'`.
+- Next 16 does not add nonce attributes to inline bootstrap scripts in
+  prerendered pages. The gate routes therefore render dynamically so Next can
+  thread the nonce correctly. `scripts/build-gate-sw.mjs` now precaches those
+  three route responses during the online service-worker install; the cached
+  HTML keeps the matching CSP nonce for radio-off navigation.
+- Extended `tests/e2e/aeroplane-mode.spec.ts` to assert fresh nonces across
+  responses and decode a generated `BOA26:` QR through the local zxing-WASM
+  fallback with the CSP active. `corepack pnpm test:e2e`: **4 passed**.
+- `corepack pnpm typecheck`, `corepack pnpm lint`, `corepack pnpm test`
+  (49/49), and `corepack pnpm build` pass. `corepack pnpm test:visual` passes
+  gate and vehicle; the four desk screens remain credential-blocked, and the
+  documented Submission gap remains.
+- **Still not true:** ACC-053b remains open. A real iPhone must verify the
+  zxing-WASM camera path with this policy active; the Chromium E2E result is
+  necessary but not sufficient.
+
+**Reviewed before merging (Claude), one real regression found and fixed:**
+switching the gate routes to `force-dynamic` (required for per-request nonce
+propagation) meant they no longer appear in `prerender-manifest.json`, so
+`scripts/build-gate-sw.mjs`'s build-time guard — the one added 11 Sep after a
+real incident where the service worker precached three 404ing routes and
+silently killed offline support — had been dropped rather than adapted,
+deferring that same class of check to the service worker's own runtime
+install (which only catches a missing route live, possibly at the gate
+itself, not in CI before a deploy). Fixed by checking
+`.next/app-path-routes-manifest.json` instead — Next's ground truth for every
+App Router page it actually built, static or dynamic. Proved both directions,
+not just the happy path: `corepack pnpm build` still precaches all 3 routes
+normally, and deleting one route's entry from a copy of the manifest and
+re-running `node scripts/build-gate-sw.mjs` directly reproduces the original
+11 Sep failure mode — `build-gate-sw: /gate/vehicle not found in
+app-path-routes-manifest.json — refusing to precache a route Next did not
+actually build`, exit 1. Also traced through the new CSP e2e test line by
+line before trusting "4 passed": the button it clicks is labelled "Can't scan
+— search by name" (transcribed design copy) but its handler actually calls
+`startCamera()` again, which re-drives the real camera→zxing-wasm decode
+pipeline the test's `getUserMedia` mock sets up — not a shortcut around it.
+Re-ran `typecheck`/`lint`/`test`(49/49)/`build`/`test:e2e`(4/4)/`test:visual`
+(gate+vehicle PASS, unchanged from pre-CSP numbers) independently rather than
+trust the reported result. One informational note: Next 16 warns
+`middleware.ts` is a deprecated convention in favour of a new `proxy` file;
+still fully functional, not migrated now given how close the show is —
+flagged for after, not urgent.
+
 ## Template for the next session update
 
 ```

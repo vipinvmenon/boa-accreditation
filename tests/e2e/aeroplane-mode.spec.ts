@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import QRCode from 'qrcode'
 import { gateIssueResultSchema, gateIssueSchema, type GateIssue } from '../../lib/schemas/gate'
 
 const DEVICE_TOKEN = 'local-e2e-device-token'
@@ -161,6 +162,42 @@ async function outboxStatuses(page: Page) {
 }
 
 test.describe('gate aeroplane mode', () => {
+  test('enforces the nonce CSP while the WASM scanner decodes a QR', async ({ page }) => {
+    const qrDataUrl = await QRCode.toDataURL('BOA26:pass-alpha', { margin: 2, width: 300 })
+    await page.addInitScript((dataUrl: string) => {
+      Object.defineProperty(window, 'BarcodeDetector', { configurable: true, value: undefined })
+      navigator.mediaDevices.getUserMedia = async () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 300
+        canvas.height = 300
+        const image = new Image()
+        image.src = dataUrl
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve()
+          image.onerror = () => reject(new Error('fixture QR image failed to load'))
+        })
+        canvas.getContext('2d')?.drawImage(image, 0, 0)
+        return canvas.captureStream(10)
+      }
+    }, qrDataUrl)
+
+    const firstResponse = await page.request.get('/gate/setup')
+    const firstCsp = firstResponse.headers()['content-security-policy']
+    expect(firstCsp).toContain("script-src 'self' 'nonce-")
+    expect(firstCsp).toContain("'strict-dynamic'")
+    expect(firstCsp).toContain("'wasm-unsafe-eval'")
+    expect(firstCsp).toContain("style-src 'self' 'unsafe-inline'")
+    expect(firstCsp).toContain("font-src 'self'")
+
+    const secondResponse = await page.request.get('/gate/setup')
+    expect(secondResponse.headers()['content-security-policy']).not.toBe(firstCsp)
+
+    const gate = (await installFixture(page, ['success'])).page
+    await reloadColdOffline(gate)
+    await gate.getByRole('button', { name: "Can't scan — search by name" }).click()
+    await expect(gate.getByText('Approved', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+  })
+
   test('cold reload resolves green, amber, red and drains blank-serial work idempotently', async ({ page }) => {
     const fixture = await installFixture(page, ['success', 'duplicate'])
     const gate = fixture.page

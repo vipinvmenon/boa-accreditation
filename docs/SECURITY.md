@@ -1,7 +1,8 @@
 # Security
 
-> **Status: specification.** Nothing below is built. This is ACC-021/022.
-> See CURRENT-STATE.md.
+> **Status: specification plus shipped CSP.** The database controls below are
+> ACC-021/022. The nonce CSP in the "CSP" section shipped 14 Sep 2026; the
+> real-iPhone verification remains open as ACC-053b. See CURRENT-STATE.md.
 
 ## The one rule
 
@@ -100,34 +101,22 @@ typo. A 403 on a real token and a 404 on a fake one would let anyone probe which
 
 ## CSP
 
-**Status corrected 14 Sep 2026: NOT YET IMPLEMENTED.** This section
-previously described the intended policy as already shipped ("nonce-based, in
-`middleware.ts`"). It never was — `middleware.ts` has never existed in this
-repo (confirmed via `git log --all -- middleware.ts`, no results), no CSP
-header is set anywhere (`next.config.ts`, `vercel.json` set only the
-non-CSP security headers), and `tests/e2e/aeroplane-mode.spec.ts` has no CSP,
-nonce, or `strict-dynamic` reference at all — the claim that it asserts a
-decode with CSP enforced was false. Found while auditing for exactly this
-class of drift; see ADR-006's matching correction in `docs/DECISIONS.md`.
-
-The app currently ships with no `script-src` restriction, which is *why*
-zxing-wasm has been working — nothing is blocking it, not an enforced,
-verified-compatible policy. The intended design, still to be built:
+**Status shipped 14 Sep 2026.** `middleware.ts` generates a fresh per-request
+nonce, places it on the request for Next's App Router script nonce propagation,
+and sets:
 
 - `script-src 'self' 'nonce-…' 'strict-dynamic' 'wasm-unsafe-eval'`
 - **`'wasm-unsafe-eval'` is required** or zxing-wasm will not instantiate. iOS
-  Safari has no `BarcodeDetector`, so without it every iPhone at the gate would
-  silently lose the camera **once a real CSP is added** — this is the single
-  most likely silent failure on show day *if this is built without also
-  re-testing the gate scanner against it*, not before.
+  Safari has no `BarcodeDetector`, so without it every iPhone at the gate
+  silently loses the camera.
 - `style-src 'self' 'unsafe-inline'` — unavoidable and accepted (ADR-006). The
   design *is* inline styles.
 - `font-src 'self'` — no Google origin, because `@fontsource` self-hosts.
 
-**Before this is shipped:** the aeroplane-mode e2e suite must actually gain a
-CSP-enforced decode assertion (it currently has none), and it must be verified
-on a real iPhone (ACC-053b, already an open roadmap item) with the policy
-active, not just in a desktop headless browser.
+The aeroplane-mode E2E suite now asserts fresh per-response nonces and performs
+a QR decode through the local zxing-wasm fallback while this policy is active.
+The real-iPhone verification (ACC-053b) is still required; this headless
+assertion is necessary but not sufficient for iOS Safari acceptance.
 
 ## Data handling
 

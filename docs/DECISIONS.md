@@ -124,14 +124,13 @@ actual XSS risk lives. `'wasm-unsafe-eval'` is additionally required for the
 zxing scanning fallback on iOS; without it every iPhone at the gate silently
 loses the camera.
 
-**Correction, 14 Sep 2026: this ADR describes a decision, not a shipped
-fact — `script-src`/`middleware.ts` were never actually implemented, and the
-aeroplane-mode test does not assert anything about CSP.** Found while
-auditing for exactly this class of drift (a doc claiming a verification that
-was never performed, CLAUDE.md's own warning). `docs/SECURITY.md`'s "CSP"
-section carried the same false claim and has the same correction. The `style-
-src 'unsafe-inline'` decision above is still the intended design; the
-`script-src`/nonce half is still open work, not yet built.
+**Shipped 14 Sep 2026:** `middleware.ts` now generates a fresh per-request
+nonce, passes it to Next's App Router through the request headers, and emits
+the nonce-based `script-src` policy above. The aeroplane-mode E2E test asserts
+fresh nonces and decodes a generated QR through the local zxing-wasm fallback
+with the policy active. Real-iPhone verification remains open as ACC-053b;
+the headless assertion is necessary but not sufficient for iOS Safari
+acceptance.
 
 ---
 

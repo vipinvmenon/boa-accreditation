@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { pullGate } from '@/gate/client'
 import { ensureGateServiceWorker } from '../register-sw'
 
-export const dynamic = 'force-static'
-
 export default function GateSetupPage() {
   const router = useRouter()
   const [token, setToken] = useState('')
