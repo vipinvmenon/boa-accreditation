@@ -66,7 +66,12 @@ emails remain human-dependent per `docs/CURRENT-STATE.md`.
 ## Placeholder data — rehearsal only, not ACC-030/031
 
 Added 14 Sep 2026 while ACC-030a was still blocked on Bhoopesh's real list, at
-Vipin's request, so desk-screen work could proceed without waiting.
+Vipin's request, so desk-screen work could proceed without waiting. **These 38
+rows are currently loaded into the real production database** (ACC-030 is
+marked `[~]` IN FLIGHT in ROADMAP.md, not `[x]` done, for exactly this
+reason — placeholder data satisfies "something to unblock desk work with,"
+not "the real 38 organisations"). Delete them (`node scripts/wipe-orgs.mjs
+--prefix "PLACEHOLDER — "`) before loading the real list — see below.
 `data/orgs-placeholder.csv` is 38 fabricated rows in exactly this format, every
 name prefixed `PLACEHOLDER — `, validated by `corepack pnpm validate:org-import
 -- data/orgs-placeholder.csv`. **This is not the real 38 and must never be

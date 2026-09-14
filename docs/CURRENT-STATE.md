@@ -2214,6 +2214,58 @@ can pick it up in parallel with zero merge risk — see the plan doc for exact
 file:line findings. Three items also need a decision from Vipin (documented
 in the plan doc), not a code fix.
 
+### 14 Sep 2026 — ACC-030 placeholder data loaded (IN FLIGHT, not done); dashboard.test.sql's global-count fragility found and fixed
+
+Vipin asked, since ACC-030a (Bhoopesh's real 38-organisation list) is still
+blocked, to load placeholder data so other work isn't stalled waiting for it,
+real data to replace it later. Ran `corepack pnpm task start ACC-030` (now
+`[~]` IN FLIGHT — **deliberately not `[x]` done**: the task's real acceptance
+is Bhoopesh's actual list, which this isn't; marking it done would violate
+non-negotiable #10). `node scripts/load-orgs.mjs data/orgs-placeholder.csv`
+created the 38 `PLACEHOLDER — ` orgs and minted an invite per org through the
+real RPCs — this now persists in the production database (previously this
+session it was loaded and wiped again same-session for a one-off check; this
+time it stays, on request, until the real list replaces it).
+
+**Real bug found and fixed as a direct result:** with the placeholder orgs
+(and, transiently, some placeholder people) in the database,
+`corepack pnpm test:db` failed — `dashboard.test.sql` asserts
+`boa_acc_desk_dashboard()`'s counts as absolute values (`submittedTotal` = 5,
+etc.), but that RPC is a deliberately global read (every real org/person, not
+just the test's own fixture). The assertions only ever held while the
+database had no other data in it — which was never going to survive real
+usage, placeholder data or not: the moment a single real person is submitted
+through a real ACC-030/031 invite link, this same test would have started
+failing on `main`, failing the **required** `database` CI job, days before the
+20 Sep links-out deadline. Fixed by taking a baseline `boa_acc_desk_dashboard()`
+snapshot *before* the fixture is inserted (`dash_before`, same atomic
+statement, ordered via the file's existing WHERE-gate idiom) and asserting
+the fixture's exact delta over that baseline instead of an absolute value —
+for every genuinely-global metric (`submittedTotal`, `submittedOrgs`,
+`approvedTotal`, `pendingTotal`, `bandsNotCollected`, `stickersPending`,
+`bmsAdded`, `bmsPending`, `aaaNominatedApproved`, `aaaStamped`, the `types`
+array's `aaa` row). `bandsIssued`/`stickersActive` stay asserted as an
+absolute `0` — that's a real global fact (nobody has checked in via the gate
+yet, append-only ledger) that will itself need revisiting once the gate goes
+live around 4 Oct, already the file's own documented scope boundary, not
+touched here. `org_row`'s `used` count was already org-scoped and untouched.
+
+**Verified:** `corepack pnpm test:db` — all 10 pgTAP files green, including
+`dashboard.test.sql` (6/6) with the 38 placeholder orgs present in the
+database. `check:sql` — 24 migrations. `typecheck`/`lint`/`test` (49/49) all
+green.
+
+**Not true yet, so a reader doesn't assume it:** the 38 orgs in the database
+right now are fabricated placeholder data (`PLACEHOLDER — ` prefix), not
+Bhoopesh's real list. No real invite links have been sent to anyone. ACC-031
+(mint + label + WhatsApp export) has its mechanical half done (an invite
+exists per placeholder org — `data/placeholder-invites.local.csv`, local,
+gitignored, never committed) but is not marked started or done, since a real
+WhatsApp handoff document for 38 fabricated links makes no sense to produce.
+When the real list lands: `node scripts/wipe-orgs.mjs --prefix "PLACEHOLDER —
+"` first, then follow `docs/ORG-IMPORT.md`'s real-org process, then
+`corepack pnpm task done ACC-030`.
+
 ## Template for the next session update
 
 ```
