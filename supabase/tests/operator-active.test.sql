@@ -14,22 +14,41 @@
 -- same statement so a live-database run leaves no ACC-049 rows.
 --
 -- THE LAST-ADMIN GUARD, AGAINST A REAL DATABASE: this runs against the real
--- boa_acc_operator table (docs/CURRENT-STATE.md: Bhoopesh=lead, Salman=admin,
--- two approvers, plus the project owner as a second admin) — deactivating
--- two synthetic test admins never reaches zero ACTIVE admins globally, since
--- the guard counts every row in the table, not just this test's fixtures.
--- To exercise the guard at all without touching real accounts destructively,
--- every real active admin is set inactive for the lifetime of this ONE
--- statement, then restored before the statement ends. This is safe because a
--- single SQL statement is atomic in Postgres: either every step here runs to
--- completion, including the restore, or (if anything raises an uncaught
--- error — a genuine bug, not a throws_ok-caught expected failure) NONE of it
--- applies and the real rows are exactly as they were. The neutralising
--- UPDATE bypasses boa_acc_set_operator_active on purpose — going through the
--- RPC here would itself trip the very guard being tested (it would refuse to
--- deactivate the actual last real admin), and this test harness already
--- writes auth.users directly elsewhere, at the same "trusted as postgres"
--- level.
+-- boa_acc_operator table — deactivating two synthetic test admins never
+-- reaches zero ACTIVE admins globally, since the guard counts every row in
+-- the table, not just this test's fixtures. To exercise the guard at all
+-- without touching real accounts destructively, every real active admin is
+-- set inactive for the lifetime of this ONE statement, then restored before
+-- the statement ends. This is safe because a single SQL statement is atomic
+-- in Postgres: either every step here runs to completion, including the
+-- restore, or (if anything raises an uncaught error — a genuine bug, not a
+-- throws_ok-caught expected failure) NONE of it applies and the real rows
+-- are exactly as they were.
+--
+-- BOTH THE NEUTRALISE AND THE RESTORE GO THROUGH
+-- private.boa_acc_test_force_operator_active, NOT a raw UPDATE CTE, and this
+-- is load-bearing, not stylistic. A real incident, 14 Sep 2026: the first
+-- version of this file used two sibling raw `UPDATE ... WHERE user_id IN
+-- (...)` CTEs — neutralise, then restore — both targeting the SAME row.
+-- PostgreSQL's documented behaviour for data-modifying WITH queries is that
+-- all auxiliary statements share the snapshot taken at the start of the
+-- overall query; when two of them target the same row, the outcome for the
+-- second writer is unspecified. In practice here, the restore UPDATE
+-- silently matched ZERO rows every time, because it planned against the
+-- pre-neutralise snapshot of that row and the row's new tuple version (from
+-- neutralise) was not something the sibling CTE's plan could revisit. This
+-- left the real admin permanently deactivated after every `test:db` run —
+-- reproduced directly against production, twice, before this fix. Wrapping
+-- both writes in one VOLATILE function call sidesteps the restriction
+-- entirely: a function's internal SPI query sees the current state as of
+-- its own invocation, independent of the calling statement's outer
+-- snapshot — the same reason this file's own pgTAP assertions (calling
+-- boa_acc_set_operator_active) already correctly observe the neutralised
+-- state. The RPC itself is still bypassed for the neutralise/restore steps
+-- on purpose — going through it here would trip the very guard being
+-- tested (it would refuse to deactivate the actual last real admin), and
+-- this test harness already writes auth.users directly elsewhere, at the
+-- same "trusted as postgres" level.
 
 with
   real_active_admins as materialized (
@@ -38,10 +57,8 @@ with
      where role = 'admin' and active
   ),
   neutralize_real_admins as materialized (
-    update public.boa_acc_operator
-       set active = false
-     where user_id in (select unnest(ids) from real_active_admins)
-    returning user_id
+    select id as user_id
+      from private.boa_acc_test_force_operator_active((select ids from real_active_admins), false) as id
   ),
   wiped_lead_email as materialized (
     select private.boa_acc_wipe_email('acc049-lead@invalid.test')
@@ -264,11 +281,9 @@ with
     select n, line from results
   ),
   restore_real_admins as materialized (
-    update public.boa_acc_operator
-       set active = true
-     where user_id in (select unnest(ids) from real_active_admins)
-       and (select count(*) from kept) >= 0
-    returning user_id
+    select id as user_id
+      from private.boa_acc_test_force_operator_active((select ids from real_active_admins), true) as id
+     where (select count(*) from kept) >= 0
   ),
   clean_lead_email as materialized (
     select private.boa_acc_wipe_email('acc049-lead@invalid.test')

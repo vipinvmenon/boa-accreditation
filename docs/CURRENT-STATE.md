@@ -13,9 +13,16 @@ org_view, submit, quota lock, per-token throttle, register-your-crew,
 `/desk/login`, `/api/admin/invite-operator` — verified by `corepack pnpm
 test:db`, `corepack pnpm db:state`, Resend's own delivery log, and real curl /
 browser sessions against production, not asserted. `anon` still has zero
-grants. **Five operators exist**: Bhoopesh=lead, Salman=admin, two approvers
-on interim placeholder emails (real addresses still needed before 20 Sep,
-ACC-026a), plus the user himself as `admin` on his own real address.
+grants. **One operator exists**: Vipin himself, `admin`, on his own real
+address. At his explicit instruction (14 Sep 2026) every placeholder test
+identity (Bhoopesh/Salman/2 approvers, all Gmail `+alias` accounts routing to
+his own inbox) was removed — see the dated session-log entry below for why
+and how. Real people are added going forward only through `/desk/users`'
+existing invite flow, which already works end-to-end. **ACC-026a is still
+open** — Bhoopesh/Salman/2 approvers' real email addresses are still needed
+— but there is no longer a placeholder account to confuse with a real one
+once those addresses arrive; inviting them is now a clean first-time action,
+not a swap.
 `test:visual` on the desk screens remains blocked because the visual harness
 cannot authenticate an operator (ACC-043); `/gate/*` now has static screens,
 and the deterministic aeroplane-mode suite passes, including true cold
@@ -2413,6 +2420,80 @@ trust the reported result. One informational note: Next 16 warns
 `middleware.ts` is a deprecated convention in favour of a new `proxy` file;
 still fully functional, not migrated now given how close the show is —
 flagged for after, not urgent.
+
+### 14 Sep 2026 — the recurring "Only an active operator" lockout: real cause found, fixed, and operators reset to Vipin only
+
+Vipin hit "Only an active operator can view the Control room" for a second
+time today (first incident, same day, was reactivating his account after an
+earlier pgTAP run had deactivated it — see above). This time the actual
+cause was tracked down rather than just patched around again.
+
+**Root cause: a genuine PostgreSQL data-modifying-CTE bug in
+`supabase/tests/operator-active.test.sql`.** That file neutralizes every
+real active admin for the lifetime of its one statement (to safely exercise
+the last-admin guard) and is supposed to restore them before the statement
+ends. It used two sibling raw `UPDATE ... WHERE user_id IN (...)` CTEs —
+neutralize, then restore — both targeting the exact same row. PostgreSQL's
+documented behaviour for data-modifying WITH queries: all auxiliary
+statements share the snapshot taken at the start of the overall query, and
+when two of them target the same row, the outcome for the second writer is
+unspecified. In practice, confirmed by direct, isolated, repeated
+reproduction against production: the restore UPDATE silently matched **zero
+rows**, every single time, because it planned against the pre-neutralize
+snapshot of that row. This meant **every run of `corepack pnpm test:db`
+permanently deactivated whichever real admin(s) existed at the time** — not
+a one-off fluke, not caused by Cursor's concurrent work, not caused by
+multiple admins existing; reproduced with exactly one real admin in the
+table, isolated from the rest of the file's fixture logic.
+
+**Fix:** `supabase/migrations/202609141700_boa_acc_test_force_operator_active.sql`
+adds `private.boa_acc_test_force_operator_active(uuid[], boolean)`, a small
+VOLATILE SQL function doing the same UPDATE internally. Both the neutralize
+and restore steps in `operator-active.test.sql` now call this function
+instead of embedding a raw UPDATE — a function's internal SPI query sees the
+current state as of its own invocation, independent of the calling
+statement's outer snapshot, which is exactly why this same file's pgTAP
+assertions (calling `boa_acc_set_operator_active`) already correctly observed
+the neutralized state while the raw restore CTE didn't. Verified by direct,
+repeated reproduction: ran the isolated neutralize/restore pattern against
+the real database with both the old (raw UPDATE) and new (function-call)
+versions — old version left the account deactivated every time (3/3 runs
+checked before the fix), new version restored it correctly every time (3/3
+runs after). Then ran the real `operator-active.test.sql` file directly
+(not just the extracted pattern) and confirmed the same result, and finally
+ran the full `corepack pnpm test:db` suite (10/10 pgTAP files green) with
+the real admin account surviving intact afterward.
+
+**Separately, a real gap in `private.boa_acc_wipe_email` was found and fixed
+in the same session**, needed to actually delete the placeholder operator
+accounts below:
+`supabase/migrations/202609141600_boa_acc_wipe_email_attribution.sql`.
+`boa_acc_org_invite.created_by`, `boa_acc_person.approved_by`/
+`bms_entered_by`, and `boa_acc_aaa_nomination.nominated_by`/`approved_by` all
+reference `auth.users(id)` with no `ON DELETE` action — the same class of
+bug ACC-045 already fixed once for `boa_acc_device.created_by`
+(202609121901), just never extended to these columns. Confirmed live: wiping
+the `+lead` test account failed with `violates foreign key constraint
+"boa_acc_org_invite_created_by_fkey"` because it had minted the 38
+placeholder org invites. Unlike `boa_acc_device` (deleted outright — a
+device row with no creator is meaningless test debris), these columns are
+pure attribution on real, substantive data, so the fix **nulls** the
+reference rather than deleting the row it's attached to — an org invite is
+still a live, usable link even if nobody can say who minted it.
+
+**Operators reset, at Vipin's explicit instruction:** all four placeholder
+test identities (`+lead`, `+admin`, `+approver1`, `+approver2`) removed via
+`private.boa_acc_wipe_email`; `vipinmenon16@gmail.com` reactivated as the
+sole `admin`. Verified: `boa_acc_operator` has exactly 1 row, `auth.users`
+has exactly 1 row, the 38 placeholder orgs and their invites survived intact
+(`created_by` now null on those 38 rows, confirmed via `db:state`: still 38
+`boa_acc_org`/`boa_acc_org_invite` rows). Going forward, every real
+operator — Bhoopesh, Salman, approvers, whoever else — gets added for real
+through `/desk/users`' existing invite flow, not a placeholder alias.
+
+**Verified throughout:** `typecheck`/`lint`/`test` (49/49), `test:db` (10/10
+pgTAP files, including `operator-active.test.sql` 6/6 with the fix), and
+`check:sql` (26 migrations) all green.
 
 ## Template for the next session update
 

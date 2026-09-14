@@ -109,6 +109,9 @@ and sets:
 - **`'wasm-unsafe-eval'` is required** or zxing-wasm will not instantiate. iOS
   Safari has no `BarcodeDetector`, so without it every iPhone at the gate
   silently loses the camera.
+- Development additionally permits `'unsafe-eval'` because React's
+  development runtime uses `eval()` for debugging callstacks. It is absent
+  from the production policy.
 - `style-src 'self' 'unsafe-inline'` — unavoidable and accepted (ADR-006). The
   design *is* inline styles.
 - `font-src 'self'` — no Google origin, because `@fontsource` self-hosts.

@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 function contentSecurityPolicy(nonce: string) {
+  const developmentEval = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
   return [
-    "script-src 'self' 'nonce-" + nonce + "' 'strict-dynamic' 'wasm-unsafe-eval'",
+    "script-src 'self' 'nonce-" + nonce + "' 'strict-dynamic' 'wasm-unsafe-eval'" + developmentEval,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
   ].join('; ')
