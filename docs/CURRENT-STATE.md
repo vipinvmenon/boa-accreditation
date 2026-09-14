@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 13 September 2026 (thirteenth update)._
+_Last updated: 14 September 2026 (fourteenth update)._
 
 ## In one line
 
@@ -2135,6 +2135,46 @@ history, this entry is a fresh, direct verification against the current tree.
   open. The new `gate-e2e` CI job has not yet had a chance to run on GitHub
   Actions itself (this change hasn't been pushed at the time of writing) —
   a local pass is not the same claim as a green Actions run.
+
+### 14 Sep 2026 — production incident: both real admin operators were left `active = false`
+
+Vipin reported Control Room showing "Only an active operator can view the
+Control room" while signed in as himself. Queried `boa_acc_operator` directly
+against the live project rather than guessing:
+`vipinmenon16@gmail.com` and `vipinmenon16+admin@gmail.com` — **both real
+admin accounts** — were `active = false`. Three stray rows also existed in
+production `auth.users`/`boa_acc_operator`: `acc049-probe-admin-a@invalid.test`,
+`acc049-probe-admin-b@invalid.test`, `acc049-probe-lead@invalid.test`.
+
+**Root cause, inferred rather than fully reconstructed:** the emails don't
+match `supabase/tests/operator-active.test.sql`'s current fixture naming
+(`acc049-lead@...`, not `acc049-probe-lead@...`), and that file documents
+itself as neutralizing real admins and restoring them atomically within one
+SQL statement, with its own fixtures cleaned up in the same statement. The ACC-049
+session log already records that "the first version of this test failed test
+4 ... fixed by neutralising every real active admin's active flag and
+restoring it before the statement ends." The evidence here — real accounts
+left inactive, stray fixtures under a different naming scheme — is consistent
+with that first, buggy draft having actually executed against the real
+production database (not just a local/CI database) before the atomic,
+corrected version replaced it in the committed file. Not fully proven: the
+exact session/command that ran the draft was not located.
+
+**Fix applied**, after explicit confirmation from Vipin, via a one-off script
+(`scripts/fix-op.mjs`, deleted after use — not part of the app):
+`update boa_acc_operator set active = true` for the two real admin accounts,
+then `private.boa_acc_wipe_email(...)` (the existing, already-audited
+function — deletes the `boa_acc_operator` row and the `auth.users` row
+together) for each of the three stray probe rows. Verified by re-querying:
+final `boa_acc_operator` state is exactly the 5 real accounts (Bhoopesh=lead,
+Salman... — see "Five operators exist" above — plus the two admin rows), all
+`active = true`, no stray rows remain.
+
+**Not investigated further:** whether any other pgTAP test file's "restore"
+step could similarly leave real production rows mutated if an early draft is
+ever run directly rather than through `corepack pnpm test:db`'s normal path.
+Worth a second pass before writing another test in this family that mutates
+real rows mid-statement.
 
 ## Template for the next session update
 
