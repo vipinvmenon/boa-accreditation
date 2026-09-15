@@ -50,6 +50,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import './responsive.css'
 import './hover.css'
+import './motion.css'
 
 export const metadata: Metadata = {
   title: 'BOA Accreditation',

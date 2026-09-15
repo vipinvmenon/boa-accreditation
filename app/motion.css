@@ -1,0 +1,65 @@
+/**
+ * Additive motion for app/s/[token]/submission-screen.tsx. This is an Operate
+ * surface (a task, not a pitch) — one material idea (fade + gentle rise, the
+ * screen already-visible default) carried through the moments that actually
+ * change state: a row joining "Your list", the vehicle field appearing, and
+ * the confirmation/error acknowledgment. No page-load choreography, no
+ * decorative scroll effects on sections that don't change.
+ *
+ * Reduced motion is handled globally already (globals.css zeroes every
+ * animation/transition duration under prefers-reduced-motion), so nothing
+ * here needs its own reduced-motion branch.
+ */
+
+@keyframes s-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes s-rise-in-strong {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.s-anim-in {
+  animation: s-rise-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The one authored moment: the acknowledgment that an action went through. */
+.s-anim-in-strong {
+  animation: s-rise-in-strong 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Smooth background-color transition — the vehicle toggle track and a list row's status dot. */
+.s-color-fade {
+  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/**
+ * Toggle knob uses transform instead of the design's `left` for the animated
+ * build — same pixel position at rest, but transform doesn't trigger layout
+ * the way animating `left` does.
+ */
+.s-toggle-knob {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Immediate press feedback on the two primary actions. */
+.s-btn-press {
+  transition: transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.s-btn-press:active:not(:disabled) {
+  transform: scale(0.98);
+}

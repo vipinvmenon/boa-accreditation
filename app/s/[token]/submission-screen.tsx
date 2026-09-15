@@ -409,6 +409,7 @@ export function SubmissionScreen({
               }}
             >
               <div
+                className="s-color-fade"
                 style={{
                   width: '44px',
                   height: '24px',
@@ -418,12 +419,14 @@ export function SubmissionScreen({
                 }}
               >
                 <div
+                  className="s-toggle-knob"
                   style={{
                     position: 'absolute',
                     top: '3px',
-                    left: vehicleOn ? '23px' : '3px',
+                    left: '3px',
                     width: '18px',
                     height: '18px',
+                    transform: vehicleOn ? 'translateX(20px)' : 'translateX(0)',
                     background: vehicleOn ? onVar : 'var(--panel2,#16161a)',
                   }}
                 />
@@ -449,6 +452,7 @@ export function SubmissionScreen({
 
             {vehicleOn && (
               <label
+                className="s-anim-in"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -501,7 +505,7 @@ export function SubmissionScreen({
                 type="button"
                 disabled={disableAdd}
                 onClick={handleAdd}
-                className="hov-invert-grn"
+                className="hov-invert-grn s-btn-press"
                 style={{
                   cursor: disableAdd ? 'not-allowed' : 'pointer',
                   flex: '1 1 200px',
@@ -524,7 +528,7 @@ export function SubmissionScreen({
                 type="button"
                 disabled={submitting || closed || drafts.length === 0}
                 onClick={handleSubmitDrafts}
-                className="hov-fill-gold"
+                className="hov-fill-gold s-btn-press"
                 style={{
                   flex: '1 1 200px',
                   border: `1px solid ${goldVar}`,
@@ -552,6 +556,7 @@ export function SubmissionScreen({
             {error && (
               <p
                 role={error.code === 'duplicate_phone' ? 'status' : 'alert'}
+                className="s-anim-in"
                 style={{
                   marginTop: '14px',
                   fontSize: '13px',
@@ -562,7 +567,7 @@ export function SubmissionScreen({
               </p>
             )}
             {!error && confirmation && (
-              <p role="status" style={{ marginTop: '14px', fontSize: '13px', color: grnVar }}>
+              <p role="status" className="s-anim-in-strong" style={{ marginTop: '14px', fontSize: '13px', color: grnVar }}>
                 {confirmation}
               </p>
             )}
@@ -597,6 +602,7 @@ export function SubmissionScreen({
               {yourList.map((x, i) => (
                 <div
                   key={i}
+                  className="s-anim-in"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -605,7 +611,10 @@ export function SubmissionScreen({
                     borderBottom: `1px solid ${ruleVar}`,
                   }}
                 >
-                  <span style={{ width: '8px', height: '18px', background: x.dot, flex: '0 0 auto' }} />
+                  <span
+                    className="s-color-fade"
+                    style={{ width: '8px', height: '18px', background: x.dot, flex: '0 0 auto' }}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
