@@ -200,7 +200,7 @@ export function QueueScreen() {
               key={item}
               type="button"
               onClick={() => void setFilterAndLoad(item)}
-              style={{ ...buttonStyle, border: 0, borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))', background: filter === item ? 'var(--grn,#00F5A5)' : 'transparent', color: filter === item ? 'var(--on,#0A0A0A)' : 'var(--ink3,rgba(242,239,226,0.42))', padding: '13px 18px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}
+              style={{ ...buttonStyle, minHeight: 0, border: 0, borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))', background: filter === item ? 'var(--grn,#00F5A5)' : 'transparent', color: filter === item ? 'var(--on,#0A0A0A)' : 'var(--ink3,rgba(242,239,226,0.42))', padding: '13px 18px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}
             >
               {filterLabels[item]} <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.65 }}>{counts[item]}</span>
             </button>
@@ -223,11 +223,11 @@ export function QueueScreen() {
 
         {error && <p style={{ margin: '18px', color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{error}</p>}
         {orgs.map(([orgId, org], orgIndex) => (
-          <section key={orgId} style={{ background: 'var(--panel,#101012)', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
+          <section key={orgId} style={{ background: 'var(--panel,#101012)' }}>
             {(() => {
               const orgMeta = queueOrgs.find((item) => item.id === orgId)
               return (
-            <div style={{ padding: '20px 18px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '18px', flexWrap: 'wrap', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
+            <div style={{ padding: '20px 18px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '18px', flexWrap: 'wrap', borderBottom: '1px solid var(--rule2,rgba(242,239,226,0.32))' }}>
               <div>
                 <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>Org {orgIndex + 1} of {queueOrgs.length} pending</div>
                 <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '26px', lineHeight: 1.05, textTransform: 'uppercase', marginTop: '8px' }}>{org.name}</div>
@@ -262,15 +262,18 @@ export function QueueScreen() {
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '9px', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', padding: '7px 11px', minWidth: 0, position: 'relative' }}>
                     <span aria-hidden="true" style={{ width: '8px', height: '18px', background: rowColour, flex: '0 0 auto' }} />
-                    {/* Visible label: a plain span, styled exactly like design/source line 200.
-                        A real <select> is a sized-content overlay below — Chromium computes a
-                        <select>'s max-content grid contribution differently from an equal-text
-                        span (measured: 133px vs 147px for "Working Crew" on the mobile auto
-                        track), which shifted every row's column split off the design. Moving
-                        the select out of flow (position:absolute, opacity:0) keeps it fully
-                        keyboard/native-picker functional without letting it size the grid. */}
+                    {/* Visible label + chevron: plain in-flow elements, styled and ordered exactly
+                        like design/source line 200 (chevron via margin-left:auto, not absolute
+                        positioning — an absolute chevron silently drops out of the row's
+                        max-content contribution). The real <select> is an invisible full-size
+                        overlay below: Chromium computes a <select>'s max-content grid
+                        contribution differently from an equal-text span (measured: 133px vs
+                        147px for "Working Crew" on the mobile auto track), which shifted every
+                        row's column split off the design. Moving it out of flow
+                        (position:absolute, opacity:0) keeps it fully keyboard/native-picker
+                        functional without letting it size the grid. */}
                     <span aria-hidden="true" style={{ fontFamily: "'Oswald',sans-serif", fontSize: '12.5px', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rowType.label}</span>
-                    <span aria-hidden="true" style={{ position: 'absolute', right: '11px', fontFamily: "'Oswald',sans-serif", fontSize: '9px', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>▾</span>
+                    <span aria-hidden="true" style={{ marginLeft: 'auto', fontFamily: "'Oswald',sans-serif", fontSize: '9px', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>▾</span>
                     <select aria-label={`Type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, padding: 0, margin: 0, appearance: 'none', background: 'transparent', opacity: 0, cursor: 'pointer' }}>
                       <option value="crew">Working Crew</option>
                       <option value="stage">Stage</option>

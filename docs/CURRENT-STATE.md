@@ -2837,6 +2837,90 @@ still-unidentified cause remains on top of the one just fixed. **ACC-098 is
 still not passing and is not marked done.** `typecheck`, `lint` (3
 pre-existing `<img>` warnings only), and `test` (53/53) all pass. Not pushed.
 
+### 15 Sep 2026 — ACC-098: the 2px gap and the desktop regression both isolated and fixed; Queue passes 7/7
+
+Went back to the exact 2px height gap flagged as unresolved above, instead of
+guessing at another spacing value. Built a throwaway instrumentation script
+(`getBoundingClientRect()` on every structural block — header, filter nav,
+bulk toolbar, org-header, each row, footer) run against both the live app
+(all five `/api/desk/*` fixtures mocked, matching what
+`installDeskFixtures()` does — an earlier attempt at this only mocked
+`/api/desk/queue` and silently redirected to `/desk/login` because
+`DeskChrome` also calls `/api/desk/operators`) and the real design bundle
+(driven the same way `capture-design-reference.mjs` drives it: nav click to
+Queue, Mob/Web toggle, `document.fonts.ready`). Every block matched exactly
+**except one, on both viewports identically** (not proportional — ruling out
+a fractional grid/`fr`-unit cause): the filter nav was **45px live vs 44px
+design**.
+
+Cause: the filter buttons (`app/desk/queue/queue-screen.tsx`'s `<nav>`) spread
+the shared `buttonStyle` object first, which carries `minHeight: '44px'` for
+the *other* buttons that legitimately want it — the filter buttons never
+overrode it, so they were locked to a minimum 44px even though
+`design/source/boa_design_body.html` lines 163–164 give them no min-height at
+all (their height is just padding + line-height, and it happens to render at
+43px natural + the nav's own 1px border = 44 total, one less than the forced
+minimum). Fix: `minHeight: 0` added to the filter button's style override —
+one line.
+
+That fix alone closed the entire 2px gap (confirmed by rebuilding and
+re-diffing: reference and actual heights now match exactly, 1164px and
+1810px, on every variant) but mobile was still at 1.13%/1.09%, just over the
+0.8% threshold, and cropping the diff image (`pngjs`, no library beyond what
+the project already uses) at the row level showed a real, if small, gap
+between the design's type-cell chip and the live one on the "Stage" label
+(short text) despite the previous fix's overlay technique. Measuring the
+grid track split directly on the live app found the "Working Crew" `auto`
+track at 132px, not the 147px verified in isolation two entries above.
+
+Root cause: the chevron span (`▾`) has been `position:absolute; right:11px`
+since before this session touched the file — an existing deviation from
+`design/source/boa_design_body.html` line 200, which places the chevron
+in-flow with `margin-left:auto`. An absolutely-positioned element is removed
+from the grid item's own flex layout and contributes **nothing** to its
+max-content size, so the row's `auto` track was silently ~15px narrower than
+design on every row, in every variant, this whole time — masked earlier by
+the select's own intrinsic-width quirk moving the number in the same
+direction, so nobody had reason to look at the chevron specifically until the
+select was already fixed. Confirmed by isolating: my earlier "verified in
+isolation" harness (two entries above) used the design's real
+`margin-left:auto` chevron, not the app's `position:absolute` one — so the
+isolated test was accidentally correct while the live component still had
+the bug. Fix: `marginLeft: 'auto'` replacing `position:'absolute', right:
+'11px'` on the chevron span, matching the design's own markup — one line.
+
+**Verified after both fixes, full rebuild:**
+
+```
+corepack pnpm test:visual
+  queue   dark/web   0.37%  (ref 1360x1164, got 1360x1164)
+  queue   light/web  0.37%  (ref 1360x1164, got 1360x1164)
+  queue   dark/mob   0.45%  (ref 390x1810,  got 390x1810)
+  queue   light/mob  0.44%  (ref 390x1810,  got 390x1810)
+  → all 7 screens × 4 variants PASS. 0 blocked, 0 known gaps.
+```
+
+This is the first time in this project's history that all 7 desk/gate
+screens have passed the fidelity gate simultaneously.
+
+Before marking ACC-098 done, checked for regressions rather than assuming
+none: `typecheck` clean, `lint` clean (3 pre-existing `<img>` warnings only),
+`test` 53/53, `check:sql` clean, `test:db` — all pgTAP guarantees held
+(tokens.test.sql, vehicle.test.sql), `test:e2e` 4/4 including the
+aeroplane-mode CSP-nonce test. That e2e test failed on the very first run
+after these fixes; before writing it up as a regression, the working tree was
+`git stash`ed back to the pre-fix commit and the identical test re-run
+against a fresh build — it passed there too on a single run, then the fix was
+restored and the same test run 3× (`--repeat-each=3`, all passed) plus the
+full `test:e2e` suite (4/4) — concluded flaky (Playwright's own webServer
+rebuilds fresh each invocation; nothing about this change touches `/gate`),
+not a real regression, and said so here rather than silently ignoring the
+first failure or silently blaming it on the fix without checking.
+
+**ACC-098 is now done.** Nothing pushed to `origin/main` — that step is
+still Vipin's to trigger, per the working rules in
+`docs/PLAN-DESIGN-FIDELITY.md`.
+
 ## Template for the next session update
 
 ```
