@@ -2653,6 +2653,53 @@ Handing back to Cursor's lane (`app/desk/queue/**`) per
 `docs/PLAN-DESIGN-FIDELITY.md` rather than continuing to guess against a
 shrinking token budget.
 
+### 15 Sep 2026 — Queue: two more hypotheses tested and disproven; not a generic font-noise problem
+
+Vipin relayed a Cursor session's own dead-end report on ACC-098 (mobile
+mainly 1px horizontal rounding, desktop 2px taller / mobile 5px shorter, a
+grid-track/select sizing change tried and reverted, all literal spacing now
+matches `boa_design_body.html`). That report was never committed anywhere —
+confirmed with `git log`/`git status` before writing this entry, so it
+would otherwise have been lost. Recorded here as Cursor's own account,
+not independently re-derived.
+
+Picked the investigation up from there with a different method: instead of
+tuning another value, compared Queue's `pixelmatch` diff image directly
+against Control Room's (passing, 0.25%, structurally similar org-list
+rows) at matching crops. Control Room's text shows only sparse, thin
+antialiasing noise per glyph. Queue's shows dense, near-solid highlighting
+across entire lines — name, role/phone, type label, and status, on every
+row. **This rules out "this is just baseline font-rendering variance
+present on every screen"**: if it were, Control Room's structurally
+similar rows would show the same density and they measurably don't.
+Something Queue-specific is still unaccounted for.
+
+Tested the most Queue-specific structural difference directly: Queue is
+the only desk screen using a real `<select>` for the type cell (Master and
+Control Room use a plain `<span>`), which can carry invisible native
+browser metrics `appearance:none` doesn't fully strip. Swapped it for a
+plain `<span>` rendering the identical text
+(`app/desk/queue/queue-screen.tsx`, reverted immediately after measuring,
+`diff` confirmed against a pre-edit backup that the file was restored
+byte-for-byte): dark/web 2.57%→3.13%, dark/mob 5.73%→6.46%. **Worse in
+both variants**, not better — reverted. This independently reproduces the
+same direction Cursor's own grid-track/select experiment found, which is
+reasonably strong evidence the `<select>` element itself is not the cause.
+
+**Still true from the prior entry, unchanged:** every literal spacing
+value in `app/desk/queue/queue-screen.tsx` and `app/responsive.css` now
+matches `design/source/boa_design_body.html`, confirmed line by line, not
+just at the numbers Cursor's report cited. The remaining gap is real,
+reproducible, and — after two independent sessions' separate attempts at
+the two most plausible causes (spacing, the select) — not something either
+session found a code-level fix for. **Not tried, and worth naming for
+whoever continues:** whether the design's own reference was captured from
+the static `design/source/boa_design_body.html` file (Anima/design-tool
+markup) under a materially different box-sizing or CSS reset than the
+Next.js app inherits, which could shift `fr`-unit grid tracks onto
+different sub-pixel boundaries between the two independently of any single
+CSS property being "wrong." Not verified — a lead, not a finding.
+
 ## Template for the next session update
 
 ```
