@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { NAV, PROP } from '@/lib/design'
+import { logoFilterFor, NAV, PROP } from '@/lib/design'
+import { SiteFooter } from '@/components/site-footer'
 import { dashboardSchema, type Dashboard } from '@/lib/schemas/dashboard'
 import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
@@ -99,7 +100,6 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   }, [menuOpen])
 
   const p = PROP[theme]
-  const totalQuota = dashboard?.orgs.reduce((total, org) => total + org.quota, 0) ?? null
   const activeNav = NAV.find((item) => item.href === pathname)?.id
 
   function toggleTheme() {
@@ -114,7 +114,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', display: 'flex', flexDirection: 'column' }}>
       <header
         style={{
           position: 'sticky',
@@ -137,7 +137,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
               textDecoration: 'none',
             }}
           >
-            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" style={{ height: '30px', width: 'auto', display: 'block' }} />
+            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" style={{ height: '30px', width: 'auto', display: 'block', filter: logoFilterFor(theme) }} />
             <span
               style={{
                 fontFamily: "'JetBrains Mono',monospace",
@@ -353,15 +353,16 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           <span style={{ color: green }}>● Live</span>
           <span>Build 05–09 Oct · Show 10 Oct</span>
           <span style={{ color: ink }}>
-            {dashboard ? `${dashboard.bandsIssued} / ${totalQuota ?? 0} bands issued` : 'Loading bands'}
+            {dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : 'Loading bands'}
           </span>
-          <span style={{ marginLeft: 'auto', color: p.gold }}>
+          <Link href="/desk/master?in_bms=false" style={{ marginLeft: 'auto', color: p.gold, textDecoration: 'none' }}>
             {dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}
-          </span>
+          </Link>
         </div>
       </header>
 
-      {children}
+      <div className="desk-content">{children}</div>
+      <SiteFooter />
     </div>
   )
 }

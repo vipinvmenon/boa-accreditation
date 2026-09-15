@@ -13,4 +13,10 @@ export const passSchema = z.object({
 })
 
 export const passesSchema = z.array(passSchema)
+export const passWithQrSchema = passSchema.extend({
+  qrSvg: z.string(),
+})
+export const passesResponseSchema = z.object({
+  passes: passWithQrSchema.array(),
+})
 export type Pass = z.infer<typeof passSchema>

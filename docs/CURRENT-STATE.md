@@ -2573,8 +2573,25 @@ the lanes, file ownership, findings and baseline.
 **Verified by running it:** `corepack pnpm test:db` green, including roster
 6/6 assertions and privileges 77/77; `corepack pnpm check:sql` green for 27
 migrations; `typecheck`, `lint` (3 existing `img` warnings) and `test` 53/53
-green. The Submission API and screen have not yet been changed to consume this
-RPC; that is ACC-092.
+green. The Submission API and screen now consume this RPC through the validated
+`{ org, roster }` response.
+
+### 15 Sep 2026 — ACC-092: roster-backed Submission flow
+
+- Submission now renders the token organisation's server roster, keeps drafts
+  in `localStorage` per token, and submits drafts sequentially through the real
+  API. Duplicate phones are removed from drafts with a row-level result;
+  quota or other failures stop the batch and preserve remaining drafts.
+- The visual harness no longer has a Submission exemption. Rebuilt
+  `test:visual -- --screen submission` measured dark/web **0.17%**,
+  light/web **0.16%**, dark/mobile **0.40%**, and light/mobile **0.37%**:
+  4/4 variants, 0 blocked, 0 known gaps.
+- `corepack pnpm task done ACC-092` passed typecheck, lint (3 existing
+  `img` warnings), and test 53/53.
+
+**Still not true:** the overall 7-screen visual milestone remains open because
+Queue is above the 0.8% threshold. No overall completion or deployment claim
+is made.
 
 ## Template for the next session update
 

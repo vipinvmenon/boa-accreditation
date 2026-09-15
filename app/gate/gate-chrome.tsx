@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useDomTheme } from '@/lib/use-theme'
-import { NAV, PROP } from '@/lib/design'
+import { logoFilterFor, NAV, PROP } from '@/lib/design'
+import { SiteFooter } from '@/components/site-footer'
 
 export function GateChrome({
   children,
@@ -26,7 +27,7 @@ export function GateChrome({
       <header style={{ position: 'sticky', top: 0, zIndex: 70, background: 'var(--bg,#0A0A0A)', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
         <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, flexWrap: 'wrap' }}>
           <Link href="/gate" aria-label="Bangalore Open Air" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
-            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" style={{ height: 30, width: 'auto', display: 'block', filter: theme === 'dark' ? 'drop-shadow(0 0 16px rgba(0,245,165,0.45))' : 'none' }} />
+            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" style={{ height: 30, width: 'auto', display: 'block', filter: logoFilterFor(theme) }} />
             <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', lineHeight: 1.2, textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.52))' }}>Accred<br />desk</span>
           </Link>
           <nav aria-label="Gate navigation" style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: '1 1 auto', overflowX: 'auto' }}>
@@ -46,7 +47,7 @@ export function GateChrome({
         </div>
       </header>
       <main style={{ flex: 1, display: 'flex', justifyContent: 'center' }}><div className="g-shell">{children}</div></main>
-      <footer style={{ borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', padding: '22px 18px 30px', display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'space-between', fontFamily: "'Oswald',sans-serif", fontSize: 10.5, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}><span>Not registered, not approved, not verified — not inside.</span><span style={{ color: p.gold }}>Artists handled at the hotel</span></footer>
+      <SiteFooter />
     </div>
   )
 }

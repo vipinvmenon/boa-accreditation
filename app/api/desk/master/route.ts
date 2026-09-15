@@ -20,6 +20,8 @@ const personSchema = z.object({
   type_code: z.enum(ORG_TYPE_CODES).nullable(),
   pass_ref: z.string().nullable(),
   in_bms: z.boolean(),
+  approved_at: z.string().nullable(),
+  updated_at: z.string(),
 })
 
 const orgSchema = z.object({
@@ -35,6 +37,7 @@ const checkinSchema = z.object({
   band_serial: z.string().nullable(),
   sticker_no: z.string().nullable(),
   occurred_at: z.string(),
+  gate_label: z.string(),
   voids_checkin_id: z.string().nullable(),
 })
 
@@ -48,7 +51,7 @@ function csvCell(value: string | number | boolean | null): string {
 }
 
 function toCsv(rows: MasterRow[]): string {
-  const header = ['Name', 'Phone', 'Organisation', 'Type', 'Band', 'Vehicle', 'BMS', 'Collected']
+  const header = ['Name', 'Phone', 'Organisation', 'Type', 'Band', 'Vehicle', 'BMS', 'Collected', 'Gate']
   const body = rows.map((row) => [
     row.fullName,
     row.phone,
@@ -58,6 +61,7 @@ function toCsv(rows: MasterRow[]): string {
     row.vehicleReg ?? '—',
     row.inBms ? 'In BMS' : 'Not in BMS',
     row.collectedAt ?? 'Not collected',
+    row.gateLabel ?? '',
   ].map(csvCell).join(','))
   return [header.map(csvCell).join(','), ...body].join('\n') + '\n'
 }
@@ -81,14 +85,14 @@ export async function GET(request: Request) {
     await Promise.all([
       supabase
         .from('boa_acc_person')
-        .select('id,org_id,full_name,phone,vehicle_reg,status,type_code,pass_ref,in_bms')
+        .select('id,org_id,full_name,phone,vehicle_reg,status,type_code,pass_ref,in_bms,approved_at,updated_at')
         .order('created_at', { ascending: false }),
       supabase
         .from('boa_acc_org')
         .select('id,name,kind'),
       supabase
         .from('boa_acc_checkin')
-        .select('id,person_id,kind,band_serial,sticker_no,occurred_at,voids_checkin_id')
+        .select('id,person_id,kind,band_serial,sticker_no,occurred_at,gate_label,voids_checkin_id')
         .order('occurred_at', { ascending: true }),
     ])
 
@@ -151,6 +155,8 @@ export async function GET(request: Request) {
       stickerNo: latestByPersonAndKind.get(`${person.id}:vehicle_sticker`)?.sticker_no ?? null,
       inBms: person.in_bms,
       collectedAt: band?.occurred_at ?? null,
+      gateLabel: band?.gate_label ?? null,
+      decidedAt: person.approved_at ?? (person.status === 'rejected' ? person.updated_at : null),
     }]
   })
 

@@ -59,6 +59,10 @@ export const PROP = {
 export const glowFor = (colour: string, theme: Theme): string =>
   theme === 'dark' ? `0 0 16px ${colour}55, 0 0 38px ${colour}22` : 'none'
 
+/** The approved header logo filter, from renderVals() line 822. */
+export const logoFilterFor = (theme: Theme): string =>
+  theme === 'dark' ? 'drop-shadow(0 0 16px rgba(0,245,165,0.45))' : 'none'
+
 /**
  * The seven zones, in the design's own ALL_ZONES order (line 570).
  * Order is load-bearing: every zone strip renders in this order, with

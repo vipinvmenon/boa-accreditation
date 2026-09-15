@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { submissionSchema } from '@/lib/schemas/submission'
+import { submissionSchema, rosterRowSchema, submissionResponseSchema } from '@/lib/schemas/submission'
 import { orgViewSchema, type OrgView } from '@/lib/schemas/org-view'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,8 +46,12 @@ function mapError(error: { code?: string; message?: string }): ApiError {
  * scripts/** are exempted from that eslint rule — so the credential stays
  * exactly where docs/ARCHITECTURE.md's layering intends.
  */
-export async function resolveOrgView(token: string): Promise<{ ok: true; data: OrgView } | { ok: false; error: ApiError }> {
-  const { data, error } = await supabaseAdmin().rpc('boa_acc_org_view', { p_token: token })
+export async function resolveOrgView(token: string): Promise<
+  { ok: true; data: { org: OrgView; roster: Array<{ fullName: string; roleText: string; status: 'approved' | 'submitted' | 'rejected' }> } } |
+  { ok: false; error: ApiError }
+> {
+  const client = supabaseAdmin()
+  const { data, error } = await client.rpc('boa_acc_org_view', { p_token: token })
   if (error) return { ok: false, error: mapError(error) }
 
   const row = orgViewSchema.safeParse(Array.isArray(data) ? data[0] : data)
@@ -54,7 +59,31 @@ export async function resolveOrgView(token: string): Promise<{ ok: true; data: O
     return { ok: false, error: { status: 500, body: { error: 'internal' } } }
   }
 
-  return { ok: true, data: row.data }
+  const rosterResult = await client.rpc('boa_acc_org_roster', { p_token: token })
+  if (rosterResult.error) return { ok: false, error: mapError(rosterResult.error) }
+
+  const roster = zRoster(rosterResult.data)
+  if (!roster) return { ok: false, error: { status: 500, body: { error: 'internal' } } }
+
+  const response = submissionResponseSchema.safeParse({ org: row.data, roster })
+  if (!response.success) return { ok: false, error: { status: 500, body: { error: 'internal' } } }
+  return { ok: true, data: response.data }
+}
+
+function zRoster(value: unknown) {
+  const parsed = z.array(z.object({
+    full_name: z.string(),
+    role_text: z.string(),
+    status: z.enum(['approved', 'submitted', 'rejected']),
+  })).safeParse(value)
+  if (!parsed.success) return null
+  const roster = parsed.data.map((entry) => ({
+    fullName: entry.full_name,
+    roleText: entry.role_text,
+    status: entry.status,
+  }))
+  const validated = z.array(rosterRowSchema).safeParse(roster)
+  return validated.success ? validated.data : null
 }
 
 function throttle(request: Request) {

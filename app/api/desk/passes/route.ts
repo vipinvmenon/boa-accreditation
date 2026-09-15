@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import QRCode from 'qrcode'
 import { supabaseServer } from '@/lib/supabase-server'
-import { passesSchema, type Pass } from '@/lib/schemas/pass'
+import { passesResponseSchema, passesSchema, type Pass } from '@/lib/schemas/pass'
+import { QR_DARK, QR_LIGHT, QR_SCHEME } from '@/lib/design'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,5 +29,18 @@ export async function resolvePasses(): Promise<
 export async function GET() {
   const result = await resolvePasses()
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
-  return NextResponse.json({ passes: result.passes })
+  const response = {
+    passes: await Promise.all(result.passes.map(async (pass) => ({
+      ...pass,
+      qrSvg: await QRCode.toString(`${QR_SCHEME}${pass.passToken}`, {
+        type: 'svg',
+        margin: 0,
+        errorCorrectionLevel: 'M',
+        color: { dark: QR_DARK, light: QR_LIGHT },
+      }),
+    }))),
+  }
+  const parsed = passesResponseSchema.safeParse(response)
+  if (!parsed.success) return NextResponse.json({ error: 'internal' }, { status: 500 })
+  return NextResponse.json(parsed.data)
 }

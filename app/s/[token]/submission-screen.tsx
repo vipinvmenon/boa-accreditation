@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { submissionSchema } from '@/lib/schemas/submission'
+import { useEffect, useRef, useState } from 'react'
+import { submissionSchema, submitResultSchema, type RosterRow, type SubmissionInput } from '@/lib/schemas/submission'
 import type { OrgView } from '@/lib/schemas/org-view'
 import { PROP } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
+import { z } from 'zod'
 
 /**
  * Transcribed from design/source/boa_design_body.html lines 246-317 and the
@@ -40,7 +41,9 @@ const FORM_FIELDS = [
 
 type FieldKey = (typeof FORM_FIELDS)[number]['key']
 
-type ListEntry = { name: string; role: string; state: 'Submitted'; dot: string }
+type Draft = SubmissionInput & { id: string }
+type ListEntry = { name: string; role: string; state: string; dot: string }
+const draftSchema = submissionSchema.extend({ id: z.string().min(1) })
 
 const ERROR_COPY: Record<string, string> = {
   not_found: 'This link is no longer valid.',
@@ -73,23 +76,57 @@ const grnVar = 'var(--grn,#00F5A5)'
 const goldVar = 'var(--gold,#E3BB72)'
 const onVar = 'var(--on,#0A0A0A)'
 
-export function SubmissionScreen({ token, initialOrg }: { token: string; initialOrg: OrgView }) {
+export function SubmissionScreen({
+  token,
+  initialOrg,
+  initialRoster,
+}: {
+  token: string
+  initialOrg: OrgView
+  initialRoster: RosterRow[]
+}) {
   const theme = useDomTheme()
   const [org, setOrg] = useState(initialOrg)
+  const [roster, setRoster] = useState(initialRoster)
+  const storageKey = `boa-submission-drafts:${token}`
+  const [drafts, setDrafts] = useState<Draft[]>([])
   const [fields, setFields] = useState<Record<FieldKey, string>>({ fullName: '', phone: '', roleText: '' })
   const [vehicleOn, setVehicleOn] = useState(false)
   const [vehicleReg, setVehicleReg] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<{ code: string | null; message: string } | null>(null)
   const [confirmation, setConfirmation] = useState<string | null>(null)
-  const [yourList, setYourList] = useState<ListEntry[]>([])
   const [addHover, setAddHover] = useState(false)
+  const didHydrateDrafts = useRef(false)
+  useEffect(() => {
+    const stored = window.localStorage.getItem(storageKey)
+    if (!stored) return
+    try {
+      const parsed: unknown = JSON.parse(stored)
+      if (!Array.isArray(parsed)) return
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDrafts(parsed.flatMap((value) => {
+        const result = draftSchema.safeParse(value)
+        return result.success ? [result.data] : []
+      }))
+    } catch {
+      window.localStorage.removeItem(storageKey)
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    if (!didHydrateDrafts.current) {
+      didHydrateDrafts.current = true
+      return
+    }
+    window.localStorage.setItem(storageKey, JSON.stringify(drafts))
+  }, [drafts, storageKey])
 
   const pct = org.quota > 0 ? Math.min(100, (org.used / org.quota) * 100) : 0
   const closed = org.status !== 'open'
   const full = org.remaining <= 0
 
-  async function handleAdd() {
+  function handleAdd() {
     if (submitting || closed || full) return
     setError(null)
     setConfirmation(null)
@@ -105,30 +142,62 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
       return
     }
 
-    setSubmitting(true)
-    try {
-      const res = await fetch(`/api/s/${encodeURIComponent(token)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed.data),
-      })
-      if (!res.ok) {
-        const body: unknown = await res.json().catch(() => null)
-        const code = body && typeof body === 'object' && 'error' in body ? String(body.error) : null
-        setError({ code, message: errorMessage(code, parsed.data.phone) })
-        return
-      }
+    setDrafts((current) => [...current, { ...parsed.data, id: crypto.randomUUID() }])
+    setConfirmation(`${parsed.data.fullName} saved as a draft. Submit the list when you're ready.`)
+    setFields({ fullName: '', phone: '', roleText: '' })
+    setVehicleOn(false)
+    setVehicleReg('')
+  }
 
-      setYourList((list) => [
-        ...list,
-        { name: parsed.data.fullName, role: parsed.data.roleText, state: 'Submitted', dot: PROP[theme].gold },
-      ])
-      setOrg((o) => ({ ...o, used: o.used + 1, remaining: Math.max(0, o.remaining - 1) }))
-      setConfirmation(`${parsed.data.fullName} added. Nothing else to do — the desk approves at check-in.`)
-      setFields({ fullName: '', phone: '', roleText: '' })
-      setVehicleOn(false)
-      setVehicleReg('')
+  async function handleSubmitDrafts() {
+    if (submitting || closed || drafts.length === 0) return
+    setSubmitting(true)
+    setError(null)
+    setConfirmation(null)
+    let remainingDrafts = drafts
+    let duplicateMessage: string | null = null
+    let stoppedOnFailure = false
+    try {
+      for (const draft of drafts) {
+        const payload: SubmissionInput = {
+          fullName: draft.fullName,
+          phone: draft.phone,
+          roleText: draft.roleText,
+          vehicleReg: draft.vehicleReg,
+        }
+        const res = await fetch(`/api/s/${encodeURIComponent(token)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const body: unknown = await res.json().catch(() => null)
+        if (!res.ok) {
+          const code = body && typeof body === 'object' && 'error' in body ? String(body.error) : null
+          if (code === 'duplicate_phone') {
+            remainingDrafts = remainingDrafts.filter((item) => item.id !== draft.id)
+            duplicateMessage = `${draft.fullName} is already registered. That draft was removed.`
+            continue
+          }
+          setError({ code, message: errorMessage(code, draft.phone) })
+          stoppedOnFailure = true
+          break
+        }
+        const parsedResult = submitResultSchema.safeParse(body)
+        if (!parsedResult.success) {
+          setError({ code: 'internal', message: ERROR_COPY['internal'] ?? "That didn't go through. Try again." })
+          stoppedOnFailure = true
+          break
+        }
+        remainingDrafts = remainingDrafts.filter((item) => item.id !== draft.id)
+        setRoster((current) => [...current, { fullName: draft.fullName, roleText: draft.roleText, status: 'submitted' }])
+        setOrg((current) => ({ ...current, used: current.used + 1, remaining: Math.max(0, current.remaining - 1) }))
+      }
+      setDrafts(remainingDrafts)
+      if (!stoppedOnFailure) {
+        setConfirmation(duplicateMessage ?? 'Your list was submitted for approval.')
+      }
     } catch {
+      setDrafts(remainingDrafts)
       setError({ code: 'internal', message: ERROR_COPY['internal'] ?? "That didn't go through. Try again." })
     } finally {
       setSubmitting(false)
@@ -136,6 +205,16 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
   }
 
   const disableAdd = submitting || closed || full
+  const statusEntry = (row: RosterRow): ListEntry => ({
+    name: row.fullName,
+    role: row.roleText,
+    state: row.status === 'approved' ? 'Approved' : row.status === 'rejected' ? 'Rejected' : 'Submitted',
+    dot: row.status === 'approved' ? PROP[theme].grn : row.status === 'rejected' ? PROP[theme].bad : PROP[theme].gold,
+  })
+  const yourList = [
+    ...roster.map(statusEntry),
+    ...drafts.map((draft): ListEntry => ({ name: draft.fullName, role: draft.roleText, state: 'Draft', dot: PROP[theme].ink3 })),
+  ]
 
   return (
     <div
@@ -230,10 +309,10 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                   textTransform: 'uppercase',
                 }}
               >
-                <span style={{ fontSize: '26px', fontWeight: 700, color: grnVar }}>{org.used}</span>
+                <span className="s-seat-count" style={{ fontSize: '26px', fontWeight: 700, color: grnVar }}>{org.used}</span>
                 <span style={{ fontSize: '12px', color: ink3Var }}>/ {org.quota} SEATS USED</span>
               </div>
-              <div style={{ height: '6px', background: ruleVar, marginTop: '10px' }}>
+              <div className="s-seat-bar" style={{ height: '6px', background: ruleVar, marginTop: '10px' }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: grnVar }} />
               </div>
             </div>
@@ -444,9 +523,10 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
               >
                 Add to list
               </button>
-              <div
-                role="status"
-                aria-live="polite"
+              <button
+                type="button"
+                disabled={submitting || closed || drafts.length === 0}
+                onClick={handleSubmitDrafts}
                 style={{
                   flex: '1 1 200px',
                   border: `1px solid ${goldVar}`,
@@ -463,10 +543,12 @@ export function SubmissionScreen({ token, initialOrg }: { token: string; initial
                   alignItems: 'center',
                   justifyContent: 'center',
                   textAlign: 'center',
+                  cursor: submitting || closed || drafts.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: submitting || closed || drafts.length === 0 ? 0.5 : 1,
                 }}
               >
-                {org.used} added so far — the desk approves later
-              </div>
+                Submit {drafts.length} for approval →
+              </button>
             </div>
 
             {error && (

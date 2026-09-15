@@ -17,5 +17,5 @@ export default async function SubmissionPage({
   // app/not-found.tsx and docs/SECURITY.md (a 403 would confirm a token exists).
   if (!result.ok) notFound()
 
-  return <SubmissionScreen token={token} initialOrg={result.data} />
+  return <SubmissionScreen token={token} initialOrg={result.data.org} initialRoster={result.data.roster} />
 }

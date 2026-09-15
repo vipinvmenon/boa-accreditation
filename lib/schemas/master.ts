@@ -21,6 +21,8 @@ export const masterRowSchema = z.object({
   stickerNo: z.string().nullable(),
   inBms: z.boolean(),
   collectedAt: z.string().nullable(),
+  gateLabel: z.string().nullable(),
+  decidedAt: z.string().nullable(),
 })
 
 export const masterResponseSchema = z.object({

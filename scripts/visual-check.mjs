@@ -55,18 +55,6 @@ const OUT = join(root, 'test-results/visual')
 const THRESHOLD = 0.008
 
 /**
- * TRANSITIONAL, and deleted by ACC-092 (docs/PLAN-DESIGN-FIDELITY.md).
- *
- * submission: ADR-009 — until the roster RPC (ACC-091) and the draft/batch flow
- * (ACC-092) land, "Your list" is empty and the second button is a readout. A
- * regression past 32% still fails. No other screen may be added here: new
- * exceptions are MASKS (named elements), not percentages.
- */
-const KNOWN_GAPS = {
-  submission: { maxPct: 32, reason: 'transitional until ACC-092 — docs/PLAN-DESIGN-FIDELITY.md' },
-}
-
-/**
  * Named regions excluded from comparison, per screen. Each locator's bounding
  * box (measured on the real page) is painted the same flat colour in BOTH the
  * reference and the actual image before diffing. A locator that matches
@@ -90,6 +78,10 @@ const MASKS = {
   passes: [
     OPERATOR_MENU,
     { locator: '.qr-wrap svg', reason: 'the design draws a fake 13×13 pattern; a real pass carries a real QR code' },
+  ],
+  submission: [
+    { locator: '.s-seat-count', reason: 'the design mock says 14 used but the real roster contains four fixture people' },
+    { locator: '.s-seat-bar', reason: 'the design mock says 14/22 but the real roster count is data-driven' },
   ],
 }
 
@@ -161,7 +153,9 @@ const VISUAL_ORG = 'Chakra Sound & Light'
 
 /**
  * Mint the same way the pgTAP fixtures do (org + invite inserted directly, as
- * quota.test.sql does) and fill 14 seats through the real boa_acc_submit RPC.
+ * quota.test.sql does) and fill four people through the real boa_acc_submit RPC.
+ * The design's seat summary says 14/22 while its visible roster contains four
+ * rows; the summary is a named mask, while these four rows remain real data.
  * Wiped in the `finally` below either way — this must never leave rows in a
  * real database.
  */
@@ -186,21 +180,70 @@ async function mintVisualInvite() {
       returning id
     ),
     fill as materialized (
-      -- 14, matching the mock's "14 / 22 SEATS USED" and 64% bar.
       select public.boa_acc_submit(
-               (select token from tok),
-               'Visual Person ' || i,
-               '+9198' || lpad(i::text, 8, '0'),
-               'Crew'
+               (select token from tok), p.full_name, p.phone, p.role_text
              ) as person_id
-        from generate_series(1, 14) i
+        from (values
+          ('Ranjith Kumar', '+919886104422', 'Stage tech'),
+          ('Vinay Shetty', '+919008421771', 'Rigger'),
+          ('Suhas Bhat', '+919740055381', 'Truck driver'),
+          ('Imran Sheikh', '+919632090014', 'Backline')
+        ) as p(full_name, phone, role_text)
        where (select id from inv) is not null
     )
     select tok.token from tok, inv
-     where (select count(*) from fill) = 14;
+     where (select count(*) from fill) = 4;
   `
   const rows = await runSql(sql, root)
-  return rows[0]?.token ?? null
+  const token = rows[0]?.token ?? null
+  if (!token) return null
+  await runSql(`
+    update public.boa_acc_person person
+       set status = case person.full_name
+         when 'Ranjith Kumar' then 'approved'::public.boa_acc_person_status
+         when 'Vinay Shetty' then 'approved'::public.boa_acc_person_status
+         when 'Imran Sheikh' then 'rejected'::public.boa_acc_person_status
+         else person.status
+       end,
+       type_code = case person.full_name
+         when 'Ranjith Kumar' then 'stage'::public.boa_acc_type_code
+         when 'Vinay Shetty' then 'stage'::public.boa_acc_type_code
+         else person.type_code
+       end,
+       day_validity = case person.full_name
+         when 'Ranjith Kumar' then 'build_show'::public.boa_acc_day_validity
+         when 'Vinay Shetty' then 'build_show'::public.boa_acc_day_validity
+         else person.day_validity
+       end,
+       pass_ref = case person.full_name
+         when 'Ranjith Kumar' then 'BOA26-0412'
+         when 'Vinay Shetty' then 'BOA26-0418'
+         else person.pass_ref
+       end,
+       pass_token = case person.full_name
+         when 'Ranjith Kumar' then 'visual-ranjith-pass'
+         when 'Vinay Shetty' then 'visual-vinay-pass'
+         else person.pass_token
+       end,
+       approved_at = case person.full_name
+         when 'Ranjith Kumar' then now()
+         when 'Vinay Shetty' then now()
+         else person.approved_at
+       end,
+       created_at = case person.full_name
+         when 'Ranjith Kumar' then '2026-09-01T10:00:00+05:30'::timestamptz
+         when 'Vinay Shetty' then '2026-09-01T10:01:00+05:30'::timestamptz
+         when 'Suhas Bhat' then '2026-09-01T10:02:00+05:30'::timestamptz
+         when 'Imran Sheikh' then '2026-09-01T10:03:00+05:30'::timestamptz
+         else person.created_at
+       end,
+       decision_reason = case person.full_name
+         when 'Imran Sheikh' then 'Visual fixture rejection'
+         else person.decision_reason
+       end
+     where person.org_id = (select id from public.boa_acc_org where name = '${VISUAL_ORG}')
+  `, root)
+  return token
 }
 
 async function wipeVisualInvite() {
@@ -507,6 +550,13 @@ try {
         })
         if (screen.data === 'desk') await installDeskFixtures(page, view.slug)
         await page.goto(base + route, { waitUntil: 'networkidle' })
+        if (screen.slug === 'submission') {
+          // The approved artboard captures its illustrative vehicle example
+          // switched on. Exercise the real form so production has no fixture
+          // defaults or pre-assigned vehicle data.
+          await page.getByRole('switch').click()
+          await page.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
+        }
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
           await page.reload({ waitUntil: 'networkidle' })
@@ -573,12 +623,9 @@ try {
         writeFileSync(join(OUT, `${name}.diff.png`), PNG.sync.write(diff))
         writeFileSync(join(OUT, `${name}.ref.png`), PNG.sync.write(ref))
 
-        const gap = KNOWN_GAPS[screen.slug]
-        const ceiling = gap ? gap.maxPct / 100 : THRESHOLD
-        const ok = ratio <= ceiling
+        const ok = ratio <= THRESHOLD
         if (!ok) failures++
-        const withinKnownGap = gap && ok && ratio > THRESHOLD
-        const status = ok ? (withinKnownGap ? 'KNOWN GAP' : 'PASS') : 'FAIL'
+        const status = ok ? 'PASS' : 'FAIL'
         const redirected = landedOn !== new URL(base + route).pathname ? ` — REDIRECTED to ${landedOn}` : ''
         rows.push({
           screen: screen.slug,
@@ -586,8 +633,7 @@ try {
           detail:
             `${theme}/${view.slug} ${pct}% (ref ${ref.width}x${ref.height}, got ${act.width}x${act.height})` +
             (rects.length ? ` · ${rects.length} masked` : '') +
-            redirected +
-            (withinKnownGap ? ` — within the ${gap.maxPct}% ceiling, ${gap.reason}` : ''),
+            redirected,
         })
         shots.push({ name, status, pct, masks: rects.map((r) => r.reason), redirected })
       }
@@ -627,19 +673,17 @@ console.log('\n  SCREEN         STATUS    DETAIL')
 for (const r of rows) console.log(`  ${pad(r.screen, 14)} ${pad(r.status, 9)} ${r.detail}`)
 
 const compared = new Set(
-  rows.filter((r) => r.status === 'PASS' || r.status === 'KNOWN GAP' || r.status === 'FAIL').map((r) => r.screen),
+  rows.filter((r) => r.status === 'PASS' || r.status === 'FAIL').map((r) => r.screen),
 )
 const blocked = new Set(rows.filter((r) => r.status === 'BLOCKED').map((r) => r.screen))
 const missing = new Set(rows.filter((r) => r.status === 'NO ROUTE').map((r) => r.screen))
-const gaps = new Set(rows.filter((r) => r.status === 'KNOWN GAP').map((r) => r.screen))
 const expected = only ? 1 : SCREENS.length
 
 console.log(
-  `\n  COVERAGE: ${compared.size}/${expected} screens compared · ${blocked.size} blocked · ${missing.size} not built · ${gaps.size} known gap`,
+  `\n  COVERAGE: ${compared.size}/${expected} screens compared · ${blocked.size} blocked · ${missing.size} not built · 0 known gaps`,
 )
 if (missing.size) console.log(`  not built: ${[...missing].join(', ')}`)
 if (blocked.size) console.log(`  blocked:   ${[...blocked].join(', ')} — these are NOT verified`)
-if (gaps.size) console.log(`  known gap: ${[...gaps].join(', ')} — NOT matching the design yet`)
 console.log(`  review:    test-results/visual/index.html`)
 
 if (failures) {
@@ -653,9 +697,9 @@ if (failures) {
 if (compared.size === 0) {
   console.log('\nvisual-check: NOTHING COMPARED.')
   console.log('This is not a pass. It is the absence of a test.')
-} else if (compared.size < expected || gaps.size) {
-  console.log(`\nvisual-check OK for ${compared.size - gaps.size} of ${expected} screens at ${(THRESHOLD * 100).toFixed(1)}%.`)
-  console.log('The rest are unverified or known gaps, not passing.')
+} else if (compared.size < expected) {
+  console.log(`\nvisual-check OK for ${compared.size} of ${expected} screens at ${(THRESHOLD * 100).toFixed(1)}%.`)
+  console.log('The rest are unverified, not passing.')
 } else {
   console.log(`\nvisual-check OK — ${compared.size} screen(s) match the approved design.`)
 }

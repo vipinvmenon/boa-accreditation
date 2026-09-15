@@ -24,3 +24,27 @@ export const submissionSchema = z.object({
 })
 
 export type SubmissionInput = z.infer<typeof submissionSchema>
+
+export const rosterRowSchema = z.object({
+  fullName: z.string(),
+  roleText: z.string(),
+  status: z.enum(['approved', 'submitted', 'rejected']),
+})
+
+export const submissionResponseSchema = z.object({
+  org: z.object({
+    org_id: z.string(),
+    name: z.string(),
+    kind: z.string(),
+    status: z.string(),
+    quota: z.number(),
+    used: z.number(),
+    remaining: z.number(),
+    default_type: z.string(),
+  }),
+  roster: z.array(rosterRowSchema),
+})
+
+export type RosterRow = z.infer<typeof rosterRowSchema>
+
+export const submitResultSchema = z.object({ id: z.string() })

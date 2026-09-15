@@ -114,6 +114,10 @@ export const queue = {
     created_at: IST('04', '10:00'),
     submitted_at: IST('04', '10:00'),
   })),
+  selectedLabel: '14 of 14 selected',
+  approvedCount: 4,
+  orgs: dashboard.orgs.slice(0, 4),
+  nextOrg: { id: dashboard.orgs[3].id, name: dashboard.orgs[3].name },
   counts: { pending: 29, approved: 610, rejected: 4, aaa: 18 },
 }
 
@@ -144,9 +148,8 @@ export const master = {
     stickerNo: null,
     inBms: m.inBms,
     collectedAt: m.at,
-    // ACC-095 contract fields (docs/PLAN-DESIGN-FIDELITY.md). Zod strips keys a
-    // schema does not declare yet, so these are harmless before K0 lands and
-    // validated after it.
+    // ACC-095 contract fields (docs/PLAN-DESIGN-FIDELITY.md), declared by the
+    // Master response schema and validated with the rest of this fixture.
     gateLabel: m.gate,
     decidedAt: m.rejectedAt ?? null,
   })),
@@ -201,7 +204,7 @@ export async function passesFor(viewport) {
  * issue list on the first mismatch — the run stops before capturing anything.
  */
 export async function validateDeskFixtures() {
-  const [{ dashboardSchema }, { queueResponseSchema }, { masterResponseSchema }, { passSchema }, { operatorRowSchema }] =
+  const [{ dashboardSchema }, { queueResponseSchema }, { masterResponseSchema }, { passesResponseSchema }, { operatorRowSchema }] =
     await Promise.all([
       import('../../lib/schemas/dashboard.ts'),
       import('../../lib/schemas/queue.ts'),
@@ -218,7 +221,6 @@ export async function validateDeskFixtures() {
   check('master', masterResponseSchema, master)
   for (const op of operators.operators) check('operators', operatorRowSchema, op)
   for (const vp of ['web', 'mob']) {
-    const { passes } = await passesFor(vp)
-    for (const pass of passes) check(`passes/${vp}`, passSchema, pass)
+    check(`passes/${vp}`, passesResponseSchema, await passesFor(vp))
   }
 }

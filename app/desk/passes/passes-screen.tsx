@@ -1,7 +1,9 @@
 'use client'
 
-import { type Pass } from '@/lib/schemas/pass'
-import { DAY_VALIDITY, PROP, ALL_ZONES, passType, type PassTypeCode } from '@/lib/design'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
+import { DAY_VALIDITY, PROP, ALL_ZONES, logoFilterFor, passType, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
 
 export type RenderedPass = Pass & { qrSvg: string }
@@ -37,9 +39,43 @@ function zonesFor(typeCode: PassTypeCode) {
   return ALL_ZONES.map((label) => ({ label: held.has(label), text: held.has(label) ? label : `—— ${label}` }))
 }
 
-export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
+export function PassesScreen() {
+  const router = useRouter()
   const theme = useDomTheme()
   const p = PROP[theme]
+  const [passes, setPasses] = useState<RenderedPass[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const response = await fetch('/api/desk/passes')
+        if (response.status === 401) {
+          router.replace('/desk/login')
+          return
+        }
+        if (!response.ok) throw new Error('request_failed')
+        const parsed = passesResponseSchema.safeParse(await response.json())
+        if (!parsed.success) throw new Error('invalid_response')
+        if (!cancelled) {
+          setPasses(parsed.data.passes)
+          setError(false)
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setError(true)
+          setLoading(false)
+        }
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [router])
 
   function shareAll() {
     const links = passes.map((pass) => `${pass.fullName}: ${window.location.origin}/p/${pass.passToken}`)
@@ -47,30 +83,39 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
   }
 
   return (
-    <main className="passes-screen" style={{ background: 'var(--bg,#0A0A0A)', minHeight: '100%' }}>
-      <header className="passes-header" style={{ padding: '38px 34px', borderBottom: `1px solid ${p.rule}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+    <div className="d-shell">
+      <main className="passes-screen" style={{ background: 'var(--bg,#0A0A0A)', minHeight: '100%' }}>
+        <header className="passes-header d-pad-sec" style={{ borderBottom: `1px solid ${p.rule}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 300px', minWidth: 0 }}>
           <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: p.grn, marginBottom: '16px' }}>The pass</div>
-          <h1 className="passes-h1" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.94, textTransform: 'uppercase', color: p.ink, margin: '0 0 14px' }}>Pass sheet</h1>
-          <p style={{ fontSize: '14.5px', lineHeight: 1.55, color: p.ink3, margin: 0, maxWidth: '62ch' }}>
+          <h1 className="d-h1b passes-title" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.94, textTransform: 'uppercase', color: p.ink, margin: '0 0 14px' }}>
+            <span className="passes-title-desktop">Pass sheet</span>
+            <span className="passes-title-mobile">One person, one pass</span>
+          </h1>
+          <p className="passes-blurb passes-blurb-desktop" style={{ fontSize: '14.5px', lineHeight: 1.55, color: p.ink3, margin: 0, maxWidth: '62ch' }}>
             One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.
+          </p>
+          <p className="passes-blurb passes-blurb-mobile" style={{ fontSize: '14.5px', lineHeight: 1.55, color: p.ink3, margin: 0, maxWidth: '62ch' }}>
+            The code carries a pass token, not a name. Bring it and a valid photo ID to the crew check-in desk — a wristband cannot be collected on anyone else’s behalf.
           </p>
         </div>
         <div className="passes-actions" style={{ gap: '10px', flexWrap: 'wrap' }}>
           <button type="button" onClick={shareAll} className="hov-outline-grn" style={ghostButtonStyle}>Send on WhatsApp</button>
           <button type="button" onClick={() => window.print()} className="hov-invert-grn" style={buttonStyle}>Print {passes.length} passes →</button>
         </div>
-      </header>
+        </header>
 
-      <div className="pass-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: '1px', background: p.rule }}>
+        <div className="pass-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: '1px', background: p.rule }}>
+        {loading && <p className="passes-state" style={{ color: p.ink3 }}>Loading passes…</p>}
+        {!loading && error && <p className="passes-state passes-state-error" style={{ color: p.bad }}>Unable to load passes.</p>}
+        {!loading && !error && passes.length === 0 && <p className="passes-state" style={{ color: p.ink3 }}>No approved passes yet — approve in the queue →</p>}
         {passes.map((pass) => {
           const type = passType(pass.typeCode)
           const zones = zonesFor(pass.typeCode)
-          const link = `/p/${pass.passToken}`
           return (
             <article className="pass-card" key={pass.id} style={{ background: 'var(--bg,#0A0A0A)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderBottom: `1px solid ${p.rule}`, paddingBottom: '14px' }}>
-                <img src="/assets/boa-logo.png" alt="BOA" style={{ height: '26px', width: 'auto', display: 'block', filter: theme === 'light' ? 'invert(1)' : undefined }} />
+                <img src="/assets/boa-logo.png" alt="BOA" style={{ height: '26px', width: 'auto', display: 'block', filter: logoFilterFor(theme) }} />
                 <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: p.ink3 }}>{pass.passRef}</div>
               </div>
 
@@ -83,9 +128,11 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
 
               <div style={{ border: `1px solid ${typeColour(type.code, theme)}` }}>
                 <div style={{ height: '10px', background: typeColour(type.code, theme) }} />
-                <div style={{ padding: '14px 16px' }}>
-                  <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '24px', lineHeight: 1, textTransform: 'uppercase', color: typeColour(type.code, theme) }}>{type.label}</div>
-                  <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: p.ink2, marginTop: '5px' }}>{type.band} band</div>
+                <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '24px', lineHeight: 1, textTransform: 'uppercase', color: typeColour(type.code, theme) }}>{type.label}</div>
+                    <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: p.ink2, marginTop: '5px' }}>{type.band} band</div>
+                  </div>
                 </div>
               </div>
 
@@ -103,15 +150,12 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
                 <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '14px', fontWeight: 700, letterSpacing: '0.12em', color: p.ink }}>{pass.vehicleReg}</span>
               </div>}
 
-              <div className="pass-card-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => share(link, `BOA pass for ${pass.fullName}`)} className="hov-outline-grn" style={ghostButtonStyle}>Send on WhatsApp</button>
-              </div>
               <div style={{ marginTop: 'auto', borderTop: `1px solid ${p.rule}`, paddingTop: '14px', fontSize: '12px', lineHeight: 1.5, color: p.ink3 }}>Bring this and a valid photo ID. Non-transferable. One person = one pass = one physical check-in = one wristband.</div>
             </article>
           )
         })}
-      </div>
-      <style>{`
+        </div>
+        <style>{`
         /* Deliberate literal-white exception: design source line 369 hardcodes an
            opaque-white background for the QR container, theme-independent on purpose —
            a QR code needs a genuinely light quiet zone to scan reliably regardless
@@ -121,25 +165,41 @@ export function PassesScreen({ passes }: { passes: RenderedPass[] }) {
            no-raw-hex lint gate while still being the same opaque white the design
            source specifies, verbatim in effect if not in literal spelling. */
         .qr-wrap { background:white; padding:16px; display:flex; justify-content:center; }
-        .qr-wrap svg { display:block; width:min(100%, 260px); height:auto; }
-        .passes-h1 { font-size:34px; } /* h1b, mobile — design source line 818 */
+        .qr-wrap svg { display:block; width:117px; height:117px; }
+        .passes-state {
+          grid-column:1 / -1;
+          margin:0;
+          padding:15px 18px;
+          font-family:'JetBrains Mono',monospace;
+          font-size:10.5px;
+          letter-spacing:0.07em;
+          text-transform:uppercase;
+        }
+        .passes-state-error { color:var(--bad,#FF6B5A); }
+        .passes-title-mobile, .passes-blurb-mobile { display:none; }
         .passes-actions { display:none; }
+        @media (max-width: 767px) {
+          .passes-title-desktop, .passes-blurb-desktop { display:none; }
+          .passes-title-mobile { display:inline; }
+          .passes-blurb-mobile { display:block; }
+        }
         @media (min-width: 768px) {
-          .passes-h1 { font-size:clamp(38px,4.4vw,58px); } /* h1b, desktop */
           .passes-actions { display:flex; }
         }
         @media print {
           @page { size:A4; margin:12mm; }
           html, body { background:white !important; }
-          .passes-header, .pass-card-actions { display:none !important; }
+          .passes-header, .passes-state { display:none !important; }
           .pass-grid { display:block !important; background:white !important; }
           .pass-card { min-height:270mm; break-after:page; background:white !important; color:var(--on) !important; padding:0 !important; }
           .pass-card:last-child { break-after:auto; }
           .pass-card > * { break-inside:avoid; }
           .qr-wrap { margin-top:8mm; }
+          .qr-wrap svg { width:35mm; height:35mm; }
         }
-      `}</style>
-    </main>
+        `}</style>
+      </main>
+    </div>
   )
 }
 
