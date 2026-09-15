@@ -716,6 +716,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-098 released 2026-09-15 (IST):** Queue remains above 0.8% after measured shell correction: 2.57%, 2.73%, 5.12%, 5.06%; source/live box-model metrics match and no new cause is verified
 
+
+> **ACC-098 released 2026-09-15 (IST):** Queue remains above the 0.8% visual threshold at 2.57%, 2.73%, 5.12%, 5.06%; fresh forensic work isolated mobile native-select intrinsic grid sizing, but contract-safe fixes worsened results and no justified fix exists yet.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
