@@ -55,8 +55,9 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       `vipin-menon` slug in the dashboard URL only looks personal. **Done 11 Sep.**
 - [ ] **ACC-090a** · Create the `qa-visual` operator at `/desk/users`; set
       `VISUAL_OPERATOR_EMAIL`/`VISUAL_OPERATOR_PASSWORD` in `.env.local` (both
-      checkouts) and as GitHub Actions secrets. Without it four desk screens
-      stay unmeasured — see `docs/PLAN-DESIGN-FIDELITY.md` · **V** · due Tue 15
+      checkouts) and as GitHub Actions secrets. **No longer blocking (15 Sep):**
+      ACC-090's harness measures all desk screens through API fixtures with no
+      login; this only adds a real-session pass on top · **V** · *optional*
 - [ ] **ACC-030a** · The 38 organisations: name, kind, quota, contact name,
       contact phone. **V/B** · *needed 17 Sep*
 - [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.

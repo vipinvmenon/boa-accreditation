@@ -277,7 +277,7 @@ export function UsersScreen() {
                 value={form.displayName}
                 onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
                 style={inputStyle}
-                placeholder="Ranjith Kumar"
+                placeholder="As they should appear to the team"
               />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

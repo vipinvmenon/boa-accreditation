@@ -1,0 +1,224 @@
+// Design data for the authenticated desk screens, served to the real UI
+// through the real API contract.
+//
+// Every value below is transcribed from design/source/boa_design_body.html
+// renderVals() (line numbers cited per block). visual-check.mjs fulfils
+// /api/desk/* with these payloads via Playwright's page.route(), so the
+// shipped components fetch, Zod-parse and render them exactly as they would
+// production data. This is the same pattern as seedGateDexie() for the gate:
+// the design is a static artboard, so its numbers have to arrive through the
+// data layer before the real screen is captured.
+//
+// Two rules keep this honest:
+//  1. validateDeskFixtures() parses every payload with the SAME Zod schema the
+//     screen uses. A fixture that drifts from the API contract fails the run
+//     before a single screenshot is taken.
+//  2. scripts/check-bundle-content.mjs fails the build if any fixture name
+//     below appears in app/, lib/ or components/ — so a screen can never pass
+//     by hardcoding what these fixtures supply.
+
+import QRCode from 'qrcode'
+
+/** Names that must never appear in shipped source. Read by check-bundle-content.mjs. */
+export const FIXTURE_SENTINELS = [
+  'Ranjith',
+  'Chakra Sound',
+  'Faisal Mohammed',
+  'Sentinel Security',
+  'Thunderjaw',
+  'Distortion Press',
+  'Redline Beverages',
+  'Ironhoof',
+  'Prakash Devaiah',
+  'Nikita Banerjee',
+  'BOA26-0412',
+  'BOA26-2205',
+]
+
+/** Copies of lib/design.ts's QR_* (this .mjs cannot import TypeScript at
+ *  runtime). tests/unit/visual-fixtures.test.ts fails if they drift. */
+export const QR_SCHEME = 'BOA26:'
+export const QR_DARK = '#0A0A0A'
+export const QR_LIGHT = '#FFFFFF'
+
+const IST = (date, time) => `2026-10-${date}T${time}:00.000+05:30`
+const uuid = (n) => `a0000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+
+// ── Status bar + Control room (lines 53-57, 640-669, 122, 565-567) ─────────
+const DESIGN_ORGS = [
+  { name: 'Chakra Sound & Light', kind: 'vendor', contactName: 'Ranjith K', contactPhone: '+91 98861 04422', used: 14, quota: 22, defaultType: 'stage', status: 'submitted' },
+  { name: 'Sentinel Security Services', kind: 'security', contactName: 'Faisal M', contactPhone: '+91 99012 88104', used: 68, quota: 70, defaultType: 'crew', status: 'approved' },
+  { name: 'BOA Production Core', kind: 'crew', contactName: 'Bhoopesh', contactPhone: '+91 98450 11290', used: 41, quota: 45, defaultType: 'stage', status: 'approved' },
+  { name: 'Thunderjaw Merch', kind: 'vendor', contactName: 'Aditi R', contactPhone: '+91 90350 77218', used: 9, quota: 12, defaultType: 'crew', status: 'open' },
+  { name: 'Redline Beverages', kind: 'sponsor', contactName: 'Sameer T', contactPhone: '+91 87620 41139', used: 18, quota: 20, defaultType: 'crew', status: 'approved' },
+  { name: 'Distortion Press', kind: 'media', contactName: 'Nikita B', contactPhone: '+91 96110 55873', used: 11, quota: 15, defaultType: 'crew', status: 'submitted' },
+  { name: 'Ironhoof Rigging', kind: 'contractor', contactName: 'Prakash D', contactPhone: '+91 94480 30012', used: 26, quota: 26, defaultType: 'stage', status: 'closed' },
+]
+
+export const dashboard = {
+  submittedTotal: 641,
+  submittedOrgs: 38,
+  approvedTotal: 612,
+  pendingTotal: 29,
+  bandsIssued: 184,
+  bandsNotCollected: 428,
+  stickersActive: 47,
+  stickersPending: 5, // 47 + 5 = "52 registrations approved"
+  bmsAdded: 598,
+  bmsPending: 14,
+  aaaStamped: 14,
+  aaaNominatedApproved: 18,
+  types: [
+    { code: 'crew', count: 520 },
+    { code: 'stage', count: 78 },
+    { code: 'aaa', count: 14 },
+  ],
+  orgs: DESIGN_ORGS.map((o, i) => ({ id: uuid(100 + i), ...o })),
+}
+
+export const operators = {
+  callerId: uuid(900),
+  operators: [
+    { user_id: uuid(900), role: 'approver', display_name: 'QA Visual', active: true, created_at: IST('01', '09:00') },
+  ],
+}
+
+// ── Queue (lines 181-183, 671-697) ──────────────────────────────────────────
+// The design's artboard shows one org mid-review, so decided and pending rows
+// sit together under the Pending tab. Transcribed as drawn.
+const CHAKRA_ID = dashboard.orgs[0].id
+const QUEUE_PEOPLE = [
+  { name: 'Ranjith Kumar', phone: '+91 98861 04422', role: 'Stage tech', type: 'stage', status: 'approved' },
+  { name: 'Vinay Shetty', phone: '+91 90084 21771', role: 'Rigger', type: 'stage', status: 'approved' },
+  { name: 'Meera Joseph', phone: '+91 99450 66123', role: 'FOH engineer', type: 'stage', status: 'approved' },
+  { name: 'Arjun Nayar', phone: '+91 88670 12904', role: 'Lighting op', type: 'crew', status: 'approved' },
+  { name: 'Suhas Bhat', phone: '+91 97400 55381', role: 'Truck driver', type: null, status: 'submitted' },
+  { name: 'Ganesh Rao', phone: '+91 91084 77260', role: 'Loader', type: null, status: 'submitted' },
+  { name: 'Imran Sheikh', phone: '+91 96320 90014', role: 'Backline', type: null, status: 'rejected' },
+]
+
+export const queue = {
+  rows: QUEUE_PEOPLE.map((p, i) => ({
+    id: uuid(200 + i),
+    org_id: CHAKRA_ID,
+    org_name: 'Chakra Sound & Light',
+    org_kind: 'vendor',
+    full_name: p.name,
+    phone: p.phone,
+    role_text: p.role,
+    vehicle_reg: null,
+    status: p.status,
+    type_code: p.type,
+    day_validity: p.type ? 'build_show' : null,
+    decision_reason: null,
+    created_at: IST('04', '10:00'),
+    submitted_at: IST('04', '10:00'),
+  })),
+  counts: { pending: 29, approved: 610, rejected: 4, aaa: 18 },
+}
+
+// ── Master list (lines 703-725) ─────────────────────────────────────────────
+const MASTER = [
+  { name: 'Ranjith Kumar', phone: '+91 98861 04422', org: 'Chakra Sound & Light', kind: 'vendor', type: 'stage', band: '#0412', vehicle: 'KA 05 MJ 8871', at: IST('09', '14:02'), gate: 'Gate 1', inBms: true },
+  { name: 'Faisal Mohammed', phone: '+91 99012 88104', org: 'Sentinel Security', kind: 'security', type: 'crew', band: '#1180', vehicle: null, at: IST('09', '06:40'), gate: 'Gate 1', inBms: true },
+  { name: 'Bhoopesh S', phone: '+91 98450 11290', org: 'BOA Production Core', kind: 'crew', type: 'aaa', band: '#0001', vehicle: 'KA 01 AB 2211', at: IST('08', '11:15'), gate: 'Desk', inBms: true },
+  { name: 'Aditi Rao', phone: '+91 90350 77218', org: 'Thunderjaw Merch', kind: 'vendor', type: 'crew', band: null, vehicle: 'KA 51 CQ 0043', at: null, gate: null, inBms: false },
+  { name: 'Nikita Banerjee', phone: '+91 96110 55873', org: 'Distortion Press', kind: 'media', type: 'crew', band: '#2205', vehicle: null, at: IST('10', '12:30'), gate: 'Gate 2', inBms: true },
+  { name: 'Sameer Thomas', phone: '+91 87620 41139', org: 'Redline Beverages', kind: 'sponsor', type: 'crew', band: null, vehicle: 'KA 03 HD 7788', at: null, gate: null, inBms: false },
+  { name: 'Prakash Devaiah', phone: '+91 94480 30012', org: 'Ironhoof Rigging', kind: 'contractor', type: 'stage', band: '#0388', vehicle: 'KA 09 TR 1902', at: IST('08', '07:55'), gate: 'Desk', inBms: true },
+  { name: 'Imran Sheikh', phone: '+91 96320 90014', org: 'Chakra Sound & Light', kind: 'vendor', type: 'crew', band: null, vehicle: null, at: null, gate: null, inBms: false, rejectedAt: IST('05', '18:00') },
+]
+
+export const master = {
+  rows: MASTER.map((m, i) => ({
+    id: uuid(300 + i),
+    fullName: m.name,
+    phone: m.phone,
+    orgName: m.org,
+    orgKind: m.kind,
+    typeCode: m.type,
+    status: m.rejectedAt ? 'rejected' : 'approved',
+    passRef: m.rejectedAt ? null : `BOA26-${String(i + 1).padStart(4, '0')}`,
+    vehicleReg: m.vehicle,
+    bandSerial: m.band,
+    stickerNo: null,
+    inBms: m.inBms,
+    collectedAt: m.at,
+    // ACC-095 contract fields (docs/PLAN-DESIGN-FIDELITY.md). Zod strips keys a
+    // schema does not declare yet, so these are harmless before K0 lands and
+    // validated after it.
+    gateLabel: m.gate,
+    decidedAt: m.rejectedAt ?? null,
+  })),
+}
+
+// ── Passes (lines 740-756) ──────────────────────────────────────────────────
+const SHEET = [
+  { name: 'Ranjith Kumar', org: 'Chakra Sound & Light', role: 'Stage tech', type: 'stage', vehicle: 'KA 05 MJ 8871', days: 'build_show', ref: 'BOA26-0412' },
+  { name: 'Vinay Shetty', org: 'Chakra Sound & Light', role: 'Rigger', type: 'stage', vehicle: null, days: 'build_show', ref: 'BOA26-0418' },
+  { name: 'Meera Joseph', org: 'Chakra Sound & Light', role: 'FOH engineer', type: 'crew', vehicle: null, days: 'show', ref: 'BOA26-0421' },
+  { name: 'Suhas Bhat', org: 'Thunderjaw Merch', role: 'Truck driver', type: 'crew', vehicle: 'KA 51 CQ 0043', days: 'build', ref: 'BOA26-0631' },
+  { name: 'Bhoopesh S', org: 'BOA Production Core', role: 'Accreditation lead', type: 'aaa', vehicle: 'KA 01 AB 2211', days: 'build_show', ref: 'BOA26-0001' },
+  { name: 'Nikita Banerjee', org: 'Distortion Press', role: 'Photographer', type: 'crew', vehicle: null, days: 'show', ref: 'BOA26-2205' },
+]
+
+/**
+ * `{ passes: (Pass & { qrSvg })[] }` — the ACC-097 (P7) response. The QR is a
+ * real code for the fixture token, generated with the same library and options
+ * as the server; the design draws a fake 13x13 pattern, so the QR region is a
+ * named mask in visual-check.mjs rather than something a fixture can match.
+ * Mobile gets one card, as the design's `SHEET.slice(0, 1)` does.
+ */
+export async function passesFor(viewport) {
+  const sheet = viewport === 'mob' ? SHEET.slice(0, 1) : SHEET
+  const passes = await Promise.all(
+    sheet.map(async (p, i) => {
+      const passToken = `visualPassToken${String(i).padStart(7, '0')}`
+      return {
+        id: uuid(400 + i),
+        fullName: p.name,
+        role: p.role,
+        vehicleReg: p.vehicle,
+        orgName: p.org,
+        passRef: p.ref,
+        passToken,
+        typeCode: p.type,
+        dayValidity: p.days,
+        qrSvg: await QRCode.toString(`${QR_SCHEME}${passToken}`, {
+          type: 'svg',
+          margin: 0,
+          errorCorrectionLevel: 'M',
+          color: { dark: QR_DARK, light: QR_LIGHT },
+        }),
+      }
+    }),
+  )
+  return { passes }
+}
+
+/**
+ * Parse every payload with the schema its screen uses. Throws with the Zod
+ * issue list on the first mismatch — the run stops before capturing anything.
+ */
+export async function validateDeskFixtures() {
+  const [{ dashboardSchema }, { queueResponseSchema }, { masterResponseSchema }, { passSchema }, { operatorRowSchema }] =
+    await Promise.all([
+      import('../../lib/schemas/dashboard.ts'),
+      import('../../lib/schemas/queue.ts'),
+      import('../../lib/schemas/master.ts'),
+      import('../../lib/schemas/pass.ts'),
+      import('../../lib/schemas/operator.ts'),
+    ])
+  const check = (label, schema, value) => {
+    const r = schema.safeParse(value)
+    if (!r.success) throw new Error(`visual fixture "${label}" does not match its API schema:\n${JSON.stringify(r.error.issues, null, 2)}`)
+  }
+  check('dashboard', dashboardSchema, dashboard)
+  check('queue', queueResponseSchema, queue)
+  check('master', masterResponseSchema, master)
+  for (const op of operators.operators) check('operators', operatorRowSchema, op)
+  for (const vp of ['web', 'mob']) {
+    const { passes } = await passesFor(vp)
+    for (const pass of passes) check(`passes/${vp}`, passSchema, pass)
+  }
+}

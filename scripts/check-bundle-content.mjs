@@ -76,6 +76,20 @@ for (const file of files) {
   })
 }
 
+// ── 3. Visual fixture names ─────────────────────────────────────────────────
+// test:visual feeds the design's own names through /api/desk/* (see
+// scripts/visual-fixtures/desk.mjs). The cheapest way to pass a screenshot
+// comparison is to hardcode the screenshot's values (CLAUDE.md, "How the
+// sibling project got here"); a fixture name in shipped source is exactly that.
+const { FIXTURE_SENTINELS } = await import('./visual-fixtures/desk.mjs')
+for (const file of files) {
+  const src = read(file)
+  src.split('\n').forEach((line, i) => {
+    const hit = FIXTURE_SENTINELS.find((name) => line.includes(name))
+    if (hit) fail(file, i + 1, `visual fixture value "${hit}" in shipped source — screens must render it from data, not hardcode it`)
+  })
+}
+
 if (failed) {
   console.error('\ncheck-bundle-content FAILED.')
   process.exit(1)

@@ -223,10 +223,62 @@ Compare `app/desk/passes/*` against design lines 319–386 and 740–756, 807–
 | Fri 18 | C5 merge, 7/7 PASS, review, deploy | Integration fixes in own files |
 | Sat 19 | Buffer | Buffer |
 
-## Baseline numbers (filled in by C1)
+## Baseline numbers (measured by C1, 15 Sep 2026)
 
-_Not yet measured._
+`corepack pnpm build && corepack pnpm test:visual`, branch
+`design/claude-harness-submission`. **7/7 screens compared, 0 blocked.** Limit
+0.8% everywhere except Submission's transitional 32% (removed by ACC-092).
+
+| Screen | dark/web | light/web | dark/mob | light/mob | Height ref → got (web) |
+|---|---|---|---|---|---|
+| control-room | 3.41% | 3.42% | 2.92% | 2.94% | 2190 → 2121 |
+| queue | 9.52% | 9.40% | 9.67% | 9.81% | 1164 → 1203 |
+| master | 10.88% | 10.72% | 6.01% | 5.79% | 1009 → 1059 |
+| submission | 29.99% | 29.97% | 26.65% | 26.57% | 1224 → 936 (known gap) |
+| passes | 65.43% | 142.55% | 42.92% | 120.52% | **redirects to /desk/login** until P7 |
+| gate | 0.37% ✅ | 0.36% ✅ | 0.67% ✅ | 0.66% ✅ | match |
+| vehicle | 0.15% ✅ | 0.13% ✅ | 0.31% ✅ | 0.29% ✅ | match |
+
+**How to measure (Cursor):**
+- Run `corepack pnpm build && corepack pnpm test:visual -- --screen master`
+  (or another screen name).
+- Open `test-results/visual/index.html` for reference | actual | diff.
+- The harness refuses a stale build.
+
+**No login needed.** Desk screens get the design's data through `/api/desk/*`,
+served in the browser from `scripts/visual-fixtures/desk.mjs`. The screens
+still fetch and Zod-parse normally. ACC-090a is optional.
+
+**Named masks** (painted magenta in both images before diffing). Cursor: fold
+these into DESIGN-SYSTEM.md.
+- **`button[aria-label="Operator menu"]`**, on every desk screen. ADR-015: the
+  profile menu sits in the design's theme-button slot.
+- **`h2:has-text("on site")`**, on Control Room. The design lists 7 orgs under
+  a "38 companies" heading; real data can't be both.
+- **`.qr-wrap svg`**, on Passes. The design draws a fake pattern; real passes
+  carry real QR codes.
+
+**Fixture contract:** `tests/unit/visual-fixtures.test.ts` parses every fixture
+with the screens' own schemas on each commit. If K0 or P7 change a schema, add
+a Request rather than editing the fixture.
+
+## New findings from the first real captures (not in the code audit)
+
+- **D4 · The status bar denominator is wrong** (`desk-chrome.tsx`).
+  - It shows `bandsIssued / sum(org quotas)`, which reads "184 / 210".
+  - The design's "184 / 612" is bands issued over **approved**
+    (`dashboard.approvedTotal`).
+  - → ACC-095.
+- **M9 · Master is not centred.**
+  - The design's `<main>` centres the 1280px shell, so rows start at x=58 on a
+    1360px viewport.
+  - Master's shell sits flush left: rows start at x=18.
+  - Control Room centres itself; check Queue and Passes too.
+  - Best fixed once, in DeskChrome's content wrapper. → ACC-095/096.
+- **D1 confirmed.** Control Room is 69px shorter than the design, and the
+  footer is missing.
 
 ## Requests (cross-lane changes — add a line, the owner does it)
 
-_None yet._
+- Claude → Cursor: fold the three masks above into `docs/DESIGN-SYSTEM.md`
+  ("Additions to the design").

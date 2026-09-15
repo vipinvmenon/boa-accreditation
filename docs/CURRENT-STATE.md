@@ -2498,6 +2498,65 @@ through `/desk/users`' existing invite flow, not a placeholder alias.
 pgTAP files, including `operator-active.test.sql` 6/6 with the fix), and
 `check:sql` (26 migrations) all green.
 
+### 15 Sep 2026 — ACC-090: the visual gate now measures every screen
+
+Vipin: Submission, Master List and Passes "still look different". Cause, as
+measured rather than assumed:
+- Four desk screens had **never** been pixel-compared, because the harness
+  needed an operator login.
+- Submission passed only through a 32% exemption.
+
+The work is split across Claude and Cursor. `docs/PLAN-DESIGN-FIDELITY.md` has
+the lanes, file ownership, findings and baseline.
+
+**What changed** (branch `design/claude-harness-submission`):
+- **Desk fixtures.** `scripts/visual-fixtures/desk.mjs` transcribes the
+  design's own `renderVals()` data. `scripts/visual-check.mjs` serves it to
+  `/api/desk/{dashboard,operators,queue,master,passes}` via `page.route()`.
+  - The real screens still fetch and Zod-parse it.
+  - Desk screens no longer need a login.
+  - `tests/unit/visual-fixtures.test.ts` checks every fixture against the
+    screens' own schemas on each commit.
+- **Named masks replace percentages** for new exceptions. There are three,
+  each with a reason in the script: the operator-menu slot, Control Room's
+  org-count heading, and the pass QR codes. Submission keeps a 32% ceiling
+  marked transitional; ACC-092 deletes it.
+- **Stale-build guard.** `test:visual` exits if any source file is newer than
+  `.next/BUILD_ID`.
+- **Hardcoding guard.** `check-bundle-content.mjs` fails if a fixture name
+  appears in `app/`, `lib/` or `components/`. That forced one change: a
+  "Ranjith Kumar" placeholder in `/desk/users`.
+- **Review page.** `test-results/visual/index.html` shows reference | actual |
+  diff for every shot. Redirects are reported, never silently compared.
+
+**Verified by running it:**
+- `typecheck` green. `lint` green (3 pre-existing img warnings). `test` 53/53.
+  `build` green.
+- Hardcoding guard mutation-tested: a planted `'Chakra Sound & Light'` in
+  `app/` failed with exit 1, and the tree passed again after it was removed.
+- Stale-build guard mutation-tested: touching `app/page.tsx` after the build
+  made `test:visual` refuse with exit 1. The file's mtime was then restored.
+- `test:visual`: **7/7 screens compared, 0 blocked.**
+  - Gate 0.36–0.67% PASS; vehicle 0.13–0.31% PASS.
+  - Control-room 2.92–3.42% FAIL; queue 9.40–9.81% FAIL; master 5.79–10.88%
+    FAIL.
+  - Submission 26.57–29.99%, a known gap.
+  - Passes FAIL: it redirects to `/desk/login` because it still loads data on
+    the server.
+- The Master and Control Room captures were opened and checked. They render
+  the fixture data (names, serials, stats), not loading or error states.
+
+**Still not true:**
+- No desk screen matches the design yet. These are before-numbers.
+- The captures found three new defects the code audit missed:
+  - the status bar shows "184 / 210", dividing by the quota sum instead of
+    approved
+  - Master is not centred
+  - Control Room has no footer
+  These are logged for Cursor's lane.
+- Not yet run in CI.
+- Not merged to `main` at the time of writing.
+
 ## Template for the next session update
 
 ```
