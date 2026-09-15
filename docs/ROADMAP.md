@@ -195,7 +195,7 @@ Claude = **C**, Cursor = **CU**, run in parallel.
 - [x] **ACC-096** · Master List M1–M8 at ≤0.8% · **CU** · due Wed 16
 - [x] **ACC-097** · Passes P1–P7 at ≤0.8% · **CU** · due Thu 17
 - [x] **ACC-098** · Queue (10 findings) + Control Room at ≤0.8% · **CU** · due Thu 17
-- [~] **ACC-099** · Cursor lane sign-off, measured numbers in CURRENT-STATE · **CU** · due Fri 18
+- [x] **ACC-099** · Cursor lane sign-off, measured numbers in CURRENT-STATE · **CU** · due Fri 18
 
 **Milestone A precondition:** `wipe-dummy` run, 0 `TEST — ` orgs remaining,
 before ACC-031 mints the 38 real invite tokens.

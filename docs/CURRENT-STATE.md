@@ -2939,8 +2939,17 @@ still Vipin's to trigger, per the working rules in
   the fixture-backed Playwright visual harness; those are the live walkthrough
   measurements recorded above. The harness uses the normal screen data layer
   with deterministic API fixtures and does not require an operator session.
-- No push or deploy was performed. ACC-093 remains in flight until Vipin's
-  review and the authenticated walkthrough are completed.
+- No push or deploy was performed. ACC-093 is complete in this lane; Vipin's
+  review and deploy decision remain outstanding.
+
+### 15 Sep 2026 — ACC-099 Cursor lane sign-off
+
+- Final measured numbers for the Cursor lane: shared shell / Control Room
+  **0.25%, 0.26%, 0.23%, 0.25%**; Master List **0.27%, 0.34%, 0.10%,
+  0.21%**; Passes **0.20%, 0.19%, 0.11%, 0.07%** (dark/light web/mobile).
+- All three screens were **PASS** in all four variants, with matching reference
+  and actual dimensions. `task done ACC-099` also re-ran typecheck, lint, and
+  unit tests: **53/53**.
 
 ## Template for the next session update
 
