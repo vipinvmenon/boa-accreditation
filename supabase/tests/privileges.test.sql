@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(74) as line
+  select 0 as n, plan(77) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -58,6 +58,7 @@ select line from (
   union all select 31, function_privs_are('public',  'boa_acc_mint_invite',     array['uuid','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_mint_invite')
   union all select 32, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_org_view')
   union all select 33, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_submit')
+  union all select 81, function_privs_are('public',  'boa_acc_org_roster',      array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_org_roster')
 
   -- ---------------------------------------------------------------------
   -- authenticated: desk read grants, EXECUTE on is_operator (policies) and
@@ -72,8 +73,10 @@ select line from (
   union all select 35, function_privs_are('public',  'boa_acc_mint_invite',     array['uuid','text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_mint_invite')
   union all select 36, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_org_view')
   union all select 37, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_submit')
+  union all select 82, function_privs_are('public',  'boa_acc_org_roster',      array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_org_roster')
   union all select 38, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_org_view')
   union all select 39, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_submit')
+  union all select 83, function_privs_are('public',  'boa_acc_org_roster',      array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_org_roster')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')

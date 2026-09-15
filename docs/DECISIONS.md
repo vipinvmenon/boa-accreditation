@@ -519,3 +519,24 @@ be run after this change and its real percentage recorded in
 — not assumed passing because the button "still looks similar." See the
 session log entry for the actual numbers, or the documented reason they
 could not be measured.
+
+## ADR-016 — Submission "Your list" is the token organisation's roster
+
+**Accepted 15 Sep 2026.**
+
+The Submission screen's "Your list" is server-backed, not session-only. A
+holder of a live invite token sees the people already submitted from that
+organisation, together with later desk decisions, so the list survives reloads
+and reflects the same source of truth as the desk.
+
+`public.boa_acc_org_roster(text)` resolves the organisation from the invite
+token itself. It returns only `full_name`, `role_text` and workflow `status`
+for `submitted`, `approved` and `rejected` rows. Draft rows are local browser
+state until submitted; voided rows are historical and are not roster entries.
+Phone numbers, vehicle registrations, `pass_token` and all other credentials
+are deliberately excluded from this public projection.
+
+The function is a `SECURITY DEFINER` token boundary and is executable only by
+`service_role`, matching `boa_acc_org_view` and the existing server-side route
+pattern. Unknown, revoked and expired tokens remain indistinguishable `P0002`
+not-found errors.
