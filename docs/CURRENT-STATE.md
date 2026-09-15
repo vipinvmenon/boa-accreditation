@@ -2728,6 +2728,46 @@ diff from 5.73%/5.94% to 5.12%/5.06%, but did not close the gap. No further
 generic grid/spacing tuning or native-select substitution was attempted.
 ACC-098 is therefore blocked pending a new, independently evidenced cause.
 
+### 15 Sep 2026 — ACC-098: fresh forensic pass; Queue-specific mobile track evidence, no valid fix
+
+Rebuilt from the current tree and ran `corepack pnpm test:visual -- --screen
+queue` with the committed references and the harness's deterministic Chromium
+font arguments. The result is unchanged and reproducible: **dark/web 2.57%,
+light/web 2.73%, dark/mobile 5.12%, light/mobile 5.06%**; reference→actual
+heights are **1164→1166px** on web and **1810→1819px** on mobile. The build
+completed successfully, and the run compared 1/1 requested screen with no
+blocked or missing reference.
+
+The actual and reference images were compared by region, using the same
+pixelmatch threshold (`0.12`, `includeAA:false`) as the visual harness. Raw
+mismatched-pixel counts were:
+
+- web dark: chrome **3,186**, hero **249**, filters **36**, bulk **0**, org
+  **2,347**, rows **17,743**, summary **618**, footer **14,101**
+- web light: chrome **3,204**, hero **197**, filters **0**, bulk **0**, org
+  **3,518**, rows **16,498**, summary **1,925**, footer **15,490**
+- mobile dark: chrome **743**, hero **1,603**, filters **0**, bulk **20**, org
+  **21**, rows **26,677**, summary **3,040**, footer **2,876**
+- mobile light: chrome **757**, hero **1,555**, filters **0**, bulk **0**, org
+  **1**, rows **26,345**, summary **2,906**, footer **2,686**
+
+The mobile DOM was instrumented against the real fixture-backed render. Every
+`.d-queue-cols` row computes as `grid-template-columns: 133px 203px`, with the
+first checkbox at x=19–39, the person cell at x=168–371, and the type label at
+x=19–152. This is Queue-specific: the native `<select>` inside the type label
+contributes the intrinsic width of the `auto` first track, leaving only 203px
+for the person/status column and causing the observed wrapping. The surrounding
+row remains `border-box`; the select is `appearance:none`, 18px high, and the
+shell, borders, colors, fonts, and fixture values remain as previously
+verified. This is new structural evidence, not a spacing or reset hypothesis.
+
+For completeness, temporary CSS experiments forcing the mobile first track to
+40–60px produced a **1777px** page and ratios **6.54–6.64%**, worse than the
+committed 5.12–5.06%; no source change was retained. The prior native-select
+→ plain-span experiment remains reverted and already disproven. No valid,
+source-contract-preserving fix was found; no unrelated values were changed.
+ACC-098 remains **blocked** and is not marked done.
+
 ## Template for the next session update
 
 ```
