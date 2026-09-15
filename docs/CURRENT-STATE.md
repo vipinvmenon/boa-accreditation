@@ -2771,6 +2771,72 @@ committed 5.12–5.06%; no source change was retained. The prior native-select
 source-contract-preserving fix was found; no unrelated values were changed.
 ACC-098 remains **blocked** and is not marked done.
 
+### 15 Sep 2026 — ACC-098: root cause confirmed and fixed (select's intrinsic grid width); Queue improved, still not passing
+
+Two prior sessions swapped the native `<select>` for a plain `<span>` wholesale
+(losing the functional picker) and found it made results worse, which read as
+evidence against the `<select>` being the cause. That test conflated two
+changes at once — removing the select AND changing interactivity — so it
+could not isolate which one mattered.
+
+Built an isolated, controlled comparison instead: a static HTML file, real
+`@fontsource` Oswald woff2 files (byte-identical to what the app and the
+design bundle both use), and the *exact* 4-item mobile row structure
+(checkbox / person / type / decision) that makes `grid-template-columns:auto
+minmax(0,1fr)` auto-wrap to two rows — reproduced from `queue-screen.tsx` and
+`design/source/boa_design_body.html` line-for-line, not paraphrased.
+
+**Confirmed, reproducibly:** a real `<select appearance:none width:100%
+border:0 padding:0>` computes a *smaller* max-content contribution to a CSS
+Grid `auto` track than an equal-text `<span>` in the same Chromium build —
+**133px vs 147.14px** for the "Working Crew" label, measured both in this
+isolated harness and cross-checked against the live app's own instrumented
+value (133px, matching the previous session's finding) and the design
+bundle's own real rendering (147.156px, driven the same way
+`scripts/capture-design-reference.mjs` drives it — nav click to Queue, Mob
+toggle, real fonts, `document.fonts.ready`). This is the actual, verified
+cause: Chromium's `<select>` intrinsic-sizing algorithm does not measure the
+option text the way a `<span>` does, even with every visual-affecting
+property neutralised.
+
+**The fix** (`app/desk/queue/queue-screen.tsx`, mobile+desktop type cell):
+keep the real `<select>` — same `aria-label`, same `onChange`, same options —
+but take it out of the sizing calculation entirely: `position:absolute;
+inset:0; opacity:0`, layered over a plain `<span>{rowType.label}</span>`
+styled exactly like `design/source/boa_design_body.html` line 200 (same
+font/size/weight/letter-spacing/ellipsis). The select still receives clicks
+(it fills the whole label box) and still opens the native picker and fires
+`onChange`; only the visible label text now drives the grid's intrinsic
+width, matching the design's own plain-span markup. Verified in isolation
+before touching the component: with this overlay technique, the row's grid
+track computes **147.14px / 190.86px — identical to the design's own
+span-only row**, not narrower.
+
+**Measured after rebuild** (`corepack pnpm test:visual -- --screen queue`):
+
+| variant | before this fix | after this fix |
+|---|---|---|
+| dark/web | 2.57% | 2.97% |
+| light/web | 2.73% | 3.13% |
+| dark/mob | 5.12% | **3.42%** |
+| light/mob | 5.06% | **3.49%** |
+
+Mobile improved substantially (≈1.6–1.7 points) — the effect is real and in
+the predicted direction. Desktop got **marginally worse** (≈0.4 points); the
+desktop `qCols` grid already has an explicit `1.5fr` type-track (not `auto`),
+so this specific intrinsic-width mechanism was never the desktop cause, and
+swapping the select for a span+overlay evidently perturbs something else
+there (untested: possibly ellipsis-truncation rendering differs a few pixels
+between native `<select>` text clipping and the span's CSS `text-overflow:
+ellipsis` at the fixed 1.5fr width). Not investigated further this session —
+flagging honestly rather than guessing.
+
+Reference/actual heights are still off by exactly 2px on every variant
+(1164→1166 web, 1810→1812 mobile, unchanged by this fix), so a second,
+still-unidentified cause remains on top of the one just fixed. **ACC-098 is
+still not passing and is not marked done.** `typecheck`, `lint` (3
+pre-existing `<img>` warnings only), and `test` (53/53) all pass. Not pushed.
+
 ## Template for the next session update
 
 ```

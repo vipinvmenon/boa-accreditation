@@ -262,12 +262,20 @@ export function QueueScreen() {
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '9px', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', padding: '7px 11px', minWidth: 0, position: 'relative' }}>
                     <span aria-hidden="true" style={{ width: '8px', height: '18px', background: rowColour, flex: '0 0 auto' }} />
-                    <select aria-label={`Type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }} style={{ ...inputStyle, minHeight: 0, height: '18px', border: 0, padding: 0, minWidth: 0, width: '100%', color: 'var(--ink2,rgba(242,239,226,0.72))', background: 'transparent', appearance: 'none', fontSize: '12.5px', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase' }}>
+                    {/* Visible label: a plain span, styled exactly like design/source line 200.
+                        A real <select> is a sized-content overlay below — Chromium computes a
+                        <select>'s max-content grid contribution differently from an equal-text
+                        span (measured: 133px vs 147px for "Working Crew" on the mobile auto
+                        track), which shifted every row's column split off the design. Moving
+                        the select out of flow (position:absolute, opacity:0) keeps it fully
+                        keyboard/native-picker functional without letting it size the grid. */}
+                    <span aria-hidden="true" style={{ fontFamily: "'Oswald',sans-serif", fontSize: '12.5px', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rowType.label}</span>
+                    <span aria-hidden="true" style={{ position: 'absolute', right: '11px', fontFamily: "'Oswald',sans-serif", fontSize: '9px', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>▾</span>
+                    <select aria-label={`Type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, padding: 0, margin: 0, appearance: 'none', background: 'transparent', opacity: 0, cursor: 'pointer' }}>
                       <option value="crew">Working Crew</option>
                       <option value="stage">Stage</option>
                       <option value="aaa">AAA</option>
                     </select>
-                    <span aria-hidden="true" style={{ position: 'absolute', right: '11px', fontFamily: "'Oswald',sans-serif", fontSize: '9px', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>▾</span>
                   </label>
                   <div className="d-queue-actions" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: row.status === 'approved' ? 'var(--grn,#00F5A5)' : row.status === 'rejected' ? 'var(--bad,#FF6B5A)' : 'var(--gold,#E3BB72)', textTransform: 'uppercase' }}>{row.status === 'submitted' ? 'pending' : row.status}</span>
