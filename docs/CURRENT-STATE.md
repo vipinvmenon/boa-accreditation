@@ -2593,6 +2593,66 @@ green. The Submission API and screen now consume this RPC through the validated
 Queue is above the 0.8% threshold. No overall completion or deployment claim
 is made.
 
+### 15 Sep 2026 — Queue: three real defects found and fixed against `design/source/boa_design_body.html`; not fully closed
+
+Asked to review Cursor's ACC-092/098 work and fix Queue's remaining
+`test:visual` failure. Diagnosed with `pixelmatch` row-band analysis and
+`getBoundingClientRect()`/computed-style instrumentation of the built page
+(a throwaway script reusing the visual harness's own fixture-mocking, deleted
+after use), not by eye — a compressed screenshot preview can hide a real 1-2px
+offset that pixelmatch still counts.
+
+**Fixed, each confirmed against the literal design source value, in
+`app/desk/queue/queue-screen.tsx` and `app/responsive.css`:**
+1. The "N selected" toolbar's three buttons (Set type / Reject / Approve
+   selected) used the shared `buttonStyle`'s `minHeight:'44px'`; design line
+   173 specifies `min-height:42px` for this row specifically. The 2px
+   overage inflated the toolbar section, pushing every org section below it
+   down by a constant 2px for the rest of the page.
+2. "Approve selected" had no padding override, so it inherited
+   `buttonStyle`'s `10px 16px`; design line 175 specifies `10px 18px`.
+3. `app/responsive.css`'s `.d-queue-cols` had `padding: 15.35px 18px
+   !important` for mobile — an unexplained fractional value, introduced in
+   the same commit as other untraced magic numbers, with no comment or
+   `docs/DESIGN-SYSTEM.md` entry. Design line 192 specifies `15px 18px` for
+   every viewport. Corrected to `15px`.
+
+**Also changed, less certain:** `.d-queue-bulk`'s desktop padding-top/bottom
+was `13px !important`, contradicting both the design's `14px` (line 169) and
+the section's own inline `padding:'14px 18px'` that the CSS was silently
+overriding. Corrected to `14px`, matching the design source exactly — but
+this alone moved the measured total height from an exact 1164px match back
+to 1166px (findings below). Kept at 14px anyway: `13px` is not a documented,
+reasoned deviation, and matching an unexplained value to shave 2px off a
+screenshot is the exact anti-pattern this file's own CLAUDE.md non-negotiable
+#1 warns against ("the cheapest way to pass a screenshot comparison is to
+hardcode the screenshot's values").
+
+**Measured, `corepack pnpm build && corepack pnpm test:visual -- --screen
+queue`:** dark/web 9.52%→**2.57%**, light/web 9.40%→**2.73%**, dark/mob
+9.67%→**5.73%**, light/mob 9.81%→**5.94%**. Real progress, not a pass.
+`typecheck`, `lint` (3 pre-existing `img` warnings), `test` (53/53) all
+green; the other 6 screens re-measured with the full suite and remain PASS
+— no regression from these changes.
+
+**Not resolved, and not guessed at further:** with the toolbar/button fixes
+in place, `document.documentElement.scrollHeight` is 1166px against a
+1164px reference — a genuine 2px difference the box-model math above cannot
+account for from any single traced value. Decomposing every top-level
+section's `getBoundingClientRect()` shows each one individually computing to
+its design-specified height (org header padding 20px matches, row padding
+15px×2+42px content=72px matches, toolbar 14px×2+42px+1px border=71px
+matches) — yet the sum is 2px over, and the per-row pixel diff (450+
+differing pixels across a 42px-tall, ~1200px-wide row, on every row) is far
+larger than a single shared 2px offset could cause on its own. This has the
+signature of the font-rendering variance `docs/DESIGN-SYSTEM.md`'s "CI-vs-local
+text rendering" section already documents for a different screen (real,
+Chromium-version-dependent, not a layout bug) — but that is a hypothesis,
+not verified, and is recorded here as exactly that rather than asserted.
+Handing back to Cursor's lane (`app/desk/queue/**`) per
+`docs/PLAN-DESIGN-FIDELITY.md` rather than continuing to guess against a
+shrinking token budget.
+
 ## Template for the next session update
 
 ```

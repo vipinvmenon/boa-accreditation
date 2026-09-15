@@ -170,7 +170,7 @@
   grid-template-columns: auto minmax(0, 1fr); /* qCols, mobile */
 }
 .d-queue-cols {
-  padding: 15.35px 18px !important;
+  padding: 15px 18px !important; /* row padding, design/source line 192 — same value for every viewport */
 }
 .d-queue-actions {
   display: flex;
@@ -244,8 +244,8 @@
     padding: 15px 18px !important;
   }
   .d-queue-bulk {
-    padding-top: 13px !important;
-    padding-bottom: 13px !important;
+    padding-top: 14px !important; /* padding, design/source line 169 */
+    padding-bottom: 14px !important;
   }
   .d-queue-actions {
     display: flex !important;
