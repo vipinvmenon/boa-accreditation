@@ -59,6 +59,38 @@ function titleCase(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+/**
+ * The dates that do not move (CLAUDE.md). Bhoopesh and Salman already know
+ * there are three bands and how approval works — what they don't have at a
+ * glance is how many days are left, so the hero reports that instead of
+ * re-explaining the rules every time the screen loads.
+ */
+const MILESTONES = [
+  { label: 'links-out', date: '2026-09-20' },
+  { label: 'gate live', date: '2026-10-04' },
+  { label: 'show', date: '2026-10-10' },
+] as const
+
+function nextMilestone(now: Date): { label: string; days: number } | null {
+  for (const m of MILESTONES) {
+    const days = Math.ceil((new Date(`${m.date}T00:00:00`).getTime() - now.getTime()) / 86_400_000)
+    if (days >= 0) return { label: m.label, days }
+  }
+  return null
+}
+
+/**
+ * The one number worth leading with, in the order an operator would actually
+ * want it acted on: a live decision queue outranks a BMS backlog, which
+ * outranks a band still sitting uncollected.
+ */
+function heroHeadline(dash: Dashboard): string {
+  if (dash.pendingTotal > 0) return `${dash.pendingTotal} waiting on a decision`
+  if (dash.bmsPending > 0) return `${dash.bmsPending} approved, not in BMS`
+  if (dash.bandsNotCollected > 0) return `${dash.bandsNotCollected} bands not collected`
+  return 'Queue is clear'
+}
+
 export function ControlRoomScreen() {
   const router = useRouter()
   const theme = useDomTheme()
@@ -104,6 +136,7 @@ export function ControlRoomScreen() {
     : []
 
   const typeCounts = new Map((dash?.types ?? []).map((t) => [t.code, t.count]))
+  const milestone = nextMilestone(new Date())
 
   return (
     <div style={{ background: 'var(--bg,#0A0A0A)', minHeight: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -163,16 +196,25 @@ export function ControlRoomScreen() {
                     textTransform: 'uppercase',
                     color: inkVar,
                     margin: '0 0 18px',
-                    maxWidth: '14ch',
+                    maxWidth: '18ch',
                   }}
                 >
-                  Nobody walks in unlisted
+                  {heroHeadline(dash)}
                 </h1>
-                <p style={{ fontSize: '15.5px', lineHeight: 1.55, color: 'var(--ink2,rgba(242,239,226,0.72))', margin: '0 0 24px', maxWidth: '52ch' }}>
-                  Every person working at BOA is registered individually, approved against the master list, and checks in
-                  physically for their own wristband. Every vehicle is registered to a plate and carries a sticker bound
-                  to it.
-                </p>
+                {milestone && (
+                  <p
+                    style={{
+                      fontFamily: "'JetBrains Mono',monospace",
+                      fontSize: '13px',
+                      letterSpacing: '0.04em',
+                      color: 'var(--ink2,rgba(242,239,226,0.72))',
+                      margin: '0 0 24px',
+                    }}
+                  >
+                    <span style={{ color: goldVar, fontWeight: 700 }}>{milestone.days}</span>{' '}
+                    day{milestone.days === 1 ? '' : 's'} to {milestone.label}
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <Link
                     href="/desk/queue"
@@ -263,13 +305,9 @@ export function ControlRoomScreen() {
               >
                 Wristbands
               </div>
-              <h2 className="d-h2" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 1, textTransform: 'uppercase', color: inkVar, margin: '0 0 10px' }}>
-                Three bands. No fourth.
+              <h2 className="d-h2" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 1, textTransform: 'uppercase', color: inkVar, margin: '0 0 22px' }}>
+                {dash.bandsIssued} issued · {dash.bandsNotCollected} not collected
               </h2>
-              <p style={{ fontSize: '14.5px', lineHeight: 1.55, color: 'var(--ink3,rgba(242,239,226,0.42))', margin: '0 0 22px', maxWidth: '60ch' }}>
-                Type is assigned at approval and sets the band colour and the zones. Serials are typed in at the gate as
-                bands are handed over, never pre-assigned.
-              </p>
 
               <div className="d-type-cols" style={{ display: 'grid', gap: '1px', background: ruleVar }}>
                 {TYPES.map((t) => {
@@ -355,11 +393,12 @@ export function ControlRoomScreen() {
                     AAA override
                   </div>
                   <div style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--ink2,rgba(242,239,226,0.72))', maxWidth: '62ch' }}>
-                    All-areas access is not requestable on the vendor form. The accreditation lead stamps it onto an
-                    approved pass from a named list.{' '}
                     <strong style={{ color: inkVar }}>
                       {dash.aaaStamped} issued of {dash.aaaNominatedApproved} approved.
                     </strong>
+                    {dash.aaaNominatedApproved > dash.aaaStamped && (
+                      <> {dash.aaaNominatedApproved - dash.aaaStamped} still to stamp.</>
+                    )}
                   </div>
                 </div>
                 <Link
