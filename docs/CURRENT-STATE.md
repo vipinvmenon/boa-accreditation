@@ -2951,6 +2951,76 @@ still Vipin's to trigger, per the working rules in
   and actual dimensions. `task done ACC-099` also re-ran typecheck, lint, and
   unit tests: **53/53**.
 
+### 15 Sep 2026 — button hover states: audited all 20, found and fixed 3 real gaps
+
+Vipin asked to confirm the app has proper hover behaviour on every button, not
+just pixel-static fidelity. `test:visual` cannot catch this — it screenshots a
+resting mouse state — so this was a manual, line-by-line audit: every
+`style-hover="..."` in `design/source/boa_design_body.html` (20 instances,
+not the 19 `app/hover.css`'s header comment claimed — recounted) checked
+against the actual `className`/hover wiring on the matching live element.
+
+**17 of 20 were already correct.** Three were not:
+
+1. **Queue "Approve all →" (org-header level, design line 187) had no visible
+   hover at all.** Its base style is already filled green in both design and
+   the app; the app applied `hov-fill-grn` (re-asserts the same fill — a
+   no-op) instead of `hov-invert-grn` (the design's actual instruction:
+   invert to transparent/green-text on hover, same as every other
+   already-filled button on the site). Fixed: swapped the class in
+   `app/desk/queue/queue-screen.tsx`.
+2. **Queue's type-cell chip (the bordered box wrapping the type
+   selector/select overlay, design line 198) had no hover wiring
+   whatsoever** — not a wrong class, nothing. Design specifies
+   `border-color:var(--grn)` only (no text-colour change). Added a new,
+   deliberately narrow `hov-border-grn` class rather than reusing
+   `hov-outline-grn` (which also changes text colour) — the source is
+   specific about which one property changes here, and non-negotiable #1
+   means matching that literally, not approximating with the nearest
+   existing recipe.
+3. **Submission's "Submit N for approval →" (design line 297) — the
+   highest-stakes button in the public flow — had zero hover.** No class, no
+   JS state, nothing. Added a new `hov-fill-gold` class (design's instruction
+   here is `background:gold;color:on`, a treatment no existing class
+   covered) and applied it.
+
+**Also found, lower severity, fixed while in the area:**
+- Queue's "Set type" button (design line 173) only changed text colour on
+  hover (`hov-text-ink`); design specifies both `border-color` and `color`.
+  New `hov-outline-ink` class, applied.
+- Submission's "Add to list" button achieved the *correct* hover visual
+  (background:transparent, color:grn) but via bespoke `onMouseEnter`/
+  `onMouseLeave` React state (`addHover`) instead of the shared CSS recipe
+  every other button in the app uses. Not a visual bug, but the plan
+  (`docs/PLAN-DESIGN-FIDELITY.md`, task C4) had already flagged this
+  specific button for migration to `app/hover.css` and it had never
+  happened. Replaced with `className="hov-invert-grn"`; removed the now-dead
+  `addHover` state.
+- The stale top-of-file comment in `submission-screen.tsx` still described
+  the old ACC-032 single-shot submit architecture (no drafts, second button
+  a readout) even though the code below it had already been rewritten to the
+  real two-step draft/batch-submit flow (ACC-092/094). Left uncorrected it
+  actively misdescribes the code to the next reader. Rewrote it to match
+  what the code actually does, verified against `handleAdd`/
+  `handleSubmitDrafts` and the roster-merge at the `orgs`/`roster` usage
+  site, not assumed.
+
+**Verified, not just fixed:** re-ran `corepack pnpm test:visual` after —
+still 7/7 screens, 28/28 variants PASS, same percentages as before (a hover
+state cannot show up in a resting-mouse screenshot, so no visual regression
+was possible from these changes, and none appeared). Separately drove real
+`:hover` in Playwright against the fixture-mocked live app and read
+`getComputedStyle` before/after for all three real fixes plus the new
+`hov-fill-gold` class in isolation — all four showed the exact colour/
+background/border-colour transition the design specifies, not just "a class
+was added". `typecheck`, `lint` (3 pre-existing warnings only), `test`
+(53/53), and `test:e2e` (4/4) all still green. Not pushed.
+
+`app/hover.css`'s header comment was updated to describe all 11 recipes (was
+8) and explain why `hov-fill-grn` is wrong for an already-filled button and
+why the two new narrow classes don't get folded into the existing wider
+ones.
+
 ## Template for the next session update
 
 ```

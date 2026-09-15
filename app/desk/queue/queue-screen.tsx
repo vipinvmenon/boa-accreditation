@@ -213,7 +213,7 @@ export function QueueScreen() {
           </button>
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{selectedLabel}</span>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginLeft: 'auto' }}>
-            <button type="button" onClick={() => setType((old) => old === 'crew' ? 'stage' : old === 'stage' ? 'aaa' : 'crew')} className="hov-text-ink" style={{ ...buttonStyle, padding: '10px 16px', minHeight: '42px' }}>Set type</button>
+            <button type="button" onClick={() => setType((old) => old === 'crew' ? 'stage' : old === 'stage' ? 'aaa' : 'crew')} className="hov-outline-ink" style={{ ...buttonStyle, padding: '10px 16px', minHeight: '42px' }}>Set type</button>
             <button type="button" disabled={busy || selected.size === 0} onClick={() => { const first = rows.find((row) => selected.has(row.id) && row.status === 'submitted'); if (first) { setRejecting(first.id); setReason('') } }} className="hov-fill-bad" style={{ ...buttonStyle, padding: '10px 16px', minHeight: '42px' }}>Reject</button>
             <button type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()} className="hov-invert-grn" style={{ ...buttonStyle, padding: '10px 18px', minHeight: '42px', borderColor: 'var(--grn,#00F5A5)', background: selected.size > 0 && type !== 'aaa' ? 'var(--grn,#00F5A5)' : 'transparent', color: selected.size > 0 && type !== 'aaa' ? 'var(--on,#0A0A0A)' : undefined }}>
               Approve selected
@@ -243,7 +243,7 @@ export function QueueScreen() {
                   ) : (
                     <button type="button" disabled={busy} onClick={() => { setRejectingOrg(orgId); setOrgReason('') }} className="hov-outline-bad" style={{ ...buttonStyle, padding: '13px 18px', fontSize: '12.5px' }}>Reject</button>
                   )}
-                  <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} className="hov-fill-grn" style={{ ...buttonStyle, padding: '13px 20px', fontSize: '12.5px', borderColor: 'var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)' }}>Approve all →</button>
+                  <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} className="hov-invert-grn" style={{ ...buttonStyle, padding: '13px 20px', fontSize: '12.5px', borderColor: 'var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)' }}>Approve all →</button>
                 </div>
               )}
             </div>
@@ -260,7 +260,7 @@ export function QueueScreen() {
                     <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: '16px', fontWeight: 600, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.full_name}</div>
                     <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))', marginTop: '3px' }}>{row.role_text} · {row.phone}{row.vehicle_reg ? ` · ${row.vehicle_reg}` : ''}</div>
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '9px', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', padding: '7px 11px', minWidth: 0, position: 'relative' }}>
+                  <label className="hov-border-grn" style={{ display: 'flex', alignItems: 'center', gap: '9px', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', padding: '7px 11px', minWidth: 0, position: 'relative' }}>
                     <span aria-hidden="true" style={{ width: '8px', height: '18px', background: rowColour, flex: '0 0 auto' }} />
                     {/* Visible label + chevron: plain in-flow elements, styled and ordered exactly
                         like design/source line 200 (chevron via margin-left:auto, not absolute

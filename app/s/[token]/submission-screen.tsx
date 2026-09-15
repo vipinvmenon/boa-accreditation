@@ -19,18 +19,17 @@ import { z } from 'zod'
  * hides that same chrome when capturing this screen's reference.
  *
  * The design's mock shows a two-button flow ("Add to list" then "Submit N for
- * approval") implying a local draft before one batch submit. The real
- * boa_acc_submit RPC (ACC-023/024) has no draft or batch concept — every call
- * inserts one person immediately, status 'submitted'. ACC-032 made this
- * honest rather than quietly wiring both buttons to the same action: the
- * second slot is no longer a button. It is a live, non-interactive readout of
- * how many people this token has submitted so far — there is nothing left to
- * "submit", each add is already final and the desk approves later.
+ * approval") implying a local draft before one batch submit — this is that
+ * flow, for real, superseding the earlier ACC-032 single-shot version this
+ * comment used to describe. "Add to list" only stages a draft in local
+ * React state (`handleAdd`); nothing reaches the server until "Submit N for
+ * approval →" (`handleSubmitDrafts`) posts each draft to the real
+ * `boa_acc_submit` RPC in turn, one call per person.
  *
- * "Your list" reflects only what THIS browser session has submitted (plain
- * React state, resets on reload) — boa_acc_org_view deliberately returns
- * counts only, never other people's names or phones, and no RPC exists to
- * fetch an org's roster back to an anonymous token holder.
+ * "Your list" merges the token's real roster (`boa_acc_org_roster`, ACC-091)
+ * with drafts not yet submitted — it is not session-only any more; a reload
+ * shows the org's real submitted/approved/rejected people, not just what
+ * this browser session added.
  */
 
 const FORM_FIELDS = [
@@ -96,7 +95,6 @@ export function SubmissionScreen({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<{ code: string | null; message: string } | null>(null)
   const [confirmation, setConfirmation] = useState<string | null>(null)
-  const [addHover, setAddHover] = useState(false)
   const didHydrateDrafts = useRef(false)
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey)
@@ -503,14 +501,13 @@ export function SubmissionScreen({
                 type="button"
                 disabled={disableAdd}
                 onClick={handleAdd}
-                onMouseEnter={() => setAddHover(true)}
-                onMouseLeave={() => setAddHover(false)}
+                className="hov-invert-grn"
                 style={{
                   cursor: disableAdd ? 'not-allowed' : 'pointer',
                   flex: '1 1 200px',
                   border: `1px solid ${grnVar}`,
-                  background: addHover && !disableAdd ? 'transparent' : grnVar,
-                  color: addHover && !disableAdd ? grnVar : onVar,
+                  background: grnVar,
+                  color: onVar,
                   opacity: disableAdd ? 0.5 : 1,
                   padding: '17px 22px',
                   fontFamily: "'Oswald',sans-serif",
@@ -527,6 +524,7 @@ export function SubmissionScreen({
                 type="button"
                 disabled={submitting || closed || drafts.length === 0}
                 onClick={handleSubmitDrafts}
+                className="hov-fill-gold"
                 style={{
                   flex: '1 1 200px',
                   border: `1px solid ${goldVar}`,
