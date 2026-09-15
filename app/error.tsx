@@ -73,6 +73,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <button
           type="button"
           onClick={reset}
+          className="hov-invert-grn"
           style={{
             cursor: 'pointer',
             border: '1px solid var(--grn, #00F5A5)',

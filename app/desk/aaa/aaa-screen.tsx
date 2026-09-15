@@ -153,7 +153,7 @@ export function AaaScreen() {
             <label style={{ display: 'grid', gap: '6px' }}><span style={labelStyle}>Phone</span><input required value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} style={inputStyle} /></label>
             <label style={{ display: 'grid', gap: '6px' }}><span style={labelStyle}>Organisation (optional)</span><input value={form.orgHint} onChange={(event) => setForm((current) => ({ ...current, orgHint: event.target.value }))} style={inputStyle} maxLength={120} /></label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              <button type="submit" disabled={saving} style={{ ...buttonStyle, opacity: saving ? 0.6 : 1 }}>{saving ? 'Adding…' : 'Add to named list'}</button>
+              <button type="submit" disabled={saving} className="hov-invert-gold" style={{ ...buttonStyle, opacity: saving ? 0.6 : 1 }}>{saving ? 'Adding…' : 'Add to named list'}</button>
               {formError && <span style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{formError}</span>}
             </div>
           </form>
@@ -170,7 +170,7 @@ export function AaaScreen() {
                 <div style={{ ...labelStyle, marginTop: '5px' }}>{nomination.phone}{nomination.org_hint ? ` · ${nomination.org_hint}` : ''}</div>
                 <div style={{ ...labelStyle, color: nomination.approved ? 'var(--grn,#00F5A5)' : 'var(--gold,#E3BB72)', marginTop: '8px' }}>{nomination.person_id ? 'Stamped on pass' : nomination.approved ? 'Approved — ready for AAA decision' : 'Pending nomination approval'}</div>
               </div>
-              {!nomination.approved && <button type="button" disabled={approvingId === nomination.id} onClick={() => approve(nomination.id)} style={{ ...buttonStyle, opacity: approvingId === nomination.id ? 0.6 : 1 }}>{approvingId === nomination.id ? 'Approving…' : 'Approve nomination'}</button>}
+              {!nomination.approved && <button type="button" disabled={approvingId === nomination.id} onClick={() => approve(nomination.id)} className="hov-invert-gold" style={{ ...buttonStyle, opacity: approvingId === nomination.id ? 0.6 : 1 }}>{approvingId === nomination.id ? 'Approving…' : 'Approve nomination'}</button>}
             </div>
           ))}
         </div>

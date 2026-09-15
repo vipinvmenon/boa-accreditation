@@ -3021,6 +3021,57 @@ was added". `typecheck`, `lint` (3 pre-existing warnings only), `test`
 why the two new narrow classes don't get folded into the existing wider
 ones.
 
+### 15 Sep 2026 — hover: the real gap was 6 operator-utility screens outside the design entirely, not the 7 gated ones
+
+Vipin reported "still looks the same" after the prior hover fixes, pointing
+at a screenshot of `/desk/orgs`. That screen is **not** the public
+`/s/[token]` submission form fixed in the previous entry — the desk nav's
+"Submission" tab (`lib/design.ts`'s `NAV`) points at `/desk/orgs`, an
+internal org-management utility with no counterpart anywhere in
+`design/source/boa_design_body.html`. The previous audit was scoped to the
+design's 20 literal `style-hover` instances, so it never looked at this file
+or any other screen outside the 7 gated ones — a real, larger gap than the
+one just closed.
+
+Grepped every `<button` across `app/` (not just the design-covered
+screens) and cross-referenced against `hov-`/`onMouseEnter` usage:
+**6 files, 13 buttons, zero hover on any of them** — `app/desk/orgs/orgs-screen.tsx`
+(4), `app/desk/aaa/aaa-screen.tsx` (2), `app/desk/users/users-screen.tsx`
+(2), `app/desk/devices/devices-screen.tsx` (3), `app/gate/setup/page.tsx`
+(1), `app/error.tsx` (1). These screens weren't part of the original
+design-fidelity work at all, so nobody had reason to wire hover into them.
+
+Each button's base style maps onto the same recipes already in
+`app/hover.css` — no new CSS needed, just the missing `className`:
+- Filled-green `buttonStyle` (Create org, Mint invite link, Send invitation,
+  Mint device, Pull approved list, error page's Try again) → `hov-invert-grn`
+- Filled-gold `buttonStyle` (aaa-screen's Add to named list, Approve
+  nomination — this file's `buttonStyle` uses `--gold`, not `--grn`, unlike
+  every other screen's) → `hov-invert-gold`
+- Outline-green `ghostButtonStyle` (Invite links/Close, Copy link, Copy
+  token) → `hov-fill-grn`
+- Outline-red `dangerGhostButtonStyle` (Revoke, and users-screen's
+  Deactivate specifically — its Activate button uses the plain green
+  `ghostButtonStyle` instead, so the class is picked conditionally on
+  `o.active`) → `hov-fill-bad`
+
+Also re-verified Vehicle specifically, since Vipin named it: its two buttons
+(`app/gate/vehicle/vehicle-screen.tsx`) already had correct classes from the
+prior design-instance audit and were never actually broken. Confirmed by
+filling a real plate (enabling them — both are `disabled` until
+`normalized !== null`, matching every other button's documented
+disabled-is-inert behaviour) and driving real `:hover` in Playwright:
+`getComputedStyle` shows the exact filled→outline and outline→filled
+transitions on both. The likely explanation for "no hover" here is that the
+buttons were checked before a plate was typed, while still disabled — not a
+code defect.
+
+**Verified, not assumed:** `typecheck` clean, `lint` clean (3 pre-existing
+`<img>` warnings only), `test` 53/53, `test:e2e` 4/4, `test:visual` still
+7/7 screens · 28/28 variants PASS (none of the 6 newly-fixed files are part
+of the visual gate, so this run only confirms nothing else regressed). Not
+pushed.
+
 ## Template for the next session update
 
 ```

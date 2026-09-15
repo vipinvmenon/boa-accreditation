@@ -349,7 +349,7 @@ export function OrgsScreen() {
               />
             </label>
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button type="submit" disabled={creating} style={{ ...buttonStyle, opacity: creating ? 0.6 : 1 }}>
+              <button type="submit" disabled={creating} className="hov-invert-grn" style={{ ...buttonStyle, opacity: creating ? 0.6 : 1 }}>
                 {creating ? 'Creating…' : 'Create org'}
               </button>
               {createError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{createError}</p>}
@@ -403,7 +403,7 @@ export function OrgsScreen() {
                         {org.kind} · quota {org.quota} · {org.status} · {org.contact_name}
                       </p>
                     </div>
-                    <button type="button" onClick={() => toggleOrg(org.id)} style={ghostButtonStyle}>
+                    <button type="button" onClick={() => toggleOrg(org.id)} className="hov-fill-grn" style={ghostButtonStyle}>
                       {isOpen ? 'Close' : 'Invite links'}
                     </button>
                   </div>
@@ -422,6 +422,7 @@ export function OrgsScreen() {
                           type="button"
                           disabled={minting}
                           onClick={() => handleMint(org.id)}
+                          className="hov-invert-grn"
                           style={{ ...buttonStyle, opacity: minting ? 0.6 : 1 }}
                         >
                           {minting ? 'Minting…' : 'Mint invite link'}
@@ -457,6 +458,7 @@ export function OrgsScreen() {
                           <button
                             type="button"
                             onClick={() => copyLink(justMinted.invite.token)}
+                            className="hov-fill-grn"
                             style={{ ...ghostButtonStyle, alignSelf: 'flex-start' }}
                           >
                             {copied ? 'Copied' : 'Copy link'}

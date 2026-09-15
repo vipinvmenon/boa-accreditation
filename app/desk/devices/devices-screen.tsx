@@ -283,7 +283,7 @@ export function DevicesScreen() {
               </select>
             </label>
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button type="submit" disabled={minting} style={{ ...buttonStyle, opacity: minting ? 0.6 : 1 }}>
+              <button type="submit" disabled={minting} className="hov-invert-grn" style={{ ...buttonStyle, opacity: minting ? 0.6 : 1 }}>
                 {minting ? 'Minting…' : 'Mint device'}
               </button>
               {mintError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{mintError}</p>}
@@ -318,6 +318,7 @@ export function DevicesScreen() {
               <button
                 type="button"
                 onClick={() => copyToken(justMinted.token)}
+                className="hov-fill-grn"
                 style={{ ...ghostButtonStyle, alignSelf: 'flex-start' }}
               >
                 {copied ? 'Copied' : 'Copy token'}
@@ -382,6 +383,7 @@ export function DevicesScreen() {
                         type="button"
                         disabled={revokingId === d.id}
                         onClick={() => handleRevoke(d.id)}
+                        className="hov-fill-bad"
                         style={{ ...dangerGhostButtonStyle, opacity: revokingId === d.id ? 0.6 : 1 }}
                       >
                         {revokingId === d.id ? 'Revoking…' : 'Revoke'}

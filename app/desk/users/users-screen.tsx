@@ -306,7 +306,7 @@ export function UsersScreen() {
               </select>
             </label>
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button type="submit" disabled={inviting} style={{ ...buttonStyle, opacity: inviting ? 0.6 : 1 }}>
+              <button type="submit" disabled={inviting} className="hov-invert-grn" style={{ ...buttonStyle, opacity: inviting ? 0.6 : 1 }}>
                 {inviting ? 'Sending…' : 'Send invitation'}
               </button>
               {inviteMessage && (
@@ -379,6 +379,7 @@ export function UsersScreen() {
                         type="button"
                         disabled={busyId === o.user_id}
                         onClick={() => void handleSetActive(o.user_id, !o.active)}
+                        className={o.active ? 'hov-fill-bad' : 'hov-fill-grn'}
                         style={{
                           ...(o.active ? dangerGhostButtonStyle : ghostButtonStyle),
                           opacity: busyId === o.user_id ? 0.6 : 1,
