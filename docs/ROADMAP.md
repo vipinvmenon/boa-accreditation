@@ -181,7 +181,7 @@ login in `test:visual`) and Submission passes only via a 32% exemption.
 Full plan, file ownership and findings: `docs/PLAN-DESIGN-FIDELITY.md`.
 Claude = **C**, Cursor = **CU**, run in parallel.
 
-- [~] **ACC-090** · Visual harness: desk API fixtures (Zod-parsed design
+- [x] **ACC-090** · Visual harness: desk API fixtures (Zod-parsed design
       data), operator sign-in, named masks replace `KNOWN_GAPS`, anti-hardcode
       and stale-build guards, review page, published baseline · **C** · due Tue 15
 - [ ] **ACC-091** · `boa_acc_org_roster(p_token)` + `roster.test.sql` +
