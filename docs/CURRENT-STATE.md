@@ -2557,6 +2557,25 @@ the lanes, file ownership, findings and baseline.
 - Not yet run in CI.
 - Not merged to `main` at the time of writing.
 
+### 15 Sep 2026 — ACC-091: token-scoped submission roster
+
+- Added `public.boa_acc_org_roster(text)`. It resolves the organisation from
+  the live invite token and returns only `full_name`, `role_text` and
+  `status`; submitted, approved and rejected rows are included, while draft
+  and voided rows are excluded. Phone, vehicle registration and pass
+  credentials are not in the projection.
+- The RPC is `SECURITY DEFINER` and executable only by `service_role`.
+  `anon` and `authenticated` have zero `EXECUTE`, verified in
+  `supabase/tests/privileges.test.sql`.
+- Added `supabase/tests/roster.test.sql` and recorded the decision in
+  `docs/DECISIONS.md` as ADR-016.
+
+**Verified by running it:** `corepack pnpm test:db` green, including roster
+6/6 assertions and privileges 77/77; `corepack pnpm check:sql` green for 27
+migrations; `typecheck`, `lint` (3 existing `img` warnings) and `test` 53/53
+green. The Submission API and screen have not yet been changed to consume this
+RPC; that is ACC-092.
+
 ## Template for the next session update
 
 ```

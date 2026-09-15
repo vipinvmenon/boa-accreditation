@@ -184,7 +184,7 @@ Claude = **C**, Cursor = **CU**, run in parallel.
 - [x] **ACC-090** · Visual harness: desk API fixtures (Zod-parsed design
       data), operator sign-in, named masks replace `KNOWN_GAPS`, anti-hardcode
       and stale-build guards, review page, published baseline · **C** · due Tue 15
-- [~] **ACC-091** · `boa_acc_org_roster(p_token)` + `roster.test.sql` +
+- [x] **ACC-091** · `boa_acc_org_roster(p_token)` + `roster.test.sql` +
       privileges + ADR-016 · **C** · due Wed 16
 - [ ] **ACC-092** · Submission: drafts + "Submit N for approval →" batch,
       roster-backed "Your list", ≤0.8% on 4 variants · **C** · due Thu 17

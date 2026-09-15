@@ -30,10 +30,11 @@ with
       org_id, token_hash, token_hint
     )
     select
-      (select id from org),
+      org.id,
       private.boa_acc_hash_token(raw_token),
       left(raw_token, 6)
-    from token
+    from org
+    cross join token
     returning id
   ),
   people as materialized (
@@ -41,7 +42,7 @@ with
       org_id, full_name, phone, role_text, status, type_code, day_validity,
       pass_ref, pass_token, approved_at, decision_reason
     )
-    select (select id from org), v.full_name, v.phone, v.role_text,
+    select org.id, v.full_name, v.phone, v.role_text,
            v.status::public.boa_acc_person_status,
            case when v.status = 'approved' then 'crew'::public.boa_acc_type_code end,
            case when v.status = 'approved' then 'show'::public.boa_acc_day_validity end,
@@ -49,7 +50,8 @@ with
            case when v.status = 'approved' then 'test-roster-pass-token' end,
            case when v.status = 'approved' then clock_timestamp() end,
            v.decision_reason
-    from (values
+    from org
+    cross join (values
       ('Approved Person', '+919811111111', 'Stage crew', 'approved', null),
       ('Submitted Person', '+919822222222', 'Runner', 'submitted', null),
       ('Rejected Person', '+919833333333', 'Driver', 'rejected', 'Not required'),
@@ -64,11 +66,11 @@ with
     from public.boa_acc_org_roster((
       select raw_token
       from token
-      where (select count(*) from invite) = 1
+      where (select count(*) from people) = 5
     ))
   ),
   assertions as materialized (
-    select 0 as n, plan(7) as line
+    select 0 as n, plan(6) as line
     union all select 1, is(
       (select count(*) from roster),
       3::bigint,
