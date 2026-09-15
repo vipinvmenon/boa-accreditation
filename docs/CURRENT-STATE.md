@@ -713,6 +713,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-030 released 2026-09-14 (IST):** Blocked on ACC-030a (Bhoopesh's real 38-org list). 38 PLACEHOLDER orgs are loaded; resume when the list lands.
 
+
+> **ACC-098 released 2026-09-15 (IST):** Queue remains above 0.8% after measured shell correction: 2.57%, 2.73%, 5.12%, 5.06%; source/live box-model metrics match and no new cause is verified
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
@@ -2699,6 +2702,31 @@ markup) under a materially different box-sizing or CSS reset than the
 Next.js app inherits, which could shift `fr`-unit grid tracks onto
 different sub-pixel boundaries between the two independently of any single
 CSS property being "wrong." Not verified — a lead, not a finding.
+
+### 15 Sep 2026 — ACC-098: Queue box-model lead measured; still blocked
+
+Compared the static Queue source and the live Next.js Queue page in Chromium
+with `getBoundingClientRect()` and computed-style instrumentation at 1360px and
+390px. Both use `border-box`; the reset, borders, padding, box-shadow (`none`),
+desktop grid tracks (`20px 664.984px 453.406px 57.6094px`), and 72px row
+height match. The live native `select` computes to `appearance:none`, 18px
+height, and the same surrounding 34px type-cell box; replacing it with a span
+was already measured worse and was not repeated.
+
+The confirmed Queue-specific difference was the missing mobile shell:
+the source renders a 1px left/right border and 388px inner width at 390px,
+while live Queue was 390px wide with no shell. Added the existing `d-shell`
+contract wrapper to Queue. Control Room required no change: after rebuilding,
+its four variants passed at **0.25%, 0.26%, 0.23%, 0.25%** (web dark/light,
+mobile dark/light), with reference and actual heights both 2190px/3907px.
+
+Queue after the evidence-backed shell fix remains over threshold:
+**2.57%, 2.73%, 5.12%, 5.06%** (web dark/light, mobile dark/light);
+reference→actual heights are **1164→1166px** on web and **1810→1819px** on
+mobile. The shell corrected the mobile content width and reduced the mobile
+diff from 5.73%/5.94% to 5.12%/5.06%, but did not close the gap. No further
+generic grid/spacing tuning or native-select substitution was attempted.
+ACC-098 is therefore blocked pending a new, independently evidenced cause.
 
 ## Template for the next session update
 

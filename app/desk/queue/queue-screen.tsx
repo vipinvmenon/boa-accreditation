@@ -181,7 +181,7 @@ export function QueueScreen() {
   const p = PROP[theme]
   return (
     <main style={{ background: 'var(--bg,#0A0A0A)', color: 'var(--ink,#F2EFE2)' }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+      <div className="d-shell" style={{ margin: '0 auto' }}>
         <header className="d-pad-sec" style={{ borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
           <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--grn,#00F5A5)', marginBottom: '16px' }}>
             Allocation desk
