@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 14 September 2026 (fourteenth update)._
+_Last updated: 15 September 2026 (fifteenth update)._
 
 ## In one line
 
@@ -2920,6 +2920,27 @@ first failure or silently blaming it on the fix without checking.
 **ACC-098 is now done.** Nothing pushed to `origin/main` — that step is
 still Vipin's to trigger, per the working rules in
 `docs/PLAN-DESIGN-FIDELITY.md`.
+
+### 15 Sep 2026 — ACC-093 final gate: all automated acceptance gates green
+
+- Ran the full requested chain in order: `typecheck`, `lint`, `test`,
+  `build`, `check:sql`, `test:db`, `test:e2e`, and `test:visual`.
+- Measured results: unit tests **53/53**, database guarantees **all passed**,
+  aeroplane-mode e2e **4/4**, SQL arity **28 migrations**, and visual fidelity
+  **7/7 screens × 4 variants = 28/28 PASS**, **0 blocked**, **0 not built**,
+  **0 known gaps**. Queue measured **0.37%, 0.37%, 0.45%, 0.44%**
+  (dark/light web/mobile); Master measured **0.27%, 0.34%, 0.10%, 0.21%**.
+- Guard-mutation proof was performed: changing the Queue fixture organisation
+  name to `MUTATION` made `test:visual -- --screen queue` exit **1**; the
+  fixture was restored and the full visual gate was already green before this
+  entry. The smaller single-person-name mutation was below the pixel threshold,
+  so it is not counted as the proof.
+- The 390px/light Queue and Master renders were exercised in a real browser by
+  the fixture-backed Playwright visual harness; those are the live walkthrough
+  measurements recorded above. The harness uses the normal screen data layer
+  with deterministic API fixtures and does not require an operator session.
+- No push or deploy was performed. ACC-093 remains in flight until Vipin's
+  review and the authenticated walkthrough are completed.
 
 ## Template for the next session update
 
