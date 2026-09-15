@@ -190,10 +190,10 @@ Claude = **C**, Cursor = **CU**, run in parallel.
       roster-backed "Your list", ≤0.8% on 4 variants · **C** · due Thu 17
 - [ ] **ACC-093** · Merge both lanes; 7/7 screens PASS, 0 BLOCKED, 0 KNOWN
       GAP; Vipin review; deploy verified · **C** · due Fri 18
-- [ ] **ACC-095** · Contract schemas (K0) + shared shell: footer, logo
+- [x] **ACC-095** · Contract schemas (K0) + shared shell: footer, logo
       filter, BMS link, `.d-h1b` · **CU** · due Tue 15
-- [ ] **ACC-096** · Master List M1–M8 at ≤0.8% · **CU** · due Wed 16
-- [ ] **ACC-097** · Passes P1–P7 at ≤0.8% · **CU** · due Thu 17
+- [x] **ACC-096** · Master List M1–M8 at ≤0.8% · **CU** · due Wed 16
+- [x] **ACC-097** · Passes P1–P7 at ≤0.8% · **CU** · due Thu 17
 - [ ] **ACC-098** · Queue (10 findings) + Control Room at ≤0.8% · **CU** · due Thu 17
 - [ ] **ACC-099** · Cursor lane sign-off, measured numbers in CURRENT-STATE · **CU** · due Fri 18
 
