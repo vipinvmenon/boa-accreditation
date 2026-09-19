@@ -722,6 +722,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-100 released 2026-09-19 (IST):** Fix committed + verified locally on polish/production-hardening; waiting on Vipin to choose how to deploy (merge to main vs cherry-pick), then verify:deploy + real sign-in on production
 
+
+> **ACC-108 released 2026-09-19 (IST):** Login rebuilt + committed (715e631); 404/error/global-error still to do — parked behind ACC-109 gate safety
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)

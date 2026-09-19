@@ -232,7 +232,16 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [ ] **ACC-105** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
 - [ ] **ACC-106** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
 - [ ] **ACC-107** · Per-route titles (`%s · BOA Accreditation`), one button-label casing rule · **C** · due Wed 30
-- [~] **ACC-108** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
+- [ ] **ACC-108** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
+- [~] **ACC-109** · Gate safety: vehicle Turn away can log a clear (stale state); gate idles on REFUSE; double issue; scanner over empty cache; outbox drains only after an issue · **C** · due Sun 20
+- [ ] **ACC-115** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
+- [ ] **ACC-110** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
+- [ ] **ACC-111** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
+- [ ] **ACC-116** · Desk nav: Control room · Queue · Orgs & links · Master list · Passes · AAA; Devices/Users in account menu · **C** · due Thu 24
+- [ ] **ACC-112** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
+- [ ] **ACC-117** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
+- [ ] **ACC-113** · Sample data that looks real: plate placeholders; one shared outbox-status hook · **C** · due Fri 25
+- [ ] **ACC-114** · Operator copy instead of designer rationale (Vipin reviews factual copy) · **C** · due Mon 28
 
 ## Phase 3 — The desk · Mon 21 – Sat 26 Sep
 
