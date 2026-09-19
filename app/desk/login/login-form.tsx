@@ -3,13 +3,16 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
+import { logoFilterFor } from '@/lib/design'
+import './login.css'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
  * login screen — the 7 screens in scripts/visual-check.mjs's SCREENS are the
- * whole contract) — so this is a minimal, on-brand page using the design's
- * own tokens (lib/design.ts / app/globals.css), not a transcription. Not
- * gated by test:visual for the same reason.
+ * whole contract) — so this recomposes the Control room hero (poster +
+ * scrim), the desk chrome logo lock-up and the design's own tokens
+ * (lib/design.ts / app/globals.css) in ./login.css, not a transcription. Not
+ * gated by test:visual for the same reason (ACC-108).
  *
  * Two flows, one page, per docs/ARCHITECTURE.md ("Supabase email + password"):
  *
@@ -131,17 +134,6 @@ function DeskLoginForm() {
     setResetSent(true)
   }
 
-  const inputStyle: React.CSSProperties = {
-    border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-    background: 'var(--panel,#101012)',
-    color: 'var(--ink,#F2EFE2)',
-    fontFamily: "'Oswald',sans-serif",
-    fontSize: '16px',
-    padding: '12px 14px',
-    width: '100%',
-    outline: 'none',
-    minHeight: '44px',
-  }
   const labelStyle: React.CSSProperties = {
     fontFamily: "'JetBrains Mono',monospace",
     fontSize: '9.5px',
@@ -151,8 +143,8 @@ function DeskLoginForm() {
     color: 'var(--ink3,rgba(242,239,226,0.42))',
   }
   const buttonStyle: React.CSSProperties = {
-    cursor: busy ? 'not-allowed' : 'pointer',
-    opacity: busy ? 0.6 : 1,
+    cursor: busy ? 'progress' : 'pointer',
+    opacity: busy ? 0.7 : 1,
     border: '1px solid var(--grn,#00F5A5)',
     background: 'var(--grn,#00F5A5)',
     color: 'var(--on,#0A0A0A)',
@@ -162,176 +154,224 @@ function DeskLoginForm() {
     fontWeight: 600,
     letterSpacing: '0.14em',
     textTransform: 'uppercase',
-    minHeight: '48px',
+    minHeight: '50px',
     width: '100%',
+    marginTop: '6px',
   }
+  const linkButtonStyle: React.CSSProperties = {
+    cursor: 'pointer',
+    border: 0,
+    background: 'transparent',
+    color: 'var(--ink3,rgba(242,239,226,0.42))',
+    fontFamily: "'JetBrains Mono',monospace",
+    fontSize: '11px',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    padding: '6px 0',
+    textAlign: 'left',
+    alignSelf: 'flex-start',
+  }
+  const fieldStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '7px' }
+
+  const copy = {
+    checking: { eyebrow: 'Operator access', title: 'Desk sign in', lede: 'Checking for an existing session…' },
+    redirecting: { eyebrow: 'Operator access', title: 'Opening the desk', lede: 'You are already signed in.' },
+    'sign-in': {
+      eyebrow: 'Operator access',
+      title: 'Desk sign in',
+      lede: 'Invite only. Use the email address your invitation was sent to.',
+    },
+    'forgot-password': {
+      eyebrow: 'Password reset',
+      title: 'Reset your password',
+      lede: 'Enter the email you were invited with and we will send a link to set a new password.',
+    },
+    'set-password': {
+      eyebrow: 'First sign-in',
+      title: 'Set your password',
+      lede: 'Choose a password of at least 8 characters. You will use it with this email from now on.',
+    },
+  }[mode]
+
+  const errorLine = error && (
+    <p role="alert" className="l-error">
+      {error}
+    </p>
+  )
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '28px 18px',
-        background: 'var(--bg,#0A0A0A)',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: '360px' }}>
-        <h1
-          style={{
-            fontFamily: "'Anton',sans-serif",
-            fontSize: 'clamp(28px, 5vw, 38px)',
-            lineHeight: 0.94,
-            textTransform: 'uppercase',
-            color: 'var(--ink,#F2EFE2)',
-            margin: '0 0 24px',
-          }}
-        >
-          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : 'Desk sign in'}
-        </h1>
-
-        {mode === 'sign-in' && (
-          <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Email</span>
-              <input
-                type="email"
-                required
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={inputStyle}
-              />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Password</span>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={inputStyle}
-              />
-            </label>
-            {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setResetSent(false)
-                setMode('forgot-password')
-              }}
-              className="hov-text-grn"
-              style={{
-                cursor: 'pointer',
-                border: 0,
-                background: 'transparent',
-                color: 'var(--ink3,rgba(242,239,226,0.42))',
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '11px',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                padding: 0,
-                textAlign: 'left',
-              }}
-            >
-              Forgot password?
-            </button>
-          </form>
-        )}
-
-        {mode === 'forgot-password' && (
-          <form onSubmit={(e) => void handleForgotPassword(e)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {resetSent ? (
-              <p style={{ fontSize: '13.5px', color: 'var(--ink2,rgba(242,239,226,0.72))', margin: 0 }}>
-                If that email has desk access, a reset link is on its way. Check your inbox.
-              </p>
-            ) : (
-              <>
-                <p style={{ fontSize: '13.5px', color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0 }}>
-                  Enter the email you were invited with. We&apos;ll send a link to set a new password.
-                </p>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={labelStyle}>Email</span>
-                  <input
-                    type="email"
-                    required
-                    autoComplete="username"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={inputStyle}
-                  />
-                </label>
-                {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-                <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
-                  Send reset link
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setMode('sign-in')
-              }}
-              className="hov-text-grn"
-              style={{
-                cursor: 'pointer',
-                border: 0,
-                background: 'transparent',
-                color: 'var(--ink3,rgba(242,239,226,0.42))',
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '11px',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                padding: 0,
-                textAlign: 'left',
-              }}
-            >
-              Back to sign in
-            </button>
-          </form>
-        )}
-
-        {mode === 'set-password' && (
-          <form onSubmit={handleSetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <p style={{ fontSize: '13.5px', color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0 }}>
-              This is your first sign-in. Choose a password for future visits.
-            </p>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>New password</span>
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={inputStyle}
-              />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Confirm password</span>
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                style={inputStyle}
-              />
-            </label>
-            {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
-              Set password and continue
-            </button>
-          </form>
-        )}
+    <main className="l-shell">
+      <div className="l-art" aria-hidden="true">
+        <div className="l-art-img" />
+        <div className="l-art-scrim" />
       </div>
+
+      <section className="l-panel" aria-labelledby="login-title">
+        <div className="l-brand">
+          {/* eslint-disable-next-line @next/next/no-img-element -- same logo element as app/desk/desk-chrome.tsx */}
+          <img
+            src="/assets/boa-logo.png"
+            alt="Bangalore Open Air"
+            style={{ height: '44px', width: 'auto', display: 'block', filter: logoFilterFor('dark') }}
+          />
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono',monospace",
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              lineHeight: 1.2,
+              textTransform: 'uppercase',
+              color: 'var(--ink3,rgba(242,239,226,0.42))',
+            }}
+          >
+            Accred
+            <br />
+            desk
+          </span>
+        </div>
+
+        <div className="l-body l-enter" key={mode}>
+          <p className="l-eyebrow">{copy.eyebrow}</p>
+          <h1 id="login-title" className="l-title">
+            {copy.title}
+          </h1>
+          <p className="l-lede" aria-live="polite">
+            {mode === 'forgot-password' && resetSent
+              ? 'If that email has desk access, a reset link is on its way. Check your inbox.'
+              : copy.lede}
+          </p>
+
+          {(mode === 'checking' || mode === 'redirecting') && (
+            <div className="l-form" aria-hidden="true">
+              <span className="l-skel" style={{ height: '9px', width: '44px', border: 0 }} />
+              <span className="l-skel" style={{ height: '48px' }} />
+              <span className="l-skel" style={{ height: '9px', width: '64px', border: 0 }} />
+              <span className="l-skel" style={{ height: '48px' }} />
+              <span className="l-skel" style={{ height: '50px', marginTop: '6px' }} />
+            </div>
+          )}
+
+          {mode === 'sign-in' && (
+            <form onSubmit={handleSignIn} className="l-form">
+              <label style={fieldStyle}>
+                <span style={labelStyle}>Email</span>
+                <input
+                  type="email"
+                  required
+                  autoComplete="username"
+                  inputMode="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="l-input"
+                />
+              </label>
+              <label style={fieldStyle}>
+                <span style={labelStyle}>Password</span>
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="l-input"
+                />
+              </label>
+              {errorLine}
+              <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn l-submit">
+                {busy ? 'Signing in…' : 'Sign in'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setResetSent(false)
+                  setMode('forgot-password')
+                }}
+                className="hov-text-grn"
+                style={linkButtonStyle}
+              >
+                Forgot password?
+              </button>
+            </form>
+          )}
+
+          {mode === 'forgot-password' && (
+            <form onSubmit={(e) => void handleForgotPassword(e)} className="l-form">
+              {!resetSent && (
+                <>
+                  <label style={fieldStyle}>
+                    <span style={labelStyle}>Email</span>
+                    <input
+                      type="email"
+                      required
+                      autoComplete="username"
+                      inputMode="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="l-input"
+                    />
+                  </label>
+                  {errorLine}
+                  <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn l-submit">
+                    {busy ? 'Sending…' : 'Send reset link'}
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setMode('sign-in')
+                }}
+                className="hov-text-grn"
+                style={linkButtonStyle}
+              >
+                ← Back to sign in
+              </button>
+            </form>
+          )}
+
+          {mode === 'set-password' && (
+            <form onSubmit={handleSetPassword} className="l-form">
+              <label style={fieldStyle}>
+                <span style={labelStyle}>New password</span>
+                <input
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="l-input"
+                />
+              </label>
+              <label style={fieldStyle}>
+                <span style={labelStyle}>Confirm password</span>
+                <input
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="l-input"
+                />
+              </label>
+              {errorLine}
+              <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn l-submit">
+                {busy ? 'Saving…' : 'Set password and continue'}
+              </button>
+            </form>
+          )}
+        </div>
+
+        <footer className="l-meta">
+          <span>
+            <b>Bangalore Open Air</b> 2026
+          </span>
+          <span>Gate live · Sun 4 Oct</span>
+          <span>Show · Sat 10 Oct</span>
+        </footer>
+      </section>
     </main>
   )
 }

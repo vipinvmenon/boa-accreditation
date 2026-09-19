@@ -1,0 +1,244 @@
+/*
+ * /desk/login — not part of the approved design (ACC-108), so this is the
+ * contract's own vocabulary recomposed, not new vocabulary: the poster and
+ * scrim treatment of the Control room hero (.d-poster / .d-poster-scrim in
+ * responsive.css), the desk chrome's logo lock-up, Anton titles, Oswald
+ * tracked labels, JetBrains Mono meta. Only existing tokens; no new colour.
+ */
+
+.l-shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(220px, 34dvh) 1fr;
+  background: var(--bg, #0a0a0a);
+  color: var(--ink, #f2efe2);
+}
+
+.l-art {
+  position: relative;
+  overflow: hidden;
+}
+.l-art-img {
+  position: absolute;
+  inset: 0;
+  background-image: url(/assets/boa-poster.png);
+  background-size: cover;
+  background-position: 50% 30%;
+  transform: scale(1.04);
+  animation: l-art-in 1200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.l-art-scrim {
+  position: absolute;
+  inset: 0;
+  /* the Control room's mobile posterScrim, fading into --bg */
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.1) 0%, rgba(10, 10, 10, 0.55) 55%, rgb(10, 10, 10) 100%);
+}
+
+.l-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 0 20px 28px;
+  margin-top: -56px; /* the brand row sits over the fading poster */
+  position: relative;
+}
+
+.l-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.l-body {
+  width: 100%;
+  max-width: 400px;
+}
+
+.l-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--grn, #00f5a5);
+  margin: 0 0 14px;
+}
+
+.l-title {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(44px, 9vw, 72px);
+  line-height: 0.9;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+
+.l-lede {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink2, rgba(242, 239, 226, 0.72));
+  margin: 0 0 30px;
+  max-width: 36ch;
+  text-wrap: pretty;
+}
+
+.l-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.l-input {
+  border: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  background: var(--panel, #101012);
+  color: var(--ink, #f2efe2);
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  padding: 12px 14px;
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.l-input:hover {
+  border-color: var(--ink3, rgba(242, 239, 226, 0.42));
+}
+.l-input:focus-visible,
+.l-input:focus {
+  border-color: var(--grn, #00f5a5);
+  background: var(--grnbg, rgba(0, 245, 165, 0.1));
+}
+
+.l-submit {
+  transition: transform 120ms ease, background-color 160ms ease, color 160ms ease;
+}
+.l-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.l-error {
+  font-family: 'Archivo', system-ui, sans-serif;
+  color: var(--bad, #ff6b5a);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 2px solid var(--bad, #ff6b5a);
+  background: var(--badbg, rgba(255, 107, 90, 0.1));
+}
+
+.l-meta {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink3, rgba(242, 239, 226, 0.42));
+  border-top: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  padding-top: 16px;
+}
+.l-meta b {
+  color: var(--ink2, rgba(242, 239, 226, 0.72));
+  font-weight: 700;
+}
+
+/* The 'checking' moment: the form's own shape, not a bare heading. */
+.l-skel {
+  display: block;
+  background: var(--panel, #101012);
+  border: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  animation: l-pulse 1400ms ease-in-out infinite;
+}
+
+.l-enter {
+  animation: l-enter 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes l-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes l-art-in {
+  from {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+@keyframes l-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (min-width: 900px) {
+  .l-shell {
+    grid-template-rows: none;
+    grid-template-columns: minmax(420px, 520px) 1fr;
+  }
+  .l-art {
+    order: 2;
+  }
+  .l-art-img {
+    background-position: 50% 22%;
+  }
+  .l-art-scrim {
+    /* the desktop scrim runs left-to-right, into the form column */
+    background: linear-gradient(90deg, rgb(10, 10, 10) 0%, rgba(10, 10, 10, 0.5) 22%, rgba(10, 10, 10, 0) 55%),
+      linear-gradient(0deg, rgba(10, 10, 10, 0.55) 0%, rgba(10, 10, 10, 0) 30%);
+  }
+  .l-panel {
+    margin-top: 0;
+    padding: 36px 56px 32px;
+    justify-content: space-between;
+    border-right: 1px solid var(--rule, rgba(242, 239, 226, 0.16));
+  }
+  .l-meta {
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .l-art-img,
+  .l-enter,
+  .l-skel {
+    animation: none;
+  }
+  .l-input,
+  .l-submit {
+    transition: none;
+  }
+}
+
+/* Sign-out from a light-theme desk session lands here with data-theme still
+ * "light" (the toggle is in-memory, not persisted): mirror the Control
+ * room's light poster treatment rather than a dark scrim on a cream page. */
+[data-theme='light'] .l-art-img {
+  animation: none; /* the entrance keyframe's fill would hold opacity at 1 */
+  opacity: 0.32;
+}
+[data-theme='light'] .l-art-scrim {
+  background: linear-gradient(180deg, rgba(237, 234, 225, 0.4) 0%, rgb(237, 234, 225) 100%);
+}
+@media (min-width: 900px) {
+  [data-theme='light'] .l-art-scrim {
+    background: linear-gradient(90deg, rgb(237, 234, 225) 0%, rgba(237, 234, 225, 0.3) 45%);
+  }
+}
