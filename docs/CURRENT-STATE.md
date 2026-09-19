@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 15 September 2026 (fifteenth update)._
+_Last updated: 19 September 2026 (sixteenth update)._
 
 ## In one line
 
@@ -3071,6 +3071,47 @@ code defect.
 7/7 screens · 28/28 variants PASS (none of the 6 newly-fixed files are part
 of the visual gate, so this run only confirms nothing else regressed). Not
 pushed.
+
+### 19 Sep 2026 — ACC-100: production `/desk/login` was a blank page; ACC-101 favicon
+
+**Found by opening production in a real browser, not by any gate.**
+`/desk/login` rendered an empty `<body>` with 24 CSP errors in the console.
+Cause: the page was a pure `'use client'` component, so `next build`
+prerendered it (`○`), and Vercel served that copy from the CDN
+(`x-nextjs-prerender: 1`, `x-vercel-cache: HIT`, `age: 424688` ≈ 4.9 days).
+A prerendered page's `<script>` tags carry no nonce, while `middleware.ts`
+sends a fresh `nonce-… 'strict-dynamic'` CSP on every response. So the
+browser blocked all 12 scripts and the form never mounted. `/` redirects
+there, so the desk had no working front door.
+
+Most likely broken since the nonce CSP shipped (`5575e64`, 14 Sep 21:15), which
+fits the CDN copy's age. **Not verified** exactly when it started. Every
+`verify:deploy` run since then passed, because it checked only for the
+`<title>` in the HTML. Vendor `/s/*` links were never affected: those routes
+are force-dynamic and their nonces matched (checked with curl on 19 Sep).
+
+Fix, on branch `polish/production-hardening`:
+- `app/desk/login/page.tsx` is now a server page that calls
+  `await connection()` and renders the unchanged form, moved to
+  `login-form.tsx`. The route is now `ƒ`.
+- `scripts/verify-deploy.mjs` now **fails** if `/desk/login` is prerendered
+  or if any `<script>` lacks the response's nonce. Mutation-checked: against
+  the unfixed production it reports `0/12 stamped` and fails. Against a local
+  `next start` of the fix it reports `12/12 stamped` and passes.
+- The remaining `○` HTML routes are `/`, `/desk/operators` (both pure
+  redirects) and `/_not-found` (static text). None of them needs JS.
+
+ACC-101: `app/icon.png` (256) and `app/apple-icon.png` (180) are the "B" from
+the recovered logo on `#0A0A0A`. Every tab previously 404'd on
+`/favicon.ico`.
+
+**Verified locally:** `typecheck`, `lint`, `test` 53/53, `build`, and
+`test:e2e` 4/4 (aeroplane mode; run on `PLAYWRIGHT_PORT=4174` because an
+unrelated process holds 4173). `test:visual` passes 7/7 screens after
+`design:reference`. In the browser pane against `next start`, the form
+renders, there are 0 console errors, and 0 scripts are missing a nonce.
+**Not yet verified:** production. This needs a deploy, then
+`corepack pnpm verify:deploy` and a real sign-in.
 
 ## Template for the next session update
 

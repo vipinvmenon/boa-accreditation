@@ -59,15 +59,32 @@ const login = await get('/desk/login')
 const html = login.status === 200 ? await login.text() : ''
 check('serves this app', /BOA Accreditation/.test(html), html ? 'found <title>' : 'no body')
 // Informational, not pass/fail — found 14 Sep 2026 failing on every CI run.
-// /desk/login is a static/prerendered route, so Vercel's edge CDN serves it
-// from whichever POP is nearest the REQUESTER, not from vercel.json's
-// `regions: ["bom1"]` (that setting pins serverless FUNCTION execution only,
-// which this static response never invokes). A GitHub Actions runner far
-// from Mumbai will legitimately show a different POP — that is not a
-// deployment defect, so it must never fail this script. What actually
-// matters (function region) is already static config in vercel.json, not
-// something an edge-cached static page can prove either way at request time.
+// The serving POP is whichever edge is nearest the REQUESTER; vercel.json's
+// `regions: ["bom1"]` pins serverless FUNCTION execution only. A GitHub
+// Actions runner far from Mumbai legitimately shows a different POP, so this
+// must never fail the script.
 info('serving edge POP (informational, region-cache is requester-local, not "regions":["bom1"])', login.headers.get('x-vercel-id') ?? '(no x-vercel-id)')
+
+// ACC-100 (19 Sep 2026): /desk/login was prerendered, so the CDN served
+// <script> tags with no nonce while middleware.ts sent a fresh nonce CSP —
+// the browser blocked every script and production login was a blank page
+// for days, while every check above still passed. Assert the page is
+// rendered per request AND that every script carries this response's nonce.
+const csp = login.headers.get('content-security-policy') ?? ''
+const nonce = /'nonce-([^']+)'/.exec(csp)?.[1] ?? ''
+check('/desk/login CSP carries a nonce', nonce !== '', csp || '(no CSP header)')
+check(
+  '/desk/login is rendered per request, not prerendered',
+  login.headers.get('x-nextjs-prerender') === null,
+  `x-nextjs-prerender: ${login.headers.get('x-nextjs-prerender') ?? '(absent)'}`,
+)
+const scripts = html.match(/<script\b[^>]*>/g) ?? []
+const unstamped = scripts.filter((tag) => !tag.includes(`nonce="${nonce}"`))
+check(
+  "every /desk/login <script> carries the response's nonce",
+  nonce !== '' && scripts.length > 0 && unstamped.length === 0,
+  `${scripts.length - unstamped.length}/${scripts.length} stamped`,
+)
 
 // ── 2. Security headers. Each is one silently-wrong `source` away from absent ──
 const wantHeaders = {
