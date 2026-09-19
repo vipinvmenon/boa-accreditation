@@ -554,6 +554,13 @@ try {
         })
         if (screen.data === 'desk') await installDeskFixtures(page, view.slug)
         await page.goto(base + route, { waitUntil: 'networkidle' })
+        if (screen.slug === 'queue') {
+          // The artboard shows an operator mid-review with the pending rows
+          // selected. Since ACC-115 nothing is pre-selected on load (the old
+          // pre-selection ticked already-approved rows), so select them the
+          // way an operator does rather than faking the state.
+          await page.getByRole('button', { name: 'Select all pending people' }).click()
+        }
         if (screen.slug === 'submission') {
           // The approved artboard captures its illustrative vehicle example
           // switched on. Exercise the real form so production has no fixture

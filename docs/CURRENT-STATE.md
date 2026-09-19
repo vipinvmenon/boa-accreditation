@@ -3199,6 +3199,64 @@ is still ACC-057/058 physical rehearsal. Also not verified: a real
 `/api/gate/vehicle` round trip against the live database; the e2e test
 mocks the route.
 
+### 19 Sep 2026 — ACC-115: the approval queue no longer lies about selection or type
+
+The mock's queue checkboxes are **status marks**: approved rows are drawn
+ticked and pending rows unticked. The app transcribed them as a *selection*
+and pre-selected every approved row on load. Consequences, all fixed in
+`app/desk/queue/queue-screen.tsx`:
+
+- **Blank "Approve selected".** With nothing selected its colour was set to
+  `undefined`, so it fell back to the UA's near-black disabled text: a blank
+  green box. It now uses an explicit ink3 colour, plus a shared
+  `.d-btn:disabled` treatment in `app/hover.css`.
+- **Fake count.** The "N of N selected" label came from the RPC's row count
+  (`boa_acc_approval_queue` builds it from `count`), not from what was
+  ticked. It's now computed client-side, e.g. "2 of 5 selected" or "Nothing
+  pending in this view". The RPC field is left alone and ignored, so no
+  migration was needed; noted here as dead output.
+- **Pre-selection of decided rows.** Only pending rows are selectable.
+  Decided rows show the design's tick as a non-interactive status mark.
+- **One screen-wide type.**
+  - Before: "Set type" cycled crew → stage → AAA blind, and one row's
+    dropdown re-typed every untyped row.
+  - Now: each pending row has its own type, and "Set type" (same label and
+    footprint, native select overlay) applies one type to the selected
+    rows only.
+  - Untyped rows still default to **Working Crew**, as before and as drawn.
+    The org's `defaultType` is deliberately *not* used yet, because it
+    would change what "Approve all" stamps on real people. **Question for
+    Vipin.**
+- **Bulk Reject** used to open a reason box on the first selected row only.
+  It now rejects every selected row with one shared reason, via an inline
+  confirm.
+- **Approve selected / Approve all.** Each row is decided with its own
+  type. A partial failure is reported ("Approved 1 of 2. 1 did not go
+  through…") and the failed rows stay selected. "Approve all" uses
+  `boa_acc_approve_org` only when every pending row in the org shows the
+  same non-AAA type; otherwise it decides row by row.
+- "Org N of M pending" is shown only on Pending, using the org's real
+  position. The bulk bar is hidden on decided tabs.
+- "Next org →" is now a button that scrolls to that org.
+- There's a real loading line. The first load no longer reads "No people in
+  this view".
+- A network failure in `post()` no longer leaves `busy` stuck.
+
+**Visual contract held without amending the mock.** The harness now selects
+the pending rows the way an operator would, before the screenshot, instead
+of relying on the old fake pre-selection.
+
+**Verified:**
+- `test:visual` 7/7, 28/28. Queue is 0.43–0.57%.
+- New `tests/e2e/queue.spec.ts`, 8 cases, runs against the same Zod-parsed
+  fixture the visual gate renders. All 8 fail on the old screen, but at the
+  first shared step (its label reads "14 of 14 selected"), so this is
+  weaker per-assertion proof than ACC-109's tests.
+- `test:e2e` 18/18, `test` 54/54, `typecheck` and `lint` pass.
+
+**Not verified:** against the live database. The desk has no logged-in e2e
+pass (ACC-090a).
+
 ## Template for the next session update
 
 ```
