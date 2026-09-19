@@ -209,7 +209,7 @@ before ACC-031 mints the 38 real invite tokens.
 - [~] **ACC-100** · `/desk/login` blank in production: prerendered page has no
       script nonce under the nonce CSP → every script blocked. Make it dynamic;
       `verify:deploy` fails if any `<script>` lacks the header's nonce · **C** · due Sat 19
-- [ ] **ACC-101** · Favicon from the recovered logo (every tab 404s `/favicon.ico`) · **C** · due Sat 19
+- [x] **ACC-101** · Favicon from the recovered logo (every tab 404s `/favicon.ico`) · **C** · due Sat 19
 
 **Acceptance: Bhoopesh opens a link on his own phone, adds himself with a
 vehicle, and watches the seat count move.** Not a demo on my machine.
