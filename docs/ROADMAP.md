@@ -206,6 +206,10 @@ before ACC-031 mints the 38 real invite tokens.
 - [ ] **ACC-031** · Mint + label 38 invite tokens; export a WhatsApp-ready list · **C** · due Fri 18
 - [x] **ACC-032** · Confirmation copy, duplicate-phone path, closed-org path · **C** · due Sat 19
 - [x] **ACC-033** · `/desk` Control room on `boa_acc_desk_dashboard()` · **C** · due Sat 19
+- [~] **ACC-100** · `/desk/login` blank in production: prerendered page has no
+      script nonce under the nonce CSP → every script blocked. Make it dynamic;
+      `verify:deploy` fails if any `<script>` lacks the header's nonce · **C** · due Sat 19
+- [ ] **ACC-101** · Favicon from the recovered logo (every tab 404s `/favicon.ico`) · **C** · due Sat 19
 
 **Acceptance: Bhoopesh opens a link on his own phone, adds himself with a
 vehicle, and watches the seat count move.** Not a demo on my machine.
@@ -214,6 +218,21 @@ vehicle, and watches the seat count move.** Not a demo on my machine.
 > No slack after this. A link sent on 24 Sep leaves four fewer days to chase 38
 > companies, and **R2 (vendors simply not submitting) is the risk most likely to
 > kill the gate.** First chase: Fri 25 Sep.
+
+## Phase 2b — Production hardening · Mon 21 Sep – Sat 3 Oct
+
+Inside the pixel contract: no font, palette or layout change. Every async
+screen gets explicit loading / empty / error / ready states that cannot be
+mistaken for each other. Plan: `polish/production-hardening` branch.
+`test:visual` must stay 7/7 PASS on every task.
+
+- [ ] **ACC-102** · `components/states/` — Skeleton, EmptyState, InlineError (`role="alert"`, Retry); one `lib/error-copy.ts` replacing 7 copies of `ERROR_COPY` · **C** · due Tue 22
+- [ ] **ACC-103** · Queue: a real loading state (first load no longer reads "No people / 0 approved"); "Org N of M pending" only on the Pending filter · **C** · due Wed 23
+- [ ] **ACC-104** · Other desk screens + status bar: skeletons, empty states with a next step, try/finally on every fetch, no swallowed errors · **C** · due Thu 24
+- [ ] **ACC-105** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
+- [ ] **ACC-106** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
+- [ ] **ACC-107** · Per-route titles (`%s · BOA Accreditation`), one button-label casing rule · **C** · due Wed 30
+- [ ] **ACC-108** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
 
 ## Phase 3 — The desk · Mon 21 – Sat 26 Sep
 
