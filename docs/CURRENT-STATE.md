@@ -719,6 +719,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-098 released 2026-09-15 (IST):** Queue remains above the 0.8% visual threshold at 2.57%, 2.73%, 5.12%, 5.06%; fresh forensic work isolated mobile native-select intrinsic grid sizing, but contract-safe fixes worsened results and no justified fix exists yet.
 
+
+> **ACC-100 released 2026-09-19 (IST):** Fix committed + verified locally on polish/production-hardening; waiting on Vipin to choose how to deploy (merge to main vs cherry-pick), then verify:deploy + real sign-in on production
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
