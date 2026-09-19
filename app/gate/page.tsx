@@ -1,10 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
-import { drainOutbox, enqueueIssue, queuedCount, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { enqueueIssue, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { useOutboxSync } from '@/gate/use-outbox-sync'
+import { readDeviceToken } from '@/gate/device-token'
 import { scanFrame } from '@/gate/scanner'
 import { ALL_ZONES, DAY_VALIDITY, passType, typeColour, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
@@ -15,35 +18,44 @@ function zonesFor(typeCode: PassTypeCode) {
   return ALL_ZONES.map((zone) => ({ held: held.has(zone), text: held.has(zone) ? zone : `—— ${zone}` }))
 }
 
-const emptyResolution: GateResolution = { status: 'red', reason: 'invalid_token' }
+/**
+ * Before any scan the gate is idle, not red. Until ACC-109 the empty state
+ * was `{ status: 'red' }`, so an idle gate told the volunteer "Refuse — do
+ * not issue a wristband" to nobody, and the 'Ready' verdict was unreachable.
+ */
+type GateView = { status: 'idle' } | GateResolution
+const IDLE: GateView = { status: 'idle' }
 
 export default function GatePage() {
+  const router = useRouter()
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
-  const [resolution, setResolution] = useState<GateResolution>(emptyResolution)
+  const [resolution, setResolution] = useState<GateView>(IDLE)
   const [serial, setSerial] = useState('')
-  const [queued, setQueued] = useState(0)
+  // The pass token a band was just issued to. Locks "Issue wristband" until
+  // "Next person" so a second tap cannot queue a duplicate issue.
+  const [issuedTo, setIssuedTo] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
-  const [online, setOnline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const loadCache = useCallback(async () => {
     const current = await readGateSnapshot()
+    // A device that has never pulled has no roster and no rosterAsOf. It
+    // must not show a scanner that answers "Refuse" to every real pass —
+    // /gate/setup's own copy promises exactly that.
+    if (current.roster.length === 0 && current.meta.rosterAsOf === null) {
+      router.replace('/gate/setup')
+      return
+    }
     setSnapshot(current)
-    setQueued(await queuedCount())
-  }, [])
+  }, [router])
+
+  const { online, queued, canSync, sync, refresh } = useOutboxSync(loadCache)
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadCache(), 0)
-    const updateOnline = () => setOnline(navigator.onLine)
-    window.addEventListener('online', updateOnline)
-    window.addEventListener('offline', updateOnline)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('online', updateOnline)
-      window.removeEventListener('offline', updateOnline)
-    }
+    return () => window.clearTimeout(timer)
   }, [loadCache])
 
   const resolve = useCallback(async (raw: string) => {
@@ -75,8 +87,20 @@ export default function GatePage() {
         })
       }
     }
-    setResolution(resolveScan(raw, roster, byPerson, pending))
+    try {
+      setResolution(resolveScan(raw, roster, byPerson, pending))
+    } catch {
+      // resolveScan Zod-parses the cached rows. A malformed cache must not
+      // leave the volunteer staring at an unchanged screen: fail closed, say
+      // why, and point at the fix.
+      setResolution({ status: 'red', reason: 'invalid_token' })
+      setMessage('This device’s cached list could not be read. Do not issue — re-run gate setup.')
+      setSerial('')
+      setIssuedTo(null)
+      return
+    }
     setSerial('')
+    setIssuedTo(null)
     setMessage(null)
   }, [snapshot])
 
@@ -110,8 +134,9 @@ export default function GatePage() {
   }, [resolve])
 
   const issue = async () => {
-    if (resolution.status !== 'green') return
+    if (resolution.status !== 'green' || issuedTo === resolution.person.passToken) return
     const token = resolution.person.passToken
+    setIssuedTo(token)
     const action: GateIssue = {
       idempotencyKey: crypto.randomUUID(),
       passToken: token,
@@ -121,20 +146,29 @@ export default function GatePage() {
       isReissue: false,
     }
     await enqueueIssue(action)
-    setQueued(await queuedCount())
-    setMessage('Wristband queued locally. The ledger will update when the outbox drains.')
-    const deviceToken = sessionStorage.getItem('boa-gate-device-token')
-    if (deviceToken && navigator.onLine) {
-      await drainOutbox(deviceToken)
-      setQueued(await queuedCount())
-      await loadCache()
-    }
+    setMessage(
+      readDeviceToken() === null
+        ? 'Wristband recorded on this device. It cannot sync until gate setup is run again.'
+        : online
+          ? 'Wristband recorded. Syncing now.'
+          : 'Wristband recorded on this device. It syncs when signal returns.',
+    )
+    await refresh()
+    await sync()
+  }
+
+  const nextPerson = () => {
+    setResolution(IDLE)
+    setIssuedTo(null)
+    setSerial('')
+    setMessage(null)
   }
 
   const theme = useDomTheme()
-  const colour = resolution.status === 'green' ? 'var(--grn,#00F5A5)' : resolution.status === 'amber' ? 'var(--gold,#E3BB72)' : 'var(--bad,#FF6B5A)'
+  const colour = resolution.status === 'green' || resolution.status === 'idle' ? 'var(--grn,#00F5A5)' : resolution.status === 'amber' ? 'var(--gold,#E3BB72)' : 'var(--bad,#FF6B5A)'
   const verdict = resolution.status === 'green' ? 'Approved' : resolution.status === 'amber' ? 'Collected' : resolution.status === 'red' ? 'Refuse' : 'Ready'
-  const person = resolution.status === 'red' ? null : resolution.person
+  const person = resolution.status === 'red' || resolution.status === 'idle' ? null : resolution.person
+  const issued = resolution.status === 'green' && issuedTo === resolution.person.passToken
   const type = person ? passType(person.typeCode) : null
   const stickerDue = resolution.status === 'green' && resolution.stickerDue
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
@@ -155,7 +189,7 @@ export default function GatePage() {
       <section className="g-grid" style={{ display: 'grid', gap: 1, background: 'var(--rule,rgba(242,239,226,0.16))' }}>
         <div style={{ background: 'var(--bg,#0A0A0A)', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>
-            <span>{snapshot.meta.gateLabel} | {snapshot.meta.volunteerName}</span><span style={{ color: 'var(--gold,#E3BB72)' }}>{online ? 'Online' : 'Offline'} | {queued} queued</span>
+            <span>{snapshot.meta.gateLabel} | {snapshot.meta.volunteerName}</span><span style={{ color: 'var(--gold,#E3BB72)' }}>{online ? 'Online' : 'Offline'} | {queued} queued{canSync ? '' : ' | not syncing — run setup'}</span>
           </div>
           <div style={{ width: '100%', maxWidth: 280, margin: '0 auto', aspectRatio: '1', position: 'relative', border: '1px solid var(--rule,rgba(242,239,226,0.16))', background: 'var(--panel,#101012)', overflow: 'hidden' }}>
             <video ref={videoRef} muted playsInline aria-label="Gate camera scanner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -169,7 +203,10 @@ export default function GatePage() {
           <input
             aria-label="Manual scanner input"
             onKeyDown={(event) => {
-              if (event.key === 'Enter') void resolve(event.currentTarget.value)
+              if (event.key !== 'Enter') return
+              const value = event.currentTarget.value
+              event.currentTarget.value = ''
+              void resolve(value)
             }}
             style={{ position: 'absolute', left: -10000, width: 1, height: 1 }}
           />
@@ -198,7 +235,7 @@ export default function GatePage() {
         <div style={{ background: 'var(--panel,#101012)', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20, borderTop: `4px solid ${colour}` }}>
           <div>
             <div className="g-verdict" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.92, textTransform: 'uppercase', color: colour }}>{verdict}</div>
-            <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: colour, marginTop: 10 }}>{resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</div>
+            <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: colour, marginTop: 10 }}>{resolution.status === 'idle' ? 'Scan the next pass' : issued ? 'Band issued · send them through' : resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</div>
           </div>
           {person && type && <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ borderTop: '1px solid var(--rule2,rgba(242,239,226,0.32))', paddingTop: 18 }}>
@@ -224,9 +261,9 @@ export default function GatePage() {
           {resolution.status === 'amber' && <div style={{ border: '1px solid var(--gold,#E3BB72)', padding: 16 }}><div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--gold,#E3BB72)', marginBottom: 10 }}>Already collected</div><div style={{ fontFamily: "'Oswald',sans-serif", fontSize: 16, textTransform: 'uppercase' }}>An issue is already recorded or queued.</div><div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink2,rgba(242,239,226,0.72))', marginTop: 9 }}>A reissue needs a supervisor note. It adds a ledger row; it does not replace the first.</div></div>}
           {resolution.status === 'red' && <div style={{ border: '1px solid var(--bad,#FF6B5A)', padding: 16, fontSize: 14.5, lineHeight: 1.55 }}>This token is not on the approved list. Do not issue a wristband.</div>}
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {resolution.status === 'green' && <><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="WRISTBAND SERIAL — OPTIONAL" style={{ border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink,#F2EFE2)', padding: '15px 16px', fontFamily: "'JetBrains Mono',monospace", lineHeight: 1.2, minHeight: 52, width: '100%' }} /><button type="button" onClick={() => void issue()} className="hov-invert-grn" style={{ cursor: 'pointer', border: '1px solid var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)', padding: 20, fontFamily: "'Anton',sans-serif", fontSize: 19, letterSpacing: '0.1em', textTransform: 'uppercase', minHeight: 62 }}>Issue wristband</button></>}
-            <button type="button" onClick={() => { setResolution(emptyResolution); setMessage(null) }} style={{ cursor: 'pointer', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink2,rgba(242,239,226,0.72))', padding: 16, fontFamily: "'Oswald',sans-serif", fontSize: 12.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', minHeight: 52 }}>Next person</button>
-            {message && <div role="status" style={{ color: 'var(--grn,#00F5A5)', fontFamily: "'JetBrains Mono',monospace", fontSize: 11 }}>{message}</div>}
+            {resolution.status === 'green' && <><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="WRISTBAND SERIAL — OPTIONAL" style={{ border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink,#F2EFE2)', padding: '15px 16px', fontFamily: "'JetBrains Mono',monospace", lineHeight: 1.2, minHeight: 52, width: '100%' }} /><button type="button" onClick={() => void issue()} disabled={issued} className="hov-invert-grn" style={{ cursor: issued ? 'default' : 'pointer', opacity: issued ? 0.55 : 1, border: '1px solid var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)', padding: 20, fontFamily: "'Anton',sans-serif", fontSize: 19, letterSpacing: '0.1em', textTransform: 'uppercase', minHeight: 62 }}>{issued ? 'Wristband issued' : 'Issue wristband'}</button></>}
+            <button type="button" onClick={nextPerson} style={{ cursor: 'pointer', border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink2,rgba(242,239,226,0.72))', padding: 16, fontFamily: "'Oswald',sans-serif", fontSize: 12.5, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', minHeight: 52 }}>Next person</button>
+            {message && <div role="status" style={{ color: resolution.status === 'red' ? 'var(--bad,#FF6B5A)' : 'var(--grn,#00F5A5)', fontFamily: "'JetBrains Mono',monospace", fontSize: 11 }}>{message}</div>}
           </div>
         </div>
       </section>

@@ -300,6 +300,10 @@ async function seedGateDexie(page, { vehicle = false } = {}) {
     request.onerror = () => reject(request.error)
     request.onsuccess = () => {
       const database = request.result
+      // A configured gate device holds its token (gate/device-token.ts).
+      // Without one the status line adds "not syncing — run setup", which
+      // is right for a real unconfigured phone but not the approved state.
+      localStorage.setItem('boa-gate-device-token', 'visual-fixture-token')
       const transaction = database.transaction(['roster', 'ledger', 'outbox', 'sticker', 'meta'], 'readwrite')
       for (const store of ['roster', 'ledger', 'outbox', 'sticker', 'meta']) transaction.objectStore(store).clear()
 
@@ -559,7 +563,9 @@ try {
         }
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
-          await page.reload({ waitUntil: 'networkidle' })
+          // goto, not reload: since ACC-109 an unseeded /gate redirects to
+          // /gate/setup, so the first load may have left the page there.
+          await page.goto(base + route, { waitUntil: 'networkidle' })
           if (screen.slug === 'gate') {
             await page.context().setOffline(true)
             const input = page.getByLabel('Manual scanner input')
@@ -569,10 +575,9 @@ try {
           } else {
             await page.context().setOffline(true)
             await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
-            await page.getByRole('button', { name: 'Log entry & open gate' }).click()
-            // The real control records the visual check on the first click and
-            // evaluates it on the next render; repeat the user action so the
-            // screenshot reaches the approved design's cleared state.
+            // One press clears. It used to take two, because the button set
+            // the plate check in state and read the stale value in the same
+            // click — the bug ACC-109 fixed; this harness had papered over it.
             await page.getByRole('button', { name: 'Log entry & open gate' }).click()
             await page.getByText('Cleared', { exact: true }).waitFor()
           }

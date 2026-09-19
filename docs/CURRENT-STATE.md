@@ -3119,6 +3119,86 @@ renders, there are 0 console errors, and 0 scripts are missing a nonce.
 **Not yet verified:** production. This needs a deploy, then
 `corepack pnpm verify:deploy` and a real sign-in.
 
+### 19 Sep 2026 — ACC-109: gate safety bugs (found by auditing the mock-shaped UI)
+
+Vipin flagged "dumb issues" (the blank Queue button, Web/Mob tabs, a camera
+button labelled "search by name", scan-state tabs stuck on Approved). The
+root cause is that `design/source/boa_design_body.html` is a *clickable
+presentation mock*, and its preview machinery (DCLogic `vpTabs`,
+`scanStates`, sample data) was transcribed as product. A full audit of the
+gate and desk turned up worse than dead buttons. ACC-109 fixes the ones that
+would have hurt on 4 Oct. The rest are ACC-110 to ACC-117 in ROADMAP.
+
+**Fixed, each proven by a test that fails on the old code:**
+1. **Vehicle events never reached the server.** `gate/outbox.ts` posted
+   every outbox entry to `/api/gate/issue`, which answers a `vehicle_event`
+   with 400. Because a failed entry blocks everything behind it, **every
+   wristband issue queued after the first vehicle event on a device
+   stalled.** Now routed to `/api/gate/vehicle`, and no ledger row is
+   written. New `gate/outbox.test.ts` fails on the old outbox and passes on
+   the fix.
+2. **Vehicle "Turn away" could log a CLEAR.** Both buttons did
+   `setPlateVisual(x); recordEvent()` in one click, so `recordEvent` read
+   the previous render's value. The button now passes its intent
+   explicitly.
+   - "Log entry" clears only when the sticker and an active wristband both
+     check out. Otherwise it shows "Not cleared" with the reason and logs
+     nothing.
+   - "Turn away" needs a reason and always logs `turned_away`.
+   - Three new e2e cases fail on the old screen and pass now.
+   - `scripts/visual-check.mjs` had been clicking twice to paper over this
+     bug. It now clicks once.
+3. **The gate idled on red REFUSE** ("Do not issue a wristband" before
+   anyone was scanned). It now has an explicit idle state, "Ready · scan
+   the next pass", and "Next person" returns to it.
+4. **Double issue.** A second tap on "Issue wristband" queued a second
+   issue. The button locks as "Wristband issued" until "Next person".
+5. **An unconfigured device showed a scanner** that answered Refuse to
+   every real pass. With no roster and no `rosterAsOf`, `/gate` now
+   redirects to `/gate/setup`.
+6. **The outbox drained only right after an issue**, and the vehicle page
+   never drained. `gate/use-outbox-sync.ts` drains on mount, on the
+   `online` event and every 30 s, on both screens. `drainOutbox` is now
+   single-flight, so concurrent triggers share one drain. No new fast
+   path: reads are still Dexie and writes are still the outbox.
+7. **Device token in `sessionStorage`, contrary to docs/SECURITY.md**
+   ("localStorage"). A phone that closed the tab silently stopped syncing.
+   It's now in `localStorage` via `gate/device-token.ts`, with a one-time
+   read fallback so already set-up devices keep their token. The status
+   line says "not syncing — run setup" when there is no token.
+8. **A malformed cached row made a scan silently do nothing**, because an
+   uncaught ZodError left no verdict. Found in the browser pane with a
+   hand-seeded row. It now fails closed: red, plus "cached list could not
+   be read — re-run gate setup".
+
+**Two existing e2e tests were changed, deliberately:**
+- The 500 test drained by tapping "Issue wristband" a second time on the
+  same person, which *was* the double-issue bug. It now reconnects instead,
+  and asserts 4 requests / 3 done rather than 5 / 4.
+- The 401 test asserted exactly one request. The `online` event now also
+  drains, so it asserts the invariant instead: only the head entry is ever
+  sent, and nothing is dropped.
+
+**Verified:** `typecheck`, `lint` (3 pre-existing `<img>` warnings),
+`test` 54/54, `test:e2e` 10/10 (`PLAYWRIGHT_PORT=4174`), and `test:visual`
+7/7 screens, 28/28 variants. The harness now seeds a device token (a real
+configured device has one) and uses goto instead of reload after seeding.
+
+In the browser pane against `next start`, with a hand-seeded roster and no
+device token (so nothing could reach the live database):
+- idle reads Ready
+- scan → Approved → two taps → exactly 1 outbox row, button locked
+- a vehicle with no sticker shows "Not cleared", with nothing logged
+- a malformed row fails closed
+- an unconfigured `/gate` goes to setup
+
+Test data was deleted from the pane afterwards.
+
+**Not verified:** a real phone, a real camera, or real signal loss. That
+is still ACC-057/058 physical rehearsal. Also not verified: a real
+`/api/gate/vehicle` round trip against the live database; the e2e test
+mocks the route.
+
 ## Template for the next session update
 
 ```

@@ -54,8 +54,14 @@ function issueResult(action: GateIssue) {
   })
 }
 
-async function installFixture(page: Page, modes: IssueMode[]): Promise<{ page: Page; requests: string[] }> {
+type VehiclePost = { outcome: string; reason: string | null; checks: { sticker: boolean; wristband: boolean; plateVisual: boolean } }
+
+async function installFixture(
+  page: Page,
+  modes: IssueMode[],
+): Promise<{ page: Page; requests: string[]; vehiclePosts: VehiclePost[] }> {
   const requests: string[] = []
+  const vehiclePosts: VehiclePost[] = []
   let requestNumber = 0
 
   await page.route('**/api/gate/pull', async (route: Route) => {
@@ -81,6 +87,30 @@ async function installFixture(page: Page, modes: IssueMode[]): Promise<{ page: P
     await route.fulfill({ status: 201, contentType: 'application/json', json: issueResult(action) })
   })
 
+  await page.route('**/api/gate/vehicle', async (route: Route) => {
+    const body = route.request().postDataJSON() as VehiclePost & { idempotencyKey: string; plate: string; personId: string | null; stickerCheckinId: string | null; occurredAt: string }
+    vehiclePosts.push({ outcome: body.outcome, reason: body.reason, checks: body.checks })
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      json: {
+        id: crypto.randomUUID(),
+        idempotencyKey: body.idempotencyKey,
+        plate: body.plate,
+        personId: body.personId,
+        stickerCheckinId: body.stickerCheckinId,
+        outcome: body.outcome,
+        reason: body.reason,
+        checks: body.checks,
+        deviceId: PULL.deviceId,
+        gateLabel: PULL.gateLabel,
+        officerName: PULL.volunteerName,
+        occurredAt: body.occurredAt,
+        postedAt: '2026-09-12T12:01:00.000Z',
+      },
+    })
+  })
+
   await page.goto('/gate/setup')
   await page.getByLabel('Device token').fill(DEVICE_TOKEN)
   await page.getByRole('button', { name: 'Pull approved list' }).click()
@@ -92,7 +122,7 @@ async function installFixture(page: Page, modes: IssueMode[]): Promise<{ page: P
       throw new Error(`gate service worker is ${registration.active?.state ?? 'missing'}`)
     }
   })
-  return { page, requests }
+  return { page, requests, vehiclePosts }
 }
 
 async function reloadColdOffline(page: Page) {
@@ -218,10 +248,13 @@ test.describe('gate aeroplane mode', () => {
     await gate.context().setOffline(false)
     await gate.waitForFunction(() => navigator.onLine)
     await queueWristband(gate, PEOPLE[1].passToken)
+    // Since ACC-109 the `online` event already drained the first issue, so
+    // "0 queued" can be on screen before the second issue's drain runs. Wait
+    // on the outbox itself, not the label.
+    await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done'])
     await expect(gate.getByText(/Online \| 0 queued/)).toBeVisible()
     expect(requests).toHaveLength(2)
     expect(requests[0]).not.toBe(requests[1])
-    await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done'])
   })
 
   test('preserves the whole queue after a 401 and drains it after recovery', async ({ page }) => {
@@ -236,7 +269,11 @@ test.describe('gate aeroplane mode', () => {
     await gate.waitForFunction(() => navigator.onLine)
     await queueWristband(gate, PEOPLE[2].passToken)
     await expect(gate.getByText(/Online \| 3 queued/)).toBeVisible()
-    expect(requests).toHaveLength(1)
+    // Since ACC-109 the `online` event drains as well as an issue, so the
+    // head entry may be retried. What must hold: only the head is ever sent
+    // (a 401 stops the drain) and nothing is dropped.
+    expect(requests.length).toBeGreaterThanOrEqual(1)
+    expect(new Set(requests).size).toBe(1)
     await expect.poll(() => outboxStatuses(gate)).toEqual(['pending', 'pending', 'pending'])
   })
 
@@ -255,11 +292,127 @@ test.describe('gate aeroplane mode', () => {
     expect(requests).toHaveLength(1)
 
     await makePendingEntriesReady(gate)
-    await gate.getByRole('button', { name: 'Issue wristband' }).click()
+    // Until ACC-109 this test drained by tapping "Issue wristband" a second
+    // time on the same person — which queued a duplicate issue (that was the
+    // bug). Reconnecting triggers the drain now.
+    await gate.context().setOffline(true)
+    await gate.context().setOffline(false)
     await expect(gate.getByText(/Online \| 0 queued/)).toBeVisible()
-    expect(requests).toHaveLength(5)
+    expect(requests).toHaveLength(4)
     expect(requests[0]).toBe(requests[1])
     expect(requests[2]).not.toBe(requests[0])
-    await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done', 'done', 'done'])
+    await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done', 'done'])
+  })
+
+  test('an idle gate says Ready, not Refuse, and Next person returns to it', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await reloadColdOffline(gate)
+    await expectVerdict(gate, 'Ready')
+    await expect(gate.getByText('Do not issue a wristband', { exact: false })).toHaveCount(0)
+    await scan(gate, 'garbage')
+    await expectVerdict(gate, 'Refuse')
+    await gate.getByRole('button', { name: 'Next person' }).click()
+    await expectVerdict(gate, 'Ready')
+  })
+
+  test('a double tap on Issue wristband queues exactly one issue', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await reloadColdOffline(gate)
+    await queueWristband(gate, PEOPLE[0].passToken)
+    const issued = gate.getByRole('button', { name: 'Wristband issued' })
+    await expect(issued).toBeDisabled()
+    await issued.click({ force: true })
+    await expect.poll(() => outboxStatuses(gate)).toEqual(['pending'])
+  })
+
+  test('an unconfigured device is sent to setup instead of showing a scanner', async ({ page }) => {
+    await page.goto('/gate')
+    await expect(page).toHaveURL(/\/gate\/setup$/)
+  })
+})
+
+async function seedVehicle(page: Page, plate: string, withSticker: boolean) {
+  await page.evaluate(async ({ plate, withSticker, personId }) => {
+    const request = indexedDB.open('boa-accreditation-gate')
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(['sticker', 'ledger'], 'readwrite')
+      if (withSticker) {
+        transaction.objectStore('sticker').put({ plate, stickerNo: '#V-0001', personId, issuedAt: '2026-09-12T12:00:00.000Z' })
+        transaction.objectStore('ledger').put({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1', personId, kind: 'vehicle_sticker', occurredAt: '2026-09-12T12:00:00.000Z', stickerNo: '#V-0001', gateLabel: 'Main gate', volunteerName: 'Local fixture', isReissue: false })
+        transaction.objectStore('ledger').put({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', personId, kind: 'wristband', occurredAt: '2026-09-12T12:00:00.000Z', bandSerial: '#0001', gateLabel: 'Main gate', volunteerName: 'Local fixture', isReissue: false })
+      }
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => reject(transaction.error)
+    })
+    database.close()
+  }, { plate, withSticker, personId: PEOPLE[0].personId })
+}
+
+async function vehicleOutbox(page: Page) {
+  return page.evaluate(async () => {
+    const request = indexedDB.open('boa-accreditation-gate')
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const rows = await new Promise<Array<{ kind: string; payload: { outcome: string; reason: string | null } }>>((resolve, reject) => {
+      const read = database.transaction('outbox', 'readonly').objectStore('outbox').getAll()
+      read.onsuccess = () => resolve(read.result as Array<{ kind: string; payload: { outcome: string; reason: string | null } }>)
+      read.onerror = () => reject(read.error)
+    })
+    database.close()
+    return rows.filter((row) => row.kind === 'vehicle_event').map((row) => [row.payload.outcome, row.payload.reason])
+  })
+}
+
+test.describe('vehicle gate (ACC-109)', () => {
+  test('Log entry with a valid sticker and wristband logs exactly one CLEARED event, in one press', async ({ page }) => {
+    const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
+    await seedVehicle(gate, 'KA05MJ8871', true)
+    await gate.goto('/gate/vehicle')
+    await gate.context().setOffline(true)
+    await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
+    await gate.getByRole('button', { name: 'Log entry & open gate' }).click()
+    await expectVerdict(gate, 'Cleared')
+    await expect.poll(() => vehicleOutbox(gate)).toEqual([['cleared', null]])
+    await gate.context().setOffline(false)
+    await expect.poll(() => vehiclePosts.map((post) => post.outcome)).toEqual(['cleared'])
+    expect(vehiclePosts[0]?.checks).toEqual({ sticker: true, wristband: true, plateVisual: true })
+  })
+
+  test('Log entry without a sticker logs nothing; Turn away with a reason logs TURNED AWAY', async ({ page }) => {
+    const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
+    await gate.goto('/gate/vehicle')
+    await gate.context().setOffline(true)
+    await gate.getByLabel('Vehicle registration').fill('KA 01 AB 1234')
+    await gate.getByRole('button', { name: 'Log entry & open gate' }).click()
+    await expectVerdict(gate, 'Not cleared')
+    expect(await vehicleOutbox(gate)).toEqual([])
+
+    await gate.getByLabel('Turn-away reason').fill('No sticker')
+    await gate.getByRole('button', { name: 'Turn away — log reason' }).click()
+    await expectVerdict(gate, 'Turned away')
+    await expect.poll(() => vehicleOutbox(gate)).toEqual([['turned_away', 'No sticker']])
+    await gate.context().setOffline(false)
+    await expect.poll(() => vehiclePosts.map((post) => post.outcome)).toEqual(['turned_away'])
+  })
+
+  test('Turn away on a valid vehicle logs TURNED AWAY, never cleared (the stale-state bug)', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await seedVehicle(gate, 'KA05MJ8871', true)
+    await gate.goto('/gate/vehicle')
+    await gate.context().setOffline(true)
+    await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
+    await gate.getByRole('button', { name: 'Turn away — log reason' }).click()
+    await expect(gate.getByLabel('Turn-away reason')).toBeFocused()
+    expect(await vehicleOutbox(gate)).toEqual([])
+    await gate.getByLabel('Turn-away reason').fill('Plate does not match sticker')
+    await gate.getByRole('button', { name: 'Turn away — log reason' }).click()
+    await expectVerdict(gate, 'Turned away')
+    await expect.poll(() => vehicleOutbox(gate)).toEqual([['turned_away', 'Plate does not match sticker']])
   })
 })
