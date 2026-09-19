@@ -233,7 +233,7 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [ ] **ACC-106** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
 - [ ] **ACC-107** · Per-route titles (`%s · BOA Accreditation`), one button-label casing rule · **C** · due Wed 30
 - [ ] **ACC-108** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
-- [~] **ACC-109** · Gate safety: vehicle Turn away can log a clear (stale state); gate idles on REFUSE; double issue; scanner over empty cache; outbox drains only after an issue · **C** · due Sun 20
+- [x] **ACC-109** · Gate safety: vehicle Turn away can log a clear (stale state); gate idles on REFUSE; double issue; scanner over empty cache; outbox drains only after an issue · **C** · due Sun 20
 - [ ] **ACC-115** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
 - [ ] **ACC-110** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
 - [ ] **ACC-111** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
