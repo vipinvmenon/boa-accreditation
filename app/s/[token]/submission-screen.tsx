@@ -272,7 +272,7 @@ export function SubmissionScreen({
                     <button type="button" className="sw" role="switch" aria-checked={vehicleOn} aria-label="Bringing a vehicle" disabled={closed} onClick={() => setVehicleOn((v) => !v)} />
                     <div><b>Bringing a vehicle</b><span>A sticker is issued at check-in, tied to this plate only.</span></div>
                   </div>
-                  <div className={`reveal${vehicleOn ? ' open' : ''}`}><div><div className="field plate"><label htmlFor="submission-vehicle">Vehicle registration</label><input id="submission-vehicle" value={vehicleReg} onChange={(e) => { setVehicleReg(e.target.value.toUpperCase()); setConfirmation(null) }} placeholder="KA 05 MJ 8871" disabled={closed} /></div></div></div>
+                  <div className={`reveal${vehicleOn ? ' open' : ''}`} aria-hidden={!vehicleOn} inert={!vehicleOn}><div><div className="field plate"><label htmlFor="submission-vehicle">Vehicle registration</label><input id="submission-vehicle" value={vehicleReg} onChange={(e) => { setVehicleReg(e.target.value.toUpperCase()); setConfirmation(null) }} placeholder="KA 05 MJ 8871" disabled={closed} /></div></div></div>
                   <button type="submit" className="btn go big" disabled={disableAdd}>Add to list<span className="ic" aria-hidden="true">＋</span></button>
                   {drafts.length > 0 && <button type="button" className="btn gold solo" disabled={submitting || closed} onClick={handleSubmitDrafts}>Submit {drafts.length} for approval →</button>}
                   {error && <p role={error.code === 'duplicate_phone' ? 'status' : 'alert'} className="s-anim-in" style={{ color: error.code === 'duplicate_phone' ? 'var(--gold)' : 'var(--bad)' }}>{error.message}</p>}

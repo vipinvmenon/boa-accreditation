@@ -108,8 +108,8 @@ export function PassesScreen() {
       </section>
 
       <div className="passes">
-        {loading && <p className="passes-state">Loading passes…</p>}
-        {!loading && error && <p className="passes-state passes-state-error">Unable to load passes.</p>}
+        {loading && <p role="status" className="passes-state">Loading passes…</p>}
+        {!loading && error && <p role="alert" className="passes-state passes-state-error">Unable to load passes.</p>}
         {!loading && !error && passes.length === 0 && <p className="passes-state">No approved passes yet — approve in the queue →</p>}
         {passes.map((pass, i) => {
           const type = passType(pass.typeCode)
@@ -132,7 +132,7 @@ export function PassesScreen() {
                 <div className="zones">
                   {zones.map((zone) => <span key={zone.text} className={zone.label ? undefined : 'off'}>{zone.text}</span>)}
                 </div>
-                <div className="qr qr-wrap" aria-label={`QR code for ${pass.fullName}`} dangerouslySetInnerHTML={{ __html: pass.qrSvg }} />
+                <div className="qr qr-wrap" role="img" aria-label={`QR code for ${pass.fullName}`} dangerouslySetInnerHTML={{ __html: pass.qrSvg }} />
                 {pass.vehicleReg && <div className="vehbox">
                   <span className="mono">Vehicle</span>
                   <b>{pass.vehicleReg}</b>

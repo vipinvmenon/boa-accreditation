@@ -723,7 +723,7 @@ export function ControlRoomScreen() {
     return () => { cancelled = true }
   }, [router])
 
-  if (loadError) return <main><p className="pad" style={{ color: 'var(--bad)' }}>{loadError}</p></main>
-  if (!dash) return <main><p className="pad mono">Loading…</p></main>
+  if (loadError) return <main><p role="alert" className="pad" style={{ color: 'var(--bad)' }}>{loadError}</p></main>
+  if (!dash) return <main><p role="status" className="pad mono">Loading…</p></main>
   return <ControlRoomV2 dash={dash} theme={theme} />
 }
