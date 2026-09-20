@@ -21,7 +21,8 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
 
-const design = read('design/source/boa_design_body.html')
+const designV1 = read('design/source/boa_design_body.html')
+const designV2 = read('design/source/boa_design_v2.html')
 let failed = false
 const fail = (msg) => {
   console.error(`  ${msg}`)
@@ -32,13 +33,13 @@ const fail = (msg) => {
 const themeTokens = (src) => {
   const out = new Map()
   for (const m of src.matchAll(/\[data-theme="(dark|light)"\]\s*\{([^}]*)\}/g)) {
-    for (const d of m[2].matchAll(/(--[a-z0-9]+)\s*:\s*([^;]+);/g)) {
+    for (const d of m[2].matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
       out.set(`${m[1]}.${d[1]}`, d[2].trim())
     }
   }
   return out
 }
-const want = themeTokens(design)
+const want = themeTokens(designV2)
 const got = themeTokens(read('app/globals.css'))
 if (want.size === 0) fail('could not parse any theme tokens out of the design source')
 for (const [k, v] of want) {
@@ -47,17 +48,17 @@ for (const [k, v] of want) {
 }
 
 // ── 2. The PROP layer ──────────────────────────────────────────────────────
-const propFromDesign = () => {
+const propFromDesign = (source) => {
   const out = { dark: {}, light: {} }
   // e.g.  const ink2 = dark ? '#A6C9B4' : 'rgba(20,20,26,0.76)';
   const re = /const (grn|gold|bad|ink|ink2|ink3|rule|grnbg|goldbg|badbg|on) = dark \? '([^']+)' : '([^']+)';/g
-  for (const m of design.matchAll(re)) {
+  for (const m of source.matchAll(re)) {
     out.dark[m[1]] = m[2]
     out.light[m[1]] = m[3]
   }
   return out
 }
-const wantProp = propFromDesign()
+const wantProp = propFromDesign(designV1)
 const designTs = read('lib/design.ts')
 const propFromTs = (theme) => {
   const block = designTs.match(new RegExp(`${theme}: \\{([\\s\\S]*?)\\n  \\}`))

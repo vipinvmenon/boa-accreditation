@@ -3215,6 +3215,19 @@ screens are still v1 and no v2 primitive or shell conversion has been made.
 The physical gate rehearsal and human blockers remain open. `.playwright-mcp/`
 is local scratch and was not committed.
 
+### 20 Sep 2026 — ACC-101 token and font gates split
+
+`check-design-tokens.mjs` now reads v2 for the 24-per-theme CSS token layer
+(48 theme declarations total), while its PROP/renderVals check remains on the
+frozen v1 source. The token-name parser now covers hyphenated names including
+`--poster-op` and `--logo-filter`. `app/globals.css` carries the v2 surface
+tokens and root aliases, and `app/layout.tsx` imports Archivo 600. The font
+audit now parses v2 CSS rules rather than v1 inline attributes.
+
+**Verified:** `node scripts/check-design-tokens.mjs` and
+`node scripts/audit-font-weights.mjs` both pass; the 13 frozen design-contract
+tests remain unchanged. The v1 screens have not been restyled yet.
+
 ## Template for the next session update
 
 ```

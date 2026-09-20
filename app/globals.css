@@ -21,6 +21,11 @@ input, button { font-family:inherit; }
   --grn:#00F5A5; --gold:#E3BB72; --bad:#FF6B5A;
   --grnbg:rgba(0,245,165,0.10); --goldbg:rgba(227,187,114,0.10); --badbg:rgba(255,107,90,0.10);
   --on:#0A0A0A;
+  --hair:rgba(242,239,226,0.08); --shell:rgba(242,239,226,0.035);
+  --glass:rgba(16,16,18,0.72); --hi:inset 0 1px 1px rgba(242,239,226,0.07);
+  --lift:0 40px 80px -40px rgba(0,0,0,0.75), 0 12px 24px -16px rgba(0,0,0,0.6);
+  --orb1:rgba(0,245,165,0.07); --orb2:rgba(227,187,114,0.05);
+  --poster-op:1; --logo-filter:drop-shadow(0 0 16px rgba(0,245,165,0.35));
 }
 [data-theme="light"] {
   --bg:#EDEAE1; --panel:#F6F4EC; --panel2:#FFFFFF; --ink:#14141A;
@@ -29,6 +34,19 @@ input, button { font-family:inherit; }
   --grn:#05603F; --gold:#5E4610; --bad:#9E1F14;
   --grnbg:rgba(5,96,63,0.09); --goldbg:rgba(94,70,16,0.09); --badbg:rgba(158,31,20,0.08);
   --on:#F6F4EC;
+  --hair:rgba(20,20,26,0.08); --shell:rgba(20,20,26,0.035);
+  --glass:rgba(246,244,236,0.74); --hi:inset 0 1px 1px rgba(255,255,255,0.9);
+  --lift:0 40px 70px -44px rgba(40,34,20,0.30), 0 10px 22px -16px rgba(40,34,20,0.18);
+  --orb1:rgba(5,96,63,0.06); --orb2:rgba(94,70,16,0.05);
+  --poster-op:.32; --logo-filter:none;
+}
+
+:root {
+  --ease:cubic-bezier(0.32, 0.72, 0, 1);
+  --display:'Anton', sans-serif; --label:'Oswald', sans-serif;
+  --body:'Archivo', system-ui, sans-serif; --mono:'JetBrains Mono', ui-monospace, monospace;
+  --r-out:28px; --r-in:22px; --r-sm:14px;
+  --z-nav:40; --z-menu:60; --z-tools:80; --z-grain:90;
 }
 
 /* --- Additions to the design source, each justified. --- */

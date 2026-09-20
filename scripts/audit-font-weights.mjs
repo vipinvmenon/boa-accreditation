@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const design = readFileSync(join(root, 'design/source/boa_design_body.html'), 'utf8')
+const design = readFileSync(join(root, 'design/source/boa_design_v2.html'), 'utf8')
 const layout = readFileSync(join(root, 'app/layout.tsx'), 'utf8')
 
 /** Weights the design declares, scoped per style attribute so a font-weight
@@ -25,10 +25,12 @@ export function declaredWeights(html) {
     if (!use.has(fam)) use.set(fam, new Set())
     use.get(fam).add(w)
   }
-  for (const m of html.matchAll(/style(?:-hover|-focus)?="([^"]*)"/g)) {
-    const decl = m[1]
-    for (const sh of decl.matchAll(/font:\s*(\d{3})?[^;']*'([^']+)'/g)) add(sh[2], sh[1] ?? '400')
-    const fams = [...decl.matchAll(/font-family:\s*'([^']+)'/g)].map((x) => x[1])
+  const aliases = { display: 'Anton', label: 'Oswald', body: 'Archivo', mono: 'JetBrains Mono' }
+  for (const block of html.matchAll(/[^{}]+\{([^{}]*)\}/g)) {
+    const decl = block[1]
+    const fams = [...decl.matchAll(/font-family:\s*var\(--([a-z]+)\)/g)]
+      .map((x) => aliases[x[1]])
+      .filter(Boolean)
     const wts = [...decl.matchAll(/font-weight:\s*(\d{3})/g)].map((x) => x[1])
     for (const f of fams) {
       if (wts.length === 0) add(f, '400')
@@ -37,9 +39,7 @@ export function declaredWeights(html) {
   }
   // <strong>/<b> and <h1>-<h6> carry no font-weight in the design and inherit
   // the UA stylesheet's bold. Attribute them to the family in scope.
-  for (const tag of ['strong', 'b']) {
-    if (new RegExp(`<${tag}\\b`).test(html)) add('Archivo', '700')
-  }
+  if (/<(?:strong|b)\b/.test(html)) add('Archivo', '700')
   return use
 }
 
@@ -78,5 +78,5 @@ if (failed) {
   process.exit(1)
 }
 console.log(
-  `font weights OK — ${[...declared].map(([f, w]) => `${f}(${[...w].sort().join('/')})`).join('  ')}`,
+  `font weights OK — v2 CSS ${[...declared].map(([f, w]) => `${f}(${[...w].sort().join('/')})`).join('  ')}`,
 )
