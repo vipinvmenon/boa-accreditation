@@ -273,6 +273,58 @@ cached roster · every step of the aeroplane-mode spec asserted in CI · **both
 real phones signed off in `CURRENT-STATE.md`** · paper fallback physically
 printed and at the desk.
 
+## Phase 3b — the v2 redesign lane · Sun 20 Sep – Fri 3 Oct
+
+**Added 20 Sep on Vipin's instruction, not a reordering.** `design/proposals/
+boa_design_v2.html` is a complete v2 of the same seven screens and becomes the
+pixel contract; v1 freezes as the domain + C8 colour record. **Read
+`docs/CURSOR-V2.md` in full before claiming ACC-100** — it carries the gate
+rework, three things that must not be changed silently, and ACC-109's hard stop.
+
+This lane does not sit on the critical path. If ACC-030a lands mid-flight, the
+org list wins: `task block` the redesign task with a reason and commit it.
+
+- [ ] **ACC-100** · Admit v2 as the pixel contract: move it into
+      `design/source/`, vendor fonts + icons locally, add the capture readiness
+      hook, re-point `capture-design-reference.mjs`, write ADR-017, update
+      non-negotiable #1 in CLAUDE.md + AGENTS.md + `.cursor/rules`. Acceptance:
+      28 PNGs captured from v2, CDN-vs-local diff recorded · **CU** · due Sun 20
+- [ ] **ACC-101** · Split the token gates: `check-design-tokens.mjs` check 1 →
+      v2, check 2 stays on v1, widen the token-name regex to `--[a-z0-9-]+`,
+      add v2's tokens to `app/globals.css`, add `@fontsource/archivo/600.css`,
+      re-point or retire `audit-font-weights.mjs`. `design-contract.test.ts`
+      must stay 13/13 with an empty diff · **CU** · due Mon 21
+- [ ] **ACC-102** · The v2 primitive layer: `app/v2.css`, `components/icon.tsx`
+      (14 inline SVG glyphs, no CDN, no new package), `lib/use-reveal.ts`. No
+      screen changes; `test:visual` must report the unchanged v1
+      numbers · **CU** · due Tue 22
+- [ ] **ACC-103** · Shared shell: nav island, sliding pip, status pill, `.av`
+      profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
+      is not ported. `test:visual` run and intermediate failures recorded, per
+      ADR-015's precedent · **CU** · due Wed 23
+- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants · **CU** · due Thu 24
+- [ ] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
+      native-`<select>` writeup first · **CU** · due Sat 26
+- [ ] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27
+- [ ] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
+      selector must survive · **CU** · due Mon 28
+- [ ] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
+      ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
+      layer · **CU** · due Tue 29
+- [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
+      aeroplane-mode green and the precache count recorded. Presentation only —
+      no diff in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not
+      green and rehearsed by 2 Oct → revert and ship gate on
+      v1** · **CU** · due Thu 2 Oct
+- [ ] **ACC-110** · Derive the six ungated screens (`orgs`, `aaa`, `devices`,
+      `users`, `login`, `gate/setup`) plus `error`/`not-found` from the v2
+      primitives. Not pixel-gated — nothing exists to gate
+      against · **CU** · due Fri 3 Oct
+- [ ] **ACC-111** · v2 sign-off: full gate green, guard-mutation proof, manual
+      walkthrough at 390/900/1360 and light theme, dated CURRENT-STATE entry
+      with measured numbers, DESIGN-SYSTEM rewritten for the new authoring
+      model. Do not push or deploy · **CU** · due Fri 3 Oct
+
 > ## ▶ MILESTONE B — Sun 4 Oct · the gate works
 > **Freeze begins.** Hot fixes only, each with `db:state` before and after and a
 > line in CURRENT-STATE.md. No deploys while phones hold queued writes.
