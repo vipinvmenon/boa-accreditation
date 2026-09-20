@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 15 September 2026 (fifteenth update)._
+_Last updated: 20 September 2026 (ACC-111 sign-off evidence)._
 
 ## In one line
 
@@ -763,6 +763,44 @@ Verified by attempting the thing, not by reading a grant table:
 
 
 > **ACC-109 released 2026-09-20 (IST):** Presentation conversion and e2e pass, but fresh visual gate/vehicle results fail all 8 variants (gate 5.72–70.85%, vehicle 10.45–64.48%); mobile is 785px because shared GateChrome nav is outside .frame, and requested scope excludes gate-chrome.tsx.
+
+> **ACC-111 remains in flight 2026-09-20 (IST):** Sign-off evidence was run in
+> the required order. `corepack pnpm typecheck` passed; `corepack pnpm lint`
+> passed with three pre-existing `@next/next/no-img-element` warnings
+> (`app/desk/desk-chrome.tsx:117`, `app/desk/passes/passes-screen.tsx:101`,
+> `app/gate/gate-chrome.tsx:28`); `corepack pnpm test` passed **53/53**;
+> `corepack pnpm check:sql` passed **28 migration(s)**; `corepack pnpm test:db`
+> passed all listed pgTAP guarantees; `corepack pnpm build` passed and emitted
+> **59 precached assets** across **3 routes, 29 scripts, 1 CSS, 24 fonts and
+> 1 WASM**. The local build routes were `/gate`, `/gate/setup`,
+> `/gate/vehicle` (the build also emitted the app's desk, submission and API
+> routes); the WASM asset was `public/gate/zxing_reader.wasm`.
+>
+> `corepack pnpm test:visual` was run against all seven screens and compared
+> **28 variants**, with **0 blocked, 0 not built and 0 known gaps**, but failed
+> **25 comparisons** over the 0.8% limit. Measured results were:
+> control-room **3.01/2.97/1.05/0.77%**, queue **3.32/1.90/7.51/3.49%**,
+> master **2.80/0.20/5.96/0.65%**, submission **3.96/1.99/7.91/7.10%**,
+> passes **9.12/1.40/83.13/79.72%**, gate **6.31/6.16/70.85/71.05%**, and
+> vehicle **10.45/10.60/63.81/64.48%** (dark/web, light/web, dark/mobile,
+> light/mobile in each group). No references or masks were regenerated.
+> `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4**.
+>
+> The guard mutation proof was performed safely: `Chakra Sound & Light` in
+> `scripts/visual-fixtures/desk.mjs` was temporarily renamed, targeted
+> `corepack pnpm test:visual -- --screen control-room` failed all four
+> control-room comparisons (3.02/2.97/1.59/1.30%), and the fixture was
+> immediately restored; `git diff` confirmed no fixture mutation remained.
+> Browser checks used a local `next start -p 4555`: `/gate/setup` rendered at
+> **390×844**, **900×900** and **1360×900** in dark theme, with
+> `innerWidth === body.scrollWidth` at each width. The same three viewport
+> sizes were checked with the document theme set to light; the light render
+> was visible at 900px and 1360px. A real desk-authenticated walkthrough,
+> human phone rehearsal, and physical aeroplane-mode rehearsal were not
+> available and are not claimed. `/desk/login` did not produce a usable
+> browser surface in this local manual session, so no authenticated desk
+> walkthrough is claimed. ACC-111 is not done because the 7/7 visual
+> threshold is not met and ACC-104–109 remain visually blocked.
 
 ## Session log
 

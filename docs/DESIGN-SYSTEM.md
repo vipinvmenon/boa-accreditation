@@ -1,35 +1,27 @@
 # Design system
 
-The approved design is `design/source/boa_design_body.html`, committed verbatim.
-Markup is lines 1–560; the data and state model is the `DCLogic` class at lines
-563–864. `boa_design_bundle.html` is the original artefact it was recovered from,
-and `boa_design_source.html` is the unpacked whole including the font CSS.
+The approved pixel design is `design/source/boa_design_v2.html`, committed
+verbatim. The v2 stylesheet and markup are the visual contract. The committed
+`boa_design_body.html` remains frozen as the domain and C8 colour record:
+`DCLogic`/`renderVals()` are the authority for zones, types and prop literals.
+`boa_design_bundle.html` is the original recovered artefact, and
+`boa_design_source.html` is the unpacked whole including font CSS.
 
 **It is the contract. Reproduce it; do not reinterpret it.**
 
 ## How the design gets into the app
 
-Transcribed inline styles, plus one small stylesheet. **No Tailwind, no CSS
-modules, no component abstraction over the design's own markup.**
+The v2 authoring model is a shared primitive stylesheet plus small React screen
+components. `app/v2.css` carries the contract's classes, container queries,
+motion and responsive rules; `components/icon.tsx` carries the approved local
+inline SVG glyphs; screen files compose those primitives with data returned by
+the real API schemas. This is an implementation of the v2 class structure, not
+a redesign or a generic utility system.
 
-That looks like the wrong choice, so here is why it is not. The design is 560
-lines in which *every* value is an inline `style` attribute written as
-`var(--token, literal-fallback)`. Tailwind would mean inventing ~200
-arbitrary-value classes (`text-[10.5px] tracking-[0.09em]`); CSS modules would
-mean inventing ~300 class names for markup that has none. Both are *translations*,
-and every translation is a place for the rendered result to drift from the
-approved artefact without the diff showing it.
-
-`boa-stok-form` reached the same conclusion and states it well:
-
-> Every `style` object below is the design's own inline `style` attribute,
-> transcribed rather than reinterpreted. It is repetitive on purpose: a shared
-> component or utility class would read better but would let the rendered result
-> drift from the approved design without the diff showing it.
-
-So: `app/globals.css` is the design's own `<helmet>` stylesheet and nothing else.
-`lib/design.ts` holds only values that genuinely must be shared. Everything else
-is transcribed where it appears.
+`app/globals.css` carries the contract's theme tokens and the documented
+accessibility additions. `lib/design.ts` holds only values that genuinely must
+be shared. The v1 files remain committed and unchanged where they record the
+domain and C8 prop layer; they are not a second visual target.
 
 ## C8 — the two colour layers
 
@@ -88,8 +80,9 @@ woff2, so the design's own strings work untouched and the CSP stays
 **Every weight the design declares must be imported.** An unimported weight does
 not fail loudly — the browser synthesises it and the screen renders at a subtly
 wrong weight that survives review and is discovered on paper.
-`scripts/audit-font-weights.mjs` proves this on every lint, scoped per style
-attribute so a `font-weight` from a neighbouring rule cannot be misattributed.
+`scripts/audit-font-weights.mjs` proves this on every lint by parsing the v2
+stylesheet's family/weight declarations and checking them against the
+`@fontsource` imports.
 
 ### The Anton bold question — OPEN
 
@@ -150,23 +143,11 @@ the harness, not a loosened gate.
 
 ## Responsive
 
-Every `mob ? A : B` in `renderVals()` becomes a real media query at `768px`
-(`MOBILE_BREAKPOINT_PX`), and `shellMax` becomes `max-width: 1280px`
-(`SHELL_MAX_PX`). Both live in `lib/design.ts`.
-
-The design's Web/Mob toggle (`vpTabs`) **ships**, as a real indicator rather
-than an interactive control. In the source, the toggle's highlight and the
-`s.vp` state that drives every `mob ? A : B` are the same variable — the
-source can never render mobile layout with "Web" highlighted, or desktop
-layout with "Mob" highlighted. Treating the toggle as inert furniture (an
-earlier decision, since reversed) produced exactly that impossible
-combination in the shipped app and was a measurable contributor to
-`test:visual` failing on gate-mobile and vehicle-mobile — see
-docs/CURRENT-STATE.md, 12 Sep 2026. `GateChrome` now reflects the toggle with
-the same `768px` media query as everything else in this section
-(`.g-vp-web`/`.g-vp-mob` in `app/responsive.css`), not JS or `matchMedia`, so
-there is no hydration mismatch or flash. There is still no click handler —
-switching device width is the only way to change it, exactly as before.
+v2 uses container queries on `.frame`, at `1100px` and `700px`, rather than
+the frozen v1 `768px` media-query model. The 390px capture is therefore made
+by setting the viewport; the preview's Web/Mob furniture is not clicked or
+shipped. The `~900px` tier is a real manual-check requirement because the
+automated visual harness captures only 1360px and 390px.
 
 ## Active nav item
 
