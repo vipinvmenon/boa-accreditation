@@ -294,7 +294,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       add v2's tokens to `app/globals.css`, add `@fontsource/archivo/600.css`,
       re-point or retire `audit-font-weights.mjs`. `design-contract.test.ts`
       must stay 13/13 with an empty diff · **CU** · due Mon 21
-- [~] **ACC-102** · The v2 primitive layer: `app/v2.css`, `components/icon.tsx`
+- [x] **ACC-102** · The v2 primitive layer: `app/v2.css`, `components/icon.tsx`
       (14 inline SVG glyphs, no CDN, no new package), `lib/use-reveal.ts`. No
       screen changes; `test:visual` must report the unchanged v1
       numbers · **CU** · due Tue 22
