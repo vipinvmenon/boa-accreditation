@@ -3,19 +3,14 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { logoFilterFor, NAV, PROP } from '@/lib/design'
+import { NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
 import { dashboardSchema, type Dashboard } from '@/lib/schemas/dashboard'
 import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
+import { Icon } from '@/components/icon'
 import { z } from 'zod'
-
-const rule = 'var(--rule,rgba(242,239,226,0.16))'
-const ink = 'var(--ink,#F2EFE2)'
-const ink3 = 'var(--ink3,rgba(242,239,226,0.52))'
-const green = 'var(--grn,#00F5A5)'
-const panel = 'var(--panel,#101012)'
 
 const ROLE_LABEL: Record<OperatorRow['role'], string> = {
   lead: 'Lead',
@@ -43,6 +38,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [me, setMe] = useState<OperatorRow | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -99,7 +95,6 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     }
   }, [menuOpen])
 
-  const p = PROP[theme]
   const activeNav = NAV.find((item) => item.href === pathname)?.id
 
   function toggleTheme() {
@@ -114,254 +109,50 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 70,
-          background: 'var(--bg,#0A0A0A)',
-          borderBottom: `1px solid ${rule}`,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, flexWrap: 'wrap' }}>
-          <Link
-            href="/desk"
-            aria-label="BOA Accreditation desk home"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              padding: '14px 18px',
-              borderRight: `1px solid ${rule}`,
-              textDecoration: 'none',
-            }}
-          >
-            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" style={{ height: '30px', width: 'auto', display: 'block', filter: logoFilterFor(theme) }} />
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '0.16em',
-                lineHeight: 1.2,
-                textTransform: 'uppercase',
-                color: ink3,
-              }}
-            >
-              Accred
-              <br />
-              desk
-            </span>
+    <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
+      <header className="nav-wrap">
+        <nav className="island" aria-label="Desk navigation">
+          <Link href="/desk" className="brand" aria-label="BOA Accreditation desk home">
+            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+            <span>Accred<br />desk</span>
           </Link>
-
-          <nav aria-label="Desk navigation" style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: '1 1 auto', overflowX: 'auto' }}>
+          <div className="links" id="desk-links">
+            <span className="pip" aria-hidden="true" />
             {NAV.map((item) => {
               const active = item.id === activeNav
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  className="hov-text-ink"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    border: 0,
-                    borderRight: `1px solid ${rule}`,
-                    background: active ? p.grnbg : 'transparent',
-                    color: active ? (theme === 'dark' ? green : ink) : ink3,
-                    padding: '11px 18px',
-                    fontFamily: "'Oswald',sans-serif",
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    letterSpacing: '0.13em',
-                    textTransform: 'uppercase',
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {item.label}
-                </Link>
-              )
+              return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined}>{item.label}</Link>
             })}
-          </nav>
-
-          <div ref={menuRef} style={{ position: 'relative', borderLeft: `1px solid ${rule}` }}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((open) => !open)}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label="Operator menu"
-              className="hov-text-grn"
-              style={{
-                cursor: 'pointer',
-                border: 0,
-                background: 'transparent',
-                color: p.ink3,
-                padding: '14px 16px',
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {me ? me.display_name : 'Account'}
-              <span aria-hidden="true">{menuOpen ? '▲' : '▼'}</span>
-            </button>
-
-            {menuOpen && (
-              <div
-                role="menu"
-                aria-label="Operator menu"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  zIndex: 80,
-                  minWidth: '220px',
-                  background: panel,
-                  border: `1px solid ${rule}`,
-                  boxShadow: '0 12px 28px rgba(0,0,0,0.35)',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    borderBottom: `1px solid ${rule}`,
-                    fontFamily: "'Oswald',sans-serif",
-                  }}
-                >
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: ink }}>
-                    {me ? me.display_name : 'Loading…'}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: '2px',
-                      fontFamily: "'JetBrains Mono',monospace",
-                      fontSize: '10px',
-                      fontWeight: 500,
-                      letterSpacing: '0.09em',
-                      textTransform: 'uppercase',
-                      color: ink3,
-                    }}
-                  >
-                    {me ? ROLE_LABEL[me.role] : ''}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    toggleTheme()
-                    setMenuOpen(false)
-                  }}
-                  className="hov-text-grn"
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    border: 0,
-                    borderBottom: `1px solid ${rule}`,
-                    background: 'transparent',
-                    color: p.ink3,
-                    padding: '11px 16px',
-                    fontFamily: "'JetBrains Mono',monospace",
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Switch to {theme === 'dark' ? 'light' : 'dark'} theme
-                </button>
-
-                <Link
-                  href="/desk/users"
-                  role="menuitem"
-                  onClick={() => setMenuOpen(false)}
-                  className="hov-text-ink"
-                  style={{
-                    display: 'block',
-                    borderBottom: `1px solid ${rule}`,
-                    color: ink3,
-                    padding: '11px 16px',
-                    fontFamily: "'Oswald',sans-serif",
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    letterSpacing: '0.05em',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Manage users
-                </Link>
-
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => void signOut()}
-                  disabled={signingOut}
-                  className="hov-text-bad"
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    cursor: signingOut ? 'default' : 'pointer',
-                    border: 0,
-                    background: 'transparent',
-                    color: ink3,
-                    padding: '11px 16px',
-                    fontFamily: "'Oswald',sans-serif",
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    letterSpacing: '0.05em',
-                    opacity: signingOut ? 0.6 : 1,
-                  }}
-                >
-                  {signingOut ? 'Signing out…' : 'Sign out'}
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '20px',
-            flexWrap: 'wrap',
-            padding: '8px 18px',
-            borderTop: `1px solid ${rule}`,
-            background: panel,
-            fontFamily: "'JetBrains Mono',monospace",
-            fontSize: '10.5px',
-            fontWeight: 500,
-            letterSpacing: '0.09em',
-            textTransform: 'uppercase',
-            color: ink3,
-          }}
-        >
-          <span style={{ color: green }}>● Live</span>
-          <span>Build 05–09 Oct · Show 10 Oct</span>
-          <span style={{ color: ink }}>
-            {dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : 'Loading bands'}
-          </span>
-          <Link href="/desk/master?in_bms=false" style={{ marginLeft: 'auto', color: p.gold, textDecoration: 'none' }}>
-            {dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}
-          </Link>
+          <div className="nav-end">
+            <div ref={menuRef} className="profile-wrap">
+              <button type="button" className="av" onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Operator menu">
+                {me?.display_name?.slice(0, 2).toUpperCase() ?? 'AV'}
+              </button>
+              {menuOpen && (
+                <div role="menu" aria-label="Operator menu" className="profile-menu">
+                  <div className="profile-head"><strong>{me?.display_name ?? 'Loading…'}</strong><span>{me ? ROLE_LABEL[me.role] : ''}</span></div>
+                  <button type="button" role="menuitem" onClick={() => { toggleTheme(); setMenuOpen(false) }}>
+                    <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
+                  </button>
+                  <Link href="/desk/users" role="menuitem" onClick={() => setMenuOpen(false)}>Manage users</Link>
+                  <button type="button" role="menuitem" onClick={() => void signOut()} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+                </div>
+              )}
+            </div>
+            <button type="button" className="burger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menu" aria-expanded={mobileOpen}><i /><i /></button>
+          </div>
+        </nav>
+        <div className="status">
+          <span className="live"><b />Live</span>
+          <span className="hide-s">Build 05–09 Oct · Show 10 Oct</span>
+          <span>{dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : 'Loading bands'}</span>
+          <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}</Link>
         </div>
       </header>
-
-      <div className="desk-content">{children}</div>
+      <div className="menu" aria-hidden={!mobileOpen}>
+        {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} style={{ '--i': index } as React.CSSProperties} onClick={() => setMobileOpen(false)}>{item.label}</Link>)}
+      </div>
+      <main>{children}</main>
       <SiteFooter />
     </div>
   )

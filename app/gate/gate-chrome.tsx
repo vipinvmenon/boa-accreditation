@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useDomTheme } from '@/lib/use-theme'
-import { logoFilterFor, NAV, PROP } from '@/lib/design'
+import { NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
 
 export function GateChrome({
@@ -18,35 +18,21 @@ export function GateChrome({
   bmsPending?: number
 }) {
   const pathname = usePathname()
-  const theme = useDomTheme()
-  const p = PROP[theme]
+  const [mobileOpen, setMobileOpen] = useState(false)
   const active = NAV.find((item) => item.href === pathname)?.id
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', fontFamily: "'Archivo',system-ui,sans-serif", color: 'var(--ink2,rgba(242,239,226,0.72))', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ position: 'sticky', top: 0, zIndex: 70, background: 'var(--bg,#0A0A0A)', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, flexWrap: 'wrap' }}>
-          <Link href="/gate" aria-label="Bangalore Open Air" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))' }}>
-            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" style={{ height: 30, width: 'auto', display: 'block', filter: logoFilterFor(theme) }} />
-            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', lineHeight: 1.2, textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.52))' }}>Accred<br />desk</span>
-          </Link>
-          <nav aria-label="Gate navigation" style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: '1 1 auto', overflowX: 'auto' }}>
-            {NAV.map((item) => {
-              const isActive = item.id === active
-              return <Link key={item.id} href={item.href} aria-current={isActive ? 'page' : undefined} className="hov-text-ink" style={{ display: 'flex', alignItems: 'center', border: 0, borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))', background: isActive ? p.grnbg : 'transparent', color: isActive ? (theme === 'dark' ? p.grn : p.ink) : 'var(--ink3,rgba(242,239,226,0.52))', padding: '11px 18px', fontFamily: "'Oswald',sans-serif", fontSize: 12, fontWeight: 600, letterSpacing: '0.13em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.label}</Link>
-            })}
-          </nav>
-          <div style={{ display: 'flex', alignItems: 'stretch', borderLeft: '1px solid var(--rule,rgba(242,239,226,0.16))', '--vp-on': p.on, '--vp-ink': p.ink } as React.CSSProperties}>
-            <span className="g-vp-web" style={{ padding: '14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Web</span>
-            <span className="g-vp-mob" style={{ borderRight: '1px solid var(--rule,rgba(242,239,226,0.16))', padding: '14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Mob</span>
-            <button type="button" onClick={() => document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'light' : 'dark')} className="hov-text-grn" style={{ cursor: 'pointer', border: 0, background: 'transparent', color: 'var(--ink3,rgba(242,239,226,0.42))', padding: '14px 16px', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{theme === 'dark' ? 'Light' : 'Dark'}</button>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', padding: '8px 18px', borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', background: 'var(--panel,#101012)', fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>
-          <span style={{ color: p.grn }}>● Live</span><span>Build 05–09 Oct · Show 10 Oct</span><span style={{ color: p.ink }}>{bandsIssued} / {approved} bands issued</span><span style={{ marginLeft: 'auto', color: p.gold }}>{bmsPending} not in BMS</span>
-        </div>
+    <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
+      <header className="nav-wrap">
+        <nav className="island" aria-label="Gate navigation">
+          <Link href="/gate" className="brand" aria-label="Bangalore Open Air"><img src="/assets/boa-logo.png" alt="Bangalore Open Air" /><span>Accred<br />desk</span></Link>
+          <div className="links"><span className="pip" aria-hidden="true" />{NAV.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined}>{item.label}</Link>)}</div>
+          <div className="nav-end"><div className="av" aria-label="Gate operator">GT</div><button type="button" className="burger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menu" aria-expanded={mobileOpen}><i /><i /></button></div>
+        </nav>
+        <div className="status"><span className="live"><b />Live</span><span className="hide-s">Build 05–09 Oct · Show 10 Oct</span><span>{bandsIssued} / {approved} bands issued</span><span className="warn">{bmsPending} not in BMS</span></div>
       </header>
-      <main style={{ flex: 1, display: 'flex', justifyContent: 'center' }}><div className="g-shell">{children}</div></main>
+      <div className="menu" aria-hidden={!mobileOpen}>{NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} style={{ '--i': index } as React.CSSProperties} onClick={() => setMobileOpen(false)}>{item.label}</Link>)}</div>
+      <main><div className="g-shell">{children}</div></main>
       <SiteFooter />
     </div>
   )

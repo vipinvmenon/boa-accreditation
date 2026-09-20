@@ -3241,6 +3241,23 @@ captured v2 references and honestly reports 28 failures because the app still
 renders v1 screens; this is the expected migration baseline before ACC-103
 shell conversion, not a v2 screen pass.
 
+### 20 Sep 2026 — ACC-103 shared island shell converted
+
+Desk and Gate chrome now use the v2 floating island, sliding navigation pip,
+status pill, avatar/burger controls, mobile drawer, and profile menu slot.
+Desk dashboard/operator loading remains data-backed and Zod-parsed; the
+existing profile theme, Manage users, and sign-out actions remain wired. The
+v2 stylesheet is now imported from the root layout, and the source asset path
+was adapted from the file-based design path to `/assets/boa-poster.png`.
+
+**Verified:** `typecheck` and `lint` pass, with only the three pre-existing
+`<img>` warnings. `build` passes and reports 60 precached assets. The required
+intermediate `test:visual` run covered 7/7 screens and 28/28 variants with
+0 blocked and 0 known gaps, but all 28 remain over the 0.8% limit while screen
+bodies are still v1; measured failures range from 15.42% to 75.42%, with the
+mobile shell currently widening some routes to 517px. This is recorded rather
+than hidden; ACC-104 onward must resolve it.
+
 ## Template for the next session update
 
 ```
