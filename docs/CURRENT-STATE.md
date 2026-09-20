@@ -755,6 +755,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-106 released 2026-09-20 (IST):** v2 visual acceptance remains unmet: dark/web 2.80%, light/web 0.20%, dark/mobile 5.96%, light/mobile 0.65%; implementation and code gates pass, proceeding to ACC-107 per user direction.
 
+
+> **ACC-107 released 2026-09-20 (IST):** Implemented v2 Passes markup/classes and preserved API/RPC/schema, QR mask selector, print/share behavior; visual gate still fails: dark/web 9.12%, light/web 1.38%, dark/mob 83.13%, light/mob 79.72% (fresh build, no reference regeneration).
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
