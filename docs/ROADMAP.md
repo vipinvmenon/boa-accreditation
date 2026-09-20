@@ -289,7 +289,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       hook, re-point `capture-design-reference.mjs`, write ADR-017, update
       non-negotiable #1 in CLAUDE.md + AGENTS.md + `.cursor/rules`. Acceptance:
       28 PNGs captured from v2, CDN-vs-local diff recorded · **CU** · due Sun 20
-- [~] **ACC-101** · Split the token gates: `check-design-tokens.mjs` check 1 →
+- [x] **ACC-101** · Split the token gates: `check-design-tokens.mjs` check 1 →
       v2, check 2 stays on v1, widen the token-name regex to `--[a-z0-9-]+`,
       add v2's tokens to `app/globals.css`, add `@fontsource/archivo/600.css`,
       re-point or retire `audit-font-weights.mjs`. `design-contract.test.ts`
