@@ -554,6 +554,9 @@ try {
           // The approved artboard captures its illustrative vehicle example
           // switched on. Exercise the real form so production has no fixture
           // defaults or pre-assigned vehicle data.
+          await page.getByLabel('Full name').fill('Ranjith Kumar')
+          await page.getByLabel('Mobile').fill('+91 98861 04422')
+          await page.getByLabel('Role at the festival').fill('Stage tech')
           await page.getByRole('switch').click()
           await page.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
         }

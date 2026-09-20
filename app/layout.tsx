@@ -51,7 +51,6 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import './responsive.css'
 import './hover.css'
-import './motion.css'
 import './v2.css'
 
 export const metadata: Metadata = {
