@@ -728,6 +728,11 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-104 released 2026-09-20 (IST):** Shared frame and 390px overflow fixed; code gates pass, but control-room visual remains above threshold: 0.59% dark/web, 1.10% light/web, 1.37% dark/mobile, 1.98% light/mobile. Remaining drift is theme/count-up raster in the approved captures; no justified fix verified.
 
+> **ACC-104 blocked 2026-09-20 (IST):** Resumed from `6cd9d61` and inspected all four control-room diff images plus the approved v2 source. A source-aligned 1.1s count-up improved web to 0.76% dark / 0.54% light but worsened mobile to 1.77% / 1.72%; capture-specific theme/viewport duration tuning was therefore reverted. Final fresh baseline after `corepack pnpm build`: **0.59% dark/web, 1.10% light/web, 1.43% dark/mobile, 1.95% light/mobile**. `typecheck`, `lint` (three pre-existing `<img>` warnings), `test` (53/53), and `build` pass. No references, masks, unrelated screens, or gate/offline code changed; no justified deterministic fix was verified.
+
+
+> **ACC-104 released 2026-09-20 (IST):** Final fresh baseline remains 0.59% dark/web, 1.10% light/web, 1.43% dark/mobile, 1.95% light/mobile; source-aligned count timing improved web but worsened mobile, so reverted. Code gates pass; no justified fix verified.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
