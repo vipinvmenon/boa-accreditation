@@ -804,6 +804,43 @@ Verified by attempting the thing, not by reading a grant table:
 > walkthrough is claimed. ACC-111 is not done because the 7/7 visual
 > threshold is not met and ACC-104–109 remain visually blocked.
 
+> **ACC-111 fresh rerun 2026-09-20 (IST, HEAD `b9deb55`):** The requested
+> sequence was run against the clean worktree (apart from the pre-existing
+> untracked `.playwright-mcp/` scratch) without changing production code or
+> regenerating references/masks. `corepack pnpm typecheck` exited **0**;
+> `corepack pnpm lint` exited **0** with the same three pre-existing
+> `@next/next/no-img-element` warnings; `corepack pnpm test` exited **0**
+> (**53/53**); `corepack pnpm check:sql` exited **0** (**28 migration(s)**);
+> `corepack pnpm test:db` exited **0** (`test:db OK`, all listed pgTAP
+> guarantees held); and `corepack pnpm build` exited **0**. The build emitted
+> the gate routes `/gate`, `/gate/setup`, `/gate/vehicle`, plus the app's desk,
+> submission and API routes, and generated **59 precached assets**: **3 routes,
+> 29 scripts, 1 CSS, 24 fonts, 1 WASM** (`public/gate/zxing_reader.wasm`).
+> `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` exited **0** with **4/4**
+> aeroplane-mode tests passed on port **4321**.
+>
+> `corepack pnpm test:visual` exited **1**. It compared all **28 variants**
+> across **7/7 screens**, with **0 blocked, 0 not built, and 0 known gaps**;
+> **23 comparisons failed** over the 0.8% limit and **5 passed**. Measurements
+> (dark/web, light/web, dark/mobile, light/mobile) were: control-room
+> **3.01/2.96/0.97/0.68%**, queue **3.31/1.85/7.74/3.71%**, master
+> **2.78/0.24/5.56/0.48%**, submission **2.86/0.27/7.24/6.19%**, passes
+> **3.51/0.27/3.52/2.49%**, gate **6.36/6.51/31.34/30.91%**, and vehicle
+> **10.82/10.97/15.54/15.72%**. No references or masks were regenerated.
+>
+> The fixture guard proof was repeated safely: temporarily renaming
+> `Chakra Sound & Light` in `scripts/visual-fixtures/desk.mjs` made the
+> targeted control-room run exit **1** with **4/4** comparisons failing
+> (**3.02/2.96/1.50/1.21%**); the fixture was immediately restored and
+> `git diff -- scripts/visual-fixtures/desk.mjs` was empty. Manual local
+> `/gate/setup` checks at **390×844**, **900×900**, and **1360×900** in both
+> dark and light themes reported matching document/body widths at each size.
+> `/desk/login` did not provide a usable authenticated desk browser surface;
+> no authenticated desk walkthrough, physical phone/iPhone rehearsal, or
+> human aeroplane-mode rehearsal is claimed. ACC-111 remains in flight because
+> visual acceptance is unmet and the physical/authenticated criteria were not
+> verified.
+
 > **ACC-106 follow-up 2026-09-20 (IST):** After the capture-readiness helper,
 > the targeted v2 Master visual measurements were **2.78% dark/web, 0.24%
 > light/web, 5.56% dark/mobile, and 0.48% light/mobile**. Code gates were
