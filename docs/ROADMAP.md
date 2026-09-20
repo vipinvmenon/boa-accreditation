@@ -320,7 +320,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       `users`, `login`, `gate/setup`) plus `error`/`not-found` from the v2
       primitives. Not pixel-gated — nothing exists to gate
       against · **CU** · due Fri 3 Oct
-- [ ] **ACC-111** · v2 sign-off: full gate green, guard-mutation proof, manual
+- [~] **ACC-111** · v2 sign-off: full gate green, guard-mutation proof, manual
       walkthrough at 390/900/1360 and light theme, dated CURRENT-STATE entry
       with measured numbers, DESIGN-SYSTEM rewritten for the new authoring
       model. Do not push or deploy · **CU** · due Fri 3 Oct
