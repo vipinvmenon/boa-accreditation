@@ -432,6 +432,50 @@ async function maskRects(page, slug) {
   return rects
 }
 
+/**
+ * Wait for the real desk route to have mounted its fixture-backed content and
+ * for the source-aligned reveal work visible in the capture viewport to finish.
+ * This is intentionally capture-only: the approved references remain frozen,
+ * and no production component is taught about screenshots.
+ */
+async function waitForV2CaptureReady(page, screen) {
+  await page.evaluate(() => document.fonts.ready)
+
+  if (screen === 'master') {
+    await page.waitForFunction(() => {
+      const root = document.querySelector('main[data-v2-ready="true"]')
+      if (!root) return false
+      if (root.querySelector('[role="alert"]')) return false
+      if ([...root.querySelectorAll('.mrow')].some((element) => element.textContent?.includes('Loading'))) return false
+      return root.querySelector('.bz .mrow') !== null
+    }, undefined, { timeout: 30000 })
+  }
+
+  if (screen === 'passes') {
+    await page.waitForFunction(() => {
+      const root = document.querySelector('main.passes-screen')
+      if (!root || root.querySelector('.passes-state-error')) return false
+      if ([...root.querySelectorAll('.passes-state')].some((element) => element.textContent?.includes('Loading'))) return false
+      return root.querySelector('.pass') !== null
+    }, undefined, { timeout: 30000 })
+  }
+
+  if (screen !== 'master' && screen !== 'passes') return
+
+  // The source uses IntersectionObserver rather than forcing every .rv to
+  // .in. Only elements actually visible at the capture viewport are relevant;
+  // getAnimations() makes the transition completion bound explicit.
+  await page.waitForFunction(() => {
+    const root = document.querySelector('main')
+    if (!root) return false
+    const visible = [...root.querySelectorAll('.rv')].filter((element) => {
+      const rect = element.getBoundingClientRect()
+      return rect.bottom > 0 && rect.top < window.innerHeight && rect.width > 0 && rect.height > 0
+    })
+    return visible.length > 0 && visible.every((element) => element.classList.contains('in') && element.getAnimations().length === 0)
+  }, undefined, { timeout: 5000 })
+}
+
 function paintRects(png, rects) {
   for (const r of rects) {
     const x0 = Math.max(0, Math.floor(r.x))
@@ -590,13 +634,7 @@ try {
           }
         }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
-        await page.evaluate(() => document.fonts.ready)
-        if (screen.slug === 'master') {
-          // Master data mounts the source-aligned .rv reveal sequence after
-          // the API response. Wait for its explicit readiness marker rather
-          // than sampling the 900ms production transition.
-          await page.waitForSelector('main[data-v2-ready="true"]', { state: 'attached', timeout: 30000 })
-        }
+        await waitForV2CaptureReady(page, screen.slug)
         // Filling inputs and clicking buttons (the gate/vehicle flows above)
         // can leave the page scrolled away from the top. A `fullPage`
         // screenshot resizes the viewport to the full document height without
