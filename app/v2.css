@@ -171,15 +171,11 @@ main { position: relative; padding: 0 32px 64px; }
 .qrow.rej { background: var(--badbg); }
 .qrow.flash { animation: flash 1s var(--ease); }
 @keyframes flash { from { background: var(--grnbg) } }
-.pick { position: relative; display: flex; align-items: center; gap: 9px; min-width: 0; height: 66.5px; padding: 0 16px; transition: box-shadow .3s var(--ease); }
-.pick::after { content: ""; position: absolute; inset: 0 0 auto; height: 44px; border-radius: 999px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--rule); pointer-events: none; }
-.pick:hover::after { box-shadow: inset 0 0 0 1px var(--rule2); }
-.pick-dot { position: relative; z-index: 1; width: 10px; height: 10px; flex: none; border-radius: 3px; background: var(--c); transition: background .4s var(--ease); pointer-events: none; }
-.pick-label { position: relative; z-index: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); pointer-events: none; }
-.pick-caret { position: relative; z-index: 1; display: inline-flex; margin-left: auto; color: var(--ink3); pointer-events: none; }
-.pick-caret .ph-icon { width: 1em; height: 1em; }
-.pick select { position: absolute; inset: 0; width: 100%; height: 100%; appearance: none; border: 0; padding: 0; margin: 0; opacity: 0; cursor: pointer; }
-.pick:focus-within::after { box-shadow: inset 0 0 0 2px var(--grn); }
+.pick { position: relative; display: block; height: 66.5px; }
+.pick select { appearance: none; width: 100%; min-height: 44px; padding: 0 40px 0 36px; border: 0; border-radius: 999px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--rule); font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); cursor: pointer; transition: box-shadow .3s var(--ease); }
+.pick select:hover { box-shadow: inset 0 0 0 1px var(--rule2); }
+.pick::before { content: ""; position: absolute; left: 16px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 3px; background: var(--c); transition: background .4s var(--ease); pointer-events: none; }
+.pick i { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--ink3); pointer-events: none; }
 .q-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 26px; box-shadow: inset 0 1px 0 var(--hair); flex-wrap: wrap; }
 .q-foot .sums { display: flex; gap: 18px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
 .linkbtn { border: 0; background: none; display: inline-flex; align-items: center; gap: 8px; font-family: var(--label); font-weight: 600; font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); padding: 8px 0; transition: color .3s var(--ease); }

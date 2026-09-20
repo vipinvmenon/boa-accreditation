@@ -29,6 +29,21 @@ const filterLabels: Record<QueueFilter, string> = {
   aaa: 'AAA flagged',
 }
 
+const orgKindLabels: Record<string, string> = {
+  vendor: 'Vendor',
+  security: 'Security',
+  crew: 'Crew',
+  sponsor: 'Sponsor',
+  media: 'Media',
+  contractor: 'Contractor',
+}
+
+const statusLabels: Record<Extract<QueueRow['status'], 'submitted' | 'approved' | 'rejected'>, string> = {
+  submitted: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+}
+
 const errorCopy: Record<string, string> = {
   not_authorized: 'Only an active operator can use the queue.',
   reason_required: 'A rejection reason is required.',
@@ -178,6 +193,7 @@ export function QueueScreen() {
     if (!root) return
 
     const revealables = root.querySelectorAll<HTMLElement>('.rv')
+    revealables.forEach((element) => element.classList.remove('in'))
     if (!('IntersectionObserver' in window)) {
       revealables.forEach((element) => element.classList.add('in'))
       return
@@ -222,9 +238,9 @@ export function QueueScreen() {
               return (
             <div className="org-h">
               <div>
-                <div className="mono">Org {orgIndex + 1} of {queueOrgs.length} pending</div>
+                <span className="mono">Org {orgIndex + 1} of {queueOrgs.length} pending</span>
                 <h2 className="h2">{org.name}</h2>
-                <div aria-label={`Contact ${orgMeta?.contactName ?? 'unknown'} ${orgMeta?.contactPhone ?? ''}; ${orgMeta?.used ?? 0} of ${orgMeta?.quota ?? 0} used; ${orgMeta?.status ?? 'unknown'}; default ${orgMeta?.defaultType ?? 'unknown'}`} className="sub">{orgMeta?.kind ?? org.kind}, quota {orgMeta?.quota ?? '—'}, submitted {org.rows[0]?.submitted_at ? new Date(org.rows[0].submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'} by {orgMeta?.contactName ?? '—'}</div>
+                <div aria-label={`Contact ${orgMeta?.contactName ?? 'unknown'} ${orgMeta?.contactPhone ?? ''}; ${orgMeta?.used ?? 0} of ${orgMeta?.quota ?? 0} used; ${orgMeta?.status ?? 'unknown'}; default ${orgMeta?.defaultType ?? 'unknown'}`} className="sub">{orgKindLabels[orgMeta?.kind ?? org.kind] ?? orgMeta?.kind ?? org.kind}, quota {orgMeta?.quota ?? '—'}, submitted {org.rows[0]?.submitted_at ? new Date(org.rows[0].submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'} by {orgMeta?.contactName ?? '—'}</div>
               </div>
               {filter === 'pending' && (
                 <div className="row">
@@ -254,16 +270,12 @@ export function QueueScreen() {
                     <div className="sub">{row.role_text}, {row.phone}{row.vehicle_reg ? `, ${row.vehicle_reg}` : ''}</div>
                   </div>
                   <label className="pick" style={{ ['--c' as string]: rowColour }}>
-                    <span className="pick-dot" aria-hidden="true" />
-                    <span className="pick-label" aria-hidden="true">{rowType.label}</span>
-                    <span className="pick-caret" aria-hidden="true"><Icon name="caret-down" /></span>
-                    <select aria-label={`Type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }}>
+                    <select aria-label={`Band type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }}>
                       <option value="crew">Working Crew</option>
                       <option value="stage">Stage</option>
-                      <option value="aaa">AAA</option>
                     </select><i><Icon name="caret-down" /></i>
                   </label>
-                  <span className={`st ${row.status === 'approved' ? 'ok' : row.status === 'rejected' ? 'no' : 'wait'}`}>{row.status === 'submitted' ? 'pending' : row.status}</span>
+                  <span className={`st ${row.status === 'approved' ? 'ok' : row.status === 'rejected' ? 'no' : 'wait'}`}>{statusLabels[row.status as keyof typeof statusLabels] ?? row.status}</span>
                   <div className="q-actions row">
                     {row.status === 'submitted' && <button type="button" disabled={busy} onClick={() => void decide(row.id, true)} className="btn go solo">Approve</button>}
                     {row.status === 'submitted' && (rejecting === row.id ? <><input aria-label={`Reason for rejecting ${row.full_name}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, maxWidth: '150px' }} /><button type="button" disabled={busy || reason.trim().length === 0} onClick={() => void decide(row.id, false, reason)} className="btn bad solo">Confirm reject</button></> : <button type="button" disabled={busy} onClick={() => { setRejecting(row.id); setReason('') }} className="btn bad solo">Reject</button>)}
@@ -272,7 +284,7 @@ export function QueueScreen() {
                 </div>
               )
             })}
-            <div className="q-foot"><div className="sums"><span style={{ color: 'var(--grn)' }}>{org.rows.filter((row) => row.status === 'approved').length} approved</span><span>{org.rows.filter((row) => row.status === 'submitted').length} pending</span><span style={{ color: 'var(--bad)' }}>{org.rows.filter((row) => row.status === 'rejected').length} rejected</span></div><button className="linkbtn" type="button">Next org: {nextOrg?.name ?? '—'} <Icon name="arrow-right" /></button></div>
+            <div className="q-foot"><div className="sums"><span style={{ color: 'var(--grn)' }}>{org.rows.filter((row) => row.status === 'approved').length} Approved</span><span>{org.rows.filter((row) => row.status === 'submitted').length} Pending</span><span style={{ color: 'var(--bad)' }}>{org.rows.filter((row) => row.status === 'rejected').length} Rejected</span></div><button className="linkbtn" type="button">Next org: {nextOrg?.name ?? '—'} <Icon name="arrow-right" /></button></div>
             </div>
           </section>
         ))}
