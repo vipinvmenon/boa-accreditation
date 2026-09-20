@@ -316,7 +316,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       no diff in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not
       green and rehearsed by 2 Oct → revert and ship gate on
       v1** · **CU** · due Thu 2 Oct
-- [ ] **ACC-110** · Derive the six ungated screens (`orgs`, `aaa`, `devices`,
+- [~] **ACC-110** · Derive the six ungated screens (`orgs`, `aaa`, `devices`,
       `users`, `login`, `gate/setup`) plus `error`/`not-found` from the v2
       primitives. Not pixel-gated — nothing exists to gate
       against · **CU** · due Fri 3 Oct
