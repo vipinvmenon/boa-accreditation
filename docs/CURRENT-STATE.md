@@ -3460,6 +3460,8 @@ the default port was blocked by existing listeners on 4173 and was rerun on
 4174 successfully. `.playwright-mcp/` remains local scratch and is not part of
 this task.
 
+> **ACC-109 fresh targeted evidence 2026-09-20 (IST, HEAD `ffb03c1d0833d750be610121b8faf804c88c66ae`):** After a fresh `corepack pnpm build`, the requested Gate and Vehicle visual runs compared all eight variants at exact reference dimensions with no blocked, not-built, or known-gap cases. In order (dark/web, light/web, dark/mobile, light/mobile), Gate measured **2.21% / 0.19% / 2.78% / 0.49%** (1360×1530 desktop and 390×1661 mobile); Vehicle measured **6.72% / 0.54% / 10.92% / 1.35%** (1360×1294 desktop and 390×1581 mobile). Five of eight variants passed and three exceeded the 0.8% ceiling; ACC-109 remains incomplete. The build generated **60 precached assets** across **3 routes, 30 scripts, 1 CSS, 24 fonts, and 1 WASM** (`public/gate/zxing_reader.wasm`). `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4** aeroplane-mode tests. No production code, references, masks, or unrelated files were changed.
+
 ## Template for the next session update
 
 ```

@@ -327,6 +327,12 @@ org list wins: `task block` the redesign task with a reason and commit it.
       in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not green
       and rehearsed by 2 Oct → revert and ship gate on v1** · **CU** · due Thu
       2 Oct
+      Latest targeted evidence after `ffb03c1` (20 Sep 2026) measured Gate
+      **2.21/0.19/2.78/0.49%** and Vehicle **6.72/0.54/10.92/1.35%**
+      (dark/web, light/web, dark/mobile, light/mobile), with exact dimensions
+      preserved; 5/8 variants passed, so ACC-109 remains incomplete. The fresh
+      build emitted **60 precached assets** (3 routes, 30 scripts, 1 CSS,
+      24 fonts, 1 WASM), and aeroplane-mode `test:e2e` passed **4/4**.
 - [x] **ACC-110** · Derive the six ungated screens (`orgs`, `aaa`, `devices`,
       `users`, `login`, `gate/setup`) plus `error`/`not-found` from the v2
       primitives. Not pixel-gated — nothing exists to gate
