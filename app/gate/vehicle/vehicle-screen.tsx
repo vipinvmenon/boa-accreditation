@@ -104,7 +104,6 @@ export function VehicleScreen() {
   const cleared = result?.outcome === 'cleared'
   return (
     <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0} bmsPending={0}>
-      <div className="frame">
       <section className="head rv">
         <div><span className="tag gold">Vehicle entrance</span><h1 className="h1">Sticker and band. Both.</h1><p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside. Stickers are bound to one registration and are not transferable.</p></div>
       </section>
@@ -129,7 +128,6 @@ export function VehicleScreen() {
           </div>
         </div>
         </div>
-      </div>
       </div>
     </GateChrome>
   )

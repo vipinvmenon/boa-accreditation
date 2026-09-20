@@ -145,11 +145,10 @@ export default function GatePage() {
 
   return (
     <GateChrome bandsIssued={snapshot.ledger.filter((row) => row.kind === 'wristband').length} approved={snapshot.roster.length} bmsPending={0}>
-      <div className="frame">
-        <section className="head rv">
-          <div><span className="tag">Crew check-in</span><h1 className="h1">Three outcomes. No fourth.</h1><p className="lede">The approved list is held on the device, so a scan resolves with the radio off and writes flush when signal returns. There is no ambiguous state and no discretion at the gate.</p></div>
-        </section>
-        <div className="split">
+      <section className="head rv">
+        <div><span className="tag">Crew check-in</span><h1 className="h1">Three outcomes. No fourth.</h1><p className="lede">The approved list is held on the device, so a scan resolves with the radio off and writes flush when signal returns. There is no ambiguous state and no discretion at the gate.</p></div>
+      </section>
+      <div className="split">
           <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
             <div className="meta"><span>{snapshot.meta.gateLabel} | {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued</span></div>
             <div className="vf"><i className="c" /><i className="c" /><i className="c" /><i className="c" /><div className="sweep"><i /></div><video ref={videoRef} muted playsInline aria-label="Gate camera scanner" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /></div>
@@ -176,7 +175,6 @@ export default function GatePage() {
               <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} className="btn go big hov-invert-grn">Issue wristband<span className="ic">✓</span></button></>}<button type="button" onClick={() => { setResolution(emptyResolution); setMessage(null) }} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: 'var(--grn)' }}>{message}</div>}</div>
             </div>
           </div></div>
-        </div>
       </div>
     </GateChrome>
   )
