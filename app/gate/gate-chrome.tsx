@@ -20,6 +20,7 @@ export function GateChrome({
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
   const active = NAV.find((item) => item.href === pathname)?.id
 
   useEffect(() => {
@@ -33,6 +34,29 @@ export function GateChrome({
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
+
+  useEffect(() => {
+    const root = mainRef.current
+    if (!root) return
+
+    const revealables = root.querySelectorAll<HTMLElement>('.rv')
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+      revealables.forEach((element) => element.classList.add('in'))
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('in')
+        observer.unobserve(entry.target)
+      }),
+      { threshold: 0.12 },
+    )
+    revealables.forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
+  }, [pathname])
 
   return (
     <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
@@ -56,7 +80,7 @@ export function GateChrome({
           setMobileOpen(false)
           mobileMenuButtonRef.current?.focus()
         }}>{item.label}</Link>)}</div>
-        <main>{children}</main>
+        <main ref={mainRef}>{children}</main>
         <SiteFooter />
       </div>
     </div>
