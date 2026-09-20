@@ -754,6 +754,14 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-105 released 2026-09-20 (IST):** v2 visual acceptance remains unmet after three source-aligned passes: latest fresh results 3.31%, 1.85%, 7.51%, 3.49%; proceeding to the next screen per user direction, with no references or masks changed.
 
+> **ACC-105 timing experiment recorded 2026-09-20 (IST):** Repeated Queue app
+> metrics stabilized at **900/1100/1500 ms** with opacity **1**, transform/filter
+> **none**, and zero active animations. The **0/400 ms** samples remained active
+> and non-repeatable. Frozen v2 Queue references are in-flight around **270 ms**
+> under the existing reference capture sequence. No production timing or reference
+> change was made; an explicit settled-vs-in-flight design decision is required
+> before regeneration.
+
 
 > **ACC-106 released 2026-09-20 (IST):** v2 visual acceptance remains unmet: dark/web 2.80%, light/web 0.20%, dark/mobile 5.96%, light/mobile 0.65%; implementation and code gates pass, proceeding to ACC-107 per user direction.
 
