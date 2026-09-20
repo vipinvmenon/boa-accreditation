@@ -733,6 +733,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-104 released 2026-09-20 (IST):** Final fresh baseline remains 0.59% dark/web, 1.10% light/web, 1.43% dark/mobile, 1.95% light/mobile; source-aligned count timing improved web but worsened mobile, so reverted. Code gates pass; no justified fix verified.
 
+
+> **ACC-104 released 2026-09-20 (IST):** Fresh targeted visual run after build: dark/web 1.05%, light/web 1.07%, dark/mobile 1.43%, light/mobile 1.98% (all >0.8%). Diff artifacts show animated V2Count values captured at different progress than approved references; no justified deterministic presentation fix verified without repeating the reverted count-timing experiment. typecheck, lint (three pre-existing img warnings), test 53/53, and build pass. No reference regeneration, masks, unrelated screens, or Queue/Master/Passes/Submission/Gate/offline code changed.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
