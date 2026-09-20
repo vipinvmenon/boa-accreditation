@@ -16,11 +16,9 @@ function zonesFor(typeCode: PassTypeCode) {
   return ALL_ZONES.map((zone) => ({ held: held.has(zone), text: held.has(zone) ? zone : `—— ${zone}` }))
 }
 
-const emptyResolution: GateResolution = { status: 'red', reason: 'invalid_token' }
-
 export default function GatePage() {
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
-  const [resolution, setResolution] = useState<GateResolution>(emptyResolution)
+  const [resolution, setResolution] = useState<GateResolution | null>(null)
   const [serial, setSerial] = useState('')
   const [queued, setQueued] = useState(0)
   const [message, setMessage] = useState<string | null>(null)
@@ -111,7 +109,7 @@ export default function GatePage() {
   }, [resolve])
 
   const issue = async () => {
-    if (resolution.status !== 'green') return
+    if (!resolution || resolution.status !== 'green') return
     const token = resolution.person.passToken
     const action: GateIssue = {
       idempotencyKey: crypto.randomUUID(),
@@ -133,11 +131,12 @@ export default function GatePage() {
   }
 
   const theme = useDomTheme()
-  const colour = resolution.status === 'green' ? 'var(--grn,#00F5A5)' : resolution.status === 'amber' ? 'var(--gold,#E3BB72)' : 'var(--bad,#FF6B5A)'
-  const verdict = resolution.status === 'green' ? 'Approved' : resolution.status === 'amber' ? 'Collected' : resolution.status === 'red' ? 'Refuse' : 'Ready'
-  const person = resolution.status === 'red' ? null : resolution.person
+  const colour = resolution?.status === 'green' ? 'var(--grn,#00F5A5)' : resolution?.status === 'amber' ? 'var(--gold,#E3BB72)' : resolution ? 'var(--bad,#FF6B5A)' : 'var(--ink3)'
+  const verdict = resolution?.status === 'green' ? 'Approved' : resolution?.status === 'amber' ? 'Collected' : resolution?.status === 'red' ? 'Refuse' : 'Ready'
+  const outcome = resolution?.status === 'green' ? 'ok' : resolution?.status === 'amber' ? 'col' : resolution?.status === 'red' ? 'bad' : undefined
+  const person = resolution?.status === 'red' ? null : resolution?.person
   const type = person ? passType(person.typeCode) : null
-  const stickerDue = resolution.status === 'green' && resolution.stickerDue
+  const stickerDue = resolution?.status === 'green' ? resolution.stickerDue : false
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
   const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
 
@@ -146,16 +145,16 @@ export default function GatePage() {
   return (
     <GateChrome bandsIssued={snapshot.ledger.filter((row) => row.kind === 'wristband').length} approved={snapshot.roster.length} bmsPending={0}>
       <section className="head rv">
-        <div><span className="tag">Crew check-in</span><h1 className="h1">Three outcomes. No fourth.</h1><p className="lede">The approved list is held on the device, so a scan resolves with the radio off and writes flush when signal returns. There is no ambiguous state and no discretion at the gate.</p></div>
+        <div><span className="tag">Crew check-in</span><h1 className="h1">Three outcomes. No fourth.</h1><p className="lede">The approved list lives on this device, so a scan resolves with the radio off and uploads when signal returns.</p></div>
       </section>
       <div className="split">
           <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
-            <div className="meta"><span>{snapshot.meta.gateLabel} | {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued</span></div>
+            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'}, {queued} queued</span></div>
             <div className="vf"><i className="c" /><i className="c" /><i className="c" /><i className="c" /><div className="sweep"><i /></div><video ref={videoRef} muted playsInline aria-label="Gate camera scanner" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /></div>
             <canvas ref={canvasRef} hidden />
             <input aria-label="Manual scanner input" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
             <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p></div>
-            <button type="button" onClick={() => void startCamera()} className="btn wide hov-outline-grn">Can&apos;t scan — search by name<span className="ic">⌕</span></button>
+            <button type="button" onClick={() => void startCamera()} className="btn wide hov-outline-grn">Can&apos;t scan? Search by name<span className="ic" aria-hidden="true">⌕</span></button>
             {cameraError && <div role="alert" className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}>{cameraError}</div>}
             <div style={{ marginTop: 26 }}><span className="mono">Last issued at this gate</span><div className="last" style={{ marginTop: 8 }}>
               {recent.map((row) => {
@@ -165,14 +164,14 @@ export default function GatePage() {
               })}
             </div><div className="foot-meta mono"><span>{snapshot.ledger.filter((row) => row.kind === 'wristband').length} issued today</span><span>Ledger append-only</span></div></div>
           </div></div>
-          <div className="bz result rv" id="gres" style={{ '--d': 2, '--oc': colour } as CSSProperties}><div className="pl">
-            <div className="flood" /><div className="r-top"><div className="seg"><span className="thumb" /><button type="button" aria-pressed="true">Scanning</button><button type="button" aria-pressed="false">Approved</button><button type="button" aria-pressed="false">Collected</button><button type="button" aria-pressed="false">Refuse</button></div></div>
-            <div className="r-body"><div className="g-verdict verdict">{verdict}</div><div className="vsub">{resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</div>
+          <div className="bz result rv" id="gres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': colour } as CSSProperties}><div className="pl">
+            <div className="flood" /><div className="r-top"><div className="seg" data-seg><span className="thumb" /><button type="button" data-o="idle" aria-pressed={!outcome}>Scanning</button><button type="button" data-o="ok" aria-pressed={outcome === 'ok'}>Approved</button><button type="button" data-o="col" aria-pressed={outcome === 'col'}>Collected</button><button type="button" data-o="bad" aria-pressed={outcome === 'bad'}>Refuse</button></div></div>
+            <div className="r-body">{!resolution && <div className="idle"><span className="mono">Waiting for a scan</span><h2 className="verdict stag" style={{ '--i': 0, color: 'var(--ink)' } as CSSProperties}>Ready</h2><p className="stag" style={{ '--i': 1 } as CSSProperties}>Hold the pass code inside the frame. Works with the radio off.</p></div>}{resolution && <><h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{verdict}</h2><p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</p></>}
               {person && type && <div className="person"><div className="nm">{person.fullName}</div><div className="org">{person.orgName}<br /><span>{person.roleText} · {person.dayValidity === 'build_show' ? 'Build + show day' : DAY_VALIDITY[person.dayValidity]}</span></div></div>}
               {person && type && <><div className="gband" style={{ '--c': typeColour(type.code, theme) } as CSSProperties}><b>{type.label}</b><small>Hand over a {type.band.toLowerCase()} band</small></div><div className="zones">{zonesFor(type.code).map((zone) => <span key={zone.text} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}</div>{stickerDue && <div className="vehbox"><span className="mono">Sticker due</span><b>{person.vehicleReg}</b></div>}</>}
-              {resolution.status === 'amber' && <div className="note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
-              {resolution.status === 'red' && <div className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}><b>Do not let them in.</b> This token is not on the approved list.</div>}
-              <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} className="btn go big hov-invert-grn">Issue wristband<span className="ic">✓</span></button></>}<button type="button" onClick={() => { setResolution(emptyResolution); setMessage(null) }} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: 'var(--grn)' }}>{message}</div>}</div>
+              {resolution?.status === 'amber' && <div className="note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
+              {resolution?.status === 'red' && <div className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}><b>Do not let them in.</b> This token is not on the approved list.</div>}
+              {resolution && <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} className="btn go big hov-invert-grn">Issue wristband<span className="ic" aria-hidden="true">✓</span></button></>}<button type="button" onClick={() => { setResolution(null); setMessage(null) }} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: 'var(--grn)' }}>{message}</div>}</div>}
             </div>
           </div></div>
       </div>
