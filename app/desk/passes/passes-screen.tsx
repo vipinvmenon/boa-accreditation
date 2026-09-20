@@ -3,31 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
-import { DAY_VALIDITY, PROP, ALL_ZONES, logoFilterFor, passType, type PassTypeCode } from '@/lib/design'
+import { ALL_ZONES, passType, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
+import { Icon } from '@/components/icon'
 
 export type RenderedPass = Pass & { qrSvg: string }
-
-const buttonStyle: React.CSSProperties = {
-  cursor: 'pointer',
-  border: '1px solid var(--grn,#00F5A5)',
-  background: 'var(--grn,#00F5A5)',
-  color: 'var(--on,#0A0A0A)',
-  padding: '13px 20px',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '12.5px',
-  fontWeight: 600,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  minHeight: '44px',
-}
-
-const ghostButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  borderColor: 'var(--rule2,rgba(242,239,226,0.32))',
-  background: 'transparent',
-  color: 'var(--ink2,rgba(242,239,226,0.72))',
-}
 
 function share(url: string, text: string): void {
   const message = `${text}\n${url.startsWith('/') ? `${window.location.origin}${url}` : url}`
@@ -39,10 +19,13 @@ function zonesFor(typeCode: PassTypeCode) {
   return ALL_ZONES.map((label) => ({ label: held.has(label), text: held.has(label) ? label : `—— ${label}` }))
 }
 
+function dayCopy(dayValidity: Pass['dayValidity']): string {
+  return dayValidity === 'build_show' ? 'build and show' : dayValidity === 'build' ? 'build day' : 'show day'
+}
+
 export function PassesScreen() {
   const router = useRouter()
   const theme = useDomTheme()
-  const p = PROP[theme]
   const [passes, setPasses] = useState<RenderedPass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -83,123 +66,88 @@ export function PassesScreen() {
   }
 
   return (
-    <div className="d-shell">
-      <main className="passes-screen" style={{ background: 'var(--bg,#0A0A0A)', minHeight: '100%' }}>
-        <header className="passes-header d-pad-sec" style={{ borderBottom: `1px solid ${p.rule}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
-          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: p.grn, marginBottom: '16px' }}>The pass</div>
-          <h1 className="d-h1b passes-title" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 0.94, textTransform: 'uppercase', color: p.ink, margin: '0 0 14px' }}>
+    <main className="passes-screen">
+      <section className="head">
+        <div>
+          <span className="tag">The pass</span>
+          <h1 className="h1 passes-title">
             <span className="passes-title-desktop">Pass sheet</span>
             <span className="passes-title-mobile">One person, one pass</span>
           </h1>
-          <p className="passes-blurb passes-blurb-desktop" style={{ fontSize: '14.5px', lineHeight: 1.55, color: p.ink3, margin: 0, maxWidth: '62ch' }}>
-            One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.
-          </p>
-          <p className="passes-blurb passes-blurb-mobile" style={{ fontSize: '14.5px', lineHeight: 1.55, color: p.ink3, margin: 0, maxWidth: '62ch' }}>
-            The code carries a pass token, not a name. Bring it and a valid photo ID to the crew check-in desk — a wristband cannot be collected on anyone else’s behalf.
-          </p>
+          <p className="lede passes-blurb-desktop">One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.</p>
+          <p className="lede passes-blurb-mobile">The code carries a pass token, not a name. Bring it and a valid photo ID to the crew check-in desk — a wristband cannot be collected on anyone else’s behalf.</p>
         </div>
-        <div className="passes-actions" style={{ gap: '10px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={shareAll} className="hov-outline-grn" style={ghostButtonStyle}>Send on WhatsApp</button>
-          <button type="button" onClick={() => window.print()} className="hov-invert-grn" style={buttonStyle}>Print {passes.length} passes →</button>
+        <div className="row passes-actions">
+          <button type="button" onClick={shareAll} className="btn">
+            Send on WhatsApp<span className="ic"><Icon name="paper-plane-tilt" /></span>
+          </button>
+          {passes.length > 0 && <button type="button" onClick={() => window.print()} className="btn go">
+            Print {passes.length} passes<span className="ic"><Icon name="printer" /></span>
+          </button>}
         </div>
-        </header>
+      </section>
 
-        <div className="pass-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: '1px', background: p.rule }}>
-        {loading && <p className="passes-state" style={{ color: p.ink3 }}>Loading passes…</p>}
-        {!loading && error && <p className="passes-state passes-state-error" style={{ color: p.bad }}>Unable to load passes.</p>}
-        {!loading && !error && passes.length === 0 && <p className="passes-state" style={{ color: p.ink3 }}>No approved passes yet — approve in the queue →</p>}
+      <div className="passes">
+        {loading && <p className="passes-state">Loading passes…</p>}
+        {!loading && error && <p className="passes-state passes-state-error">Unable to load passes.</p>}
+        {!loading && !error && passes.length === 0 && <p className="passes-state">No approved passes yet — approve in the queue →</p>}
         {passes.map((pass) => {
           const type = passType(pass.typeCode)
           const zones = zonesFor(pass.typeCode)
           return (
-            <article className="pass-card" key={pass.id} style={{ background: 'var(--bg,#0A0A0A)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderBottom: `1px solid ${p.rule}`, paddingBottom: '14px' }}>
-                <img src="/assets/boa-logo.png" alt="BOA" style={{ height: '26px', width: 'auto', display: 'block', filter: logoFilterFor(theme) }} />
-                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: p.ink3 }}>{pass.passRef}</div>
-              </div>
-
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: p.ink3 }}>Name</div>
-                <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '30px', lineHeight: 1, textTransform: 'uppercase', color: p.ink, marginTop: '8px' }}>{pass.fullName}</div>
-                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', letterSpacing: '0.07em', textTransform: 'uppercase', color: p.ink2, marginTop: '10px' }}>{pass.orgName}</div>
-                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', letterSpacing: '0.07em', textTransform: 'uppercase', color: p.ink3, marginTop: '3px' }}>{pass.role} · {DAY_VALIDITY[pass.dayValidity]}</div>
-              </div>
-
-              <div style={{ border: `1px solid ${typeColour(type.code, theme)}` }}>
-                <div style={{ height: '10px', background: typeColour(type.code, theme) }} />
-                <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '24px', lineHeight: 1, textTransform: 'uppercase', color: typeColour(type.code, theme) }}>{type.label}</div>
-                    <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: p.ink2, marginTop: '5px' }}>{type.band} band</div>
-                  </div>
+            <article className="pass bz" key={pass.id} style={{ '--c': typeColour(type.code, theme) } as React.CSSProperties}>
+              <div className="pl">
+                <div className="ph">
+                  <img src="/assets/boa-logo.png" alt="BOA" />
+                  <span className="mono">{pass.passRef}</span>
                 </div>
-              </div>
-
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: p.ink3, marginBottom: '9px' }}>Zones</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 14px' }}>
-                  {zones.map((zone) => <span key={zone.text} style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: 500, letterSpacing: '0.09em', textTransform: 'uppercase', color: zone.label ? p.ink : p.ink3, padding: '2px 0' }}>{zone.text}</span>)}
+                <div className="who">
+                  <div className="nm">{pass.fullName}</div>
+                  <div className="sub" style={{ marginTop: '8px' }}>{pass.orgName}<br />{pass.role}, {dayCopy(pass.dayValidity)}</div>
                 </div>
+                <div className="bandbox">
+                  <b>{type.label}</b>
+                  <small>{type.band} band</small>
+                </div>
+                <div className="zones">
+                  {zones.map((zone) => <span key={zone.text} className={zone.label ? undefined : 'off'}>{zone.text}</span>)}
+                </div>
+                <div className="qr qr-wrap" aria-label={`QR code for ${pass.fullName}`} dangerouslySetInnerHTML={{ __html: pass.qrSvg }} />
+                {pass.vehicleReg && <div className="vehbox">
+                  <span className="mono">Vehicle</span>
+                  <b>{pass.vehicleReg}</b>
+                </div>}
+                <p className="fine">Bring this and a valid photo ID. Non-transferable. One person, one pass, one check-in, one wristband.</p>
               </div>
-
-              <div className="qr-wrap" aria-label={`QR code for ${pass.fullName}`} dangerouslySetInnerHTML={{ __html: pass.qrSvg }} />
-
-              {pass.vehicleReg && <div style={{ border: `1px solid ${p.gold}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: p.gold }}>Vehicle</span>
-                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '14px', fontWeight: 700, letterSpacing: '0.12em', color: p.ink }}>{pass.vehicleReg}</span>
-              </div>}
-
-              <div style={{ marginTop: 'auto', borderTop: `1px solid ${p.rule}`, paddingTop: '14px', fontSize: '12px', lineHeight: 1.5, color: p.ink3 }}>Bring this and a valid photo ID. Non-transferable. One person = one pass = one physical check-in = one wristband.</div>
             </article>
           )
         })}
-        </div>
-        <style>{`
-        /* Deliberate literal-white exception: design source line 369 hardcodes an
-           opaque-white background for the QR container, theme-independent on purpose —
-           a QR code needs a genuinely light quiet zone to scan reliably regardless
-           of app theme. --panel2 is a near-black value in dark theme, which would
-           put the QR on a near-black background and break scanning at the gate.
-           Written as the "white" keyword (not a hex literal) so this passes the
-           no-raw-hex lint gate while still being the same opaque white the design
-           source specifies, verbatim in effect if not in literal spelling. */
-        .qr-wrap { background:white; padding:16px; display:flex; justify-content:center; }
-        .qr-wrap svg { display:block; width:117px; height:117px; }
-        .passes-state {
-          grid-column:1 / -1;
-          margin:0;
-          padding:15px 18px;
-          font-family:'JetBrains Mono',monospace;
-          font-size:10.5px;
-          letter-spacing:0.07em;
-          text-transform:uppercase;
-        }
-        .passes-state-error { color:var(--bad,#FF6B5A); }
-        .passes-title-mobile, .passes-blurb-mobile { display:none; }
-        .passes-actions { display:none; }
-        @media (max-width: 767px) {
-          .passes-title-desktop, .passes-blurb-desktop { display:none; }
-          .passes-title-mobile { display:inline; }
-          .passes-blurb-mobile { display:block; }
-        }
-        @media (min-width: 768px) {
-          .passes-actions { display:flex; }
+      </div>
+      <style>{`
+        .passes-title-mobile, .passes-blurb-mobile { display: none; }
+        .passes-actions { justify-content: flex-end; align-items: center; }
+        .passes-state { grid-column: 1 / -1; margin: 0; padding: 18px 22px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); }
+        .passes-state-error { color: var(--bad); }
+        .qr-wrap svg { display: block; width: 128px; height: 128px; }
+        @container app (max-width: 700px) {
+          .passes-title-desktop, .passes-blurb-desktop { display: none; }
+          .passes-title-mobile, .passes-blurb-mobile { display: inline; }
+          .passes-actions { justify-content: flex-start; }
         }
         @media print {
-          @page { size:A4; margin:12mm; }
-          html, body { background:white !important; }
-          .passes-header, .passes-state { display:none !important; }
-          .pass-grid { display:block !important; background:white !important; }
-          .pass-card { min-height:270mm; break-after:page; background:white !important; color:var(--on) !important; padding:0 !important; }
-          .pass-card:last-child { break-after:auto; }
-          .pass-card > * { break-inside:avoid; }
-          .qr-wrap { margin-top:8mm; }
-          .qr-wrap svg { width:35mm; height:35mm; }
+          @page { size: A4; margin: 12mm; }
+          html, body { background: white !important; }
+          .nav-wrap, .status, .menu, footer, .head, .passes-state { display: none !important; }
+          .passes { display: block !important; }
+          .pass { min-height: 270mm; break-after: page; background: white !important; color: var(--on) !important; }
+          .pass:last-child { break-after: auto; }
+          .pass > .pl { box-shadow: none; background: white !important; padding: 0; }
+          .pass > .pl > * { break-inside: avoid; }
+          .qr-wrap { margin-top: 8mm; }
+          .qr-wrap svg { width: 35mm; height: 35mm; }
         }
-        `}</style>
-      </main>
-    </div>
+      `}</style>
+    </main>
   )
 }
 
