@@ -47,6 +47,14 @@ by URL. Earlier ACC-111 evidence entries recording 59 assets describe earlier
 builds and are superseded by this later generated artifact, not a second
 current count.
 
+**Evidence labels:** the 27-entry precache and other early Phase-0 figures
+below are historical snapshots, not current artifact counts. Likewise, the
+earlier ACC-104 `done` entry and its sub-0.8% measurements are preserved
+historical runs; later fresh runs failed the threshold, so ACC-104 remains
+unchecked. ACC-098's forensic/source language describes the completed v1 Queue
+work. The executable v2 Queue state is recorded separately as the `2 of 7
+selected` fixture state; neither wording is a current acceptance result.
+
 ## Dates
 
 | | |
@@ -72,7 +80,9 @@ Verified on 10 Sep by running the commands, not by assertion:
   DESIGN-SYSTEM.md.
 - `scripts/extract-assets.mjs` recovers the logo (1008×360) and the Control room
   poster (1122×1402) from the design bundle. Both verified real PNGs.
-- `scripts/build-gate-sw.mjs` runs and emits a 27-entry precache (~622 KB).
+- `scripts/build-gate-sw.mjs` runs and emitted a **27-entry precache
+  (~622 KB)** in the early Phase-0 snapshot; this is historical and is
+  superseded by the inspected 60-entry generated worker above.
 - `corepack pnpm test` — 13 tests green (`tests/unit/design-contract.test.ts`).
 - **The design gates were mutation-tested, not assumed.** Reordering two zones
   fails the suite; "reconciling" the two colour layers fails both the suite and
@@ -759,7 +769,7 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-104 released 2026-09-20 (IST):** Fresh targeted visual run after build: dark/web 1.05%, light/web 1.07%, dark/mobile 1.43%, light/mobile 1.98% (all >0.8%). Diff artifacts show animated V2Count values captured at different progress than approved references; no justified deterministic presentation fix verified without repeating the reverted count-timing experiment. typecheck, lint (three pre-existing img warnings), test 53/53, and build pass. No reference regeneration, masks, unrelated screens, or Queue/Master/Passes/Submission/Gate/offline code changed.
 
-> **ACC-104 done 2026-09-20 (IST):** Applied the approved v2 presentation contract in `control-room-screen.tsx`: the quartic count-up now runs for 1,100 ms, and `.rv` elements use an `IntersectionObserver` with the source's 0.12 threshold rather than hard-coded reveal state. Fresh `corepack pnpm test:visual -- --screen control-room` measured **0.74% dark/web, 0.74% light/web, 0.63% dark/mobile, and 0.34% light/mobile**, all at or below 0.8%. `typecheck`, `lint` (three pre-existing `<img>` warnings), `test` (53/53), `build`, and `corepack pnpm task done ACC-104` passed. No references, masks, API/Zod/data flow, or unrelated screens changed.
+> **ACC-104 done — HISTORICAL/SUPERSEDED 2026-09-20 (IST):** Applied the approved v2 presentation contract in `control-room-screen.tsx`: the quartic count-up now runs for 1,100 ms, and `.rv` elements use an `IntersectionObserver` with the source's 0.12 threshold rather than hard-coded reveal state. Fresh `corepack pnpm test:visual -- --screen control-room` measured **0.74% dark/web, 0.74% light/web, 0.63% dark/mobile, and 0.34% light/mobile**, all at or below 0.8%. `typecheck`, `lint` (three pre-existing `<img>` warnings), `test` (53/53), `build`, and `corepack pnpm task done ACC-104` passed. Later fresh ACC-111 evidence failed the threshold; ACC-104 remains unchecked. No references, masks, API/Zod/data flow, or unrelated screens changed.
 
 
 > **ACC-105 released 2026-09-20 (IST):** Queue v2 conversion is code-gate green but visual variants measured 12.50%, 11.41%, 12.22%, 8.62%; no justified <=0.8% fix found; see CURRENT-STATE.md
@@ -816,7 +826,10 @@ Verified by attempting the thing, not by reading a grant table:
 > passes **9.12/1.40/83.13/79.72%**, gate **6.31/6.16/70.85/71.05%**, and
 > vehicle **10.45/10.60/63.81/64.48%** (dark/web, light/web, dark/mobile,
 > light/mobile in each group). No references or masks were regenerated.
-> `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4**.
+> `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4** in mocked
+> Chromium API-fixture conditions. This is automated evidence only, not
+> authenticated desk acceptance, a seeded full-roster check, or the required
+> physical/two-phone radio-off rehearsal.
 >
 > The guard mutation proof was performed safely: `Chakra Sound & Light` in
 > `scripts/visual-fixtures/desk.mjs` was temporarily renamed, targeted

@@ -133,10 +133,13 @@ when it was not.
 
 Not a PWA (ADR-007): no manifest, no install prompt, no update UI.
 
-## The aeroplane-mode test
+## The aeroplane-mode test (automated mocked-Chromium evidence, not full acceptance)
 
 `tests/e2e/aeroplane-mode.spec.ts`, against Chromium with both gate API routes
-mocked by fixture responses (not against a seeded Supabase roster):
+mocked by fixture responses (not against a seeded Supabase roster). A passing
+run proves the deterministic browser-flow and same-context IndexedDB assertions
+only; it does not prove authenticated desk acceptance, a full seeded roster, or
+the required physical/two-phone radio-off rehearsal:
 
 ```
 fixture four approved → paste device token → assert the fixture roster loads

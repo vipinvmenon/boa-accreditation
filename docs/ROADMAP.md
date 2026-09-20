@@ -259,7 +259,10 @@ provably absent before approval · AAA unstampable without a nomination ·
 - [x] **ACC-052** · `gate/resolve.ts` — pure green/amber/red incl. pending-outbox amber · **C** · due Tue 29
 - [x] **ACC-053** · `gate/scanner.ts` — BarcodeDetector + zxing-wasm fallback · **C** · due Tue 29
 - [ ] **ACC-053b** · **Prove zxing-wasm on a real iPhone.** Not deferrable — see R1 · **V** · due **Tue 29**
-- [x] **ACC-054** · `/gate/setup`, `/gate` transcribed, `force-static`, **+ sticker input** · **C** · due Wed 30
+- [x] **ACC-054** · `/gate/setup`, `/gate` transcribed, `force-static` *(historical
+      acceptance wording; superseded by the shipped `force-dynamic` gate
+      implementation and current architecture/docs)*, **+ sticker input** ·
+      **C** · due Wed 30
 - [x] **ACC-055** · `/gate/vehicle` + `vehicle.test.sql` · **C** · due Thu 1 Oct
 - [x] **ACC-056** · `/api/gate/*`; SW precache incl. the `.wasm` · **C** · due Thu 1 Oct
 - [x] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
@@ -327,6 +330,9 @@ org list wins: `task block` the redesign task with a reason and commit it.
       in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not green
       and rehearsed by 2 Oct → revert and ship gate on v1** · **CU** · due Thu
       2 Oct
+      The 59-asset count is historical evidence from that earlier build; the
+      later inspected generated worker contains 60 entries (see
+      `CURRENT-STATE.md`).
       Latest targeted evidence after `ffb03c1` (20 Sep 2026) measured Gate
       **2.21/0.19/2.78/0.49%** and Vehicle **6.72/0.54/10.92/1.35%**
       (dark/web, light/web, dark/mobile, light/mobile), with exact dimensions
