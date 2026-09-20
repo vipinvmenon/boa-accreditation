@@ -870,6 +870,15 @@ Verified by attempting the thing, not by reading a grant table:
 > light/web, 3.52% dark/mobile, and 2.49% light/mobile**. Code gates were
 > passing; references and masks were unchanged. ACC-107 remains not done.
 
+> **ACC-107 fresh targeted evidence 2026-09-20 (IST):** The targeted v2 Passes
+> run measured **3.45% dark/web (1360×1987), 0.22% light/web (1360×1987),
+> 3.52% dark/mobile (reference 390×4511, actual 390×4613), and 2.49%
+> light/mobile (reference 390×4511, actual 390×4613)**. One of four variants
+> passed and three exceeded the 0.8% threshold. The run applied seven named
+> masks. `typecheck`, `build`, and `lint` passed; lint reported the same three
+> existing warnings. No source, reference, mask, threshold, documentation, or
+> roadmap files were changed during the run. ACC-107 remains incomplete.
+
 > **ACC-109 follow-up 2026-09-20 (IST, after `6820e49`):** The implementation
 > report says `typecheck`, `lint`, `test`, and `build` passed, and
 > `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4**. The build-gate
