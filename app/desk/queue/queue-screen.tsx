@@ -44,7 +44,6 @@ export function QueueScreen() {
   const [rows, setRows] = useState<QueueRow[]>([])
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, aaa: 0 })
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [selectedLabel, setSelectedLabel] = useState('Select people')
   const [queueOrgs, setQueueOrgs] = useState<ReturnType<typeof queueResponseSchema.parse>['orgs']>([])
   const [nextOrg, setNextOrg] = useState<ReturnType<typeof queueResponseSchema.parse>['nextOrg']>(null)
   const [type, setType] = useState<PassTypeCode>('crew')
@@ -76,10 +75,9 @@ export function QueueScreen() {
     }
     setRows(parsed.data.rows)
     setCounts(parsed.data.counts)
-    setSelectedLabel(parsed.data.selectedLabel)
     setQueueOrgs(parsed.data.orgs)
     setNextOrg(parsed.data.nextOrg)
-    setSelected(new Set(parsed.data.rows.filter((row) => row.status === 'approved').map((row) => row.id)))
+    setSelected(new Set(parsed.data.rows.filter((row) => row.status === 'submitted').map((row) => row.id)))
     setError(null)
   }
 
@@ -191,7 +189,7 @@ export function QueueScreen() {
         entry.target.classList.add('in')
         observer.unobserve(entry.target)
       }),
-      { threshold: 0.12, rootMargin: '0px 0px 1000px' },
+      { threshold: 0.12 },
     )
     revealables.forEach((element) => observer.observe(element))
     return () => observer.disconnect()
@@ -210,7 +208,7 @@ export function QueueScreen() {
       </div>
       <div className="selbar rv" style={{ ['--d' as string]: 2 }}>
         <button className="ck" type="button" role="checkbox" aria-checked={selected.size === rows.length && rows.length > 0} aria-label="Select all people in this view" onClick={() => setSelected((old) => old.size === rows.length ? new Set() : new Set(rows.map((row) => row.id)))}><Icon name="check" /></button>
-        <span className="mono">{selectedLabel}</span>
+        <span className="mono">{selected.size} of {rows.length} selected</span>
         <button className="btn solo hide-s" type="button" onClick={() => setType((old) => old === 'crew' ? 'stage' : old === 'stage' ? 'aaa' : 'crew')}>Set type</button>
         <button className="btn bad solo hide-s" type="button" disabled={busy || selected.size === 0} onClick={() => { const first = rows.find((row) => selected.has(row.id) && row.status === 'submitted'); if (first) { setRejecting(first.id); setReason('') } }}>Reject</button>
         <button className="btn go" type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()}>Approve<span className="ic"><Icon name="check" /></span></button>
@@ -256,11 +254,14 @@ export function QueueScreen() {
                     <div className="sub">{row.role_text}, {row.phone}{row.vehicle_reg ? `, ${row.vehicle_reg}` : ''}</div>
                   </div>
                   <label className="pick" style={{ ['--c' as string]: rowColour }}>
+                    <span className="pick-dot" aria-hidden="true" />
+                    <span className="pick-label" aria-hidden="true">{rowType.label}</span>
+                    <span className="pick-caret" aria-hidden="true"><Icon name="caret-down" /></span>
                     <select aria-label={`Type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }}>
                       <option value="crew">Working Crew</option>
                       <option value="stage">Stage</option>
                       <option value="aaa">AAA</option>
-                    </select><i><Icon name="caret-down" /></i>
+                    </select>
                   </label>
                   <span className={`st ${row.status === 'approved' ? 'ok' : row.status === 'rejected' ? 'no' : 'wait'}`}>{row.status === 'submitted' ? 'pending' : row.status}</span>
                   <div className="q-actions row">
