@@ -302,7 +302,11 @@ org list wins: `task block` the redesign task with a reason and commit it.
       profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
-- [x] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants · **CU** · due Thu 24
+- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. Latest ACC-111
+      evidence measured **3.01%, 2.97%, 1.05%, 0.77%** (dark/web,
+      light/web, dark/mobile, light/mobile), so visual acceptance remains
+      unmet; the earlier 0.74% result is preserved in CURRENT-STATE history.
+      · **CU** · due Thu 24
 - [ ] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
       native-`<select>` writeup first · **CU** · due Sat 26
 - [ ] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27

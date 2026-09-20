@@ -23,14 +23,16 @@ open** — Bhoopesh/Salman/2 approvers' real email addresses are still needed
 — but there is no longer a placeholder account to confuse with a real one
 once those addresses arrive; inviting them is now a clean first-time action,
 not a swap.
-`test:visual` on the desk screens remains blocked because the visual harness
-cannot authenticate an operator (ACC-043); `/gate/*` now has static screens,
+`test:visual` now compares all seven screens through the fixture-backed
+harness; the latest run had 0 blocked, 0 not-built and 0 known-gap screens but
+failed 25 variants over the 0.8% threshold. `/gate/*` now has static screens,
 and the deterministic aeroplane-mode suite passes, including true cold
 service-worker navigation. Physical rehearsal remains unverified.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
-(`bom1`). Supabase project `tjbfvuboyvaephtewjwq` has 21 local migrations applied.
+(`bom1`). The latest static migration check covered **28 migration files**;
+the live applied-migration count was not rechecked during ACC-111.
 
 ## Dates
 
@@ -92,10 +94,10 @@ Verified on 10 Sep by running the commands, not by assertion:
   service-worker navigation with the radio disabled. ACC-057 remains in flight
   only because its roadmap checkbox and the human acceptance conditions have
   not been completed.
-- **`test:visual`** remains blocked for desk screens because the committed
-  `design/reference/` artefacts are absent in this checkout; the harness now
-  supports `VISUAL_OPERATOR_EMAIL` and `VISUAL_OPERATOR_PASSWORD`, but no
-  pixel pass is claimed.
+- **`test:visual`** is no longer blocked on operator authentication or missing
+  references in this checkout: the latest run compared all seven screens with
+  0 blocked, 0 not built and 0 known gaps. It still fails visual acceptance
+  with 25 comparisons over the 0.8% threshold; no pixel pass is claimed.
 - **Cursor MCP is nearly connected.** Vipin reports that Supabase, Vercel and
   Playwright are authenticated; GitHub remains outstanding. The Vercel
   *plugin* authenticated in this session (`plugin-vercel-vercel` tools loaded),
