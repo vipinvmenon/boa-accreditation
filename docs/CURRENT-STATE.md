@@ -725,6 +725,8 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-104 released 2026-09-20 (IST):** Control-room v2 body is data-backed and code gates pass, but test:visual measured 8.48%, 7.31%, 34.15%, 34.52% (desktop/mobile dark/light) versus <=0.8%; shared shell/frame mobile overflow and remaining pixel drift require follow-up.
 
+> **ACC-105 blocked 2026-09-20 (IST):** Queue was converted to the v2 `.head`, `.seg`, `.selbar`, `.bz`/`.pl`, `.org-h`, `.qrow`, native `.pick`, and `.q-foot` structure while retaining its existing Zod/API reads, auth, filters, and mutations. Code gates passed (`typecheck`, `lint` with the three pre-existing `<img>` warnings, `test` 53/53, `build`), but the required fresh queue visual run remained over threshold: dark/web 12.50%, light/web 11.41%, dark/mobile 12.22%, light/mobile 8.62% (reference/actual heights 1360×1707→1360×1561 and 390×2215→390×2139). An earlier first conversion measured 9.08%, 8.82%, 12.86%, 9.28%; no references were regenerated. ACC-105 is not done; the queue needs a new evidence-backed visual pass.
+
 
 > **ACC-104 released 2026-09-20 (IST):** Shared frame and 390px overflow fixed; code gates pass, but control-room visual remains above threshold: 0.59% dark/web, 1.10% light/web, 1.37% dark/mobile, 1.98% light/mobile. Remaining drift is theme/count-up raster in the approved captures; no justified fix verified.
 
@@ -737,6 +739,9 @@ Verified by attempting the thing, not by reading a grant table:
 > **ACC-104 released 2026-09-20 (IST):** Fresh targeted visual run after build: dark/web 1.05%, light/web 1.07%, dark/mobile 1.43%, light/mobile 1.98% (all >0.8%). Diff artifacts show animated V2Count values captured at different progress than approved references; no justified deterministic presentation fix verified without repeating the reverted count-timing experiment. typecheck, lint (three pre-existing img warnings), test 53/53, and build pass. No reference regeneration, masks, unrelated screens, or Queue/Master/Passes/Submission/Gate/offline code changed.
 
 > **ACC-104 done 2026-09-20 (IST):** Applied the approved v2 presentation contract in `control-room-screen.tsx`: the quartic count-up now runs for 1,100 ms, and `.rv` elements use an `IntersectionObserver` with the source's 0.12 threshold rather than hard-coded reveal state. Fresh `corepack pnpm test:visual -- --screen control-room` measured **0.74% dark/web, 0.74% light/web, 0.63% dark/mobile, and 0.34% light/mobile**, all at or below 0.8%. `typecheck`, `lint` (three pre-existing `<img>` warnings), `test` (53/53), `build`, and `corepack pnpm task done ACC-104` passed. No references, masks, API/Zod/data flow, or unrelated screens changed.
+
+
+> **ACC-105 released 2026-09-20 (IST):** Queue v2 conversion is code-gate green but visual variants measured 12.50%, 11.41%, 12.22%, 8.62%; no justified <=0.8% fix found; see CURRENT-STATE.md
 
 ## Session log
 
