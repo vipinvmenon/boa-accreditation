@@ -804,6 +804,16 @@ Verified by attempting the thing, not by reading a grant table:
 > walkthrough is claimed. ACC-111 is not done because the 7/7 visual
 > threshold is not met and ACC-104–109 remain visually blocked.
 
+> **ACC-106 follow-up 2026-09-20 (IST):** After the capture-readiness helper,
+> the targeted v2 Master visual measurements were **2.78% dark/web, 0.24%
+> light/web, 5.56% dark/mobile, and 0.48% light/mobile**. Code gates were
+> passing; references and masks were unchanged. ACC-106 remains not done.
+
+> **ACC-107 follow-up 2026-09-20 (IST):** After the capture-readiness helper,
+> the targeted v2 Passes visual measurements were **3.51% dark/web, 0.27%
+> light/web, 3.52% dark/mobile, and 2.49% light/mobile**. Code gates were
+> passing; references and masks were unchanged. ACC-107 remains not done.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
