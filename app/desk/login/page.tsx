@@ -131,92 +131,40 @@ function DeskLoginForm() {
     setResetSent(true)
   }
 
-  const inputStyle: React.CSSProperties = {
-    border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-    background: 'var(--panel,#101012)',
-    color: 'var(--ink,#F2EFE2)',
-    fontFamily: "'Oswald',sans-serif",
-    fontSize: '16px',
-    padding: '12px 14px',
-    width: '100%',
-    outline: 'none',
-    minHeight: '44px',
-  }
-  const labelStyle: React.CSSProperties = {
-    fontFamily: "'JetBrains Mono',monospace",
-    fontSize: '9.5px',
-    fontWeight: 700,
-    letterSpacing: '0.13em',
-    textTransform: 'uppercase',
-    color: 'var(--ink3,rgba(242,239,226,0.42))',
-  }
-  const buttonStyle: React.CSSProperties = {
-    cursor: busy ? 'not-allowed' : 'pointer',
-    opacity: busy ? 0.6 : 1,
-    border: '1px solid var(--grn,#00F5A5)',
-    background: 'var(--grn,#00F5A5)',
-    color: 'var(--on,#0A0A0A)',
-    padding: '14px 22px',
-    fontFamily: "'Oswald',sans-serif",
-    fontSize: '14px',
-    fontWeight: 600,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    minHeight: '48px',
-    width: '100%',
-  }
-
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '28px 18px',
-        background: 'var(--bg,#0A0A0A)',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: '360px' }}>
-        <h1
-          style={{
-            fontFamily: "'Anton',sans-serif",
-            fontSize: 'clamp(28px, 5vw, 38px)',
-            lineHeight: 0.94,
-            textTransform: 'uppercase',
-            color: 'var(--ink,#F2EFE2)',
-            margin: '0 0 24px',
-          }}
-        >
+    <main className="utility-auth">
+      <div className="utility-inner">
+        <div className="tag">BOA accreditation</div>
+        <h1 className="h1">
           {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : 'Desk sign in'}
         </h1>
 
         {mode === 'sign-in' && (
-          <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Email</span>
+          <form onSubmit={handleSignIn} className="utility-form">
+            <label className="utility-label">
+              <span>Email</span>
               <input
                 type="email"
                 required
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={inputStyle}
+                className="utility-input"
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Password</span>
+            <label className="utility-label">
+              <span>Password</span>
               <input
                 type="password"
                 required
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={inputStyle}
+                className="utility-input"
               />
             </label>
-            {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
+            {error && <p role="alert" className="utility-error">{error}</p>}
+            <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
               Sign in
             </button>
             <button
@@ -227,18 +175,6 @@ function DeskLoginForm() {
                 setMode('forgot-password')
               }}
               className="hov-text-grn"
-              style={{
-                cursor: 'pointer',
-                border: 0,
-                background: 'transparent',
-                color: 'var(--ink3,rgba(242,239,226,0.42))',
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '11px',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                padding: 0,
-                textAlign: 'left',
-              }}
             >
               Forgot password?
             </button>
@@ -246,29 +182,29 @@ function DeskLoginForm() {
         )}
 
         {mode === 'forgot-password' && (
-          <form onSubmit={(e) => void handleForgotPassword(e)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <form onSubmit={(e) => void handleForgotPassword(e)} className="utility-form">
             {resetSent ? (
-              <p style={{ fontSize: '13.5px', color: 'var(--ink2,rgba(242,239,226,0.72))', margin: 0 }}>
+              <p className="lede">
                 If that email has desk access, a reset link is on its way. Check your inbox.
               </p>
             ) : (
               <>
-                <p style={{ fontSize: '13.5px', color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0 }}>
+                <p className="utility-copy">
                   Enter the email you were invited with. We&apos;ll send a link to set a new password.
                 </p>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={labelStyle}>Email</span>
+                <label className="utility-label">
+                  <span>Email</span>
                   <input
                     type="email"
                     required
                     autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={inputStyle}
+                    className="utility-input"
                   />
                 </label>
-                {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-                <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
+                {error && <p role="alert" className="utility-error">{error}</p>}
+                <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
                   Send reset link
                 </button>
               </>
@@ -280,18 +216,6 @@ function DeskLoginForm() {
                 setMode('sign-in')
               }}
               className="hov-text-grn"
-              style={{
-                cursor: 'pointer',
-                border: 0,
-                background: 'transparent',
-                color: 'var(--ink3,rgba(242,239,226,0.42))',
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '11px',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                padding: 0,
-                textAlign: 'left',
-              }}
             >
               Back to sign in
             </button>
@@ -299,34 +223,34 @@ function DeskLoginForm() {
         )}
 
         {mode === 'set-password' && (
-          <form onSubmit={handleSetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <p style={{ fontSize: '13.5px', color: 'var(--ink3,rgba(242,239,226,0.42))', margin: 0 }}>
+          <form onSubmit={handleSetPassword} className="utility-form">
+            <p className="utility-copy">
               This is your first sign-in. Choose a password for future visits.
             </p>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>New password</span>
+            <label className="utility-label">
+              <span>New password</span>
               <input
                 type="password"
                 required
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={inputStyle}
+                className="utility-input"
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Confirm password</span>
+            <label className="utility-label">
+              <span>Confirm password</span>
               <input
                 type="password"
                 required
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={inputStyle}
+                className="utility-input"
               />
             </label>
-            {error && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={busy} style={buttonStyle} className="hov-invert-grn">
+            {error && <p role="alert" className="utility-error">{error}</p>}
+            <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
               Set password and continue
             </button>
           </form>

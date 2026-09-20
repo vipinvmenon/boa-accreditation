@@ -59,17 +59,6 @@ function copyForError(body: unknown): string {
   return ERROR_COPY['internal']!
 }
 
-const inputStyle: React.CSSProperties = {
-  border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-  background: 'var(--panel,#101012)',
-  color: 'var(--ink,#F2EFE2)',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '15px',
-  padding: '11px 13px',
-  width: '100%',
-  outline: 'none',
-  minHeight: '44px',
-}
 const labelStyle: React.CSSProperties = {
   fontFamily: "'JetBrains Mono',monospace",
   fontSize: '9.5px',
@@ -78,35 +67,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--ink3,rgba(242,239,226,0.52))',
 }
-const buttonStyle: React.CSSProperties = {
-  cursor: 'pointer',
-  border: '1px solid var(--grn,#00F5A5)',
-  background: 'var(--grn,#00F5A5)',
-  color: 'var(--on,#0A0A0A)',
-  padding: '12px 20px',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '13px',
-  fontWeight: 600,
-  letterSpacing: '0.14em',
-  textTransform: 'uppercase',
-  minHeight: '44px',
-}
-const ghostButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'transparent',
-  color: 'var(--grn,#00F5A5)',
-}
-const dangerGhostButtonStyle: React.CSSProperties = {
-  ...ghostButtonStyle,
-  border: '1px solid var(--bad,#FF6B5A)',
-  color: 'var(--bad,#FF6B5A)',
-}
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-  background: 'var(--panel,#101012)',
-  padding: '20px',
-}
-
 type InviteFormState = {
   displayName: string
   email: string
@@ -226,28 +186,17 @@ export function UsersScreen() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg,#0A0A0A)',
-        padding: '28px 18px 64px',
-      }}
-    >
-      <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-        <h1
-          style={{
-            fontFamily: "'Anton',sans-serif",
-            fontSize: 'clamp(28px, 5vw, 40px)',
-            lineHeight: 0.94,
-            textTransform: 'uppercase',
-            color: 'var(--ink,#F2EFE2)',
-            margin: '0 0 28px',
-          }}
-        >
-          Manage users
-        </h1>
+    <main className="utility-screen">
+      <div className="utility-inner">
+        <header className="utility-head">
+          <div>
+            <div className="tag">Desk operations</div>
+            <h1 className="h1">Manage users</h1>
+          </div>
+        </header>
 
-        <section style={{ ...panelStyle, marginBottom: '28px' }}>
+        <section className="utility-section bz">
+          <div className="pl pad">
           <h2
             style={{
               fontFamily: "'JetBrains Mono',monospace",
@@ -264,39 +213,36 @@ export function UsersScreen() {
           <p style={{ fontSize: '13px', color: 'var(--ink3,rgba(242,239,226,0.52))', margin: '0 0 16px' }}>
             They get an email with a link to set their own password, then sign in at /desk/login.
           </p>
-          <form
-            onSubmit={(e) => void handleInvite(e)}
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}
-          >
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Full name</span>
+          <form onSubmit={(e) => void handleInvite(e)} className="utility-form cols">
+            <label className="utility-label">
+              <span>Full name</span>
               <input
                 required
                 minLength={2}
                 maxLength={80}
                 value={form.displayName}
                 onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 placeholder="As they should appear to the team"
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Email</span>
+            <label className="utility-label">
+              <span>Email</span>
               <input
                 type="email"
                 required
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 placeholder="ranjith@example.com"
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Role</span>
+            <label className="utility-label">
+              <span>Role</span>
               <select
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: operatorRoleSchema.parse(e.target.value) }))}
-                style={inputStyle}
+                className="utility-input"
               >
                 {operatorRoleSchema.options.map((option) => (
                   <option key={option} value={option}>
@@ -305,24 +251,21 @@ export function UsersScreen() {
                 ))}
               </select>
             </label>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button type="submit" disabled={inviting} className="hov-invert-grn" style={{ ...buttonStyle, opacity: inviting ? 0.6 : 1 }}>
+            <div className="utility-actions full">
+              <button type="submit" disabled={inviting} className="btn go hov-invert-grn" style={{ opacity: inviting ? 0.6 : 1 }}>
                 {inviting ? 'Sending…' : 'Send invitation'}
               </button>
               {inviteMessage && (
                 <p
                   role="status"
-                  style={{
-                    color: inviteMessage.kind === 'error' ? 'var(--bad,#FF6B5A)' : 'var(--grn,#00F5A5)',
-                    fontSize: '13px',
-                    margin: 0,
-                  }}
+                  className={inviteMessage.kind === 'error' ? 'utility-error' : 'utility-ok'}
                 >
                   {inviteMessage.text}
                 </p>
               )}
             </div>
           </form>
+          </div>
         </section>
 
         <section>
@@ -340,8 +283,8 @@ export function UsersScreen() {
             All operators
           </h2>
 
-          {loadError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{loadError}</p>}
-          {rowError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{rowError}</p>}
+          {loadError && <p role="alert" className="utility-error">{loadError}</p>}
+          {rowError && <p role="alert" className="utility-error">{rowError}</p>}
           {operators === null && !loadError && (
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>Loading…</p>
           )}
@@ -349,20 +292,11 @@ export function UsersScreen() {
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No operators visible to you.</p>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="utility-list">
             {operators?.map((o) => {
               const isSelf = o.user_id === callerId
               return (
-                <div key={o.user_id} style={panelStyle}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '14px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                <div key={o.user_id} className="bz"><div className="pl pad utility-row">
                     <div>
                       <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
                         {o.display_name}
@@ -379,17 +313,13 @@ export function UsersScreen() {
                         type="button"
                         disabled={busyId === o.user_id}
                         onClick={() => void handleSetActive(o.user_id, !o.active)}
-                        className={o.active ? 'hov-fill-bad' : 'hov-fill-grn'}
-                        style={{
-                          ...(o.active ? dangerGhostButtonStyle : ghostButtonStyle),
-                          opacity: busyId === o.user_id ? 0.6 : 1,
-                        }}
+                        className={`btn solo ${o.active ? 'bad hov-fill-bad' : 'hov-fill-grn'}`}
+                        style={{ opacity: busyId === o.user_id ? 0.6 : 1 }}
                       >
                         {busyId === o.user_id ? 'Working…' : o.active ? 'Deactivate' : 'Activate'}
                       </button>
                     )}
-                  </div>
-                </div>
+                  </div></div>
               )
             })}
           </div>

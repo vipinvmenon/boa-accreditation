@@ -35,17 +35,6 @@ function copyForError(body: unknown): string {
   return ERROR_COPY['internal']!
 }
 
-const inputStyle: React.CSSProperties = {
-  border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-  background: 'var(--panel,#101012)',
-  color: 'var(--ink,#F2EFE2)',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '15px',
-  padding: '11px 13px',
-  width: '100%',
-  outline: 'none',
-  minHeight: '44px',
-}
 const labelStyle: React.CSSProperties = {
   fontFamily: "'JetBrains Mono',monospace",
   fontSize: '9.5px',
@@ -54,30 +43,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--ink3,rgba(242,239,226,0.52))',
 }
-const buttonStyle: React.CSSProperties = {
-  cursor: 'pointer',
-  border: '1px solid var(--grn,#00F5A5)',
-  background: 'var(--grn,#00F5A5)',
-  color: 'var(--on,#0A0A0A)',
-  padding: '12px 20px',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '13px',
-  fontWeight: 600,
-  letterSpacing: '0.14em',
-  textTransform: 'uppercase',
-  minHeight: '44px',
-}
-const ghostButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'transparent',
-  color: 'var(--grn,#00F5A5)',
-}
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-  background: 'var(--panel,#101012)',
-  padding: '20px',
-}
-
 type CreateFormState = {
   name: string
   kind: (typeof ORG_KINDS)[number]
@@ -233,28 +198,11 @@ export function OrgsScreen() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg,#0A0A0A)',
-        padding: '28px 18px 64px',
-      }}
-    >
-      <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-        <h1
-          style={{
-            fontFamily: "'Anton',sans-serif",
-            fontSize: 'clamp(28px, 5vw, 40px)',
-            lineHeight: 0.94,
-            textTransform: 'uppercase',
-            color: 'var(--ink,#F2EFE2)',
-            margin: '0 0 28px',
-          }}
-        >
-          Orgs
-        </h1>
+    <main className="utility-screen">
+      <div className="utility-inner">
+        <header className="utility-head"><div><div className="tag">Allocation desk</div><h1 className="h1">Orgs</h1></div></header>
 
-        <section style={{ ...panelStyle, marginBottom: '28px' }}>
+        <section className="utility-section bz"><div className="pl pad">
           <h2
             style={{
               fontFamily: "'JetBrains Mono',monospace",
@@ -268,30 +216,23 @@ export function OrgsScreen() {
           >
             Create an org
           </h2>
-          <form
-            onSubmit={handleCreate}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '14px',
-            }}
-          >
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Name</span>
+          <form onSubmit={handleCreate} className="utility-form cols">
+            <label className="utility-label">
+              <span>Name</span>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 maxLength={120}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Kind</span>
+            <label className="utility-label">
+              <span>Kind</span>
               <select
                 value={form.kind}
                 onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as CreateFormState['kind'] }))}
-                style={inputStyle}
+                className="utility-input"
               >
                 {ORG_KINDS.map((k) => (
                   <option key={k} value={k}>
@@ -300,8 +241,8 @@ export function OrgsScreen() {
                 ))}
               </select>
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Quota</span>
+            <label className="utility-label">
+              <span>Quota</span>
               <input
                 required
                 type="number"
@@ -309,17 +250,17 @@ export function OrgsScreen() {
                 max={500}
                 value={form.quota}
                 onChange={(e) => setForm((f) => ({ ...f, quota: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Default pass type</span>
+            <label className="utility-label">
+              <span>Default pass type</span>
               <select
                 value={form.defaultType}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, defaultType: e.target.value as CreateFormState['defaultType'] }))
                 }
-                style={inputStyle}
+                className="utility-input"
               >
                 {ORG_TYPE_CODES.map((t) => (
                   <option key={t} value={t}>
@@ -328,34 +269,34 @@ export function OrgsScreen() {
                 ))}
               </select>
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Contact name</span>
+            <label className="utility-label">
+              <span>Contact name</span>
               <input
                 required
                 value={form.contactName}
                 onChange={(e) => setForm((f) => ({ ...f, contactName: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 maxLength={80}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Contact phone</span>
+            <label className="utility-label">
+              <span>Contact phone</span>
               <input
                 required
                 value={form.contactPhone}
                 onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 placeholder="+91XXXXXXXXXX"
               />
             </label>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button type="submit" disabled={creating} className="hov-invert-grn" style={{ ...buttonStyle, opacity: creating ? 0.6 : 1 }}>
+            <div className="utility-actions full">
+              <button type="submit" disabled={creating} className="btn go hov-invert-grn" style={{ opacity: creating ? 0.6 : 1 }}>
                 {creating ? 'Creating…' : 'Create org'}
               </button>
-              {createError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{createError}</p>}
+              {createError && <p role="alert" className="utility-error">{createError}</p>}
             </div>
           </form>
-        </section>
+        </div></section>
 
         <section>
           <h2
@@ -372,7 +313,7 @@ export function OrgsScreen() {
             All orgs
           </h2>
 
-          {loadError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{loadError}</p>}
+          {loadError && <p role="alert" className="utility-error">{loadError}</p>}
           {orgs === null && !loadError && (
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>Loading…</p>
           )}
@@ -380,21 +321,13 @@ export function OrgsScreen() {
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No orgs yet.</p>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="utility-list">
             {orgs?.map((org) => {
               const isOpen = openOrgId === org.id
               const invites = invitesByOrg[org.id] ?? []
               return (
-                <div key={org.id} style={panelStyle}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '14px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                <div key={org.id} className="bz"><div className="pl pad">
+                  <div className="utility-row">
                     <div>
                       <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
                         {org.name}
@@ -403,7 +336,7 @@ export function OrgsScreen() {
                         {org.kind} · quota {org.quota} · {org.status} · {org.contact_name}
                       </p>
                     </div>
-                    <button type="button" onClick={() => toggleOrg(org.id)} className="hov-fill-grn" style={ghostButtonStyle}>
+                    <button type="button" onClick={() => toggleOrg(org.id)} className="btn solo hov-fill-grn">
                       {isOpen ? 'Close' : 'Invite links'}
                     </button>
                   </div>
@@ -415,15 +348,16 @@ export function OrgsScreen() {
                           value={mintLabel}
                           onChange={(e) => setMintLabel(e.target.value)}
                           placeholder="Label (optional)"
-                          style={{ ...inputStyle, maxWidth: '260px' }}
+                          className="utility-input"
+                          style={{ maxWidth: '260px' }}
                           maxLength={80}
                         />
                         <button
                           type="button"
                           disabled={minting}
                           onClick={() => handleMint(org.id)}
-                          className="hov-invert-grn"
-                          style={{ ...buttonStyle, opacity: minting ? 0.6 : 1 }}
+                          className="btn go hov-invert-grn"
+                          style={{ opacity: minting ? 0.6 : 1 }}
                         >
                           {minting ? 'Minting…' : 'Mint invite link'}
                         </button>
@@ -458,8 +392,7 @@ export function OrgsScreen() {
                           <button
                             type="button"
                             onClick={() => copyLink(justMinted.invite.token)}
-                            className="hov-fill-grn"
-                            style={{ ...ghostButtonStyle, alignSelf: 'flex-start' }}
+                            className="btn solo hov-fill-grn"
                           >
                             {copied ? 'Copied' : 'Copy link'}
                           </button>
@@ -482,7 +415,7 @@ export function OrgsScreen() {
                       )}
                     </div>
                   )}
-                </div>
+                </div></div>
               )
             })}
           </div>

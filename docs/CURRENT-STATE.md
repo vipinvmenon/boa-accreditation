@@ -3327,6 +3327,30 @@ for that nav from these two screen files alone. ACC-109 remains blocked and
 must not be marked done until the shared chrome is moved inside the frame (or
 the scope is explicitly widened) and all eight comparisons pass.
 
+### 20 Sep 2026 — ACC-110 ungated v2 presentation pass
+
+Converted the ungated `error`, `not-found`, desk login, users, devices, orgs,
+AAA, and gate setup surfaces to use the existing v2 utility layout, bezel,
+plate, pill, button, field, status, and responsive primitives. The changes are
+presentation-only: existing fetch URLs and methods, redirects, Supabase
+auth/recovery flow, one-time raw invite/device token display, gate
+`sessionStorage`, pull-before-unlock behavior, and service-worker registration
+remain unchanged. No RPCs, schemas, migrations, desk/gate chrome, gate Dexie,
+roster, outbox, API, or domain constants changed.
+
+**Verified:** `typecheck`, `lint`, `test` (53/53), `build`, and
+`PLAYWRIGHT_PORT=4174 corepack pnpm test:e2e` (4/4). The build emitted 59
+precached assets. `ReadLints` reports no errors in the changed files; lint still
+has the three pre-existing shared `<img>` warnings.
+
+`corepack pnpm test:visual` was run without regenerating references. It remains
+over threshold on the already-converted shared screens (26 comparisons failed,
+0 blocked, 0 known gaps), including the previously recorded ACC-104–109 v2
+migration drift; ACC-110 has no pixel-gated screens. The first e2e attempt on
+the default port was blocked by existing listeners on 4173 and was rerun on
+4174 successfully. `.playwright-mcp/` remains local scratch and is not part of
+this task.
+
 ## Template for the next session update
 
 ```

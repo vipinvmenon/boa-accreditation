@@ -36,17 +36,6 @@ function copyForError(body: unknown): string {
   return ERROR_COPY['internal']!
 }
 
-const inputStyle: React.CSSProperties = {
-  border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-  background: 'var(--panel,#101012)',
-  color: 'var(--ink,#F2EFE2)',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '15px',
-  padding: '11px 13px',
-  width: '100%',
-  outline: 'none',
-  minHeight: '44px',
-}
 const labelStyle: React.CSSProperties = {
   fontFamily: "'JetBrains Mono',monospace",
   fontSize: '9.5px',
@@ -55,35 +44,6 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--ink3,rgba(242,239,226,0.52))',
 }
-const buttonStyle: React.CSSProperties = {
-  cursor: 'pointer',
-  border: '1px solid var(--grn,#00F5A5)',
-  background: 'var(--grn,#00F5A5)',
-  color: 'var(--on,#0A0A0A)',
-  padding: '12px 20px',
-  fontFamily: "'Oswald',sans-serif",
-  fontSize: '13px',
-  fontWeight: 600,
-  letterSpacing: '0.14em',
-  textTransform: 'uppercase',
-  minHeight: '44px',
-}
-const ghostButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'transparent',
-  color: 'var(--grn,#00F5A5)',
-}
-const dangerGhostButtonStyle: React.CSSProperties = {
-  ...ghostButtonStyle,
-  border: '1px solid var(--bad,#FF6B5A)',
-  color: 'var(--bad,#FF6B5A)',
-}
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--rule,rgba(242,239,226,0.16))',
-  background: 'var(--panel,#101012)',
-  padding: '20px',
-}
-
 type CreateFormState = {
   gateLabel: string
   volunteerName: string
@@ -204,28 +164,11 @@ export function DevicesScreen() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg,#0A0A0A)',
-        padding: '28px 18px 64px',
-      }}
-    >
-      <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-        <h1
-          style={{
-            fontFamily: "'Anton',sans-serif",
-            fontSize: 'clamp(28px, 5vw, 40px)',
-            lineHeight: 0.94,
-            textTransform: 'uppercase',
-            color: 'var(--ink,#F2EFE2)',
-            margin: '0 0 28px',
-          }}
-        >
-          Devices
-        </h1>
+    <main className="utility-screen">
+      <div className="utility-inner">
+        <header className="utility-head"><div><div className="tag">Gate access</div><h1 className="h1">Devices</h1></div></header>
 
-        <section style={{ ...panelStyle, marginBottom: '28px' }}>
+        <section className="utility-section bz"><div className="pl pad">
           <h2
             style={{
               fontFamily: "'JetBrains Mono',monospace",
@@ -239,41 +182,34 @@ export function DevicesScreen() {
           >
             Mint a gate device
           </h2>
-          <form
-            onSubmit={handleMint}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '14px',
-            }}
-          >
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Gate label</span>
+          <form onSubmit={handleMint} className="utility-form cols">
+            <label className="utility-label">
+              <span>Gate label</span>
               <input
                 required
                 value={form.gateLabel}
                 onChange={(e) => setForm((f) => ({ ...f, gateLabel: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 maxLength={40}
                 placeholder="Main gate — lane 2"
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Volunteer name</span>
+            <label className="utility-label">
+              <span>Volunteer name</span>
               <input
                 required
                 value={form.volunteerName}
                 onChange={(e) => setForm((f) => ({ ...f, volunteerName: e.target.value }))}
-                style={inputStyle}
+                className="utility-input"
                 maxLength={60}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={labelStyle}>Scope</span>
+            <label className="utility-label">
+              <span>Scope</span>
               <select
                 value={form.scope}
                 onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value as CreateFormState['scope'] }))}
-                style={inputStyle}
+                className="utility-input"
               >
                 {DEVICE_SCOPES.map((s) => (
                   <option key={s} value={s}>
@@ -282,44 +218,28 @@ export function DevicesScreen() {
                 ))}
               </select>
             </label>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button type="submit" disabled={minting} className="hov-invert-grn" style={{ ...buttonStyle, opacity: minting ? 0.6 : 1 }}>
+            <div className="utility-actions full">
+              <button type="submit" disabled={minting} className="btn go hov-invert-grn" style={{ opacity: minting ? 0.6 : 1 }}>
                 {minting ? 'Minting…' : 'Mint device'}
               </button>
-              {mintError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px', margin: 0 }}>{mintError}</p>}
+              {mintError && <p role="alert" className="utility-error">{mintError}</p>}
             </div>
           </form>
 
           {justMinted && (
-            <div
-              style={{
-                marginTop: '18px',
-                border: '1px solid var(--grn,#00F5A5)',
-                background: 'var(--grnbg,rgba(0,245,165,0.10))',
-                padding: '12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-            >
+            <div className="utility-notice">
               <p style={{ ...labelStyle, color: 'var(--grn,#00F5A5)' }}>
                 {justMinted.gate_label} — shown once, copy it now
               </p>
               <code
-                style={{
-                  fontFamily: "'JetBrains Mono',monospace",
-                  fontSize: '13px',
-                  color: 'var(--ink,#F2EFE2)',
-                  wordBreak: 'break-all',
-                }}
+                className="utility-code"
               >
                 {justMinted.token}
               </code>
               <button
                 type="button"
                 onClick={() => copyToken(justMinted.token)}
-                className="hov-fill-grn"
-                style={{ ...ghostButtonStyle, alignSelf: 'flex-start' }}
+                className="btn solo"
               >
                 {copied ? 'Copied' : 'Copy token'}
               </button>
@@ -329,7 +249,7 @@ export function DevicesScreen() {
               </p>
             </div>
           )}
-        </section>
+        </div></section>
 
         <section>
           <h2
@@ -346,8 +266,8 @@ export function DevicesScreen() {
             All devices
           </h2>
 
-          {loadError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{loadError}</p>}
-          {revokeError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{revokeError}</p>}
+          {loadError && <p role="alert" className="utility-error">{loadError}</p>}
+          {revokeError && <p role="alert" className="utility-error">{revokeError}</p>}
           {devices === null && !loadError && (
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>Loading…</p>
           )}
@@ -355,20 +275,11 @@ export function DevicesScreen() {
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No devices yet.</p>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="utility-list">
             {devices?.map((d) => {
               const revoked = d.revoked_at !== null
               return (
-                <div key={d.id} style={panelStyle}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '14px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                <div key={d.id} className="bz"><div className="pl pad utility-row">
                     <div>
                       <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
                         {d.gate_label}
@@ -383,14 +294,13 @@ export function DevicesScreen() {
                         type="button"
                         disabled={revokingId === d.id}
                         onClick={() => handleRevoke(d.id)}
-                        className="hov-fill-bad"
-                        style={{ ...dangerGhostButtonStyle, opacity: revokingId === d.id ? 0.6 : 1 }}
+                        className="btn bad solo hov-fill-bad"
+                        style={{ opacity: revokingId === d.id ? 0.6 : 1 }}
                       >
                         {revokingId === d.id ? 'Revoking…' : 'Revoke'}
                       </button>
                     )}
-                  </div>
-                </div>
+                  </div></div>
               )
             })}
           </div>

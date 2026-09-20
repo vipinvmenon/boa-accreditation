@@ -41,20 +41,24 @@ export default function GateSetupPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)', color: 'var(--ink,#F2EFE2)', fontFamily: "'Archivo',sans-serif" }}>
-      <section style={{ padding: 'clamp(32px, 8vw, 96px) clamp(20px, 6vw, 80px)', maxWidth: 760, margin: '0 auto' }}>
-        <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--grn,#00F5A5)', marginBottom: 16 }}>Gate setup</div>
-        <h1 style={{ fontFamily: "'Anton',sans-serif", fontSize: 'clamp(48px, 10vw, 88px)', lineHeight: 0.94, textTransform: 'uppercase', margin: '0 0 18px' }}>Load the list</h1>
-        <p style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--ink2,rgba(242,239,226,0.72))', maxWidth: 58 * 8 }}>
+    <main className="utility-gate">
+      <section className="utility-inner">
+        <header className="utility-head">
+          <div>
+            <div className="tag">Gate setup</div>
+            <h1 className="h1">Load the list</h1>
+          </div>
+        </header>
+        <p className="lede">
           Paste the device token to make one successful, non-empty pull. The gate will not show a scanner over an empty or stale cache.
         </p>
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 34 }}>
-          <label htmlFor="device-token" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink3,rgba(242,239,226,0.52))' }}>Device token</label>
-          <input id="device-token" value={token} onChange={(event) => setToken(event.target.value)} required autoComplete="off" spellCheck={false} placeholder="PASTE DEVICE TOKEN" style={{ border: '1px solid var(--rule2,rgba(242,239,226,0.32))', background: 'transparent', color: 'var(--ink,#F2EFE2)', padding: '17px 16px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '0.1em', minHeight: 56, width: '100%' }} />
-          <button type="submit" disabled={busy} className="hov-invert-grn" style={{ cursor: busy ? 'wait' : 'pointer', border: '1px solid var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)', padding: 20, fontFamily: "'Anton',sans-serif", fontSize: 19, letterSpacing: '0.1em', textTransform: 'uppercase', minHeight: 62 }}>{busy ? 'Pulling…' : 'Pull approved list'}</button>
+        <form onSubmit={submit} className="utility-form" style={{ marginTop: 34 }}>
+          <label htmlFor="device-token" className="utility-label"><span>Device token</span></label>
+          <input id="device-token" value={token} onChange={(event) => setToken(event.target.value)} required autoComplete="off" spellCheck={false} placeholder="PASTE DEVICE TOKEN" className="utility-input utility-code" />
+          <button type="submit" disabled={busy} className="btn go big wide hov-invert-grn">{busy ? 'Pulling…' : 'Pull approved list'}</button>
         </form>
-        {error && <p role="alert" style={{ border: '1px solid var(--bad,#FF6B5A)', padding: 16, color: 'var(--ink,#F2EFE2)', lineHeight: 1.5 }}>{error}</p>}
-        {count > 0 && <p style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--grn,#00F5A5)' }}>{count} approved passes held · {asOf ? new Date(asOf).toLocaleString() : 'time unavailable'}</p>}
+        {error && <p role="alert" className="utility-notice bad">{error}</p>}
+        {count > 0 && <p role="status" className="utility-notice utility-ok">{count} approved passes held · {asOf ? new Date(asOf).toLocaleString() : 'time unavailable'}</p>}
       </section>
     </main>
   )
