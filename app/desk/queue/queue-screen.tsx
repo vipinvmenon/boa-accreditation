@@ -214,8 +214,8 @@ export function QueueScreen() {
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{selectedLabel}</span>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginLeft: 'auto' }}>
             <button type="button" onClick={() => setType((old) => old === 'crew' ? 'stage' : old === 'stage' ? 'aaa' : 'crew')} className="hov-outline-ink" style={{ ...buttonStyle, padding: '10px 16px', minHeight: '42px' }}>Set type</button>
-            <button type="button" disabled={busy || selected.size === 0} onClick={() => { const first = rows.find((row) => selected.has(row.id) && row.status === 'submitted'); if (first) { setRejecting(first.id); setReason('') } }} className="hov-fill-bad" style={{ ...buttonStyle, padding: '10px 16px', minHeight: '42px' }}>Reject</button>
-            <button type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()} className="hov-invert-grn" style={{ ...buttonStyle, padding: '10px 18px', minHeight: '42px', borderColor: 'var(--grn,#00F5A5)', background: selected.size > 0 && type !== 'aaa' ? 'var(--grn,#00F5A5)' : 'transparent', color: selected.size > 0 && type !== 'aaa' ? 'var(--on,#0A0A0A)' : undefined }}>
+            <button type="button" disabled={busy || selected.size === 0} onClick={() => { const first = rows.find((row) => selected.has(row.id) && row.status === 'submitted'); if (first) { setRejecting(first.id); setReason('') } }} className="hov-fill-bad s-btn-press" style={{ ...buttonStyle, padding: '10px 16px', minHeight: '42px' }}>Reject</button>
+            <button type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()} className="hov-invert-grn s-btn-press" style={{ ...buttonStyle, padding: '10px 18px', minHeight: '42px', borderColor: 'var(--grn,#00F5A5)', background: selected.size > 0 && type !== 'aaa' ? 'var(--grn,#00F5A5)' : 'transparent', color: selected.size > 0 && type !== 'aaa' ? 'var(--on,#0A0A0A)' : undefined }}>
               Approve selected
             </button>
           </div>
@@ -238,12 +238,12 @@ export function QueueScreen() {
                   {rejectingOrg === orgId ? (
                     <>
                       <input aria-label={`Reason for rejecting ${org.name}`} value={orgReason} onChange={(e) => setOrgReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, minWidth: '150px' }} />
-                      <button type="button" disabled={busy || orgReason.trim().length === 0} onClick={() => void rejectOrg(orgId)} className="hov-fill-bad" style={{ ...buttonStyle, padding: '13px 18px', fontSize: '12.5px', borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Confirm reject</button>
+                      <button type="button" disabled={busy || orgReason.trim().length === 0} onClick={() => void rejectOrg(orgId)} className="hov-fill-bad s-btn-press" style={{ ...buttonStyle, padding: '13px 18px', fontSize: '12.5px', borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Confirm reject</button>
                     </>
                   ) : (
-                    <button type="button" disabled={busy} onClick={() => { setRejectingOrg(orgId); setOrgReason('') }} className="hov-outline-bad" style={{ ...buttonStyle, padding: '13px 18px', fontSize: '12.5px' }}>Reject</button>
+                    <button type="button" disabled={busy} onClick={() => { setRejectingOrg(orgId); setOrgReason('') }} className="hov-outline-bad s-btn-press" style={{ ...buttonStyle, padding: '13px 18px', fontSize: '12.5px' }}>Reject</button>
                   )}
-                  <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} className="hov-invert-grn" style={{ ...buttonStyle, padding: '13px 20px', fontSize: '12.5px', borderColor: 'var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)' }}>Approve all →</button>
+                  <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} className="hov-invert-grn s-btn-press" style={{ ...buttonStyle, padding: '13px 20px', fontSize: '12.5px', borderColor: 'var(--grn,#00F5A5)', background: 'var(--grn,#00F5A5)', color: 'var(--on,#0A0A0A)' }}>Approve all →</button>
                 </div>
               )}
             </div>
@@ -254,7 +254,7 @@ export function QueueScreen() {
               const rowType = row.type_code ? passType(row.type_code) : passType(type)
               const rowColour = theme === 'dark' ? rowType.colour : rowType.colourLight
               return (
-                <div key={row.id} className="d-queue-cols" style={{ display: 'grid', gap: '16px', padding: '15px 18px', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', alignItems: 'center', background: row.status === 'rejected' ? p.badbg : 'transparent' }}>
+                <div key={row.id} className="d-queue-cols s-anim-in" style={{ display: 'grid', gap: '16px', padding: '15px 18px', borderBottom: '1px solid var(--rule,rgba(242,239,226,0.16))', alignItems: 'center', background: row.status === 'rejected' ? p.badbg : 'transparent' }}>
                   <button type="button" aria-label={`${selectedRow ? 'Deselect' : 'Select'} ${row.full_name}`} onClick={() => setSelected((old) => { const next = new Set(old); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next })} style={{ width: '20px', height: '20px', border: `1px solid ${selectedRow ? 'var(--grn,#00F5A5)' : 'var(--rule2,rgba(242,239,226,0.32))'}`, background: selectedRow ? 'var(--grn,#00F5A5)' : 'transparent', color: 'var(--on,#0A0A0A)', cursor: 'pointer' }}>{selectedRow ? '✓' : ''}</button>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: '16px', fontWeight: 600, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.full_name}</div>
@@ -282,8 +282,8 @@ export function QueueScreen() {
                   </label>
                   <div className="d-queue-actions" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: row.status === 'approved' ? 'var(--grn,#00F5A5)' : row.status === 'rejected' ? 'var(--bad,#FF6B5A)' : 'var(--gold,#E3BB72)', textTransform: 'uppercase' }}>{row.status === 'submitted' ? 'pending' : row.status}</span>
-                    {row.status === 'submitted' && <button type="button" disabled={busy} onClick={() => void decide(row.id, true)} className="hov-fill-grn" style={{ ...buttonStyle, borderColor: 'var(--grn,#00F5A5)', color: 'var(--grn,#00F5A5)' }}>Approve</button>}
-                    {row.status === 'submitted' && (rejecting === row.id ? <><input aria-label={`Reason for rejecting ${row.full_name}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, maxWidth: '150px' }} /><button type="button" disabled={busy || reason.trim().length === 0} onClick={() => void decide(row.id, false, reason)} className="hov-fill-bad" style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Confirm reject</button></> : <button type="button" disabled={busy} onClick={() => { setRejecting(row.id); setReason('') }} className="hov-fill-bad" style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Reject</button>)}
+                    {row.status === 'submitted' && <button type="button" disabled={busy} onClick={() => void decide(row.id, true)} className="hov-fill-grn s-btn-press" style={{ ...buttonStyle, borderColor: 'var(--grn,#00F5A5)', color: 'var(--grn,#00F5A5)' }}>Approve</button>}
+                    {row.status === 'submitted' && (rejecting === row.id ? <><input aria-label={`Reason for rejecting ${row.full_name}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, maxWidth: '150px' }} /><button type="button" disabled={busy || reason.trim().length === 0} onClick={() => void decide(row.id, false, reason)} className="hov-fill-bad s-btn-press" style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Confirm reject</button></> : <button type="button" disabled={busy} onClick={() => { setRejecting(row.id); setReason('') }} className="hov-fill-bad s-btn-press" style={{ ...buttonStyle, borderColor: 'var(--bad,#FF6B5A)', color: 'var(--bad,#FF6B5A)' }}>Reject</button>)}
                   </div>
                   {row.status === 'rejected' && row.decision_reason && <div style={{ gridColumn: '2 / -1', color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>Reason: {row.decision_reason}</div>}
                 </div>

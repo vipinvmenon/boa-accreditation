@@ -99,3 +99,30 @@ This script is deliberately **not** how the real 38 should be loaded: the
 one at a time through `/desk/orgs`, reviewed against Bhoopesh's source,
 tokens copied by a human straight into the WhatsApp handoff document. Bulk
 loading real orgs by script would skip that review step.
+
+### 19 Sep 2026 — two placeholder rows renamed to confirmed org names, quota/contact still TBD
+
+Vipin has received 2 of the 38 real org names so far (Reynolds, F5 Events)
+and asked not to sit idle waiting for the full list. Rather than invent a
+`kind`/`quota`/`contact` for either (`docs/ORG-IMPORT.md` above is explicit:
+"an agent must not invent or backfill missing values"), two of the 38
+`PLACEHOLDER —` rows were renamed in place, keeping their existing
+fabricated `kind`/`quota`/`contact` values and the `PLACEHOLDER — ` prefix
+(so `wipe-orgs.mjs --prefix "PLACEHOLDER — "` still catches them, and
+`test:visual`/desk-screen rehearsal shows real names where known without
+anyone mistaking this for confirmed ACC-030 data):
+
+- `PLACEHOLDER — Vendor 01` → `PLACEHOLDER — Reynolds (name confirmed / quota+contact TBD)`
+- `PLACEHOLDER — Vendor 02` → `PLACEHOLDER — F5 Events (name confirmed / quota+contact TBD)`
+
+Applied to `data/orgs-placeholder.csv` (validated: `corepack pnpm
+validate:org-import -- data/orgs-placeholder.csv`, 38 rows, no errors) and to
+the live production database: the two old-named rows were removed via
+`private.boa_acc_wipe_org` (the same cascade `wipe-orgs.mjs` uses) and the
+full 38-row CSV was reloaded through `scripts/load-orgs.mjs`, which is
+idempotent by name — the 36 unchanged rows were skipped, only the 2 renamed
+rows were (re)created. `boa_acc_org` count confirmed still 38 afterward via
+`corepack pnpm db:state`. This is still placeholder data, not ACC-030 — the
+`kind` (guessed as `vendor`, unverified) and the fabricated quota/contact
+values must be replaced with Bhoopesh's real figures before either
+organisation is treated as invite-ready.

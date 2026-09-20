@@ -3072,6 +3072,127 @@ code defect.
 of the visual gate, so this run only confirms nothing else regressed). Not
 pushed.
 
+### 19 Sep 2026 — 2 of 38 real org names received (Reynolds, F5 Events); placeholders renamed, ACC-030a/ACC-030 still open
+
+Vipin has 2 of the 38 real org names so far and didn't want desk-screen/UX
+work to sit idle waiting for the rest. `kind`/`quota`/`contact` for both are
+still unknown — per `docs/ORG-IMPORT.md`'s own rule, not invented. Renamed 2
+of the 38 `PLACEHOLDER —` rows in place (name only) to surface the real
+names while keeping them unambiguously marked as unconfirmed and still
+inside the `PLACEHOLDER — ` prefix `wipe-orgs.mjs` cleans up before the real
+38 load:
+
+- `PLACEHOLDER — Vendor 01` → `PLACEHOLDER — Reynolds (name confirmed / quota+contact TBD)`
+- `PLACEHOLDER — Vendor 02` → `PLACEHOLDER — F5 Events (name confirmed / quota+contact TBD)`
+
+Full writeup, including how the live database was kept in sync (wipe +
+idempotent reload, `boa_acc_org` count re-verified at 38), is in
+`docs/ORG-IMPORT.md`, "Placeholder data" section. **ACC-030a and ACC-030 are
+still open** — this is not the real 38, `quota`/`contact_name`/
+`contact_phone`/`kind` for these two are still fabricated, and ACC-031 must
+not mint real-facing tokens off this data.
+
+### 19 Sep 2026 — control-room visual-gate failure closed; queue gets the same restrained motion as submission
+
+`af86f75` (control-room copy: live state instead of re-explaining rules
+Bhoopesh/Salman already know) shrank the page ~150-180px versus
+`design/reference/`, since it removed two paragraphs the mock still had —
+10.35–13.91% on a 0.8% gate, unnoticed because that commit ran
+`typecheck`/`lint`/`test` but never `test:visual`. Per Vipin's explicit
+decision, updated the pixel contract itself (`design/source/`) rather than
+reverting the copy: the hero and Wristbands paragraphs are removed from both
+`boa_design_body.html` and the actual reference source
+`boa_design_bundle.html` (a 4 MB self-decoding bundle — its
+`<script type="__bundler/template">` payload is one big JSON string, so the
+edit had to preserve the file's own `\n`/`\"`/`/` JSON-escaping
+convention exactly; a first attempt that inserted a raw newline byte broke
+`JSON.parse` with "Bad control character in string literal," caught by
+loading the bundle directly in a browser and reading the console error
+before it was assumed fixed), and the AAA-override sentence explaining a
+rule Bhoopesh/Salman already know is dropped there too, matching the app.
+Regenerated `design/reference/` (`corepack pnpm design:reference`) and
+rebuilt before re-measuring, per this file's own stale-build lesson above.
+
+**Verified:** `corepack pnpm test:visual` — **7/7 screens, 28/28 variants
+PASS**, control-room now 0.39–0.40% (was 10.35–13.91%). `typecheck`, `lint`
+(3 pre-existing warnings only), `test` (53/53), and `check:sql` all pass.
+
+Separately, extended `app/motion.css` (previously submission-only, always
+globally imported) to `app/desk/queue/queue-screen.tsx`: `s-anim-in` on each
+queue row (the moment a row joins a freshly-loaded/filtered list) and
+`s-btn-press` on every decision button (Approve/Reject/Approve all/Confirm
+reject, row- and org-level). No new CSS — reused the existing submission
+recipes. Cannot regress `test:visual` by construction (a resting-mouse
+screenshot never triggers an animation or a `:active` press state); confirmed
+queue still PASS at the same percentages as before this change.
+
+### 20 Sep 2026 — v2 redesign lane planned and handed to Cursor (ACC-100…ACC-111). **No code changed.**
+
+Vipin supplied `design/proposals/boa_design_v2.html` (893 lines, untracked) and
+asked for a plan and checklist, to be implemented in Cursor. This entry records
+what was **read and measured** during planning and what was **written**. No
+application file, stylesheet, script or migration was touched.
+
+**Written:** `docs/CURSOR-V2.md` (the handover), 12 entries ACC-100…ACC-111 in
+`docs/ROADMAP.md` under a new "Phase 3b — the v2 redesign lane" section, and
+this entry. Also removed a byte-identical duplicate of the "19 Sep — 2 of 38
+real org names" entry from this file (the second copy, lines 3129–3148, proved
+identical to 3075–3094 by `diff` before deleting).
+
+**Decisions taken by Vipin during planning**, to be written up as ADR-017 by
+ACC-100: v2 becomes the pixel contract and `boa_design_body.html` freezes as
+the domain + C8 colour record; shell and primitives first, then one screen per
+task, `/gate` last; icons as a local inline SVG set, no CDN and no new package;
+the six ungated screens derived from the primitives in a final task.
+
+**Measured, not assumed** (this is the part worth keeping):
+
+- **v1 contains zero `border-radius` declarations, in any form, anywhere** —
+  `grep -ioc 'border-radius\|borderradius'` on `design/source/boa_design_body.html`
+  returns 0, and `grep -rIoh 'borderRadius' app/ lib/` returns 0 matches across
+  the whole app. v2 has 47, of which 27 are `999px` pills. This is a
+  shape-language inversion, not a refinement, and every component changes.
+- **v2's brand tokens are byte-identical to v1's.** Compared the two
+  `[data-theme]` blocks token-by-token: all 15 dark and 15 light values match.
+  v2 *adds* 9 per theme (`--hair --shell --glass --hi --lift --orb1 --orb2
+  --poster-op --logo-filter`) plus a `:root` layer. Nothing was recoloured.
+- **`check-design-tokens.mjs`'s declaration regex is `(--[a-z0-9]+)`, which
+  cannot match a hyphen in a token name.** Under v2 that silently skips
+  `--poster-op` and `--logo-filter`. Widening it is an ACC-101 acceptance item.
+- **Check 2 of that script cannot be re-pointed at v2.** It parses 11
+  `const x = dark ? … : …;` `renderVals()` literals and hard-fails below 10.
+  v2 has no `renderVals()` — hence the freeze-v1 decision, which keeps check 2
+  and all 13 `design-contract.test.ts` assertions passing with zero churn.
+- **v2 needs `@fontsource/archivo/600.css`, which is not imported.**
+  `.field label` and `.plist .who` set `font-weight: 600` with no
+  `font-family`, so both inherit Archivo; `app/layout.tsx` imports Archivo
+  400/700 only. Also: `audit-font-weights.mjs` parses inline `style`
+  attributes, and v2 has none, so **it will pass vacuously under v2** — flagged
+  in ACC-101 rather than left to look like live cover.
+- **v2's CDN links cannot work in this app.** `middleware.ts:6-8` sets
+  `font-src 'self'` and `style-src 'self' 'unsafe-inline'`, so the Google Fonts
+  and jsDelivr Phosphor stylesheets are both blocked. All four families are
+  already self-hosted via `@fontsource`.
+- **v2 is responsive via container queries at 1100px and 700px**, not the 768px
+  media query DESIGN-SYSTEM.md documents as the only breakpoint. `.frame` is
+  `container: app / inline-size`, so the mobile layout fires from the viewport
+  alone — which means the reference capture must **not** click v2's "Mob"
+  button (that adds a 390px device mock). The 1100px tier has no automated
+  cover, since `visual-check.mjs` captures only 1360 and 390.
+
+**Not verified, and not claimed:** nothing in v2 was rendered in a browser this
+session, no reference was captured from it, `test:visual` was not run, and the
+"the capturability edits cost ~0 pixels" claim in the plan is an *obligation
+placed on ACC-100*, not a measurement anyone has taken. The 7/7 · 28/28 PASS
+state recorded in the 19 Sep entries above is still the last measured truth.
+
+**Still uncommitted at the time of writing** (deliberately left for ACC-100,
+which is told to commit it first): the 19 Sep edits to
+`design/source/boa_design_body.html` and `boa_design_bundle.html`,
+`app/motion.css`, `app/desk/queue/queue-screen.tsx`, `.claude/launch.json`,
+`data/orgs-placeholder.csv`, `docs/ORG-IMPORT.md`, and untracked
+`design/proposals/`.
+
 ## Template for the next session update
 
 ```

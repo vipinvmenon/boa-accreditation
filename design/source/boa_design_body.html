@@ -68,8 +68,8 @@
           <div style="position:absolute; inset:0; background:{{ posterScrim }}" data-comment-anchor="2817691646-div"></div>
           <div style="position:relative; padding:{{ padHero }}; min-height:{{ heroMin }}; display:flex; flex-direction:column; justify-content:flex-end; max-width:{{ heroTextMax }}">
             <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:18px">Control room</div>
-            <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1 }}; line-height:0.92; letter-spacing:0.01em; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 18px; max-width:14ch">Nobody walks in unlisted</h1>
-            <p style="font-size:15.5px; line-height:1.55; color:var(--ink2,rgba(242,239,226,0.72)); margin:0 0 24px; max-width:52ch">Every person working at BOA is registered individually, approved against the master list, and checks in physically for their own wristband. Every vehicle is registered to a plate and carries a sticker bound to it.</p>
+            <h1 style="font-family:'Anton',sans-serif; font-size:{{ h1 }}; line-height:0.92; letter-spacing:0.01em; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 18px; max-width:18ch">23 waiting on a decision</h1>
+            <p style="font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.04em; color:var(--ink2,rgba(242,239,226,0.72)); margin:0 0 24px"><span style="color:var(--gold,#E3BB72); font-weight:700">1</span> day to links-out</p>
             <div style="display:flex; gap:12px; flex-wrap:wrap">
               <button sc-camel-on-click="{{ goQueue }}" style="cursor:pointer; border:1px solid var(--grn,#00F5A5); background:var(--grn,#00F5A5); color:var(--on,#0A0A0A); padding:15px 22px; font-family:'Oswald',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:50px; display:flex; align-items:center; gap:12px" style-hover="background:transparent; color:var(--grn)">Clear the queue<span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700">{{ pendingCount }}</span></button>
               <button sc-camel-on-click="{{ goGate }}" style="cursor:pointer; border:1px solid var(--rule2,rgba(242,239,226,0.32)); background:var(--panel,#101012); color:var(--ink,#F2EFE2); padding:15px 22px; font-family:'Oswald',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; min-height:50px" style-hover="border-color:var(--grn); color:var(--grn)">Open the gate scanner</button>
@@ -89,8 +89,7 @@
 
         <div style="padding:{{ padSec }}; border-bottom:1px solid var(--rule,rgba(242,239,226,0.16))">
           <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--grn,#00F5A5); margin-bottom:14px">Wristbands</div>
-          <h2 style="font-family:'Anton',sans-serif; font-size:{{ h2 }}; line-height:1; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 10px">Three bands. No fourth.</h2>
-          <p style="font-size:14.5px; line-height:1.55; color:var(--ink3,rgba(242,239,226,0.42)); margin:0 0 22px; max-width:60ch">Type is assigned at approval and sets the band colour and the zones. Serials are typed in at the gate as bands are handed over, never pre-assigned.</p>
+          <h2 style="font-family:'Anton',sans-serif; font-size:{{ h2 }}; line-height:1; text-transform:uppercase; color:var(--ink,#F2EFE2); margin:0 0 22px">184 issued · 14 not collected</h2>
 
           <div style="display:grid; grid-template-columns:{{ typeCols }}; gap:1px; background:var(--rule,rgba(242,239,226,0.16))">
             <sc-for list="{{ types }}" as="t" hint-placeholder-count="3">
@@ -119,7 +118,7 @@
           <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
             <div style="flex:1 1 320px">
               <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold,#E3BB72); margin-bottom:12px">AAA override</div>
-              <div style="font-size:15px; line-height:1.6; color:var(--ink2,rgba(242,239,226,0.72)); max-width:62ch">All-areas access is not requestable on the vendor form. The accreditation lead stamps it onto an approved pass from a named list. <strong style="color:var(--ink,#F2EFE2)">14 issued of 18 approved.</strong></div>
+              <div style="font-size:15px; line-height:1.6; color:var(--ink2,rgba(242,239,226,0.72)); max-width:62ch"><strong style="color:var(--ink,#F2EFE2)">14 issued of 18 approved.</strong> 4 still to stamp.</div>
             </div>
             <button style="cursor:pointer; border:1px solid var(--gold,#E3BB72); background:var(--gold,#E3BB72); color:var(--on,#0A0A0A); padding:14px 22px; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase" style-hover="background:transparent; color:var(--gold)">Manage list →</button>
           </div>

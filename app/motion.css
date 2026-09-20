@@ -1,8 +1,10 @@
 /**
- * Additive motion for app/s/[token]/submission-screen.tsx. This is an Operate
- * surface (a task, not a pitch) — one material idea (fade + gentle rise, the
- * screen already-visible default) carried through the moments that actually
- * change state: a row joining "Your list", the vehicle field appearing, and
+ * Additive motion, imported globally (app/layout.tsx). Originated on
+ * app/s/[token]/submission-screen.tsx and now reused on app/desk/queue —
+ * these are Operate surfaces (a task, not a pitch), so one material idea
+ * (fade + gentle rise, the screen's already-visible default) carries through
+ * the moments that actually change state: a row joining "Your list" or the
+ * queue, a row leaving after a decision, the vehicle field appearing, and
  * the confirmation/error acknowledgment. No page-load choreography, no
  * decorative scroll effects on sections that don't change.
  *
