@@ -761,6 +761,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-108 released 2026-09-20 (IST):** Implemented source-aligned v2 submission structure and preserved public flow; typecheck/lint/test/build pass, but fresh visual gate remains over ceiling: dark/web 3.78%, light/web 1.81%, dark/mobile 7.91%, light/mobile 7.10%. Mobile reference captures the lower v2 form in its pre-reveal state; no reference regeneration or public-flow distortion.
 
+
+> **ACC-109 released 2026-09-20 (IST):** Presentation conversion and e2e pass, but fresh visual gate/vehicle results fail all 8 variants (gate 5.72–70.85%, vehicle 10.45–64.48%); mobile is 785px because shared GateChrome nav is outside .frame, and requested scope excludes gate-chrome.tsx.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
@@ -3299,6 +3302,30 @@ intermediate `test:visual` run covered 7/7 screens and 28/28 variants with
 bodies are still v1; measured failures range from 15.42% to 75.42%, with the
 mobile shell currently widening some routes to 517px. This is recorded rather
 than hidden; ACC-104 onward must resolve it.
+
+### 20 Sep 2026 — ACC-109 gate + vehicle v2 presentation pass blocked
+
+Converted only `app/gate/page.tsx` and `app/gate/vehicle/vehicle-screen.tsx` to
+the v2 `.frame`, `.head`, `.split`, `.bz`, `.pl`, `.vf`, `.result`, `.verdict`,
+`.gband`, `.checks`, `.plate-in`, `.dock`, and `.serial` primitives. Dexie
+reads, resolver behavior, outbox writes, blank serials, and the aeroplane-mode
+selectors remain intact; the diff contains no gate data, outbox, API, schema,
+layout, CSP, or service-worker implementation files.
+
+**Verified:** `typecheck`, `lint`, `test` (53/53), `build`, and
+`PLAYWRIGHT_PORT=4318 corepack pnpm test:e2e` (4/4). The build emitted 60
+precached assets, including the local zxing WASM and gate routes
+`/gate`, `/gate/setup`, and `/gate/vehicle`. Fresh `test:visual` results:
+gate dark/light web **5.99%/5.72%**, dark/light mobile **70.85%/71.05%**;
+vehicle dark/light web **10.45%/10.60%**, dark/light mobile
+**63.81%/64.48%**. All eight comparisons fail the 0.8% limit.
+
+The mobile captures are 785px wide because `GateChrome` places the shared v2
+nav outside the `.frame`; the requested file scope excludes
+`app/gate/gate-chrome.tsx`, so the container-query shell cannot be made active
+for that nav from these two screen files alone. ACC-109 remains blocked and
+must not be marked done until the shared chrome is moved inside the frame (or
+the scope is explicitly widened) and all eight comparisons pass.
 
 ## Template for the next session update
 

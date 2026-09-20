@@ -311,7 +311,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
 - [ ] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
-- [~] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
+- [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
       aeroplane-mode green and the precache count recorded. Presentation only —
       no diff in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not
       green and rehearsed by 2 Oct → revert and ship gate on
