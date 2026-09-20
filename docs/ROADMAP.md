@@ -308,7 +308,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
 - [ ] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27
 - [ ] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
       selector must survive · **CU** · due Mon 28
-- [ ] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
+- [~] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
 - [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
