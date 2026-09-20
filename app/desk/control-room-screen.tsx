@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Dashboard } from '@/lib/schemas/dashboard'
@@ -553,10 +553,15 @@ function V2Count({ value, suffix }: { value: number; suffix?: string | undefined
   const [shown, setShown] = useState(0)
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const frame = requestAnimationFrame(() => setShown(value))
+      return () => cancelAnimationFrame(frame)
+    }
+
     const started = performance.now()
     let frame = 0
     const tick = (now: number) => {
-      const progress = Math.min(1, (now - started) / 3000)
+      const progress = Math.min(1, (now - started) / 1100)
       setShown(Math.round(value * (1 - Math.pow(1 - progress, 4))))
       if (progress < 1) frame = requestAnimationFrame(tick)
     }
@@ -587,7 +592,7 @@ function V2Stat({
   delay: number
 }) {
   return (
-    <div className={`${className} bz rv in`} style={{ '--d': delay } as React.CSSProperties}>
+    <div className={`${className} bz rv`} style={{ '--d': delay } as React.CSSProperties}>
       <div className="pl">
         <span className="mono" style={colour ? { color: colour } : undefined}>{label}</span>
         <div className="v"><V2Count value={value} suffix={suffix} /></div>
@@ -616,6 +621,7 @@ function V2BandCard({ type, count, theme, delay }: { type: (typeof TYPES)[number
 }
 
 function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'light' }) {
+  const rootRef = useRef<HTMLElement>(null)
   const typeCounts = new Map(dash.types.map((type) => [type.code, type.count]))
   const milestone = nextMilestone(new Date())
   const headline = heroMetric(dash)
@@ -626,10 +632,32 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
   const bmsRatio = dash.approvedTotal > 0 ? dash.bmsAdded / dash.approvedTotal : 0
   const orgRatio = dash.submittedOrgs > 0 ? dash.orgs.length / dash.submittedOrgs : 0
 
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    const revealables = root.querySelectorAll<HTMLElement>('.rv')
+    if (!('IntersectionObserver' in window)) {
+      revealables.forEach((element) => element.classList.add('in'))
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('in')
+        observer.unobserve(entry.target)
+      }),
+      { threshold: 0.12 },
+    )
+    revealables.forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <main>
+    <main ref={rootRef}>
         <div className="bento">
-        <div className="hero bz rv in"><div className="pl">
+        <div className="hero bz rv"><div className="pl">
           <div className="hero-art" role="img" aria-label="Festival poster art" /><div className="hero-scrim" />
           <div className="hero-in">
             <span className="tag">Control room</span>
@@ -646,7 +674,7 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
         <V2Stat label="Bands issued" value={dash.bandsIssued} suffix={`/ ${dash.approvedTotal}`} detail={`${dash.bandsNotCollected} not yet collected`} width={issuedRatio} colour="var(--gold)" delay={2} />
         <V2Stat className="stat quad" label="Vehicle stickers" value={dash.stickersActive} suffix={`/ ${stickersTotal}`} detail={`${dash.stickersPending} plates still to arrive`} width={stickerRatio} delay={3} />
         <V2Stat className="stat quad" label="Added to BMS" value={dash.bmsAdded} suffix={`/ ${dash.approvedTotal}`} detail={`${dash.bmsPending} approved, not entered`} width={bmsRatio} colour="var(--gold)" delay={4} />
-        <div className="stat aaa-card bz rv in" style={{ '--d': 5 } as React.CSSProperties}><div className="pl">
+        <div className="stat aaa-card bz rv" style={{ '--d': 5 } as React.CSSProperties}><div className="pl">
           <span className="mono" style={{ color: 'var(--gold)' }}>AAA override</span>
           <div className="v"><V2Count value={dash.aaaStamped} suffix={`/ ${dash.aaaNominatedApproved}`} /></div>
           <p>{Math.max(dash.aaaNominatedApproved - dash.aaaStamped, 0)} still to stamp from the named list</p>

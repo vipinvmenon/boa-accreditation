@@ -736,6 +736,8 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-104 released 2026-09-20 (IST):** Fresh targeted visual run after build: dark/web 1.05%, light/web 1.07%, dark/mobile 1.43%, light/mobile 1.98% (all >0.8%). Diff artifacts show animated V2Count values captured at different progress than approved references; no justified deterministic presentation fix verified without repeating the reverted count-timing experiment. typecheck, lint (three pre-existing img warnings), test 53/53, and build pass. No reference regeneration, masks, unrelated screens, or Queue/Master/Passes/Submission/Gate/offline code changed.
 
+> **ACC-104 done 2026-09-20 (IST):** Applied the approved v2 presentation contract in `control-room-screen.tsx`: the quartic count-up now runs for 1,100 ms, and `.rv` elements use an `IntersectionObserver` with the source's 0.12 threshold rather than hard-coded reveal state. Fresh `corepack pnpm test:visual -- --screen control-room` measured **0.74% dark/web, 0.74% light/web, 0.63% dark/mobile, and 0.34% light/mobile**, all at or below 0.8%. `typecheck`, `lint` (three pre-existing `<img>` warnings), `test` (53/53), `build`, and `corepack pnpm task done ACC-104` passed. No references, masks, API/Zod/data flow, or unrelated screens changed.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
