@@ -94,12 +94,8 @@ export function PassesScreen() {
       <section className="head rv">
         <div>
           <span className="tag">The pass</span>
-          <h1 className="h1 passes-title">
-            <span className="passes-title-desktop">Pass sheet</span>
-            <span className="passes-title-mobile">One person, one pass</span>
-          </h1>
-          <p className="lede passes-blurb-desktop">One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.</p>
-          <p className="lede passes-blurb-mobile">The code carries a pass token, not a name. Bring it and a valid photo ID to the crew check-in desk — a wristband cannot be collected on anyone else’s behalf.</p>
+          <h1 className="h1 passes-title">Pass sheet</h1>
+          <p className="lede">One card per approved person. Print and cut, or forward the per-person link. Zones are printed so the desk never has to look up what a band covers.</p>
         </div>
         <div className="row passes-actions">
           <button type="button" onClick={shareAll} className="btn">
@@ -148,14 +144,11 @@ export function PassesScreen() {
         })}
       </div>
       <style>{`
-        .passes-title-mobile, .passes-blurb-mobile { display: none; }
         .passes-actions { justify-content: flex-end; align-items: center; }
         .passes-state { grid-column: 1 / -1; margin: 0; padding: 18px 22px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); }
         .passes-state-error { color: var(--bad); }
         .qr-wrap svg { display: block; width: 128px; height: 128px; }
         @container app (max-width: 700px) {
-          .passes-title-desktop, .passes-blurb-desktop { display: none; }
-          .passes-title-mobile, .passes-blurb-mobile { display: inline; }
           .passes-actions { justify-content: flex-start; }
         }
         @media print {
