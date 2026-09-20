@@ -91,7 +91,7 @@ function heroHeadline(dash: Dashboard): string {
   return 'Queue is clear'
 }
 
-export function ControlRoomScreen() {
+export function ControlRoomScreenV1() {
   const router = useRouter()
   const theme = useDomTheme()
   const [dash, setDash] = useState<Dashboard | null>(null)
@@ -540,4 +540,143 @@ export function ControlRoomScreen() {
       </div>
     </div>
   )
+}
+
+function V2Count({ value, suffix }: { value: number; suffix?: string | undefined }) {
+  const shown = value
+  return <span className="num">{shown}{suffix ? <small>{suffix}</small> : null}</span>
+}
+
+function V2Stat({
+  label,
+  value,
+  suffix,
+  detail,
+  width,
+  colour,
+  className = 'stat',
+  delay,
+}: {
+  label: string
+  value: number
+  suffix?: string | undefined
+  detail: string
+  width: number
+  colour?: string
+  className?: string
+  delay: number
+}) {
+  return (
+    <div className={`${className} bz rv in`} style={{ '--d': delay } as React.CSSProperties}>
+      <div className="pl">
+        <span className="mono" style={colour ? { color: colour } : undefined}>{label}</span>
+        <div className="v"><V2Count value={value} suffix={suffix} /></div>
+        <p>{detail}</p>
+        <div className="meter"><i style={{ '--w': width, '--c': colour } as React.CSSProperties} /></div>
+      </div>
+    </div>
+  )
+}
+
+function V2BandCard({ type, count, theme, delay }: { type: (typeof TYPES)[number]; count: number; theme: 'dark' | 'light'; delay: number }) {
+  const colour = theme === 'dark' ? type.colour : type.colourLight
+  const held = new Set(type.zones)
+  return (
+    <div className="bandcard bz rv in" style={{ '--d': delay, '--c': colour } as React.CSSProperties}>
+      <div className="pl">
+        <div className="top"><span className="mono">{type.num}</span><span className="cnt num">{count}</span></div>
+        <div className="stripe" />
+        <h3>{type.label}</h3>
+        <div className="col">{type.band} band</div>
+        <p>{type.note}</p>
+        <div className="zones">{ALL_ZONES.map((zone) => <span key={zone} className={held.has(zone) ? undefined : 'off'}>{zone}</span>)}</div>
+      </div>
+    </div>
+  )
+}
+
+function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'light' }) {
+  const typeCounts = new Map(dash.types.map((type) => [type.code, type.count]))
+  const milestone = nextMilestone(new Date())
+  const approvedRatio = dash.submittedTotal > 0 ? dash.approvedTotal / dash.submittedTotal : 0
+  const issuedRatio = dash.approvedTotal > 0 ? dash.bandsIssued / dash.approvedTotal : 0
+  const stickersTotal = dash.stickersActive + dash.stickersPending
+  const stickerRatio = stickersTotal > 0 ? dash.stickersActive / stickersTotal : 0
+  const bmsRatio = dash.approvedTotal > 0 ? dash.bmsAdded / dash.approvedTotal : 0
+  const orgRatio = dash.submittedOrgs > 0 ? dash.orgs.length / dash.submittedOrgs : 0
+
+  return (
+    <div className="frame">
+      <main>
+        <div className="bento">
+        <div className="hero bz rv in"><div className="pl">
+          <div className="hero-art" role="img" aria-label="Festival poster art" /><div className="hero-scrim" />
+          <div className="hero-in">
+            <span className="tag">Control room</span>
+            <h1 className="h1"><span>{heroHeadline(dash)}</span></h1>
+            {milestone && <p className="when"><b>{milestone.days} day{milestone.days === 1 ? '' : 's'}</b> to {milestone.label}</p>}
+            <div className="row">
+              <Link href="/desk/queue" className="btn go">Clear the queue <span className="n">{dash.pendingTotal}</span><span className="ic">↗</span></Link>
+              <Link href="/gate" className="btn">Open the gate scanner<span className="ic">⌁</span></Link>
+            </div>
+          </div>
+        </div></div>
+
+        <V2Stat label="Approved" value={dash.approvedTotal} suffix={`/ ${dash.submittedTotal}`} detail={`${dash.pendingTotal} awaiting decision, from ${dash.submittedOrgs} organisations`} width={approvedRatio} delay={1} />
+        <V2Stat label="Bands issued" value={dash.bandsIssued} suffix={`/ ${dash.approvedTotal}`} detail={`${dash.bandsNotCollected} not yet collected`} width={issuedRatio} colour="var(--gold)" delay={2} />
+        <V2Stat className="stat quad" label="Vehicle stickers" value={dash.stickersActive} suffix={`/ ${stickersTotal}`} detail={`${dash.stickersPending} plates still to arrive`} width={stickerRatio} delay={3} />
+        <V2Stat className="stat quad" label="Added to BMS" value={dash.bmsAdded} suffix={`/ ${dash.approvedTotal}`} detail={`${dash.bmsPending} approved, not entered`} width={bmsRatio} colour="var(--gold)" delay={4} />
+        <div className="stat aaa-card bz rv in" style={{ '--d': 5 } as React.CSSProperties}><div className="pl">
+          <span className="mono" style={{ color: 'var(--gold)' }}>AAA override</span>
+          <div className="v"><V2Count value={dash.aaaStamped} suffix={`/ ${dash.aaaNominatedApproved}`} /></div>
+          <p>{Math.max(dash.aaaNominatedApproved - dash.aaaStamped, 0)} still to stamp from the named list</p>
+          <div className="row" style={{ marginTop: 'auto' }}><Link href="/desk/aaa" className="btn gold">Manage list<span className="ic">→</span></Link></div>
+        </div></div>
+        <V2Stat className="stat quad" label="Organisations" value={dash.orgs.length} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
+      </div>
+
+        <div className="head rv in" style={{ paddingTop: '72px' }}><h2 className="h2">Three bands. No fourth.</h2></div>
+        <div className="bands3">{TYPES.map((type, index) => <V2BandCard key={type.code} type={type} count={typeCounts.get(type.code) ?? 0} theme={theme} delay={index + 7} />)}</div>
+
+        <div className="head rv in" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.orgs.length} compan{dash.orgs.length === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first ↕</span></div>
+        <div className="bz rv in"><div className="pl list">
+          <div className="list-head"><span className="mono">Organisations</span><span className="mono">{dash.orgs.length} listed</span></div>
+          {dash.orgs.map((org) => {
+            const type = passType(org.defaultType as PassTypeCode)
+            const colour = theme === 'dark' ? type.colour : type.colourLight
+            const percentage = org.quota > 0 ? Math.min(org.used / org.quota, 1) : 0
+            return <div className="li" key={org.id}>
+              <div><div className="nm">{org.name}</div><div className="sub">{titleCase(org.kind)} · {org.contactName} · {org.contactPhone}</div></div>
+              <div className="band" style={{ '--c': colour } as React.CSSProperties}>{type.label}</div>
+              <div className="qt"><span className="num"><b>{org.used}</b>/{org.quota}</span><div className="meter"><i style={{ '--w': percentage, '--c': percentage >= 1 ? 'var(--gold)' : 'var(--grn)' } as React.CSSProperties} /></div></div>
+              <span className={`st ${org.status === 'approved' ? 'ok' : org.status === 'submitted' ? 'wait' : 'mute'}`}>{STATUS_LABEL[org.status] ?? titleCase(org.status)}</span>
+            </div>
+          })}
+        </div></div>
+      </main>
+    </div>
+  )
+}
+
+export function ControlRoomScreen() {
+  const theme = useDomTheme()
+  const [dash, setDash] = useState<Dashboard | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/desk/dashboard').then(async (response) => {
+      if (cancelled) return
+      if (response.status === 401) { router.replace('/desk/login'); return }
+      if (!response.ok) { setLoadError(copyForError(await response.json().catch(() => null))); return }
+      const body = await response.json()
+      if (!cancelled) setDash(body as Dashboard)
+    }).catch(() => { if (!cancelled) setLoadError(ERROR_COPY['internal']!) })
+    return () => { cancelled = true }
+  }, [router])
+
+  if (loadError) return <main><p className="pad" style={{ color: 'var(--bad)' }}>{loadError}</p></main>
+  if (!dash) return <main><p className="pad mono">Loading…</p></main>
+  return <ControlRoomV2 dash={dash} theme={theme} />
 }

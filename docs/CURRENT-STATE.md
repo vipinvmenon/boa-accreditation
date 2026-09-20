@@ -720,7 +720,10 @@ Verified by attempting the thing, not by reading a grant table:
 > **ACC-098 released 2026-09-15 (IST):** Queue remains above the 0.8% visual threshold at 2.57%, 2.73%, 5.12%, 5.06%; fresh forensic work isolated mobile native-select intrinsic grid sizing, but contract-safe fixes worsened results and no justified fix exists yet.
 
 
-> **ACC-104 released 2026-09-20 (IST):** Control-room body conversion remains; shared v2 shell/primitives are committed, but visual screen work and its <=0.8% gate were not completed in this session.
+> **ACC-104 blocked 2026-09-20 (IST):** The control-room screen now has a data-backed v2 body using the existing dashboard schema and v2 primitives, but the acceptance gate was not met. Measured with `corepack pnpm test:visual` after a fresh `corepack pnpm build`: control-room was 8.48% dark/web, 7.31% light/web, 34.15% dark/mobile, and 34.52% light/mobile (all over 0.8%). The full code gate passed (`typecheck`, `lint` with three pre-existing `<img>` warnings, `test` 53/53, `build`); visual output also reports the known unconverted-screen failures. No references were regenerated. Resume by resolving the shared v2 shell/frame mobile overflow and completing the control-room pixel pass.
+
+
+> **ACC-104 released 2026-09-20 (IST):** Control-room v2 body is data-backed and code gates pass, but test:visual measured 8.48%, 7.31%, 34.15%, 34.52% (desktop/mobile dark/light) versus <=0.8%; shared shell/frame mobile overflow and remaining pixel drift require follow-up.
 
 ## Session log
 
