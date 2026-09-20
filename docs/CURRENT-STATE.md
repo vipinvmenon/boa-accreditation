@@ -851,6 +851,15 @@ Verified by attempting the thing, not by reading a grant table:
 > visual acceptance is unmet and the physical/authenticated criteria were not
 > verified.
 
+> **ACC-104 targeted verification 2026-09-20 (IST, HEAD `54a34bf`):**
+> Control Room measured **2.93% dark/web, 2.92% light/web, 0.97%
+> dark/mobile, and 0.68% light/mobile**. Three of four variants therefore
+> remain over the 0.8% threshold; ACC-104 is not complete. `typecheck` and
+> `build` passed. No references, masks, thresholds, or design source were
+> changed. The verification observed a concurrent modification to
+> `scripts/capture-design-reference.mjs`, so the worktree was not fully stable;
+> this is retained as targeted evidence, not a clean sign-off.
+
 > **ACC-106 follow-up 2026-09-20 (IST):** After the capture-readiness helper,
 > the targeted v2 Master visual measurements were **2.78% dark/web, 0.24%
 > light/web, 5.56% dark/mobile, and 0.48% light/mobile**. Code gates were
