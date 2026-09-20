@@ -41,6 +41,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -95,6 +96,18 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     }
   }, [menuOpen])
 
+  useEffect(() => {
+    if (!mobileOpen) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+        mobileMenuButtonRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [mobileOpen])
+
   const activeNav = NAV.find((item) => item.href === pathname)?.id
 
   function toggleTheme() {
@@ -140,7 +153,14 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
               </div>
-              <button type="button" className="burger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menu" aria-expanded={mobileOpen}><i /><i /></button>
+              <button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
+                if (mobileOpen) {
+                  setMobileOpen(false)
+                  mobileMenuButtonRef.current?.focus()
+                } else {
+                  setMobileOpen(true)
+                }
+              }} aria-label="Menu" aria-controls="desk-menu" aria-expanded={mobileOpen}><i /><i /></button>
             </div>
           </nav>
           <div className="status">
@@ -150,8 +170,11 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
             <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}</Link>
           </div>
         </header>
-        <div className="menu" aria-hidden={!mobileOpen}>
-          {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} style={{ '--i': index } as React.CSSProperties} onClick={() => setMobileOpen(false)}>{item.label}</Link>)}
+        <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
+          {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
+            setMobileOpen(false)
+            mobileMenuButtonRef.current?.focus()
+          }}>{item.label}</Link>)}
         </div>
         {children}
         <SiteFooter />

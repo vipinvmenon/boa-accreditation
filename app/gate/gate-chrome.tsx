@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
@@ -19,7 +19,20 @@ export function GateChrome({
 }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
   const active = NAV.find((item) => item.href === pathname)?.id
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+        mobileMenuButtonRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [mobileOpen])
 
   return (
     <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
@@ -28,11 +41,21 @@ export function GateChrome({
           <nav className="island" aria-label="Gate navigation">
             <Link href="/gate" className="brand" aria-label="Bangalore Open Air"><img src="/assets/boa-logo.png" alt="Bangalore Open Air" /><span>Accred<br />desk</span></Link>
             <div className="links"><span className="pip" aria-hidden="true" />{NAV.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined}>{item.label}</Link>)}</div>
-            <div className="nav-end"><div className="av" aria-label="Gate operator">GT</div><button type="button" className="burger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menu" aria-controls="gate-menu" aria-expanded={mobileOpen}><i /><i /></button></div>
+            <div className="nav-end"><div className="av" aria-label="Gate operator">GT</div><button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
+              if (mobileOpen) {
+                setMobileOpen(false)
+                mobileMenuButtonRef.current?.focus()
+              } else {
+                setMobileOpen(true)
+              }
+            }} aria-label="Menu" aria-controls="gate-menu" aria-expanded={mobileOpen}><i /><i /></button></div>
           </nav>
           <div className="status"><span className="live"><b />Live</span><span className="hide-s">Build 05–09 Oct · Show 10 Oct</span><span>{bandsIssued} / {approved} bands issued</span><span className="warn">{bmsPending} not in BMS</span></div>
         </header>
-        <div id="gate-menu" className="menu" aria-hidden={!mobileOpen}>{NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => setMobileOpen(false)}>{item.label}</Link>)}</div>
+        <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
+          setMobileOpen(false)
+          mobileMenuButtonRef.current?.focus()
+        }}>{item.label}</Link>)}</div>
         <main>{children}</main>
         <SiteFooter />
       </div>

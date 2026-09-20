@@ -47,9 +47,10 @@ body.mob .frame { max-width: 390px; margin: 24px auto 120px; border-radius: 40px
 
 .menu { position: fixed; inset: 0; z-index: var(--z-menu); display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 100px 28px 40px; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); opacity: 0; pointer-events: none; transition: opacity .5s var(--ease); }
 .menu-open .menu { opacity: 1; pointer-events: auto; }
-.menu button { border: 0; background: none; text-align: left; padding: 6px 0; font-family: var(--display); font-size: 40px; line-height: 1.05; text-transform: uppercase; color: var(--ink); opacity: 0; transform: translateY(40px); transition: transform .7s var(--ease), opacity .7s var(--ease), color .3s var(--ease); transition-delay: calc(var(--i) * 50ms); }
-.menu button[aria-current="page"] { color: var(--grn); }
-.menu-open .menu button { opacity: 1; transform: none; }
+.menu a { border: 0; background: none; text-align: left; padding: 6px 0; font-family: var(--display); font-size: 40px; line-height: 1.05; text-transform: uppercase; color: var(--ink); opacity: 0; transform: translateY(40px); transition: transform .7s var(--ease), opacity .7s var(--ease), color .3s var(--ease); transition-delay: calc(var(--i) * 50ms); text-decoration: none; }
+.menu a[aria-current="page"] { color: var(--grn); }
+.menu-open .menu a { opacity: 1; transform: none; }
+.menu a:focus-visible { outline-offset: 6px; }
 
 /* ── Layout primitives ────────────────────────────────────────────── */
 main { position: relative; padding: 0 32px 64px; }
@@ -178,6 +179,7 @@ main { position: relative; padding: 0 32px 64px; }
 .pick-caret { position: relative; z-index: 1; display: inline-flex; margin-left: auto; color: var(--ink3); pointer-events: none; }
 .pick-caret .ph-icon { width: 1em; height: 1em; }
 .pick select { position: absolute; inset: 0; width: 100%; height: 100%; appearance: none; border: 0; padding: 0; margin: 0; opacity: 0; cursor: pointer; }
+.pick:focus-within::after { box-shadow: inset 0 0 0 2px var(--grn); }
 .q-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 26px; box-shadow: inset 0 1px 0 var(--hair); flex-wrap: wrap; }
 .q-foot .sums { display: flex; gap: 18px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
 .linkbtn { border: 0; background: none; display: inline-flex; align-items: center; gap: 8px; font-family: var(--label); font-weight: 600; font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); padding: 8px 0; transition: color .3s var(--ease); }
@@ -187,6 +189,7 @@ main { position: relative; padding: 0 32px 64px; }
 
 /* ── Master list ──────────────────────────────────────────────────── */
 .search { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 20px; border-radius: 999px; background: var(--shell); box-shadow: 0 0 0 1px var(--hair); }
+.search:focus-within { box-shadow: 0 0 0 2px var(--grn); }
 .search .ph-icon { width: 18px; height: 18px; color: var(--ink3); }
 .search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; padding: 12px 0; font-size: 15px; color: var(--ink); }
 .search input::placeholder { color: var(--ink3); }
@@ -353,6 +356,7 @@ main { position: relative; padding: 0 32px 64px; }
 @keyframes shake { 20% { transform: translateX(-7px) } 40% { transform: translateX(6px) } 60% { transform: translateX(-3px) } 80% { transform: translateX(2px) } }
 
 .plate-in { width: 100%; border: 0; border-radius: var(--r-in); padding: 26px 20px; text-align: center; background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--gold); font-family: var(--mono); font-size: clamp(20px, 2.4cqi, 34px); font-weight: 700; letter-spacing: .1em; color: var(--ink); outline: none; text-transform: uppercase; }
+.plate-in:focus-visible { outline: 2px solid var(--grn); outline-offset: 3px; }
 .checks .li { display: flex; align-items: center; gap: 16px; padding: 16px 0; }
 .checks .li + .li { box-shadow: inset 0 1px 0 var(--hair); }
 .checks .ok { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--grn); color: var(--on); }
