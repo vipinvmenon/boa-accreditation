@@ -20,7 +20,7 @@ type Result = {
 }
 
 function formatIssuedAt(iso: string): string {
-  return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
+  return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).replace(',', '')
 }
 
 export function VehicleScreen() {
@@ -30,17 +30,22 @@ export function VehicleScreen() {
   const [reason, setReason] = useState('')
   const [plateVisual, setPlateVisual] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
-  const [queued, setQueued] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
 
   useEffect(() => {
-    void gateDb.outbox.where('status').equals('pending').count().then(setQueued)
-  }, [result])
-
-  useEffect(() => {
     void readGateSnapshot().then(setSnapshot)
   }, [])
+
+  useEffect(() => {
+    const segment = document.querySelector<HTMLElement>('#vres [data-seg]')
+    const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
+    const thumb = segment?.querySelector<HTMLElement>('.thumb')
+    if (active && thumb) {
+      thumb.style.width = `${active.offsetWidth}px`
+      thumb.style.transform = `translateX(${active.offsetLeft}px)`
+    }
+  }, [result])
 
   const normalized = useMemo(() => {
     try {
@@ -81,7 +86,6 @@ export function VehicleScreen() {
           plateVisual,
         },
       })
-      setQueued((value) => value + 1)
       setResult({
         outcome: cleared ? 'cleared' : 'turned_away',
         text: cleared ? 'Cleared — event queued.' : 'Turned away — event queued.',
@@ -106,7 +110,7 @@ export function VehicleScreen() {
   return (
     <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0} bmsPending={0}>
       <section className="head rv">
-        <div><span className="tag gold">Vehicle entrance</span><h1 className="h1">Sticker and band. Both.</h1><p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside. Stickers are bound to one registration and are not transferable.</p></div>
+        <div><span className="tag gold">Vehicle entrance</span><h1 className="h1">Sticker and band. Both.</h1><p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside.</p></div>
       </section>
       <div className="split">
         <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
@@ -116,17 +120,20 @@ export function VehicleScreen() {
         </div></div>
         <div className="bz result rv" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': cleared ? p.grn : result ? p.bad : p.grn } as CSSProperties}><div className="pl" style={{ minHeight: 560 }}>
           <div className="flood" />
-          {result && <div className="r-body">
+          <div className="r-top"><div className="seg" data-seg><span className="thumb" /><button type="button" data-o="ok" aria-pressed={cleared}>Cleared</button><button type="button" data-o="half" aria-pressed={false}>Band missing</button><button type="button" data-o="bad" aria-pressed={result?.outcome === 'turned_away'}>Not registered</button></div></div>
+          <div className="r-body">
+            {result && <>
             <h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{cleared ? 'Cleared' : 'Turned away'}</h2>
-            <p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : result ? 'Event queued offline' : `${queued} queued · offline`}</p>
+            <p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : 'Event queued offline'}</p>
             <div className="checks stag" style={{ '--i': 2 } as CSSProperties}>{[
               ['Vehicle sticker', cleared && result?.stickerNo && result.plate ? `${result.stickerNo} · Bound to ${result.plate}` : 'Sticker is bound to this registration'],
               ['Crew wristband', cleared && result?.wristbandDetail ? result.wristbandDetail : 'Active wristband required'],
               ['Plate matches sticker', 'Visual check by the officer at the barrier'],
             ].map(([label, detail]) => <div key={label} className="li"><span aria-hidden="true" className={`ok${cleared ? '' : ' x'}`}>{cleared ? '✓' : '×'}</span><div><div className="nm">{label}</div><div className="sub">{detail}</div></div></div>)}</div>
             {result?.outcome === 'turned_away' && <div className="field"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input id="vehicle-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
-            <div className="dock stag" style={{ '--i': 3 } as CSSProperties}><button type="button" onClick={() => { setPlateVisual(true); void recordEvent() }} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry & open gate'}<span className="ic" aria-hidden="true">→</span></button><button type="button" onClick={() => { setPlateVisual(false); void recordEvent() }} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away — log reason</button></div>
-          </div>}
+            </>}
+            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => { setPlateVisual(true); void recordEvent() }} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry & open gate'}<span className="ic" aria-hidden="true">→</span></button><button type="button" onClick={() => { setPlateVisual(false); void recordEvent() }} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away — log reason</button></div>
+          </div>
         </div>
         </div>
       </div>

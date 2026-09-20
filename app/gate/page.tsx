@@ -140,6 +140,16 @@ export default function GatePage() {
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
   const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
 
+  useEffect(() => {
+    const segment = document.querySelector<HTMLElement>('#gres [data-seg]')
+    const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
+    const thumb = segment?.querySelector<HTMLElement>('.thumb')
+    if (active && thumb) {
+      thumb.style.width = `${active.offsetWidth}px`
+      thumb.style.transform = `translateX(${active.offsetLeft}px)`
+    }
+  }, [resolution])
+
   if (!snapshot) return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
   return (
@@ -149,12 +159,12 @@ export default function GatePage() {
       </section>
       <div className="split">
           <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
-            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'}, {queued} queued</span></div>
+            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued</span></div>
             <div className="vf"><i className="c" /><i className="c" /><i className="c" /><i className="c" /><div className="sweep"><i /></div><video ref={videoRef} muted playsInline aria-label="Gate camera scanner" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /></div>
             <canvas ref={canvasRef} hidden />
             <input aria-label="Manual scanner input" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
             <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p></div>
-            <button type="button" onClick={() => void startCamera()} className="btn wide hov-outline-grn">Can&apos;t scan? Search by name<span className="ic" aria-hidden="true">⌕</span></button>
+            <button type="button" onClick={() => void startCamera()} className="btn wide hov-outline-grn">Can&apos;t scan — search by name<span className="ic" aria-hidden="true">⌕</span></button>
             {cameraError && <div role="alert" className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}>{cameraError}</div>}
             <div style={{ marginTop: 26 }}><span className="mono">Last issued at this gate</span><div className="last" style={{ marginTop: 8 }}>
               {recent.map((row) => {

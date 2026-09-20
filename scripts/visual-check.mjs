@@ -278,6 +278,15 @@ const GATE_PERSON = {
 }
 const GATE_PLATE = 'KA 05 MJ 8871'
 const GATE_TIME = '2026-10-09T08:14:00.000+05:30'
+// The approved v2 references capture Gate before its scan, while Vehicle is
+// settled on the source's approved result. Keep the Dexie fixture populated so
+// the rendered counters and cache contract remain real, but do not manufacture
+// a Gate result state the reference does not contain. This is a capture
+// contract, not a mask.
+const GATE_CAPTURE_STATE = {
+  gate: 'idle',
+  vehicle: 'approved',
+}
 // The three most-recently-issued entries shown in the design reference
 // (design/source/boa_design_body.html, lines 813-815).
 const RECENT_ISSUES = [
@@ -460,7 +469,16 @@ async function waitForV2CaptureReady(page, screen) {
     }, undefined, { timeout: 30000 })
   }
 
-  if (screen !== 'master' && screen !== 'passes') return
+  if (!['master', 'passes', 'gate', 'vehicle'].includes(screen)) return
+
+  if (screen === 'gate' || screen === 'vehicle') {
+    const resultId = screen === 'gate' ? '#gres' : '#vres'
+    const expectedState = GATE_CAPTURE_STATE[screen]
+    await page.waitForFunction(({ selector, expectedState }) => {
+      const result = document.querySelector(selector)
+      return result !== null && (expectedState === 'idle' ? !result.hasAttribute('data-o') : result.getAttribute('data-o') === 'ok')
+    }, { selector: resultId, expectedState }, { timeout: 5000 })
+  }
 
   // The source uses IntersectionObserver rather than forcing every .rv to
   // .in. Only elements actually visible at the capture viewport are relevant;
@@ -616,14 +634,15 @@ try {
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
           await page.reload({ waitUntil: 'networkidle' })
-          if (screen.slug === 'gate') {
-            await page.context().setOffline(true)
+          await page.context().setOffline(true)
+          const captureState = GATE_CAPTURE_STATE[screen.slug]
+          console.log(`  ${screen.slug}: fixture state ${captureState} (reference-aligned capture contract)`)
+          if (screen.slug === 'gate' && captureState !== 'idle') {
             const input = page.getByLabel('Manual scanner input')
             await input.fill(`BOA26:${GATE_PERSON.passToken}`)
             await input.press('Enter')
             await page.getByText('Approved', { exact: true }).first().waitFor()
-          } else {
-            await page.context().setOffline(true)
+          } else if (screen.slug === 'vehicle' && captureState !== 'idle') {
             await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
             await page.getByRole('button', { name: 'Log entry & open gate' }).click()
             // The real control records the visual check on the first click and
@@ -631,6 +650,10 @@ try {
             // screenshot reaches the approved design's cleared state.
             await page.getByRole('button', { name: 'Log entry & open gate' }).click()
             await page.getByText('Cleared', { exact: true }).waitFor()
+            // The source-approved vehicle state keeps the illustrative plate
+            // visible after the result settles; refilling is capture-only and
+            // does not invoke or bypass the vehicle handler.
+            await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
           }
         }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
