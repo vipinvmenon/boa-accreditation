@@ -358,7 +358,7 @@ keyframe.
 - `corepack pnpm test:e2e` (aeroplane-mode, including true cold service-worker
   navigation) must pass, and `build-gate-sw.mjs`'s precache count must be
   re-read and recorded.
-- `@container` on `.frame` must not break the `force-static` render.
+- `@container` on `.frame` must not break the `force-dynamic` gate render.
 - **Stop condition:** not green *and* rehearsed by 2 Oct → revert this task,
   ship gate on v1, note it in `CURRENT-STATE.md`. **Do not carry it into the
   freeze.**

@@ -39,7 +39,7 @@ Rules:
 | `/s/[token]` ▢ | `force-dynamic` | quota and status must be current |
 | `/p/[passToken]` ▢ | `force-dynamic` | **404, never 403** — a 403 confirms a token exists |
 | `/desk/*` ▢ | **all `force-dynamic`** | a cached Control room on 9 Oct showing yesterday's "428 not collected" is worse than a slow one |
-| `/gate/*` ▢ | **`force-static`, client** | zero server data. This is what makes the service worker trivial |
+| `/gate/*` ▢ | **`force-dynamic`, client** | zero server data; the per-request CSP nonce must reach the App Router bootstrap. The service worker precaches the emitted route responses |
 
 ## Route handlers vs server actions
 

@@ -144,9 +144,11 @@ registered only from `app/gate/layout.tsx` and scoped to `/gate`.
 
 It is not optional there: without it, a volunteer who reloads a phone with no
 signal gets a white screen instead of a scanner, and the spec calls aeroplane-mode
-scanning *"a test, not a nice-to-have"*. This is why all three `/gate` routes are
-`force-static` with zero server data — static HTML is a file a service worker can
-precache by URL.
+scanning *"a test, not a nice-to-have"*. All three `/gate` routes are
+`force-dynamic` with zero server data so the per-request CSP nonce can reach the
+App Router bootstrap; the service worker precaches their emitted responses by
+URL. The current generated worker has 60 entries (3 routes, 30 scripts, 1 CSS,
+24 fonts and 1 WASM).
 
 ---
 

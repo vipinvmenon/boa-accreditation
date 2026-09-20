@@ -120,9 +120,12 @@ then fails on an import at 3am. Next 16's Turbopack output no longer has the
 older `app-build-manifest.json`, so the build precaches every immutable
 JavaScript asset rather than risking an incomplete transitive chunk graph.
 
-This is why all three `/gate` routes are `force-static` with zero server data:
-static HTML is a file the SW can precache by URL, so offline navigation needs no
-RSC-payload trickery.
+This is why all three `/gate` routes are `force-dynamic` with zero server data:
+the per-request CSP nonce must be threaded into the App Router bootstrap. The
+service worker precaches the emitted dynamic route responses by URL, so offline
+navigation still needs no RSC-payload trickery. The current generated worker
+contains **60 precache entries: 3 routes, 30 scripts, 1 CSS, 24 fonts and 1
+WASM**.
 
 `/api/gate/*` is **network-only**. The outbox is the queue; a service worker that
 served or replayed a cached write would tell a volunteer a wristband was recorded
@@ -132,16 +135,17 @@ Not a PWA (ADR-007): no manifest, no install prompt, no update UI.
 
 ## The aeroplane-mode test
 
-`tests/e2e/aeroplane-mode.spec.ts`, against a seeded local Supabase:
+`tests/e2e/aeroplane-mode.spec.ts`, against Chromium with both gate API routes
+mocked by fixture responses (not against a seeded Supabase roster):
 
 ```
-seed 40 approved → paste device token → assert roster.count() === 40
+fixture four approved → paste device token → assert the fixture roster loads
 setOffline(true) → RELOAD          ← cold start offline; the SW is why this renders
 scan A → GREEN → issue serial 0412 → outbox 1, chip "1 queued"
 scan A again → AMBER               ← proves the pendingByPerson case
 scan garbage → RED, outbox still 1
 issue B with a BLANK serial → outbox 2   ← a blank serial is a complete collection
-RELOAD offline → outbox still 2    ← durability
+RELOAD offline → outbox still 2    ← same-context reload persistence only
 setOffline(false) → drain → DB holds exactly 2 rows
 force a replay → DB still holds 2  ← idempotency
 ```
@@ -149,6 +153,15 @@ force a replay → DB still holds 2  ← idempotency
 Plus two failure paths: an injected 401 leaves the queue intact with attempts
 **not** incremented; an issue forced to 500 stops its own reissue posting.
 
+The reload assertion proves IndexedDB survives a page reload in the same
+Chromium context. It does **not** prove persistence across browser restart,
+profile eviction, OS suspension, or real-device storage pressure; no such
+durability rehearsal has been performed.
+
 **And a manual rehearsal (ACC-058), on two real phones, one an iPhone**, because
 iOS Safari has no `BarcodeDetector` and the wasm path must be proven on real
 hardware before 30 Sep. A Playwright pass is not a festival.
+
+The real iPhone/two-phone radio-off rehearsal and full seeded-roster
+verification remain unperformed. The Chromium suite's mocked API fixtures and
+four-person roster must not be described as either.

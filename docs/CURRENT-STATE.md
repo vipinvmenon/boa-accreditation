@@ -25,14 +25,24 @@ once those addresses arrive; inviting them is now a clean first-time action,
 not a swap.
 `test:visual` now compares all seven screens through the fixture-backed
 harness; the latest run had 0 blocked, 0 not-built and 0 known-gap screens but
-failed 25 variants over the 0.8% threshold. `/gate/*` now has static screens,
-and the deterministic aeroplane-mode suite passes, including true cold
-service-worker navigation. Physical rehearsal remains unverified.
+failed 25 variants over the 0.8% threshold. `/gate/*` now has
+`force-dynamic` client screens, and the deterministic Chromium aeroplane-mode
+suite passes, including true cold service-worker navigation. That suite mocks
+the gate pull/issue APIs and uses a four-person fixture roster; it is not a
+seeded full-roster verification. Physical rehearsal remains unverified.
 
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
 (`bom1`). The latest static migration check covered **28 migration files**;
 the live applied-migration count was not rechecked during ACC-111.
+
+**Current gate artifact evidence (20 Sep 2026):** the inspected generated
+`public/gate/sw.js` contains **60 precache entries**: **3 routes, 30 scripts,
+1 CSS, 24 fonts and 1 WASM**. The gate layout is `force-dynamic`, as required
+for the per-request CSP nonce; the worker precaches the emitted route responses
+by URL. Earlier ACC-111 evidence entries recording 59 assets describe earlier
+builds and are superseded by this later generated artifact, not a second
+current count.
 
 ## Dates
 
@@ -70,7 +80,7 @@ Verified on 10 Sep by running the commands, not by assertion:
 ## What does NOT exist yet
 
 - **The gate is not fully accepted yet.** `/s/[token]` and the desk batch are
-  present. ACC-050 through ACC-056 are implemented, including the force-static
+  present. ACC-050 through ACC-056 are implemented, including the force-dynamic
   `/gate`, `/gate/setup`, and `/gate/vehicle` screens, Dexie-only writes,
   service-worker precache, gate APIs, and database-authorized immutable
   vehicle events. ACC-057's deterministic browser tests and true cold
@@ -85,7 +95,7 @@ Verified on 10 Sep by running the commands, not by assertion:
   location is not acceptable; the binary is now self-hosted and precached.
 - **The authenticated desk shell now has the approved sticky navigation and
   live status bar** across `/desk`, `/desk/queue`, `/desk/aaa`, `/desk/devices`,
-  `/desk/orgs`, `/desk/passes`, and `/desk/master`. The force-static `Gate` and
+  `/desk/orgs`, `/desk/passes`, and `/desk/master`. The force-dynamic `Gate` and
   `Vehicle` routes now exist under `/gate`.
 - **No `lib/database.types.ts`** — still generated from the live project, not committed.
 - **The deterministic aeroplane-mode spec now exists and passes**: it covers
@@ -93,7 +103,11 @@ Verified on 10 Sep by running the commands, not by assertion:
   replay, 401 queue preservation, 500 causal ordering, and true cold
   service-worker navigation with the radio disabled. ACC-057 remains in flight
   only because its roadmap checkbox and the human acceptance conditions have
-  not been completed.
+  not been completed. The tests intercept both gate API routes with mocked
+  responses; they do not verify a seeded full roster. Their reload assertion
+  proves IndexedDB survives a reload in the same Chromium context, but does
+  not prove browser-restart, OS-suspension, storage-eviction, or real-device
+  durability.
 - **`test:visual`** is no longer blocked on operator authentication or missing
   references in this checkout: the latest run compared all seven screens with
   0 blocked, 0 not built and 0 known gaps. It still fails visual acceptance
