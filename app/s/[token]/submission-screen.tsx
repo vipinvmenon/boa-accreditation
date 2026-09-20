@@ -268,10 +268,10 @@ export function SubmissionScreen({
                       <span className="hint">{f.hint}</span>
                     </div>
                   ))}
-                  <button type="button" className="toggle" role="switch" aria-checked={vehicleOn} disabled={closed} onClick={() => setVehicleOn((v) => !v)}>
-                    <span className="sw" aria-hidden="true" data-on={vehicleOn} />
-                    <span><b>Bringing a vehicle</b><span>A sticker is issued at check-in, tied to this plate only.</span></span>
-                  </button>
+                  <div className="toggle">
+                    <button type="button" className="sw" role="switch" aria-checked={vehicleOn} aria-label="Bringing a vehicle" disabled={closed} onClick={() => setVehicleOn((v) => !v)} />
+                    <div><b>Bringing a vehicle</b><span>A sticker is issued at check-in, tied to this plate only.</span></div>
+                  </div>
                   <div className={`reveal${vehicleOn ? ' open' : ''}`}><div><div className="field plate"><label htmlFor="submission-vehicle">Vehicle registration</label><input id="submission-vehicle" value={vehicleReg} onChange={(e) => { setVehicleReg(e.target.value.toUpperCase()); setConfirmation(null) }} placeholder="KA 05 MJ 8871" disabled={closed} /></div></div></div>
                   <button type="submit" className="btn go big" disabled={disableAdd}>Add to list<span className="ic" aria-hidden="true">＋</span></button>
                   {drafts.length > 0 && <button type="button" className="btn gold solo" disabled={submitting || closed} onClick={handleSubmitDrafts}>Submit {drafts.length} for approval →</button>}
