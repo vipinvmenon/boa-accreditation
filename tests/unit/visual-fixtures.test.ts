@@ -23,8 +23,8 @@ describe('visual desk fixtures', () => {
     for (const sentinel of desk.FIXTURE_SENTINELS as string[]) expect(all).toContain(sentinel)
   })
 
-  it('mobile passes carry one card, as the design does', async () => {
+  it('mobile passes carry the full approved sheet', async () => {
     const { passes } = await desk.passesFor('mob')
-    expect(passes).toHaveLength(1)
+    expect(passes).toHaveLength(6)
   })
 })

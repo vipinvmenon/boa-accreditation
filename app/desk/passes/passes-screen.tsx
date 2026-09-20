@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
 import { ALL_ZONES, passType, type PassTypeCode } from '@/lib/design'
@@ -29,6 +29,7 @@ export function PassesScreen() {
   const [passes, setPasses] = useState<RenderedPass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const rootRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -60,14 +61,37 @@ export function PassesScreen() {
     }
   }, [router])
 
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    const revealables = root.querySelectorAll<HTMLElement>('.rv')
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+      revealables.forEach((element) => element.classList.add('in'))
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('in')
+        observer.unobserve(entry.target)
+      }),
+      { threshold: 0.12 },
+    )
+    revealables.forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
+  }, [passes.length, loading, error])
+
   function shareAll() {
     const links = passes.map((pass) => `${pass.fullName}: ${window.location.origin}/p/${pass.passToken}`)
     share(window.location.href, `BOA accreditation passes\n${links.join('\n')}`)
   }
 
   return (
-    <main className="passes-screen">
-      <section className="head">
+    <main ref={rootRef} className="passes-screen">
+      <section className="head rv">
         <div>
           <span className="tag">The pass</span>
           <h1 className="h1 passes-title">
@@ -91,11 +115,11 @@ export function PassesScreen() {
         {loading && <p className="passes-state">Loading passes…</p>}
         {!loading && error && <p className="passes-state passes-state-error">Unable to load passes.</p>}
         {!loading && !error && passes.length === 0 && <p className="passes-state">No approved passes yet — approve in the queue →</p>}
-        {passes.map((pass) => {
+        {passes.map((pass, i) => {
           const type = passType(pass.typeCode)
           const zones = zonesFor(pass.typeCode)
           return (
-            <article className="pass bz" key={pass.id} style={{ '--c': typeColour(type.code, theme) } as React.CSSProperties}>
+            <article className="pass bz rv" key={pass.id} style={{ '--c': typeColour(type.code, theme), '--d': i % 3 } as React.CSSProperties}>
               <div className="pl">
                 <div className="ph">
                   <img src="/assets/boa-logo.png" alt="BOA" />

@@ -170,10 +170,10 @@ const SHEET = [
  * real code for the fixture token, generated with the same library and options
  * as the server; the design draws a fake 13x13 pattern, so the QR region is a
  * named mask in visual-check.mjs rather than something a fixture can match.
- * Mobile gets one card, as the design's `SHEET.slice(0, 1)` does.
+ * Every viewport gets the same six passes as the approved source.
  */
-export async function passesFor(viewport) {
-  const sheet = viewport === 'mob' ? SHEET.slice(0, 1) : SHEET
+export async function passesFor() {
+  const sheet = SHEET
   const passes = await Promise.all(
     sheet.map(async (p, i) => {
       const passToken = `visualPassToken${String(i).padStart(7, '0')}`
