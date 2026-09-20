@@ -284,7 +284,7 @@ rework, three things that must not be changed silently, and ACC-109's hard stop.
 This lane does not sit on the critical path. If ACC-030a lands mid-flight, the
 org list wins: `task block` the redesign task with a reason and commit it.
 
-- [ ] **ACC-100** · Admit v2 as the pixel contract: move it into
+- [~] **ACC-100** · Admit v2 as the pixel contract: move it into
       `design/source/`, vendor fonts + icons locally, add the capture readiness
       hook, re-point `capture-design-reference.mjs`, write ADR-017, update
       non-negotiable #1 in CLAUDE.md + AGENTS.md + `.cursor/rules`. Acceptance:
