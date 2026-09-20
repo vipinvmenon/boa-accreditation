@@ -45,7 +45,6 @@ export function QueueScreen() {
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, aaa: 0 })
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectedLabel, setSelectedLabel] = useState('Select people')
-  const [approvedCount, setApprovedCount] = useState(0)
   const [queueOrgs, setQueueOrgs] = useState<ReturnType<typeof queueResponseSchema.parse>['orgs']>([])
   const [nextOrg, setNextOrg] = useState<ReturnType<typeof queueResponseSchema.parse>['nextOrg']>(null)
   const [type, setType] = useState<PassTypeCode>('crew')
@@ -56,6 +55,7 @@ export function QueueScreen() {
   const [orgReason, setOrgReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const rootRef = useRef<HTMLElement>(null)
   const segRef = useRef<HTMLDivElement>(null)
   const [thumb, setThumb] = useState({ left: 0, width: 0 })
 
@@ -77,7 +77,6 @@ export function QueueScreen() {
     setRows(parsed.data.rows)
     setCounts(parsed.data.counts)
     setSelectedLabel(parsed.data.selectedLabel)
-    setApprovedCount(parsed.data.approvedCount)
     setQueueOrgs(parsed.data.orgs)
     setNextOrg(parsed.data.nextOrg)
     setSelected(new Set(parsed.data.rows.filter((row) => row.status === 'approved').map((row) => row.id)))
@@ -176,18 +175,40 @@ export function QueueScreen() {
     }
   }, [filter, counts])
 
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    const revealables = root.querySelectorAll<HTMLElement>('.rv')
+    if (!('IntersectionObserver' in window)) {
+      revealables.forEach((element) => element.classList.add('in'))
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('in')
+        observer.unobserve(entry.target)
+      }),
+      { threshold: 0.12, rootMargin: '0px 0px 1000px' },
+    )
+    revealables.forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
+  }, [rows, orgs.length])
+
   return (
-    <main>
-      <section className="head rv in">
+    <main ref={rootRef}>
+      <section className="head rv">
         <div><span className="tag">Allocation desk</span><h1 className="h1">Approval queue</h1><p className="lede">Approve a row, a whole organisation, or reject with a reason. Pass tokens are created on approval, never before.</p></div>
       </section>
-      <div className="rv in" style={{ ['--d' as string]: 1 }}>
+      <div className="rv" style={{ ['--d' as string]: 1 }}>
         <div className="seg" ref={segRef}>
           <span className="thumb" style={{ width: thumb.width || undefined, transform: `translateX(${thumb.left}px)` }} />
           {QUEUE_FILTERS.map((item) => <button key={item} type="button" aria-pressed={filter === item} onClick={() => void setFilterAndLoad(item)}>{filterLabels[item]}<b>{counts[item]}</b></button>)}
         </div>
       </div>
-      <div className="selbar rv in" style={{ ['--d' as string]: 2 }}>
+      <div className="selbar rv" style={{ ['--d' as string]: 2 }}>
         <button className="ck" type="button" role="checkbox" aria-checked={selected.size === rows.length && rows.length > 0} aria-label="Select all people in this view" onClick={() => setSelected((old) => old.size === rows.length ? new Set() : new Set(rows.map((row) => row.id)))}><Icon name="check" /></button>
         <span className="mono">{selectedLabel}</span>
         <button className="btn solo hide-s" type="button" onClick={() => setType((old) => old === 'crew' ? 'stage' : old === 'stage' ? 'aaa' : 'crew')}>Set type</button>
@@ -196,7 +217,7 @@ export function QueueScreen() {
       </div>
       {error && <p style={{ color: 'var(--bad)' }}>{error}</p>}
       {orgs.map(([orgId, org], orgIndex) => (
-          <section key={orgId} className="bz rv in section" style={{ ['--d' as string]: 3 }}>
+          <section key={orgId} className="bz rv section" style={{ ['--d' as string]: 3 }}>
             <div className="pl">
             {(() => {
               const orgMeta = queueOrgs.find((item) => item.id === orgId)
@@ -255,7 +276,6 @@ export function QueueScreen() {
           </section>
         ))}
         {orgs.length === 0 && !error && <p className="pad">No people in this view.</p>}
-      <div className="q-foot"><div className="sums"><span style={{ color: 'var(--grn)' }}>{approvedCount} approved</span><span>{rows.filter((row) => row.status === 'submitted').length} pending</span><span style={{ color: 'var(--bad)' }}>{rows.filter((row) => row.status === 'rejected').length} rejected</span></div><span className="linkbtn">Next org: {nextOrg?.name ?? '—'} <Icon name="arrow-right" /></span></div>
       <style jsx>{`
         .qrow { position: relative; }
         .q-actions { position: absolute; right: 26px; bottom: 10px; justify-content: flex-end; opacity: 0; pointer-events: none; transition: opacity .3s var(--ease); }

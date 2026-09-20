@@ -743,6 +743,8 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-105 released 2026-09-20 (IST):** Queue v2 conversion is code-gate green but visual variants measured 12.50%, 11.41%, 12.22%, 8.62%; no justified <=0.8% fix found; see CURRENT-STATE.md
 
+> **ACC-105 blocked 2026-09-20 (IST):** Applied the forensic queue pass: queue reveals now use the existing `IntersectionObserver` contract with threshold `0.12` and preserved delays; the duplicate global `.q-foot` was removed; v2 footer padding now matches the approved source at desktop and mobile; API/Zod/auth/filter/mutation behavior and native select semantics were preserved. Fresh `corepack pnpm build && corepack pnpm test:visual -- --screen queue` measured **13.01% dark/web, 11.84% light/web, 15.89% dark/mobile, and 11.98% light/mobile** (reference/actual heights **1707→1551** web and **2215→2056** mobile). All four diff artifacts were inspected. Typecheck, lint (three pre-existing `<img>` warnings), test (53/53), and build pass. No references regenerated; ACC-105 remains in flight because no variant is within 0.8%.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
