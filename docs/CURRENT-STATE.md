@@ -893,6 +893,17 @@ Verified by attempting the thing, not by reading a grant table:
 > the current result. No references or masks were regenerated. ACC-109 remains
 > incomplete.
 
+> **Submission capture-only harness follow-up 2026-09-20 (IST):** Completed the
+> capture-only motion-settling change in the reference and visual-check
+> harnesses, including the mobile-safe DOM interaction path. Focused Submission
+> mobile evidence improved from **7.24% to 4.22% dark/mobile** and from
+> **6.19% to 2.55% light/mobile**. Syntax and focused lint passed. This remains
+> above the 0.8% visual acceptance threshold, so Submission visual acceptance
+> remains unmet. The existing Submission web evidence and prior entries are
+> preserved. Production defaults and contracts were unchanged; no references,
+> masks, thresholds, or task state were changed, and no roadmap task completion
+> is claimed.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
