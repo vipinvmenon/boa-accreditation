@@ -24,8 +24,11 @@ open** — Bhoopesh/Salman/2 approvers' real email addresses are still needed
 once those addresses arrive; inviting them is now a clean first-time action,
 not a swap.
 `test:visual` now compares all seven screens through the fixture-backed
-harness; the latest run had 0 blocked, 0 not-built and 0 known-gap screens but
-failed 25 variants over the 0.8% threshold. `/gate/*` now has
+harness. The two dated ACC-111 runs below must not be conflated: the earlier
+run failed 25 of 28 variants, while the later clean run at HEAD `b9deb55`
+failed 23 and passed 5. The current working tree is dirty, including
+uncommitted app, fixture and visual-harness changes, so neither clean-run
+summary is evidence for the current tree. `/gate/*` now has
 `force-dynamic` client screens, and the deterministic Chromium aeroplane-mode
 suite passes, including true cold service-worker navigation. That suite mocks
 the gate pull/issue APIs and uses a four-person fixture roster; it is not a
@@ -109,9 +112,11 @@ Verified on 10 Sep by running the commands, not by assertion:
   not prove browser-restart, OS-suspension, storage-eviction, or real-device
   durability.
 - **`test:visual`** is no longer blocked on operator authentication or missing
-  references in this checkout: the latest run compared all seven screens with
-  0 blocked, 0 not built and 0 known gaps. It still fails visual acceptance
-  with 25 comparisons over the 0.8% threshold; no pixel pass is claimed.
+  references in the recorded clean runs: both compared all seven screens with
+  0 blocked, 0 not built and 0 known gaps. The earlier 20 Sep run failed 25
+  comparisons; the later run at HEAD `b9deb55` failed 23 and passed 5. The
+  current working tree has uncommitted app, fixture and visual-harness changes,
+  so current-tree visual evidence is not established; no pixel pass is claimed.
 - **Cursor MCP is nearly connected.** Vipin reports that Supabase, Vercel and
   Playwright are authenticated; GitHub remains outstanding. The Vercel
   *plugin* authenticated in this session (`plugin-vercel-vercel` tools loaded),
@@ -790,7 +795,8 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-109 released 2026-09-20 (IST):** Presentation conversion and e2e pass, but fresh visual gate/vehicle results fail all 8 variants (gate 5.72–70.85%, vehicle 10.45–64.48%); mobile is 785px because shared GateChrome nav is outside .frame, and requested scope excludes gate-chrome.tsx.
 
-> **ACC-111 remains in flight 2026-09-20 (IST):** Sign-off evidence was run in
+> **ACC-111 earlier sign-off run — 20 Sep 2026 (IST; recorded by commit
+> `b7a6740`; source HEAD was not captured in that entry):** Sign-off evidence was run in
 > the required order. `corepack pnpm typecheck` passed; `corepack pnpm lint`
 > passed with three pre-existing `@next/next/no-img-element` warnings
 > (`app/desk/desk-chrome.tsx:117`, `app/desk/passes/passes-screen.tsx:101`,
