@@ -9,6 +9,7 @@ import { drainOutbox, enqueueIssue, queuedCount, readGateSnapshot, type GateSnap
 import { scanFrame } from '@/gate/scanner'
 import { ALL_ZONES, DAY_VALIDITY, passType, typeColour, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
+import { Icon } from '@/components/icon'
 import { GateChrome } from './gate-chrome'
 
 function zonesFor(typeCode: PassTypeCode) {
@@ -141,14 +142,17 @@ export default function GatePage() {
   const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
 
   useEffect(() => {
-    const segment = document.querySelector<HTMLElement>('#gres [data-seg]')
-    const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
-    const thumb = segment?.querySelector<HTMLElement>('.thumb')
-    if (active && thumb) {
-      thumb.style.width = `${active.offsetWidth}px`
-      thumb.style.transform = `translateX(${active.offsetLeft}px)`
-    }
-  }, [resolution])
+    const frame = window.requestAnimationFrame(() => {
+      const segment = document.querySelector<HTMLElement>('#gres [data-seg]')
+      const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
+      const thumb = segment?.querySelector<HTMLElement>('.thumb')
+      if (active && thumb) {
+        thumb.style.width = `${active.offsetWidth}px`
+        thumb.style.transform = `translateX(${active.offsetLeft}px)`
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [snapshot, resolution])
 
   if (!snapshot) return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
@@ -164,13 +168,14 @@ export default function GatePage() {
             <canvas ref={canvasRef} hidden />
             <input aria-label="Manual scanner input" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
             <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p></div>
-            <button type="button" onClick={() => void startCamera()} className="btn wide hov-outline-grn">Can&apos;t scan — search by name<span className="ic" aria-hidden="true">⌕</span></button>
+            <button type="button" onClick={() => void startCamera()} className="btn wide hov-outline-grn">Can&apos;t scan? Search by name<span className="ic"><Icon name="magnifying-glass" /></span></button>
             {cameraError && <div role="alert" className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}>{cameraError}</div>}
             <div style={{ marginTop: 26 }}><span className="mono">Last issued at this gate</span><div className="last" style={{ marginTop: 8 }}>
               {recent.map((row) => {
                 const holder = personById.get(row.personId)
                 const time = new Date(row.occurredAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-                return <div key={row.id} className="li"><span className="bar" style={{ '--c': typeColour(holder?.typeCode ?? 'crew', theme) } as CSSProperties} /><div><div className="nm">{holder?.fullName ?? row.kind}</div><div className="sub">{holder ? passType(holder.typeCode).label : row.kind} | Band {(row.bandSerial ?? row.stickerNo ?? 'blank serial').replace(/^#/, '')} | {time}</div></div><button type="button" className="void hov-text-bad">Void</button></div>
+                const serial = row.bandSerial ?? row.stickerNo
+                return <div key={row.id} className="li"><span className="bar" style={{ '--c': typeColour(holder?.typeCode ?? 'crew', theme) } as CSSProperties} /><div><div className="nm">{holder?.fullName ?? row.kind}</div><div className="sub">{holder ? passType(holder.typeCode).label : row.kind}, {serial ? `band ${serial.replace(/^#/, '')}` : 'no serial'}, {time}</div></div><button type="button" className="void hov-text-bad">Void</button></div>
               })}
             </div><div className="foot-meta mono"><span>{snapshot.ledger.filter((row) => row.kind === 'wristband').length} issued today</span><span>Ledger append-only</span></div></div>
           </div></div>
@@ -181,7 +186,7 @@ export default function GatePage() {
               {person && type && <><div className="gband" style={{ '--c': typeColour(type.code, theme) } as CSSProperties}><b>{type.label}</b><small>Hand over a {type.band.toLowerCase()} band</small></div><div className="zones">{zonesFor(type.code).map((zone) => <span key={zone.text} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}</div>{stickerDue && <div className="vehbox"><span className="mono">Sticker due</span><b>{person.vehicleReg}</b></div>}</>}
               {resolution?.status === 'amber' && <div className="note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
               {resolution?.status === 'red' && <div className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}><b>Do not let them in.</b> This token is not on the approved list.</div>}
-              {resolution && <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} className="btn go big hov-invert-grn">Issue wristband<span className="ic" aria-hidden="true">✓</span></button></>}<button type="button" onClick={() => { setResolution(null); setMessage(null) }} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: 'var(--grn)' }}>{message}</div>}</div>}
+              {resolution && <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} className="btn go big hov-invert-grn">Issue wristband<span className="ic"><Icon name="check" /></span></button></>}<button type="button" onClick={() => { setResolution(null); setMessage(null) }} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: 'var(--grn)' }}>{message}</div>}</div>}
             </div>
           </div></div>
       </div>

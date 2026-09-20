@@ -7,6 +7,7 @@ import { PROP, passType } from '@/lib/design'
 import { gateDb } from '@/gate/db'
 import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { findActiveWristband, normalizePlate, queueVehicleEvent } from '@/gate/vehicle-flow'
+import { Icon } from '@/components/icon'
 import { GateChrome } from '../gate-chrome'
 
 type Result = {
@@ -38,14 +39,17 @@ export function VehicleScreen() {
   }, [])
 
   useEffect(() => {
-    const segment = document.querySelector<HTMLElement>('#vres [data-seg]')
-    const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
-    const thumb = segment?.querySelector<HTMLElement>('.thumb')
-    if (active && thumb) {
-      thumb.style.width = `${active.offsetWidth}px`
-      thumb.style.transform = `translateX(${active.offsetLeft}px)`
-    }
-  }, [result])
+    const frame = window.requestAnimationFrame(() => {
+      const segment = document.querySelector<HTMLElement>('#vres [data-seg]')
+      const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
+      const thumb = segment?.querySelector<HTMLElement>('.thumb')
+      if (active && thumb) {
+        thumb.style.width = `${active.offsetWidth}px`
+        thumb.style.transform = `translateX(${active.offsetLeft}px)`
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [snapshot, result])
 
   const normalized = useMemo(() => {
     try {
@@ -126,13 +130,13 @@ export function VehicleScreen() {
             <h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{cleared ? 'Cleared' : 'Turned away'}</h2>
             <p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : 'Event queued offline'}</p>
             <div className="checks stag" style={{ '--i': 2 } as CSSProperties}>{[
-              ['Vehicle sticker', cleared && result?.stickerNo && result.plate ? `${result.stickerNo} · Bound to ${result.plate}` : 'Sticker is bound to this registration'],
-              ['Crew wristband', cleared && result?.wristbandDetail ? result.wristbandDetail : 'Active wristband required'],
+              ['Vehicle sticker', cleared && result?.stickerNo && result.plate ? `${result.stickerNo}, bound to ${result.plate}` : 'Sticker is bound to this registration'],
+              ['Crew wristband', cleared && result?.wristbandDetail ? result.wristbandDetail.replaceAll(' · ', ', ') : 'Active wristband required'],
               ['Plate matches sticker', 'Visual check by the officer at the barrier'],
-            ].map(([label, detail]) => <div key={label} className="li"><span aria-hidden="true" className={`ok${cleared ? '' : ' x'}`}>{cleared ? '✓' : '×'}</span><div><div className="nm">{label}</div><div className="sub">{detail}</div></div></div>)}</div>
+            ].map(([label, detail]) => <div key={label} className="li"><span aria-hidden="true" className={`ok${cleared ? '' : ' x'}`}><Icon name={cleared ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="sub">{detail}</div></div></div>)}</div>
             {result?.outcome === 'turned_away' && <div className="field"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input id="vehicle-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
             </>}
-            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => { setPlateVisual(true); void recordEvent() }} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry & open gate'}<span className="ic" aria-hidden="true">→</span></button><button type="button" onClick={() => { setPlateVisual(false); void recordEvent() }} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away — log reason</button></div>
+            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => { setPlateVisual(true); void recordEvent() }} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry & open gate'}<span className="ic"><Icon name="arrow-right" /></span></button><button type="button" onClick={() => { setPlateVisual(false); void recordEvent() }} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away — log reason</button></div>
           </div>
         </div>
         </div>

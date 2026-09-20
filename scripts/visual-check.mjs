@@ -649,7 +649,7 @@ try {
             // evaluates it on the next render; repeat the user action so the
             // screenshot reaches the approved design's cleared state.
             await page.getByRole('button', { name: 'Log entry & open gate' }).click()
-            await page.getByText('Cleared', { exact: true }).waitFor()
+            await page.locator('#vres h2.g-verdict').filter({ hasText: 'Cleared' }).waitFor()
             // The source-approved vehicle state keeps the illustrative plate
             // visible after the result settles; refilling is capture-only and
             // does not invoke or bypass the vehicle handler.

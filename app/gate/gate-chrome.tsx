@@ -74,7 +74,7 @@ export function GateChrome({
               }
             }} aria-label="Menu" aria-controls="gate-menu" aria-expanded={mobileOpen}><i /><i /></button></div>
           </nav>
-          <div className="status"><span className="live"><b />Live</span><span className="hide-s">Build 05–09 Oct · Show 10 Oct</span><span>{bandsIssued} / {approved} bands issued</span><span className="warn">{bmsPending} not in BMS</span></div>
+          <div className="status"><span className="live"><b />Live</span><span className="hide-s">Build 05-09 Oct, show 10 Oct</span><span>{bandsIssued} / {approved} bands issued</span><span className="warn">{bmsPending} not in BMS</span></div>
         </header>
         <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
           setMobileOpen(false)

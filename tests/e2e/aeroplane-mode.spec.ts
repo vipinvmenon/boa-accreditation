@@ -194,7 +194,7 @@ test.describe('gate aeroplane mode', () => {
 
     const gate = (await installFixture(page, ['success'])).page
     await reloadColdOffline(gate)
-    await gate.getByRole('button', { name: "Can't scan — search by name" }).click()
+    await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
     await expect(gate.getByText('Approved', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
   })
 
