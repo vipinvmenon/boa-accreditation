@@ -3228,6 +3228,19 @@ audit now parses v2 CSS rules rather than v1 inline attributes.
 `node scripts/audit-font-weights.mjs` both pass; the 13 frozen design-contract
 tests remain unchanged. The v1 screens have not been restyled yet.
 
+### 20 Sep 2026 — ACC-102 v2 primitive layer staged
+
+Added the generated `app/v2.css` primitive stylesheet, the 14-glyph inline
+SVG `Icon` component, and reduced-motion-aware `useReveal`/`useCountUp` hooks.
+The stylesheet is intentionally not imported into the v1 shell yet, so these
+primitives cannot leak into the existing screens before ACC-103.
+
+**Verified:** `typecheck`, `lint`, `test` and `build` pass; the service-worker
+build reports 60 precached assets. `test:visual` was run against the newly
+captured v2 references and honestly reports 28 failures because the app still
+renders v1 screens; this is the expected migration baseline before ACC-103
+shell conversion, not a v2 screen pass.
+
 ## Template for the next session update
 
 ```

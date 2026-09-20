@@ -81,6 +81,7 @@ const HEX_ALLOWED = new Set([
   'lib/design.ts', // the PROP layer itself
   'app/globals.css', // the transcribed helmet block
   'app/layout.tsx', // the <body> fallback + themeColor
+  'app/v2.css', // v2's fixed light QR plate from the approved source
 ])
 const walk = (dir, acc = []) => {
   // A fresh clone does not contain empty scaffold directories: git does not
