@@ -31,7 +31,7 @@ import { z } from 'zod'
  */
 
 const FORM_FIELDS = [
-  { key: 'fullName', label: 'Full name', placeholder: 'As it appears on their ID', hint: 'Exactly as on their ID. No initials.' },
+  { key: 'fullName', label: 'Full name', placeholder: 'As it appears on their ID', hint: 'Exactly as on their photo ID. No initials.' },
   { key: 'phone', label: 'Mobile', placeholder: '+91', hint: 'Used only to resend their pass.' },
   { key: 'roleText', label: 'Role at the festival', placeholder: 'Rigger, FOH engineer, loader', hint: 'Free text is fine.' },
 ] as const
@@ -39,7 +39,7 @@ const FORM_FIELDS = [
 type FieldKey = (typeof FORM_FIELDS)[number]['key']
 
 type Draft = SubmissionInput & { id: string }
-type ListEntry = { name: string; role: string; state: string; dot: string }
+type ListEntry = { name: string; role: string; state: string; statusClass: 'ok' | 'wait' | 'no' | 'mute' }
 const draftSchema = submissionSchema.extend({ id: z.string().min(1) })
 
 const ERROR_COPY: Record<string, string> = {
@@ -209,11 +209,11 @@ export function SubmissionScreen({
     name: row.fullName,
     role: row.roleText,
     state: row.status === 'approved' ? 'Approved' : row.status === 'rejected' ? 'Rejected' : 'Submitted',
-    dot: row.status === 'approved' ? 'var(--grn)' : row.status === 'rejected' ? 'var(--bad)' : 'var(--gold)',
+    statusClass: row.status === 'approved' ? 'ok' : row.status === 'rejected' ? 'no' : 'wait',
   })
   const yourList = [
     ...roster.map(statusEntry),
-    ...drafts.map((draft): ListEntry => ({ name: draft.fullName, role: draft.roleText, state: 'Draft', dot: 'var(--ink3)' })),
+    ...drafts.map((draft): ListEntry => ({ name: draft.fullName, role: draft.roleText, state: 'Draft', statusClass: 'mute' })),
   ]
 
   return (
@@ -243,9 +243,8 @@ export function SubmissionScreen({
                   <div className="list-head"><span className="mono">Your list</span><span className="mono">{yourList.length} people</span></div>
                   {yourList.map((x, i) => (
                     <div className="li" key={`${x.name}-${i}`}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: x.dot, flex: '0 0 auto' }} />
                       <div><div className="who">{x.name}</div><div className="why">{x.role}</div></div>
-                      <span className="st" style={{ color: x.dot, background: 'transparent' }}>{x.state}</span>
+                      <span className={`st ${x.statusClass}`}>{x.state}</span>
                     </div>
                   ))}
                   {yourList.length === 0 && <p className="why" style={{ padding: '15px 22px' }}>Nobody added yet in this session.</p>}
@@ -271,7 +270,7 @@ export function SubmissionScreen({
                   ))}
                   <button type="button" className="toggle" role="switch" aria-checked={vehicleOn} disabled={closed} onClick={() => setVehicleOn((v) => !v)}>
                     <span className="sw" aria-hidden="true" data-on={vehicleOn} />
-                    <span><b>Bringing a vehicle</b><span>A sticker is issued at check-in, tied to this number only.</span></span>
+                    <span><b>Bringing a vehicle</b><span>A sticker is issued at check-in, tied to this plate only.</span></span>
                   </button>
                   <div className={`reveal${vehicleOn ? ' open' : ''}`}><div><div className="field plate"><label htmlFor="submission-vehicle">Vehicle registration</label><input id="submission-vehicle" value={vehicleReg} onChange={(e) => { setVehicleReg(e.target.value.toUpperCase()); setConfirmation(null) }} placeholder="KA 05 MJ 8871" disabled={closed} /></div></div></div>
                   <button type="submit" className="btn go big" disabled={disableAdd}>Add to list<span className="ic" aria-hidden="true">＋</span></button>
