@@ -749,6 +749,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-105 remains in flight 2026-09-20 (IST):** Compared the exact v2 queue source and capture behavior. The source-native picker was re-tested and rejected because it reproduced the prior intrinsic-height drift (**12.97% dark/web, 11.78% light/web, 15.77% dark/mobile, 11.83% light/mobile; heights 1707→1551 and 2215→2056**). The source-aligned invisible native-select overlay was restored, and missing v2 anchor styling was added to the desk navigation. Fresh `corepack pnpm build && corepack pnpm test:visual -- --screen queue` measured **3.31% dark/web, 1.85% light/web, 7.51% dark/mobile, and 3.49% light/mobile** (heights **1707→1701** web and **2215→2213** mobile). Full typecheck, lint (three pre-existing `<img>` warnings), test (53/53), and build pass; linter diagnostics report no errors. No references, masks, API/Zod/auth/filter/mutation, or accessibility/native-select behavior changed; ACC-105 remains in flight.
 
+
+> **ACC-105 released 2026-09-20 (IST):** v2 visual acceptance remains unmet after three source-aligned passes: latest fresh results 3.31%, 1.85%, 7.51%, 3.49%; proceeding to the next screen per user direction, with no references or masks changed.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
