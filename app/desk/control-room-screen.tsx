@@ -91,6 +91,13 @@ function heroHeadline(dash: Dashboard): string {
   return 'Queue is clear'
 }
 
+function heroMetric(dash: Dashboard): { value: number | null; label: string } {
+  if (dash.pendingTotal > 0) return { value: dash.pendingTotal, label: 'waiting on a decision' }
+  if (dash.bmsPending > 0) return { value: dash.bmsPending, label: 'approved, not in BMS' }
+  if (dash.bandsNotCollected > 0) return { value: dash.bandsNotCollected, label: 'bands not collected' }
+  return { value: null, label: 'Queue is clear' }
+}
+
 export function ControlRoomScreenV1() {
   const router = useRouter()
   const theme = useDomTheme()
@@ -543,7 +550,20 @@ export function ControlRoomScreenV1() {
 }
 
 function V2Count({ value, suffix }: { value: number; suffix?: string | undefined }) {
-  const shown = value
+  const [shown, setShown] = useState(0)
+
+  useEffect(() => {
+    const started = performance.now()
+    let frame = 0
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - started) / 3000)
+      setShown(Math.round(value * (1 - Math.pow(1 - progress, 4))))
+      if (progress < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [value])
+
   return <span className="num">{shown}{suffix ? <small>{suffix}</small> : null}</span>
 }
 
@@ -582,7 +602,7 @@ function V2BandCard({ type, count, theme, delay }: { type: (typeof TYPES)[number
   const colour = theme === 'dark' ? type.colour : type.colourLight
   const held = new Set(type.zones)
   return (
-    <div className="bandcard bz rv in" style={{ '--d': delay, '--c': colour } as React.CSSProperties}>
+    <div className="bandcard bz rv" style={{ '--d': delay, '--c': colour } as React.CSSProperties}>
       <div className="pl">
         <div className="top"><span className="mono">{type.num}</span><span className="cnt num">{count}</span></div>
         <div className="stripe" />
@@ -598,6 +618,7 @@ function V2BandCard({ type, count, theme, delay }: { type: (typeof TYPES)[number
 function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'light' }) {
   const typeCounts = new Map(dash.types.map((type) => [type.code, type.count]))
   const milestone = nextMilestone(new Date())
+  const headline = heroMetric(dash)
   const approvedRatio = dash.submittedTotal > 0 ? dash.approvedTotal / dash.submittedTotal : 0
   const issuedRatio = dash.approvedTotal > 0 ? dash.bandsIssued / dash.approvedTotal : 0
   const stickersTotal = dash.stickersActive + dash.stickersPending
@@ -606,14 +627,13 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
   const orgRatio = dash.submittedOrgs > 0 ? dash.orgs.length / dash.submittedOrgs : 0
 
   return (
-    <div className="frame">
-      <main>
+    <main>
         <div className="bento">
         <div className="hero bz rv in"><div className="pl">
           <div className="hero-art" role="img" aria-label="Festival poster art" /><div className="hero-scrim" />
           <div className="hero-in">
             <span className="tag">Control room</span>
-            <h1 className="h1"><span>{heroHeadline(dash)}</span></h1>
+            <h1 className="h1"><span>{headline.value === null ? headline.label : <><V2Count value={headline.value} /> {headline.label}</>}</span></h1>
             {milestone && <p className="when"><b>{milestone.days} day{milestone.days === 1 ? '' : 's'}</b> to {milestone.label}</p>}
             <div className="row">
               <Link href="/desk/queue" className="btn go">Clear the queue <span className="n">{dash.pendingTotal}</span><span className="ic">↗</span></Link>
@@ -632,14 +652,14 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
           <p>{Math.max(dash.aaaNominatedApproved - dash.aaaStamped, 0)} still to stamp from the named list</p>
           <div className="row" style={{ marginTop: 'auto' }}><Link href="/desk/aaa" className="btn gold">Manage list<span className="ic">→</span></Link></div>
         </div></div>
-        <V2Stat className="stat quad" label="Organisations" value={dash.orgs.length} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
+        <V2Stat className="stat quad" label="Organisations" value={dash.submittedOrgs} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
       </div>
 
-        <div className="head rv in" style={{ paddingTop: '72px' }}><h2 className="h2">Three bands. No fourth.</h2></div>
+        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">Three bands. No fourth.</h2></div>
         <div className="bands3">{TYPES.map((type, index) => <V2BandCard key={type.code} type={type} count={typeCounts.get(type.code) ?? 0} theme={theme} delay={index + 7} />)}</div>
 
-        <div className="head rv in" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.orgs.length} compan{dash.orgs.length === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first ↕</span></div>
-        <div className="bz rv in"><div className="pl list">
+        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.orgs.length} compan{dash.orgs.length === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first ↕</span></div>
+        <div className="bz rv"><div className="pl list">
           <div className="list-head"><span className="mono">Organisations</span><span className="mono">{dash.orgs.length} listed</span></div>
           {dash.orgs.map((org) => {
             const type = passType(org.defaultType as PassTypeCode)
@@ -653,8 +673,7 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
             </div>
           })}
         </div></div>
-      </main>
-    </div>
+    </main>
   )
 }
 

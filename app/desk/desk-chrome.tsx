@@ -110,50 +110,52 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
-      <header className="nav-wrap">
-        <nav className="island" aria-label="Desk navigation">
-          <Link href="/desk" className="brand" aria-label="BOA Accreditation desk home">
-            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
-            <span>Accred<br />desk</span>
-          </Link>
-          <div className="links" id="desk-links">
-            <span className="pip" aria-hidden="true" />
-            {NAV.map((item) => {
-              const active = item.id === activeNav
-              return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined}>{item.label}</Link>
-            })}
-          </div>
-          <div className="nav-end">
-            <div ref={menuRef} className="profile-wrap">
-              <button type="button" className="av" onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Operator menu">
-                {me?.display_name?.slice(0, 2).toUpperCase() ?? 'AV'}
-              </button>
-              {menuOpen && (
-                <div role="menu" aria-label="Operator menu" className="profile-menu">
-                  <div className="profile-head"><strong>{me?.display_name ?? 'Loading…'}</strong><span>{me ? ROLE_LABEL[me.role] : ''}</span></div>
-                  <button type="button" role="menuitem" onClick={() => { toggleTheme(); setMenuOpen(false) }}>
-                    <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
-                  </button>
-                  <Link href="/desk/users" role="menuitem" onClick={() => setMenuOpen(false)}>Manage users</Link>
-                  <button type="button" role="menuitem" onClick={() => void signOut()} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
-                </div>
-              )}
+      <div className="frame">
+        <header className="nav-wrap">
+          <nav className="island" aria-label="Desk navigation">
+            <Link href="/desk" className="brand" aria-label="BOA Accreditation desk home">
+              <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+              <span>Accred<br />desk</span>
+            </Link>
+            <div className="links" id="desk-links">
+              <span className="pip" aria-hidden="true" />
+              {NAV.map((item) => {
+                const active = item.id === activeNav
+                return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined}>{item.label}</Link>
+              })}
             </div>
-            <button type="button" className="burger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menu" aria-expanded={mobileOpen}><i /><i /></button>
+            <div className="nav-end">
+              <div ref={menuRef} className="profile-wrap">
+                <button type="button" className="av" onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Operator menu">
+                  {me?.display_name?.slice(0, 2).toUpperCase() ?? 'AV'}
+                </button>
+                {menuOpen && (
+                  <div role="menu" aria-label="Operator menu" className="profile-menu">
+                    <div className="profile-head"><strong>{me?.display_name ?? 'Loading…'}</strong><span>{me ? ROLE_LABEL[me.role] : ''}</span></div>
+                    <button type="button" role="menuitem" onClick={() => { toggleTheme(); setMenuOpen(false) }}>
+                      <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
+                    </button>
+                    <Link href="/desk/users" role="menuitem" onClick={() => setMenuOpen(false)}>Manage users</Link>
+                    <button type="button" role="menuitem" onClick={() => void signOut()} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+                  </div>
+                )}
+              </div>
+              <button type="button" className="burger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menu" aria-expanded={mobileOpen}><i /><i /></button>
+            </div>
+          </nav>
+          <div className="status">
+            <span className="live"><b />Live</span>
+            <span className="hide-s">Build 05–09 Oct · Show 10 Oct</span>
+            <span>{dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : 'Loading bands'}</span>
+            <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}</Link>
           </div>
-        </nav>
-        <div className="status">
-          <span className="live"><b />Live</span>
-          <span className="hide-s">Build 05–09 Oct · Show 10 Oct</span>
-          <span>{dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : 'Loading bands'}</span>
-          <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}</Link>
+        </header>
+        <div className="menu" aria-hidden={!mobileOpen}>
+          {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} style={{ '--i': index } as React.CSSProperties} onClick={() => setMobileOpen(false)}>{item.label}</Link>)}
         </div>
-      </header>
-      <div className="menu" aria-hidden={!mobileOpen}>
-        {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} style={{ '--i': index } as React.CSSProperties} onClick={() => setMobileOpen(false)}>{item.label}</Link>)}
+        {children}
+        <SiteFooter />
       </div>
-      <main>{children}</main>
-      <SiteFooter />
     </div>
   )
 }

@@ -725,6 +725,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-104 released 2026-09-20 (IST):** Control-room v2 body is data-backed and code gates pass, but test:visual measured 8.48%, 7.31%, 34.15%, 34.52% (desktop/mobile dark/light) versus <=0.8%; shared shell/frame mobile overflow and remaining pixel drift require follow-up.
 
+
+> **ACC-104 released 2026-09-20 (IST):** Shared frame and 390px overflow fixed; code gates pass, but control-room visual remains above threshold: 0.59% dark/web, 1.10% light/web, 1.37% dark/mobile, 1.98% light/mobile. Remaining drift is theme/count-up raster in the approved captures; no justified fix verified.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)

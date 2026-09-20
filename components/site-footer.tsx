@@ -9,6 +9,7 @@ export function SiteFooter() {
 
   return (
     <footer
+      className="site-footer"
       style={{
         borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))',
         padding: '22px 18px 30px',
