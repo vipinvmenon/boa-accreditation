@@ -540,3 +540,36 @@ The function is a `SECURITY DEFINER` token boundary and is executable only by
 `service_role`, matching `boa_acc_org_view` and the existing server-side route
 pattern. Unknown, revoked and expired tokens remain indistinguishable `P0002`
 not-found errors.
+
+## ADR-017 — v2 becomes the pixel contract; v1 remains the domain record
+
+**Accepted 20 Sep 2026.**
+
+`design/source/boa_design_v2.html` is the pixel contract for the redesign lane.
+`design/source/boa_design_body.html` and `boa_design_bundle.html` are frozen:
+they remain the authority for `TYPES`, `ALL_ZONES`, the eleven `PROP` colour
+literals, and the C8 two-layer colour disagreement. The token gate therefore
+has two deliberate sources: v2 for the CSS theme layer and frozen v1 for the
+domain/prop layer. `tests/unit/design-contract.test.ts` must continue to read
+v1 without churn.
+
+The v2 contract's AAA light-theme colour is an intentional amendment: the
+domain contract remains `TYPES.aaa.colourLight === '#2A2A33'`, even though v2's
+convenience `--ink` token is `#14141A`. The domain value is not reconciled to
+the surface token.
+
+The v2 `.tools` bar and `body.mob` device mock are preview furniture, not
+shipped UI. Capture uses the real 390px viewport and does not click the Mob
+preview control. The profile menu owns the shipped theme control. The v2
+container breakpoints at 1100px and 700px supersede v1's single 768px
+responsive rule.
+
+The reference artifact is made capturable offline: it uses the repository's
+self-hosted `@fontsource` binaries, a local inline SVG Phosphor Light set, and
+an explicit readiness hook. The CDN-versus-local capture measured 28 shots:
+four queue shots changed dimensions because the CDN capture did not load its
+remote font/icon dependencies; the other 24 shots differed by 71,546 pixels
+out of 39,110,080 (0.1829%). The CDN run's Anton probe reported unloaded
+faces, so this is evidence that the CDN source is not a valid capture baseline
+under the file-based harness, not a claim that the local assets are visually
+free. The local 28-shot capture is the accepted v2 reference.

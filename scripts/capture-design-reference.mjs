@@ -25,7 +25,7 @@ import { FONT_STABLE_ARGS } from './lib/browser.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(root, 'design/reference')
-const BUNDLE = pathToFileURL(resolve(root, 'design/source/boa_design_bundle.html')).href
+const BUNDLE = pathToFileURL(resolve(root, 'design/source/boa_design_v2.html')).href
 
 /** The design's own nav labels -> the slug we file the screenshot under. */
 const SCREENS = [
@@ -38,10 +38,10 @@ const SCREENS = [
   { label: 'Vehicle', slug: 'vehicle' },
 ]
 
-/** Viewports. `vp` is the design's own Web/Mob toggle; width is the real one. */
+/** Viewports. The v2 layout responds to the real viewport through containers. */
 const VIEWPORTS = [
-  { slug: 'web', vp: 'Web', width: 1360, height: 900 },
-  { slug: 'mob', vp: 'Mob', width: 390, height: 844 },
+  { slug: 'web', width: 1360, height: 900 },
+  { slug: 'mob', width: 390, height: 844 },
 ]
 
 const THEMES = ['dark', 'light']
@@ -100,15 +100,15 @@ for (const view of VIEWPORTS) {
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto(BUNDLE, { waitUntil: 'networkidle' })
 
-  // The bundle decodes ~4 MB of base64 and swaps the document. Wait for the
-  // real thing, not a timeout: a screenshot of the loader is a green gate that
-  // proves nothing.
-  await page.waitForFunction(() => !document.getElementById('__bundler_thumbnail'), { timeout: 30000 })
-  await page.waitForSelector('[data-screen-label]', { timeout: 30000 })
+  // Wait for the design's own readiness hook and an active screen, not a
+  // timeout: a screenshot of an incomplete render is a green gate that proves
+  // nothing. The v2 frame responds to the viewport; do not click its preview
+  // "Mob" control because that adds a device mock to the capture.
+  await page.waitForSelector('.screen.on[data-s]', { timeout: 30000 })
   await page.evaluate(() => document.fonts.ready)
+  await page.waitForSelector('[data-v2-ready="true"]', { state: 'attached', timeout: 30000 })
   await page.waitForTimeout(400)
-
-  await clickByText(page, view.vp)
+  await page.evaluate(() => document.body.classList.remove('mob'))
 
   // Settle the Anton bold question once, with evidence, on the first pass.
   if (!manifest.fontProbe) {
@@ -130,7 +130,7 @@ for (const view of VIEWPORTS) {
   for (const screen of SCREENS) {
     await clickByText(page, screen.label)
     const label = await page.evaluate(
-      () => document.querySelector('[data-screen-label]')?.getAttribute('data-screen-label') ?? null,
+      () => document.querySelector('.screen.on[data-s]')?.getAttribute('data-s') ?? null,
     )
 
     for (const theme of THEMES) {
@@ -138,14 +138,14 @@ for (const view of VIEWPORTS) {
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(150)
 
-      // Hide the shared shell for public screens (see PUBLIC_SCREENS above),
-      // restore it otherwise — the SPA keeps one page across every screen in
-      // this loop, so a hide from a previous iteration must not leak forward.
+      // Hide review furniture for every capture and hide desk chrome for
+      // public screens (see PUBLIC_SCREENS above). Restore both between SPA
+      // iterations so a previous screen cannot leak its presentation state.
       await page.evaluate((hide) => {
-        const chrome = [...document.querySelectorAll('div')].find(
-          (el) => getComputedStyle(el).position === 'sticky',
-        )
-        if (chrome) chrome.style.display = hide ? 'none' : ''
+        const nav = document.querySelector('.nav-wrap')
+        const tools = document.querySelector('.tools')
+        if (nav) nav.style.display = hide ? 'none' : ''
+        if (tools) tools.style.display = 'none'
       }, PUBLIC_SCREENS.has(screen.slug))
 
       const file = `${screen.slug}-${theme}-${view.slug}.png`

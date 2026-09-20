@@ -3193,6 +3193,28 @@ which is told to commit it first): the 19 Sep edits to
 `data/orgs-placeholder.csv`, `docs/ORG-IMPORT.md`, and untracked
 `design/proposals/`.
 
+### 20 Sep 2026 — ACC-100 v2 admitted as the pixel contract
+
+The preserved 19 Sep handoff changes are committed. `design/proposals/boa_design_v2.html`
+was moved to `design/source/boa_design_v2.html`; v2 now has self-hosted
+@fontsource faces, the local inline SVG icon set, and an explicit readiness
+hook. `scripts/capture-design-reference.mjs` captures all 28 references from
+v2, hides preview furniture, uses the real 390px viewport without clicking
+Mob, and hides desk chrome on Submission. ADR-017 records the v1 frozen
+domain/C8 split, the AAA light-theme amendment, and the capture decision.
+
+**Verified:** `corepack pnpm design:reference` — 28/28 references; the local
+Anton face loaded. CDN-versus-local measurement: 4 queue shots changed
+dimensions because remote dependencies did not load; the remaining 24 shots
+differed by 71,546 / 39,110,080 pixels (0.1829%). `corepack pnpm lint` is
+green; its existing three `<img>` warnings remain. `ReadLints` reports no
+errors in the changed files.
+
+**Still not true:** ACC-101 has not yet moved the token gate to v2; application
+screens are still v1 and no v2 primitive or shell conversion has been made.
+The physical gate rehearsal and human blockers remain open. `.playwright-mcp/`
+is local scratch and was not committed.
+
 ## Template for the next session update
 
 ```

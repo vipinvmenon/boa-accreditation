@@ -10,11 +10,11 @@ Read `docs/DESIGN-SYSTEM.md` before touching anything here.
 
 ## Transcribe, do not translate
 
-The design is 560 lines where every value is an inline `style` attribute. We
-**transcribe them verbatim**. No Tailwind, no CSS modules, no component
-abstraction over the design's own markup. It is repetitive on purpose: a shared
-utility would read better and would let the rendered result drift from the
-approved design without the diff showing it.
+The v2 design is the pixel contract. Its stylesheet is transcribed into the
+v2 primitive layer and its repeated visual patterns are represented by the
+approved shared primitives and inline icon component. No Tailwind or CSS
+modules. Keep the contract's values verbatim; abstractions must not change the
+rendered result.
 
 `app/globals.css` is the design's own `<helmet>` stylesheet and nothing else.
 
@@ -57,4 +57,5 @@ the `.diff.png` in `test-results/visual/` — do not regenerate the reference to
 make it pass.
 
 Responsive: the design's Web/Mob toggle is a review affordance and is **not**
-shipped. `mob ? A : B` becomes a media query at 768px.
+shipped. The v2 frame uses container queries at 1100px and 700px; capture the
+real 390px viewport without clicking the preview's Mob control.
