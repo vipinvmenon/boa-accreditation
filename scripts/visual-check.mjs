@@ -551,14 +551,23 @@ try {
         if (screen.data === 'desk') await installDeskFixtures(page, view.slug)
         await page.goto(base + route, { waitUntil: 'networkidle' })
         if (screen.slug === 'submission') {
-          // The approved artboard captures its illustrative vehicle example
-          // switched on. Exercise the real form so production has no fixture
-          // defaults or pre-assigned vehicle data.
-          await page.getByLabel('Full name').fill('Ranjith Kumar')
-          await page.getByLabel('Mobile').fill('+91 98861 04422')
-          await page.getByLabel('Role at the festival').fill('Stage tech')
+          // The approved artboard leaves the name, phone, and role at their
+          // placeholder state. It captures the illustrative vehicle example
+          // switched on, so exercise only that real interaction here.
+          await page.evaluate(() => {
+            const reveal = document.querySelector('.reveal')
+            if (!reveal) throw new Error('submission vehicle reveal is missing')
+            window.__visualRevealSettled = new Promise((resolve) => {
+              reveal.addEventListener('transitionend', (event) => {
+                if (event.propertyName === 'grid-template-rows') resolve()
+              }, { once: true })
+            })
+          })
           await page.getByRole('switch').click()
-          await page.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
+          await page.evaluate(() => window.__visualRevealSettled)
+          const vehicleField = page.getByLabel('Vehicle registration')
+          await vehicleField.fill('KA 05 MJ 8871')
+          await vehicleField.blur()
         }
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
