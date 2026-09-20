@@ -582,6 +582,12 @@ try {
         }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
         await page.evaluate(() => document.fonts.ready)
+        if (screen.slug === 'master') {
+          // Master data mounts the source-aligned .rv reveal sequence after
+          // the API response. Wait for its explicit readiness marker rather
+          // than sampling the 900ms production transition.
+          await page.waitForSelector('main[data-v2-ready="true"]', { state: 'attached', timeout: 30000 })
+        }
         // Filling inputs and clicking buttons (the gate/vehicle flows above)
         // can leave the page scrolled away from the top. A `fullPage`
         // screenshot resizes the viewport to the full document height without

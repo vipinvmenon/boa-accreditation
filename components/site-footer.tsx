@@ -25,7 +25,7 @@ export function SiteFooter() {
         color: 'var(--ink3,rgba(242,239,226,0.42))',
       }}
     >
-      <span>Not registered, not approved, not verified — not inside.</span>
+      <span>Not registered, not approved, not verified. Not inside.</span>
       <span style={{ color: p.gold }}>Artists handled at the hotel</span>
     </footer>
   )

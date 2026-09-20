@@ -16,6 +16,7 @@ export function MasterScreen() {
   const [rows, setRows] = useState<MasterRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [visualReady, setVisualReady] = useState(false)
   const rootRef = useRef<HTMLElement>(null)
   const bmsParam = searchParams.get('in_bms')
   const bmsFilter = bmsParam === 'true' || bmsParam === 'false' ? bmsParam : 'all'
@@ -63,22 +64,28 @@ export function MasterScreen() {
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
+    setVisualReady(false)
     const revealables = root.querySelectorAll<HTMLElement>('.rv')
+    const timer = window.setTimeout(() => setVisualReady(true), 1100)
     if (!('IntersectionObserver' in window)) {
       revealables.forEach((element) => element.classList.add('in'))
-      return
+    } else {
+      const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        entry.target.classList.add('in')
+        observer.unobserve(entry.target)
+      }), { threshold: 0.12 })
+      revealables.forEach((element) => observer.observe(element))
+      return () => {
+        observer.disconnect()
+        window.clearTimeout(timer)
+      }
     }
-    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-      if (!entry.isIntersecting) return
-      entry.target.classList.add('in')
-      observer.unobserve(entry.target)
-    }), { threshold: 0.12 })
-    revealables.forEach((element) => observer.observe(element))
-    return () => observer.disconnect()
+    return () => window.clearTimeout(timer)
   }, [rows.length, loading, error])
 
   return (
-    <main ref={rootRef}>
+    <main ref={rootRef} data-v2-ready={visualReady ? 'true' : 'false'}>
       <section className="head rv">
         <div>
           <span className="tag">Master list</span>
