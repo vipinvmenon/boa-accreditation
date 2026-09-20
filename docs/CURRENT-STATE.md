@@ -752,6 +752,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-105 released 2026-09-20 (IST):** v2 visual acceptance remains unmet after three source-aligned passes: latest fresh results 3.31%, 1.85%, 7.51%, 3.49%; proceeding to the next screen per user direction, with no references or masks changed.
 
+
+> **ACC-106 released 2026-09-20 (IST):** v2 visual acceptance remains unmet: dark/web 2.80%, light/web 0.20%, dark/mobile 5.96%, light/mobile 0.65%; implementation and code gates pass, proceeding to ACC-107 per user direction.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
