@@ -261,7 +261,7 @@ export function QueueScreen() {
                       <option value="crew">Working Crew</option>
                       <option value="stage">Stage</option>
                       <option value="aaa">AAA</option>
-                    </select>
+                    </select><i><Icon name="caret-down" /></i>
                   </label>
                   <span className={`st ${row.status === 'approved' ? 'ok' : row.status === 'rejected' ? 'no' : 'wait'}`}>{row.status === 'submitted' ? 'pending' : row.status}</span>
                   <div className="q-actions row">
