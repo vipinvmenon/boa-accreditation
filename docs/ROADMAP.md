@@ -316,10 +316,17 @@ org list wins: `task block` the redesign task with a reason and commit it.
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
 - [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
-      aeroplane-mode green and the precache count recorded. Presentation only —
-      no diff in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not
-      green and rehearsed by 2 Oct → revert and ship gate on
-      v1** · **CU** · due Thu 2 Oct
+      aeroplane-mode green and the precache count recorded. Post-`6820e49`
+      visual output is Gate **2.22/0.28/5.41/4.38%** and Vehicle
+      **10.06/10.68/47.38/46.99%** (dark/web, light/web, dark/mobile,
+      light/mobile); visual acceptance remains unmet. The implementation report
+      records typecheck, lint, test, build, and `test:e2e` **4/4** as passing,
+      with **59 precached assets**. Earlier Gate **6.31/6.16/70.85/71.05%**
+      and Vehicle **10.45/10.60/63.81/64.48%** values are stale pre-fix
+      measurements retained in `CURRENT-STATE.md`. Presentation only — no diff
+      in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not green
+      and rehearsed by 2 Oct → revert and ship gate on v1** · **CU** · due Thu
+      2 Oct
 - [x] **ACC-110** · Derive the six ungated screens (`orgs`, `aaa`, `devices`,
       `users`, `login`, `gate/setup`) plus `error`/`not-found` from the v2
       primitives. Not pixel-gated — nothing exists to gate

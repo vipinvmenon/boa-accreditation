@@ -851,6 +851,20 @@ Verified by attempting the thing, not by reading a grant table:
 > light/web, 3.52% dark/mobile, and 2.49% light/mobile**. Code gates were
 > passing; references and masks were unchanged. ACC-107 remains not done.
 
+> **ACC-109 follow-up 2026-09-20 (IST, after `6820e49`):** The implementation
+> report says `typecheck`, `lint`, `test`, and `build` passed, and
+> `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4**. The build-gate
+> output recorded **59 precached assets**: **3 routes, 29 scripts, 1 CSS,
+> 24 fonts, 1 WASM** (`public/gate/zxing_reader.wasm`). Available fresh visual
+> output measured Gate **2.22/0.28/5.41/4.38%** and Vehicle
+> **10.06/10.68/47.38/46.99%** (dark/web, light/web, dark/mobile,
+> light/mobile). All eight Gate/Vehicle comparisons still exceed the 0.8%
+> ceiling except Gate light/web. The earlier ACC-111 measurements of Gate
+> **6.31/6.16/70.85/71.05%** and Vehicle **10.45/10.60/63.81/64.48%** were
+> captured before `6820e49` and are retained as stale pre-fix history, not as
+> the current result. No references or masks were regenerated. ACC-109 remains
+> incomplete.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
