@@ -298,7 +298,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       (14 inline SVG glyphs, no CDN, no new package), `lib/use-reveal.ts`. No
       screen changes; `test:visual` must report the unchanged v1
       numbers · **CU** · due Tue 22
-- [~] **ACC-103** · Shared shell: nav island, sliding pip, status pill, `.av`
+- [x] **ACC-103** · Shared shell: nav island, sliding pip, status pill, `.av`
       profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
