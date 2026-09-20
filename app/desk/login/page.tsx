@@ -174,7 +174,8 @@ function DeskLoginForm() {
                 setResetSent(false)
                 setMode('forgot-password')
               }}
-              className="hov-text-grn"
+              className="linkbtn hov-text-grn"
+              style={{ minHeight: '44px' }}
             >
               Forgot password?
             </button>
@@ -215,7 +216,8 @@ function DeskLoginForm() {
                 setError(null)
                 setMode('sign-in')
               }}
-              className="hov-text-grn"
+              className="linkbtn hov-text-grn"
+              style={{ minHeight: '44px' }}
             >
               Back to sign in
             </button>

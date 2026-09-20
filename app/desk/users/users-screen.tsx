@@ -257,7 +257,7 @@ export function UsersScreen() {
               </button>
               {inviteMessage && (
                 <p
-                  role="status"
+                  role={inviteMessage.kind === 'error' ? 'alert' : 'status'}
                   className={inviteMessage.kind === 'error' ? 'utility-error' : 'utility-ok'}
                 >
                   {inviteMessage.text}

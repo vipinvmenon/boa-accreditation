@@ -362,7 +362,7 @@ export function OrgsScreen() {
                           {minting ? 'Minting…' : 'Mint invite link'}
                         </button>
                       </div>
-                      {mintError && <p style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{mintError}</p>}
+                      {mintError && <p role="alert" style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{mintError}</p>}
 
                       {justMinted && justMinted.orgId === org.id && (
                         <div
