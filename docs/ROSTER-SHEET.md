@@ -86,6 +86,7 @@ organisation names):
 |---|---|
 | `build-roster-workbook.gs` | The Apps Script, with the real organisations filled in |
 | `roster-template.csv` | Plain-CSV fallback, for an org that will not use Sheets |
+| `roster-template-HOW-TO.txt` | The fill rules, to send **with** the CSV |
 | `tabs.csv` | `org_name,quota,tab_name` — what the workbook *should* contain, for checking |
 
 It refuses, with the line number, on: an empty name, a quota outside 1–500, a
@@ -121,6 +122,22 @@ it again — only the missing tabs get built.
 Starting the whole workbook over is deliberately awkward: set
 `ALLOW_OVERWRITE = true` at the top of the script, run once, set it back. That
 flag is the only way to destroy a filled tab.
+
+### The standalone CSV template
+
+For an organisation that will not touch the workbook — an old hand with Excel, or
+someone on a bad connection — send `roster-template.csv` and
+`roster-template-HOW-TO.txt` together. The CSV is deliberately kept
+machine-clean: no comment lines, no title row, no merged cells, because the
+validator parses it directly. That is why the guidance is a separate file rather
+than a banner inside the sheet.
+
+It carries three example rows, the last of which has both optional columns empty
+— that is the one people get wrong. The HOW-TO opens by telling them to delete
+all three.
+
+A returned CSV goes through the same validator and the same loader as a tab
+exported from the workbook. There is one import path, not two.
 
 ---
 

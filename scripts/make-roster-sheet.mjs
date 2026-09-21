@@ -252,12 +252,66 @@ async function main() {
   await mkdir(outDir, { recursive: true })
   const gsOut = join(outDir, 'build-roster-workbook.gs')
   await writeFile(gsOut, head + middle + tail, 'utf8')
+  // The CSV stays strictly machine-clean — the validator parses it, so no
+  // comment lines, no blank leading rows, no merged title. The guidance an org
+  // needs therefore travels beside it, not inside it.
   const template = [
     COLUMNS.join(','),
     'Asha Rao,9876543210,Stage hand,KA01AB1234,Crew',
     'Imran Q,9812345678,Sound engineer,,Stage',
+    'Mary D,9800011122,Bar staff,,',
   ].join('\n') + '\n'
   await writeFile(join(outDir, 'roster-template.csv'), template, 'utf8')
+
+  const readme = `BANGALORE OPEN AIR 2026 - crew list
+===================================
+
+Fill in roster-template.csv, one row per person, and send it back.
+
+DELETE THE THREE EXAMPLE ROWS FIRST. They are there to show the format, not
+to be submitted. Keep the header row exactly as it is.
+
+THE FIVE COLUMNS
+  full_name       required  2-80 characters, as printed on the photo ID they
+                            will carry.
+  phone           required  TEN DIGITS ONLY - 9876543210.
+                            No +91, no spaces, no dashes, no brackets.
+                            A spreadsheet cell starting with "+" is treated as
+                            a formula and the number gets mangled.
+  role            required  2-60 characters. What they actually do:
+                            Rigger, Sound engineer, Bar staff, Driver.
+  vehicle_reg     optional  Only if they drive in. KA01AB1234, no spaces.
+                            Leave the cell empty otherwise.
+  requested_tier  optional  Which band they need. Leave blank if unsure -
+                            the desk decides.
+                            Crew | Stage | Photo | Eddie's Lounge | Promoters Lounge
+                            AAA and Artist are named lists approved separately
+                            and cannot be requested here.
+
+The last example row shows a person with no vehicle and no band preference:
+both optional cells are simply left empty.
+
+WHAT WE DO NOT COLLECT
+  No ID number. No Aadhaar. No photograph. No address. No date of birth.
+  Do not add a column for any of them - the import refuses any column it does
+  not recognise, and your whole file will bounce back.
+
+DO NOT add, rename, reorder or remove columns. Five columns, in this order.
+
+YOUR QUOTA
+  You have been told how many people your organisation may bring. Rows past
+  that number are refused on import. If you genuinely need more, ask the desk
+  before typing them in.
+
+SAVING
+  Keep it as CSV. If you open it in Excel or Google Sheets, format the phone
+  column as plain text before typing, or the leading digits can be eaten.
+
+DEADLINE
+  Bands are handed over at the gate from 4 October 2026. Someone not on this
+  list has no band.
+`
+  await writeFile(join(outDir, 'roster-template-HOW-TO.txt'), readme, 'utf8')
 
   const manifest = ['org_name,quota,tab_name']
     .concat(orgs.map((o) => {
@@ -277,6 +331,7 @@ async function main() {
     `  wrote    ${xlsxPath}\n` +
     `  wrote    ${gsOut}\n` +
     `  wrote    ${join(outDir, 'roster-template.csv')}\n` +
+    `  wrote    ${join(outDir, 'roster-template-HOW-TO.txt')}\n` +
     `  wrote    ${join(outDir, 'tabs.csv')}\n` +
     `\nNext: open a new Google Sheet, Extensions > Apps Script, paste in\n` +
     `${gsOut}, Save, then Run > buildWorkbook.\n` +
