@@ -197,3 +197,120 @@ export type DayValidity = keyof typeof DAY_VALIDITY
 export const QR_SCHEME = 'BOA26:'
 export const QR_DARK = '#0A0A0A'
 export const QR_LIGHT = '#FFFFFF'
+
+// ─────────────────────────────────────────────────────────────────────────
+// THE ACCREDITATION PACK (ADR-018) — the domain contract for tiers and zones.
+//
+// Everything below mirrors design/source/accreditation/access-matrix.json,
+// itself a transcription of the ten printed sheets beside it. It supersedes
+// the v1 TYPES / ALL_ZONES above ON VOCABULARY ONLY; those stay as the frozen
+// v1 record that tests/unit/design-contract.test.ts reads (ADR-017).
+//
+// tests/unit/accreditation-contract.test.ts proves this block, the JSON and
+// the 202609211010 migration seed agree cell for cell.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** The six zones, in the sheets' own "ZONE n OF 6" order. Order is load-bearing. */
+export const ZONES = [
+  { code: 'festival_area', label: 'Festival Area', labelKn: 'ಫೆಸ್ಟಿವಲ್ ಪ್ರದೇಶ', mapColour: 'green' },
+  { code: 'eddies_lounge', label: "Eddie's Lounge", labelKn: 'ಎಡ್ಡೀಸ್ ಲೌಂಜ್', mapColour: 'red' },
+  { code: 'promoters_lounge', label: 'Promoters Lounge', labelKn: 'ಪ್ರೊಮೋಟರ್ಸ್ ಲೌಂಜ್', mapColour: 'blue' },
+  { code: 'photo_pit', label: 'Photo Pit', labelKn: 'ಫೋಟೋ ಪಿಟ್', mapColour: 'yellow' },
+  { code: 'backstage', label: 'Backstage', labelKn: 'ಬ್ಯಾಕ್‌ಸ್ಟೇಜ್', mapColour: 'purple' },
+  { code: 'main_stage', label: 'Main Stage', labelKn: 'ಮುಖ್ಯ ವೇದಿಕೆ', mapColour: 'orange' },
+] as const
+export type ZoneCode = (typeof ZONES)[number]['code']
+export const ZONE_CODES = ZONES.map((z) => z.code) as unknown as readonly [ZoneCode, ...ZoneCode[]]
+
+/**
+ * The eight tiers, in the master sheet's "Where each band goes" order (most
+ * access to least). `artworkNo` is the printer's 01–08 numbering, NOT a display
+ * order. `printQty` null = the sheet says QTY TBC. Chip colours: Vipin, 21 Sep,
+ * "match the band" (ADR-018).
+ */
+export const TIERS = [
+  { code: 'aaa', label: 'AAA', band: 'Green', colour: '#39E639', colourLight: '#1E7A1E', printQty: 100, artworkNo: 4, requestable: false },
+  { code: 'artist', label: 'Artist', band: 'Magenta', colour: '#F0169A', colourLight: '#A50E69', printQty: 100, artworkNo: 6, requestable: false },
+  { code: 'stage', label: 'Stage', band: 'Orange', colour: '#F07A2A', colourLight: '#9C4A10', printQty: 50, artworkNo: 7, requestable: true },
+  { code: 'promoters_lounge', label: 'Promoters Lounge', band: 'Royal blue', colour: '#4371FF', colourLight: '#1F43C2', printQty: 50, artworkNo: 3, requestable: true },
+  { code: 'crew', label: 'Crew', band: 'Purple', colour: '#A64DFF', colourLight: '#6A1FB8', printQty: 500, artworkNo: 5, requestable: true },
+  { code: 'photo', label: 'Photo', band: 'Yellow', colour: '#F2D21C', colourLight: '#6E5E00', printQty: null, artworkNo: 8, requestable: true },
+  { code: 'eddies_lounge', label: "Eddie's Lounge", band: 'Red', colour: '#FF4A3D', colourLight: '#A81E14', printQty: 50, artworkNo: 2, requestable: true },
+  { code: 'general_admission', label: 'General Admission', band: 'Black / grey / white', colour: '#B8B8B8', colourLight: '#55555C', printQty: 3000, artworkNo: 1, requestable: false },
+] as const
+export type TierCode = (typeof TIERS)[number]['code']
+export type Tier = (typeof TIERS)[number]
+export const TIER_CODES = TIERS.map((t) => t.code) as unknown as readonly [TierCode, ...TierCode[]]
+
+export type ZoneAccess = {
+  zone: ZoneCode
+  tier: TierCode
+  requiresPhotoId: boolean
+  /** Asia/Kolkata wall-clock 'HH:MM', or null for all day. */
+  fromLocalTime: string | null
+  toLocalTime: string | null
+}
+
+/** One row per (zone, tier) the pack ALLOWS. Absence is a turn-away. */
+export const ZONE_ACCESS: ReadonlyArray<ZoneAccess> = [
+  { zone: 'festival_area', tier: 'general_admission', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'eddies_lounge', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'promoters_lounge', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'aaa', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'crew', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'artist', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'stage', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'festival_area', tier: 'photo', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+
+  { zone: 'eddies_lounge', tier: 'eddies_lounge', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+  { zone: 'eddies_lounge', tier: 'artist', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+  { zone: 'eddies_lounge', tier: 'aaa', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+
+  { zone: 'promoters_lounge', tier: 'promoters_lounge', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+  { zone: 'promoters_lounge', tier: 'artist', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+  { zone: 'promoters_lounge', tier: 'aaa', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+
+  { zone: 'photo_pit', tier: 'photo', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'photo_pit', tier: 'crew', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'photo_pit', tier: 'stage', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'photo_pit', tier: 'aaa', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'photo_pit', tier: 'artist', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+
+  { zone: 'backstage', tier: 'aaa', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'backstage', tier: 'artist', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+  { zone: 'backstage', tier: 'stage', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'backstage', tier: 'promoters_lounge', requiresPhotoId: true, fromLocalTime: '22:00', toLocalTime: null },
+
+  { zone: 'main_stage', tier: 'aaa', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+  { zone: 'main_stage', tier: 'artist', requiresPhotoId: true, fromLocalTime: null, toLocalTime: null },
+  { zone: 'main_stage', tier: 'stage', requiresPhotoId: false, fromLocalTime: null, toLocalTime: null },
+]
+
+export function tier(code: TierCode): Tier {
+  const t = TIERS.find((x) => x.code === code)
+  if (!t) throw new Error(`unknown tier ${code}`)
+  return t
+}
+
+export function tierColour(code: TierCode, theme: Theme): string {
+  const t = tier(code)
+  return theme === 'dark' ? t.colour : t.colourLight
+}
+
+/**
+ * A tier's zone strip: all six zones in sheet order, each marked held or not,
+ * with the photo-ID flag and time window where the pack prints them.
+ */
+export function zoneStrip(code: TierCode) {
+  return ZONES.map((z) => {
+    const row = ZONE_ACCESS.find((a) => a.zone === z.code && a.tier === code)
+    return {
+      zone: z.code,
+      label: z.label,
+      held: Boolean(row),
+      requiresPhotoId: row?.requiresPhotoId ?? false,
+      fromLocalTime: row?.fromLocalTime ?? null,
+      text: row ? z.label : `—— ${z.label}`,
+    }
+  })
+}

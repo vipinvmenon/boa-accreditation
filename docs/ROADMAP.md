@@ -370,7 +370,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       reseed `boa_acc_type`. Acceptance: `check:sql` + `test:db` green;
       `db:state` shows 6 zones, 8 types, 26 access rows; `anon` still holds zero
       grants, proven in `privileges.test.sql` · **C** · due Tue 23 Sep
-- [ ] **ACC-114** · `lib/design.ts` + the Zod mirrors + a new
+- [x] **ACC-114** · `lib/design.ts` + the Zod mirrors + a new
       `accreditation-contract.test.ts`. Acceptance: typecheck, lint, test green;
       the contract test fails when any single matrix cell is mutated, proven by
       running it · **C** · due Wed 24 Sep

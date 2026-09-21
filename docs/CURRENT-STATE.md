@@ -948,6 +948,24 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — ACC-114 done: the pack's client mirrors and contract test
+
+`lib/design.ts` gains `ZONES`, `TIERS`, `ZONE_ACCESS`, `tier()`,
+`tierColour()`, `zoneStrip()`; `lib/schemas/accreditation.ts` builds
+`tierCodeSchema` / `zoneCodeSchema` / `zoneAccessRowSchema` from them. The v1
+`TYPES` / `ALL_ZONES` stay as the frozen v1 record (ADR-017) and the UI still
+uses them until ACC-115. The existing Zod enums in `lib/schemas/{gate,pass,
+queue,org}.ts` and `gate/db.ts` are **still the three old codes**. That is
+safe: the desk API refuses the five new codes, so nobody can be approved into
+a tier the gate cannot parse. ACC-115 widens them together with the screens.
+
+`tests/unit/accreditation-contract.test.ts` (14 tests) proves JSON ↔
+`lib/design.ts` ↔ migration seed agree on every zone, tier, colour, quantity
+and all 26 access cells. **Mutation-tested by running it:** flipping one photo-ID
+flag in the JSON (2 fail), moving the 22:00 window in `lib/design.ts` (2 fail),
+and swapping one tier in the SQL seed (1 fails); all restored, 14/14 green.
+
+
 ### 21 Sep 2026 — ACC-113 done: the pack is in the production database
 
 Two migrations, **applied to production on Vipin's explicit approval** (one
