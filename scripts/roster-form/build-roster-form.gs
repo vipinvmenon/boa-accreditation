@@ -51,8 +51,9 @@ var Q = {
   VEHICLE: 'Vehicle registration',
 };
 
-/** As given by Salman, 21 Sep 2026. Closed list — there is deliberately no
- *  "Other". Add a type here, not in the form editor, so it stays recorded. */
+/** As given by Salman, 21 Sep 2026, plus an "Other" write-in (Vipin, same day)
+ *  for anything the list does not cover. Add a type here, not in the form
+ *  editor, so it stays recorded. */
 var CREW_TYPES = [
   'Security',
   'Bouncer',
@@ -135,11 +136,18 @@ function buildRosterForm() {
     .setRequired(true);
 
   // 4. Crew type — the organisation knows this; the desk maps it to a band.
+  // Multiple choice, not a dropdown: Google Forms only offers a write-in
+  // "Other" on multiple-choice questions. Whatever is typed there lands in the
+  // response sheet as the crew type itself.
   form
-    .addListItem()
+    .addMultipleChoiceItem()
     .setTitle(Q.CREW_TYPE)
-    .setHelpText('What they will be doing. The accreditation desk decides the band from this.')
+    .setHelpText(
+      'What they will be doing. The accreditation desk decides the band from this. ' +
+        'If none fits, choose Other and type it in.'
+    )
     .setChoiceValues(CREW_TYPES)
+    .showOtherOption(true)
     .setRequired(true);
 
   // 5. Job title — optional detail within the crew type.

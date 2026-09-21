@@ -20,6 +20,7 @@ type Item = {
   required?: boolean
   choices?: string[]
   pattern?: string
+  other?: boolean
 }
 
 const source = readFileSync(
@@ -50,6 +51,7 @@ function run(orgs?: string[]) {
       setRequired: (r: boolean) => ((item.required = r), b),
       setChoiceValues: (c: string[]) => ((item.choices = [...c]), b),
       setValidation: (v: { pattern: string }) => ((item.pattern = v.pattern), b),
+      showOtherOption: (o: boolean) => ((item.other = o), b),
     }
     return b
   }
@@ -126,9 +128,11 @@ describe('roster form', () => {
     expect(settings.collectEmail).toBe(false)
   })
 
-  it('offers Salman\'s crew types as a closed dropdown, with no "Other"', () => {
+  it('offers Salman\'s crew types plus a write-in "Other"', () => {
     const crew = run().items.find((i) => i.title === 'Crew type')!
-    expect(crew.kind).toBe('list')
+    // Multiple choice, because Google Forms only allows a write-in Other there.
+    expect(crew.kind).toBe('choice')
+    expect(crew.other).toBe(true)
     expect(crew.required).toBe(true)
     expect(crew.choices).toEqual([
       'Security',

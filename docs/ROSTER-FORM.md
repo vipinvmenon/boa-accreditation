@@ -41,7 +41,7 @@ whenever needed.
 | 1 | Organisation | dropdown, or text | yes | Dropdown once `ORGS` is filled in (ACC-030a); free text until then |
 | 2 | Full name | text | yes | 2–80 characters, as on their photo ID |
 | 3 | Mobile number | text | yes | 10 digits starting 6–9, no `+91`. The importer adds `+91` |
-| 4 | Crew type | dropdown | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor |
+| 4 | Crew type | multiple choice + Other | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor · **Other (write-in)** |
 | 5 | Job title | text | no | 2–60 characters |
 | 6 | Days on site | single choice | yes | Build days only (5–9 Oct) · Show day only (10 Oct) · Both build and show |
 | 7 | Vehicle registration | text | no | e.g. `KA01AB1234`; lower case and spaces accepted, normalised on import |
@@ -60,10 +60,23 @@ approval**, which is where the schema already puts that decision
 (`boa_acc_person.type_code` is set only by `boa_acc_decide`). Non-negotiable #3
 is untouched.
 
-The crew type list is Salman's, closed, with no "Other". Anyone who fits none
-of them cannot be submitted — deliberate, so the list stays the list. Change it
-in `CREW_TYPES` in the script, not in the form editor, so the change is
-recorded.
+The crew type list is Salman's, plus a write-in **Other** added by Vipin on
+21 Sep so nobody who falls outside the list is blocked from being submitted.
+
+It is a multiple-choice question rather than a dropdown for exactly that
+reason: Google Forms only offers a write-in "Other" on multiple choice. Whatever
+is typed lands in the response sheet as the crew type itself — there is no
+separate "Other" column.
+
+Consequences for the desk and the importer:
+
+- A write-in crew type has no band mapping. Those rows need a person to decide.
+- The form cannot validate write-in text. It becomes the role text when there is
+  no job title, and the database limits role text to 2–60 characters, so the
+  importer must refuse and report anything outside that rather than truncate it.
+
+Change the list in `CREW_TYPES` in the script, not in the form editor, so the
+change is recorded.
 
 **Open:** the desk needs a crew type → band mapping to approve quickly. That is
 an operational call for Salman, not something to infer. Until it exists,
