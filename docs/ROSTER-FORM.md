@@ -61,7 +61,7 @@ whenever needed.
 |---|---|---|---|---|
 | 1 | Organisation | dropdown, or text | yes | Dropdown once `ORGS` is filled in (ACC-030a); free text until then |
 | 2 | Full name | text | yes | 2–80 characters, as on their photo ID |
-| 3 | Mobile number | text | yes | 10 digits starting 6–9, no `+91`. The importer adds `+91` |
+| 3 | WhatsApp number | text | yes | 10 digits starting 6–9, no `+91`. The importer adds `+91`. Renamed from "Mobile number" by Vipin, 21 Sep |
 | 4 | Crew type | multiple choice + Other | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor · **Other (write-in)** |
 | 5 | Job title | text | no | 2–60 characters |
 | 6 | Days on site | single choice | yes | Build days only (5–9 Oct) · Show day only (10 Oct) · Both build and show |
@@ -117,7 +117,7 @@ Google names each response column after its question title. The importer
 (ACC-117) reads those columns by name:
 
 ```
-Timestamp, Organisation, Full name, Mobile number, Crew type, Job title,
+Timestamp, Organisation, Full name, WhatsApp number, Crew type, Job title,
 Days on site, Loading vehicle registration
 ```
 

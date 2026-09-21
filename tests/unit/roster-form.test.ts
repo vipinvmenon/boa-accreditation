@@ -177,7 +177,7 @@ const DB_PLATE = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/
 const TITLES = [
   'Organisation',
   'Full name',
-  'Mobile number',
+  'WhatsApp number',
   'Crew type',
   'Job title',
   'Days on site',
@@ -270,7 +270,8 @@ describe('roster form — one stable link', () => {
     const w = makeWorld()
     // The form as the earlier script built it: old vehicle title.
     const old = w.newForm()
-    for (const t of ['Organisation', 'Full name', 'Mobile number']) old.addTextItem().setTitle(t)
+    for (const t of ['Organisation', 'Full name']) old.addTextItem().setTitle(t)
+    const phone = old.addTextItem().setTitle('Mobile number')
     old.addMultipleChoiceItem().setTitle('Crew type')
     old.addTextItem().setTitle('Job title')
     old.addMultipleChoiceItem().setTitle('Days on site')
@@ -282,6 +283,7 @@ describe('roster form — one stable link', () => {
     expect(onlyForm(w)).toBe(old)
     expect(w.sheets).toHaveLength(0) // kept the linked sheet
     expect(vehicle.title).toBe('Loading vehicle registration') // same item, renamed
+    expect(phone.title).toBe('WhatsApp number') // same item, renamed
     expect(old.items.map((i) => i.title)).toEqual(TITLES)
   })
 
@@ -339,7 +341,7 @@ describe('roster form — patterns agree with the database', () => {
   }
 
   it('accepts only phones the database will accept once +91 is added', () => {
-    const p = patterns()('Mobile number')
+    const p = patterns()('WhatsApp number')
     for (const ok of ['9876543210', '6000000000']) {
       expect(p.test(ok)).toBe(true)
       expect(DB_PHONE.test(normPhone(ok))).toBe(true)

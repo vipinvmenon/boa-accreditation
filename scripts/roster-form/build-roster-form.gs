@@ -57,7 +57,7 @@ var SHEET_TITLE = 'BOA 2026 — Crew roster (form responses)';
 var Q = {
   ORG: 'Organisation',
   NAME: 'Full name',
-  PHONE: 'Mobile number',
+  PHONE: 'WhatsApp number',
   CREW_TYPE: 'Crew type',
   JOB: 'Job title',
   DAYS: 'Days on site',
@@ -114,8 +114,10 @@ function questionSpecs_() {
       pattern: '^.{2,80}$', patternHelp: 'Between 2 and 80 characters.',
     },
     {
-      // Ten digits only. The importer adds +91.
+      // Ten digits only. The importer adds +91. Renamed from "Mobile number" by
+      // Vipin, 21 Sep; the former titles are adopted so the rename is in place.
       key: 'PHONE', type: 'TEXT', title: Q.PHONE, required: true,
+      legacyTitles: ['Mobile number', 'WhatsApp Number'],
       help: '10 digits, no +91, no spaces. Example: 9876543210',
       pattern: '^[6-9][0-9]{9}$',
       patternHelp: 'Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9. No +91, no spaces.',
