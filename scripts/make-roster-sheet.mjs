@@ -29,7 +29,7 @@ const END = '// ─────────────────────�
 
 /** The five columns an organisation fills. Must stay in step with COLUMNS in
  *  the .gs and with lib/schemas/submission.ts. */
-const COLUMNS = ['full_name', 'phone', 'role', 'vehicle_reg', 'requested_tier']
+const COLUMNS = ['full_name', 'phone', 'role', 'vehicle_reg', 'requested_tier', 'days_needed']
 
 /** Headings, widths and layout MUST match build-roster-workbook.gs, because its
  *  exportAllTabsToCsv() reads from FIRST_DATA_ROW with this column order. */
@@ -39,24 +39,32 @@ const HEADINGS = [
   ['Role / job *', 26],
   ['Vehicle reg (if any)', 20],
   ['Band needed', 22],
+  ['Days needed', 18],
 ]
 const HEADER_ROW = 4
 const FIRST_DATA_ROW = 5
 
 const REQUESTABLE_TIERS = ['Crew', 'Stage', 'Photo', "Eddie's Lounge", 'Promoters Lounge']
 
+/** Mirrors the boa_acc_day_validity enum (build / show / build_show). A person
+ *  cannot be approved without one — see the pass_only_when_approved CHECK. */
+const DAY_CHOICES = ['Build', 'Show', 'Both']
+
 const RULES = [
   ['BANGALORE OPEN AIR 2026 — crew accreditation', STYLE.TITLE],
   ['', 0],
   ["Find your organisation's tab along the bottom. Fill in one row per person. That is all.", 0],
   ['', 0],
-  ['THE FIVE COLUMNS', STYLE.RULE_H],
+  ['THE COLUMNS   (* = required)', STYLE.RULE_H],
   ['Full name *          As it appears on the photo ID they will carry. 2-80 characters.', 0],
   ['Phone (10 digits) *  Ten digits only - 9876543210. No +91, no spaces, no dashes.', 0],
   ['                     A cell starting with "+" is read as a formula and gets mangled.', 0],
   ['Role / job *         What they actually do. Rigger, Sound engineer, Bar staff, Driver.', 0],
   ['Vehicle reg          Only if they drive in. KA01AB1234. Leave blank otherwise.', 0],
   ['Band needed          Optional. If you leave it blank the desk decides.', 0],
+  ['Days needed *        Build, Show or Both. Build = 5-9 Oct load-in,', 0],
+  ['                     Show = 10 Oct. Get this right: a Show band does not', 0],
+  ['                     open the gate during build, and we cannot guess it.', 0],
   ['', 0],
   ['WHAT WE DO NOT COLLECT', STYLE.RULE_H],
   ['No ID number. No Aadhaar. No photograph. No address. No date of birth.', STYLE.RULE_WARN],
@@ -90,7 +98,7 @@ function rulesSheet() {
   }
 }
 
-function orgSheet(org, name) {
+function orgSheet(org, name, lean) {
   const lastCol = HEADINGS.length
   const lastDataRow = FIRST_DATA_ROW + org.quota - 1
   const nameCol = colLetter(1)
@@ -111,7 +119,7 @@ function orgSheet(org, name) {
     }],
   })
 
-  rows.push({
+  if (!lean) rows.push({
     r: 3,
     height: 28,
     cells: [{
@@ -135,7 +143,7 @@ function orgSheet(org, name) {
   // file, and this workbook has to travel to Drive as base64 in one piece.
   // The Apps Script build keeps the grey band; here the counter going negative
   // is the signal, plus the warning in row 3.
-  for (let i = 0; i < org.quota; i += 1) {
+  for (let i = 0; lean ? i < 1 : i < org.quota; i += 1) {
     rows.push({
       r: FIRST_DATA_ROW + i,
       s: STYLE.TEXT,
@@ -152,15 +160,22 @@ function orgSheet(org, name) {
     freezeRow: HEADER_ROW,
     merges: [`A1:${colLetter(lastCol)}1`, `A2:${colLetter(lastCol)}2`, `A3:${colLetter(lastCol)}3`],
     rows,
-    validations: [{
-      ref: `${colLetter(5)}${FIRST_DATA_ROW}:${colLetter(5)}${lastDataRow}`,
-      values: REQUESTABLE_TIERS,
-      help: 'Crew, Stage, Photo, Eddie\'s Lounge or Promoters Lounge. Blank is fine.',
-    }],
+    validations: [
+      {
+        ref: `${colLetter(5)}${FIRST_DATA_ROW}:${colLetter(5)}${lastDataRow}`,
+        values: REQUESTABLE_TIERS,
+        help: 'Crew, Stage, Photo, Eddie\'s Lounge or Promoters Lounge. Blank is fine.',
+      },
+      {
+        ref: `${colLetter(6)}${FIRST_DATA_ROW}:${colLetter(6)}${lastDataRow}`,
+        values: DAY_CHOICES,
+        help: 'Build = 5-9 Oct load-in only. Show = 10 Oct only. Both = all of it.',
+      },
+    ],
   }
 }
 
-function buildWorkbook(orgs) {
+function buildWorkbook(orgs, lean) {
   const taken = new Set(['Rules'])
   const truncated = []
   const sheets = [rulesSheet()]
@@ -168,7 +183,7 @@ function buildWorkbook(orgs) {
   for (const org of orgs) {
     const name = sheetName(org.name, taken)
     if (name !== org.name) truncated.push([org.name, name])
-    sheets.push(orgSheet(org, name))
+    sheets.push(orgSheet(org, name, lean))
   }
 
   return { xlsx: buildXlsx(sheets), truncated }
@@ -257,9 +272,9 @@ async function main() {
   // needs therefore travels beside it, not inside it.
   const template = [
     COLUMNS.join(','),
-    'Asha Rao,9876543210,Stage hand,KA01AB1234,Crew',
-    'Imran Q,9812345678,Sound engineer,,Stage',
-    'Mary D,9800011122,Bar staff,,',
+    'Asha Rao,9876543210,Stage hand,KA01AB1234,Crew,Both',
+    'Imran Q,9812345678,Sound engineer,,Stage,Build',
+    'Mary D,9800011122,Bar staff,,,Show',
   ].join('\n') + '\n'
   await writeFile(join(outDir, 'roster-template.csv'), template, 'utf8')
 
@@ -271,7 +286,7 @@ Fill in roster-template.csv, one row per person, and send it back.
 DELETE THE THREE EXAMPLE ROWS FIRST. They are there to show the format, not
 to be submitted. Keep the header row exactly as it is.
 
-THE FIVE COLUMNS
+THE COLUMNS  (* = required)
   full_name       required  2-80 characters, as printed on the photo ID they
                             will carry.
   phone           required  TEN DIGITS ONLY - 9876543210.
@@ -287,9 +302,17 @@ THE FIVE COLUMNS
                             Crew | Stage | Photo | Eddie's Lounge | Promoters Lounge
                             AAA and Artist are named lists approved separately
                             and cannot be requested here.
+  days_needed     required  Which days they are on site.
+                            Build | Show | Both
+                            Build = 5-9 October load-in only.
+                            Show  = 10 October only.
+                            Both  = load-in and show day.
+                            Get this right: a Show band does not open the gate
+                            during build, and we cannot guess it for you.
 
 The last example row shows a person with no vehicle and no band preference:
-both optional cells are simply left empty.
+both optional cells are simply left empty. Note that days_needed is still
+filled in on every row - it is not optional.
 
 WHAT WE DO NOT COLLECT
   No ID number. No Aadhaar. No photograph. No address. No date of birth.
@@ -322,13 +345,21 @@ DEADLINE
     .join('\n') + '\n'
   await writeFile(join(outDir, 'tabs.csv'), manifest, 'utf8')
 
-  const { xlsx, truncated } = buildWorkbook(orgs)
+  const { xlsx, truncated } = buildWorkbook(orgs, false)
   const xlsxPath = join(outDir, 'boa-2026-rosters.xlsx')
   await writeFile(xlsxPath, xlsx)
+
+  // A stripped copy, small enough to travel as base64 through an API that only
+  // accepts inline content. Same tabs, same columns, same dropdown; without the
+  // per-tab prose (it is on the Rules tab) and the pre-created blank rows.
+  const lean = buildWorkbook(orgs, true)
+  const leanPath = join(outDir, 'boa-2026-rosters-lean.xlsx')
+  await writeFile(leanPath, lean.xlsx)
 
   process.stdout.write(
     `make-roster-sheet: ${orgs.length} organisations, ${total} places total\n` +
     `  wrote    ${xlsxPath}\n` +
+    `  wrote    ${leanPath}\n` +
     `  wrote    ${gsOut}\n` +
     `  wrote    ${join(outDir, 'roster-template.csv')}\n` +
     `  wrote    ${join(outDir, 'roster-template-HOW-TO.txt')}\n` +

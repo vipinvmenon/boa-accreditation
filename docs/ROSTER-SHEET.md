@@ -34,7 +34,7 @@ Practical consequences:
 
 ## What we collect, and what we never collect
 
-Five columns. That is the whole contract.
+Six columns. That is the whole contract.
 
 | Column | Required | Rule |
 |---|---|---|
@@ -43,6 +43,7 @@ Five columns. That is the whole contract.
 | `role` | yes | 2–60 characters. What they actually do: Rigger, Sound engineer, Bar staff |
 | `vehicle_reg` | no | Only if they drive in. `KA01AB1234`, no spaces |
 | `requested_tier` | no | Advisory. Crew · Stage · Photo · Eddie's Lounge · Promoters Lounge |
+| `days_needed` | **yes** | Build · Show · Both. Build = 5–9 Oct load-in, Show = 10 Oct |
 
 **Never**: ID number, Aadhaar, photograph, address, date of birth. That is
 non-negotiable #9, and it is enforced mechanically — the validator refuses any
@@ -57,6 +58,26 @@ A Google Sheets cell whose content starts with `+` is parsed as a **formula**.
 you find out at the gate. Ten digits in a plain-text column survives the round
 trip. The loader prepends `+91` on import, so what reaches the database is still
 the `^\+91[6-9][0-9]{9}$` the schema requires.
+
+### Why `days_needed` is required
+
+`boa_acc_person`'s own CHECK refuses an approval without it:
+
+```sql
+(status = 'approved') = (type_code    is not null) and
+(status = 'approved') = (day_validity is not null)
+```
+
+Nobody can be approved without a band tier **and** a day validity. Bulk approval
+takes one validity for a whole organisation —
+`boa_acc_approve_org(p_org_id, p_type_code, p_day_validity)` — so an org with
+riggers on build and bar staff on show day gets one blanket answer unless the
+sheet says otherwise. Either show-day staff get bands valid during load-in, or
+the desk opens every row by hand.
+
+The organisation knows; the desk is guessing. So the sheet asks.
+
+It is not personal data, so non-negotiable #9 is untouched.
 
 ### `requested_tier` is advisory
 
@@ -85,6 +106,7 @@ organisation names):
 | File | What it is |
 |---|---|
 | `build-roster-workbook.gs` | The Apps Script, with the real organisations filled in |
+| `boa-2026-rosters-lean.xlsx` | The same workbook stripped for upload over an API that only takes inline content |
 | `roster-template.csv` | Plain-CSV fallback, for an org that will not use Sheets |
 | `roster-template-HOW-TO.txt` | The fill rules, to send **with** the CSV |
 | `tabs.csv` | `org_name,quota,tab_name` — what the workbook *should* contain, for checking |
@@ -132,8 +154,8 @@ machine-clean: no comment lines, no title row, no merged cells, because the
 validator parses it directly. That is why the guidance is a separate file rather
 than a banner inside the sheet.
 
-It carries three example rows, the last of which has both optional columns empty
-— that is the one people get wrong. The HOW-TO opens by telling them to delete
+It carries three example rows, the last of which has both *optional* columns
+empty while still filling `days_needed` — that is the one people get wrong. The HOW-TO opens by telling them to delete
 all three.
 
 A returned CSV goes through the same validator and the same loader as a tab

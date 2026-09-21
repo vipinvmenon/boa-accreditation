@@ -43,10 +43,15 @@ var COLUMNS = [
   { key: 'role',           head: 'Role / job',           width: 200, required: true  },
   { key: 'vehicle_reg',    head: 'Vehicle reg (if any)', width: 160, required: false },
   { key: 'requested_tier', head: 'Band needed',          width: 170, required: false },
+  { key: 'days_needed',    head: 'Days needed',          width: 140, required: true  },
 ];
 
 /** Bands an organisation may ask for. AAA, Artist and General Admission are
  *  deliberately absent: they are not requestable on this form. */
+/** Mirrors the boa_acc_day_validity enum. A person cannot be approved without
+ *  one, so unlike the band this column is required. */
+var DAY_CHOICES = ['Build', 'Show', 'Both'];
+
 var REQUESTABLE_TIERS = [
   'Crew',
   'Stage',
@@ -279,55 +284,77 @@ function applyValidation(sh, quota) {
     .setHelpText('Which band this person needs. Leave blank if you are not sure — the desk decides.')
     .build();
   sh.getRange(FIRST_DATA_ROW, 5, rows, 1).setDataValidation(tier);
+
+  var days = SpreadsheetApp.newDataValidation()
+    .requireValueInList(DAY_CHOICES, true)
+    .setAllowInvalid(false)
+    .setHelpText('Build = 5–9 Oct load-in only. Show = 10 Oct only. Both = all of it. Required.')
+    .build();
+  sh.getRange(FIRST_DATA_ROW, 6, rows, 1).setDataValidation(days);
 }
 
 function buildRulesTab(ss) {
   var sh = resetSheet(ss, 'Rules');
   sh.setColumnWidth(1, 900);
 
+  // Each line carries its own style. Deriving the formatting from the content
+  // is the point: an earlier version hardcoded the heading row numbers, so
+  // inserting a line silently moved every heading onto the wrong row.
+  var H = 'heading', W = 'warn', T = 'title';
   var lines = [
-    ['BANGALORE OPEN AIR 2026 — crew accreditation'],
+    ['BANGALORE OPEN AIR 2026 — crew accreditation', T],
     [''],
     ['Find your organisation\'s tab along the bottom. Fill in one row per person. That is all.'],
     [''],
-    ['THE FIVE COLUMNS'],
+    ['THE COLUMNS   (* = required)', H],
     ['Full name *          As it appears on the photo ID they will carry. 2–80 characters.'],
     ['Phone (10 digits) *  Ten digits only — 9876543210. No +91, no spaces, no dashes.'],
     ['                     A cell starting with "+" is read as a formula by Sheets and gets mangled.'],
     ['Role / job *         What they actually do. Rigger, Sound engineer, Bar staff, Driver.'],
     ['Vehicle reg          Only if they drive in. KA01AB1234. Leave blank otherwise.'],
     ['Band needed          Optional. If you leave it blank the desk decides.'],
+    ['Days needed *        Build, Show or Both. Build = 5–9 Oct load-in, Show = 10 Oct.'],
+    ['                     Get this right: a Show band does not open the gate during'],
+    ['                     build, and we cannot guess it for you.'],
     [''],
-    ['WHAT WE DO NOT COLLECT'],
-    ['No ID number. No Aadhaar. No photograph. No address. No date of birth.'],
-    ['Do not add a column for any of them. The importer refuses unknown columns outright.'],
+    ['WHAT WE DO NOT COLLECT', H],
+    ['No ID number. No Aadhaar. No photograph. No address. No date of birth.', W],
+    ['Do not add a column for any of them. The importer refuses unknown columns outright.', W],
     [''],
-    ['YOUR QUOTA'],
+    ['YOUR QUOTA', H],
     ['The grey line on your tab is your quota. Rows below it will be refused on import.'],
     ['If you genuinely need more people, ask the desk before typing them in.'],
     [''],
-    ['BANDS YOU CAN ASK FOR'],
+    ['BANDS YOU CAN ASK FOR', H],
     ['Crew · Stage · Photo · Eddie\'s Lounge · Promoters Lounge'],
     ['AAA and Artist are named lists approved separately — they are not on this form.'],
     [''],
-    ['WHO CAN SEE THIS'],
-    ['Everyone with edit access to this workbook can read every tab, including other'],
-    ['organisations\' names and phone numbers. Google Sheets cannot hide a tab from an editor.'],
+    ['WHO CAN SEE THIS', H],
+    ['Everyone with edit access to this workbook can read every tab, including other', W],
+    ['organisations\' names and phone numbers. Google Sheets cannot hide a tab from an editor.', W],
     [''],
-    ['DEADLINE'],
+    ['DEADLINE', H],
     ['Bands are handed over at the gate from 4 October. A person not on this sheet has no band.'],
   ];
 
-  sh.getRange(1, 1, lines.length, 1).setValues(lines).setWrap(false);
-  sh.getRange(1, 1).setFontSize(15).setFontWeight('bold').setFontColor(PAPER).setBackground(INK);
-  sh.setRowHeight(1, 34);
+  var values = [];
+  for (var i = 0; i < lines.length; i++) values.push([lines[i][0]]);
+  sh.getRange(1, 1, values.length, 1).setValues(values).setWrap(false);
 
-  var headings = [5, 13, 17, 21, 25, 29];
-  for (var i = 0; i < headings.length; i++) {
-    sh.getRange(headings[i], 1).setFontWeight('bold').setFontColor(ACCENT);
+  for (var j = 0; j < lines.length; j++) {
+    var kind = lines[j][1];
+    if (!kind) continue;
+    var cell = sh.getRange(j + 1, 1);
+    if (kind === T) {
+      cell.setFontSize(15).setFontWeight('bold').setFontColor(PAPER).setBackground(INK);
+      sh.setRowHeight(j + 1, 34);
+    } else if (kind === H) {
+      cell.setFontWeight('bold').setFontColor(ACCENT);
+    } else if (kind === W) {
+      cell.setFontColor(WARN);
+    }
   }
-  sh.getRange(14, 1, 2, 1).setFontColor(WARN);
-  sh.getRange(26, 1, 2, 1).setFontColor(WARN);
+
   sh.protect().setDescription('Rules — reference only').setWarningOnly(true);
 }
 
