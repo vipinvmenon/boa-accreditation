@@ -20,7 +20,7 @@ plus one auth-plumbing table.
 
 | # | Table | Holds |
 |---|---|---|
-| 1 | `boa_acc_type` | the 3 pass classes, seeded from the design's `TYPES` |
+| 1 | `boa_acc_type` | the 8 woven wristband tiers of the printed pack (ADR-018) |
 | 2 | `boa_acc_org` | one row per company or department |
 | 3 | `boa_acc_org_invite` | **many** live links per org |
 | 4 | `boa_acc_person` | the spine — one row per human |
@@ -30,10 +30,16 @@ plus one auth-plumbing table.
 | 8 | `boa_acc_aaa_nomination` | Salman's named list |
 | 9 | `boa_acc_submit_throttle` | per-token per-hour counter |
 | — | `boa_acc_operator` | desk roster (auth plumbing, not domain) |
+| — | `boa_acc_zone_access` | the pack's 26 (zone, tier) allow rows: `+ photo ID` flag, optional IST time window. **Absence is refusal** |
 
-`boa_acc_zone` enum ordinality **is** the design's `ALL_ZONES` order: `site`,
-`backstage`, `stage`, `prod_office`, `bar`, `lounges`, `artist_area`. Every zone
-strip renders in that order with unheld zones prefixed `—— `. Do not reorder it.
+`boa_acc_zone` enum ordinality **is** the pack's "ZONE n OF 6" order:
+`festival_area`, `eddies_lounge`, `promoters_lounge`, `photo_pit`, `backstage`,
+`main_stage`. Every zone strip renders in that order with unheld zones prefixed
+`—— `. Do not reorder it. Tier display order is `boa_acc_type.sort_order`, not
+enum order. Source for both: `design/source/accreditation/access-matrix.json`.
+
+`boa_acc_person.requested_type_code` is **advisory** (the importer's crew-type
+hint). `type_code` is still set only by `boa_acc_decide`.
 
 ## The load-bearing constraints
 

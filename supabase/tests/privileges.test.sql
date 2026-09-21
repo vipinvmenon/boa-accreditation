@@ -32,7 +32,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(77) as line
+  select 0 as n, plan(82) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -77,6 +77,15 @@ select line from (
   union all select 38, function_privs_are('public',  'boa_acc_org_view',        array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_org_view')
   union all select 39, function_privs_are('public',  'boa_acc_submit',          array['text','text','text','text','text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_submit')
   union all select 83, function_privs_are('public',  'boa_acc_org_roster',      array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_org_roster')
+
+  -- ACC-113 · The accreditation pack's access matrix (ADR-018). Read-only
+  -- reference data: operators may SELECT it, anon gets nothing, and there
+  -- is no write grant for anyone.
+  union all select 84, table_privs_are('public', 'boa_acc_zone_access', 'anon', array[]::text[], 'anon: zero on boa_acc_zone_access')
+  union all select 85, table_privs_are('public', 'boa_acc_zone_access', 'authenticated', array[]::text[], 'authenticated: no TABLE-level privilege on boa_acc_zone_access (column grants only)')
+  union all select 86, column_privs_are('public', 'boa_acc_zone_access', 'requires_photo_id', 'authenticated', array['SELECT'], 'authenticated: SELECT on boa_acc_zone_access.requires_photo_id')
+  union all select 87, ok((select relrowsecurity from pg_class where oid = 'public.boa_acc_zone_access'::regclass), 'RLS enabled on boa_acc_zone_access')
+  union all select 88, column_privs_are('public', 'boa_acc_person', 'requested_type_code', 'anon', array[]::text[], 'anon: zero on boa_acc_person.requested_type_code')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')

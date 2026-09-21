@@ -618,8 +618,10 @@ re-read the sheet. `lib/design.ts` and the `boa_acc_type` /
   printer's order and is kept only to tie a band in hand to its artwork row.
 
 **Requestable tiers.** A vendor may request Stage, Promoters Lounge, Crew,
-Photo or Eddie's Lounge. **AAA and Artist** are named lists approved directly
-(the existing AAA nomination guard extends to Artist). **General Admission** is
+Photo or Eddie's Lounge. **AAA and Artist** are named lists approved directly.
+The AAA nomination guard in `boa_acc_decide` is **not** extended to Artist:
+an operator approves Artist like any other tier. Whether Artist needs its own
+nomination list is open for Salman. **General Admission** is
 3,000 ticket-holder bands issued by ticketing; it is in the matrix so the zone
 sheets are complete, and it is never accredited here.
 
@@ -640,8 +642,28 @@ ID "for lounges", the per-zone sheets say it needs ID in every zone except
 Festival Area. **The per-zone sheets win** — they are what a guard holds at
 that boundary, and the stricter reading fails safe.
 
-**Still open, Vipin's call:** the eight type-chip colours for dark and light
-themes. The band colours are fixed by the artwork (green, magenta, orange,
-royal blue, purple, yellow, red, black/grey/white); the on-screen chip colours
-must also pass contrast on both themes and must not collide with the three
-scan verdict colours. Until decided, ACC-115 is blocked.
+**Chip colours — decided by Vipin, 21 Sep: match the band.** Each tier's
+on-screen chip is its printed band colour, tuned for contrast (dark on
+`#0A0A0A`, light on `#F6F4EC`; every value ≥ 4.5:1, measured):
+
+| Tier | Band | Dark | Light |
+|---|---|---|---|
+| AAA | green | `#39E639` | `#1E7A1E` |
+| Artist | magenta | `#F0169A` | `#A50E69` |
+| Stage | orange | `#F07A2A` | `#9C4A10` |
+| Promoters Lounge | royal blue | `#4371FF` | `#1F43C2` |
+| Crew | purple | `#A64DFF` | `#6A1FB8` |
+| Photo | yellow | `#F2D21C` | `#6E5E00` |
+| Eddie's Lounge | red | `#FF4A3D` | `#A81E14` |
+| General Admission | black/grey/white | `#B8B8B8` | `#55555C` |
+
+Promoters dark was proposed as `#3D6BFF` (4.47:1) and nudged to `#4371FF`
+(4.76:1). **Accepted cost:** AAA green, Eddie's red and Photo yellow sit close
+to the Approved / Refuse / Collected verdict colours. The gate verdict always
+carries its word, so colour is never the only signal.
+
+**Schema shape (ACC-113).** `boa_acc_type_code` was **extended**, not rebuilt:
+crew, stage and aaa survive, and five functions take the enum as a parameter,
+so a rebuild would drop and recreate all five for no behavioural gain.
+`boa_acc_zone` **was** rebuilt; only the dropped `boa_acc_type.zones` column
+used it.

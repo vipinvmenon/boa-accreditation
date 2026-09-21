@@ -948,6 +948,42 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — ACC-113 done: the pack is in the production database
+
+Two migrations, **applied to production on Vipin's explicit approval** (one
+question each):
+
+- `202609211000_boa_acc_pack_tier_codes` adds five values to
+  `boa_acc_type_code`. Separate file because an added enum value cannot be used
+  in the transaction that adds it.
+- `202609211010_boa_acc_accreditation_pack` rebuilds `boa_acc_zone` to the six
+  zones, drops `boa_acc_type.zones`, reseeds `boa_acc_type` to eight tiers with
+  the band colours (ADR-018 table), adds `boa_acc_zone_access` (26 rows,
+  operator-read-only, RLS on) and the advisory
+  `boa_acc_person.requested_type_code`.
+
+**Verified, not asserted:** each file dry-ran in a rolled-back transaction
+first. Probed inside that transaction: 8 tiers in sort order
+`aaa,artist,stage,promoters_lounge,crew,photo,eddies_lounge,general_admission`,
+26 access rows over 6 zones in "ZONE n OF 6" order, 0 anon grants, 0 orgs with
+an invalid `default_type`. After applying: `test:db` green, **all 12 files**,
+`privileges.test.sql` now **82** assertions (5 new: the new table and column).
+`db:state`: `boa_acc_type 8`, `boa_acc_zone_access 26`, anon grants 0/0.
+
+**Until ACC-114/115 land, the UI still shows the old three types and seven
+zones**: `lib/design.ts` has not changed yet, and it is the client's source.
+No person rows exist, so nothing renders a wrong tier today.
+
+**Known trap — `corepack pnpm db:push` fails on this database** before
+reaching new files: `202609151000_boa_acc_org_roster` and
+`202609151015_boa_acc_queue_contract` were recorded in history as
+`20260915035616` and `20260915050526` (applied through MCP), so `db:push`
+thinks they are unapplied and re-runs them (`function already exists`). This
+session applied its two files one at a time, with the same
+`schema_migrations` insert `db:push` uses. Fixing the history rows is a
+separate, small task; do not "fix" it by editing applied migration files.
+
+
 ### 21 Sep 2026 — ACC-112 done: the pack is the domain contract (ADR-018)
 
 ADR-018 is written. The ten sheets and `access-matrix.json` were already

@@ -365,7 +365,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       26 allow rows, every `+ photo ID` flag and the 22:00 window present; the
       pack's three internal discrepancies recorded, not
       reconciled · **C** · due Mon 22 Sep
-- [ ] **ACC-113** · The migration: rebuild both enums, add
+- [x] **ACC-113** · The migration: rebuild both enums, add
       `boa_acc_zone_access`, add advisory `boa_acc_person.requested_type_code`,
       reseed `boa_acc_type`. Acceptance: `check:sql` + `test:db` green;
       `db:state` shows 6 zones, 8 types, 26 access rows; `anon` still holds zero
