@@ -209,4 +209,13 @@ title where given, otherwise the crew type.
   the response sheet as one row with every answer under the right header,
   read back via CSV export. Importer notes from that row: the phone column is
   stored as a number (read it as a string), and the timestamp is US-locale
-  `M/D/YYYY` with no timezone.
+  `M/D/YYYY` with no timezone. The test response was then deleted from both
+  the form and the sheet, and checked: **0 responses, header row only**.
+
+### Clearing test responses
+
+A response lives in two places. Deleting the sheet row leaves it in the form,
+and a form response comes back into any newly linked sheet. Delete in the form
+(**Responses ▸ ⋮ ▸ Delete all responses**) *and* in the sheet. Form responses
+are deleted permanently, with no trash, so this is done by a person, never by
+an agent.

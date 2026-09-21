@@ -1005,11 +1005,10 @@ Three facts the importer (ACC-117) must handle, observed on that row:
 - **The timestamp is `M/D/YYYY HH:MM:SS`** with no timezone: the sheet's
   locale is US. Do not parse it as D/M, and do not treat it as a `timestamptz`
   without fixing the zone.
-- **The test row is still there, and it is a real response.** The importer
-  must not load it, and while it exists the script will refuse any question
-  *type* change (e.g. Organisation becoming a dropdown when ACC-030a lands).
-  Delete it from the form (Responses ▸ ⋮ ▸ Delete all responses) and from row
-  2 of the sheet before the link goes out.
+- **The test response was then deleted by Vipin, from both places**, and
+  checked afterwards: the form reports `0 responses` and the sheet's CSV export
+  has the header row only. The form is clean for launch. (Deleting only the
+  sheet row had left the response in the form; it took both.)
 
 **Not built:** the importer (ACC-117) and the crew type → band mapping (owed by
 Salman).
