@@ -955,6 +955,17 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — ACC-117 done: importer migration applied to production
+
+Applied `202609211100_boa_acc_import_roster` on Vipin's approval. `test:db`
+is green on production across **13 files**: `import-roster.test.sql` 14/14
+(500 rows in one call, per-row quota and duplicate refusal, no pass fields,
+non-operator refused) and `privileges.test.sql` 86/86. `db:state` afterwards:
+`boa_acc_person` 0 (the tests left nothing behind), anon grants 0/0. Still
+unverified: a real response-sheet export and the sheet's timezone setting,
+and the crew-type → tier mapping is empty until Salman provides it.
+
+
 ### 21 Sep 2026 — ACC-115 done; ACC-117 built, not applied; one branch left
 
 **ACC-115 done.** Queue, master list, passes, Control room (desk agent), and

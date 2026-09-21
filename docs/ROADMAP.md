@@ -419,7 +419,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       Acceptance: form run once, opened by a human, every dropdown and
       validation seen working, test submission lands in the sheet. **Org
       dropdown blocked on ACC-030a** (free text until then) · **C/V** · due Mon 22 Sep
-- [ ] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
+- [x] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
       the form's response sheet (exported CSV, columns per
       `docs/ROSTER-FORM.md`). Acceptance: a 500-row fixture imports in one
       call; quota refusal and duplicate phones reported per row; the
