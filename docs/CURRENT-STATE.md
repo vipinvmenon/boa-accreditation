@@ -955,6 +955,27 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — eight-band grid; `test:visual` on the merged tree; deploy
+
+**Grid.** Vipin reported the Control room band grid uneven: `.bands3` is the
+v2 contract's `1.3fr 1fr 1fr` three-card grid, so eight cards wrapped 3-3-2
+with a wider first column. Added `.bands3.bands8`: four equal columns, two
+under the 1100px container breakpoint, one under 700px. `.bands3` itself is
+unchanged. Measured with Playwright on the desk fixture: 4 × 312px at 1360,
+2 × 410px at 900, 1 × 366px at 390.
+
+**`test:visual`** (harness fixed: select-all is now `role=checkbox`):
+**20/28 pass.** Queue, master, submission, gate and vehicle are all ≤ 0.8%
+in all four variants: queue 0.35/0.35/0.67/0.68, master
+0.28/0.29/0.02/0.04, submission 0.13/0.13/0.25/0.24, gate
+0.09/0.09/0.29/0.31, vehicle 0.09/0.09/0.14/0.14. **Fails:** control room
+14.07/14.07/23.90/23.91 and passes 6.77/5.00/5.85/5.19. Both render the tier
+list, and their references are the v2 mock's three types. That is the ADR-018
+domain change, not a regression, but references were **not** regenerated:
+that is ACC-111 sign-off, a human call. The push used the hook's documented
+`SKIP_VISUAL=1` for this reason.
+
+
 ### 21 Sep 2026 — ACC-117 done: importer migration applied to production
 
 Applied `202609211100_boa_acc_import_roster` on Vipin's approval. `test:db`

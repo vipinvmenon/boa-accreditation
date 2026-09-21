@@ -241,7 +241,7 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
       </div>
 
         <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{bandsHeading(dash.types.length)}</h2></div>
-        <div className="bands3">{dash.types.map((type, index) => <V2BandCard key={type.code} code={type.code} count={type.count} note={type.note ?? null} theme={theme} delay={index + 7} />)}</div>
+        <div className={`bands3${dash.types.length > 3 ? ' bands8' : ''}`}>{dash.types.map((type, index) => <V2BandCard key={type.code} code={type.code} count={type.count} note={type.note ?? null} theme={theme} delay={index + 7} />)}</div>
 
         <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.submittedOrgs} compan{dash.submittedOrgs === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first <Icon name="sort-descending" /></span></div>
         <div className="bz rv"><div className="pl"><div className="list-scroll" tabIndex={0} aria-label="Organisations on site"><div className="list">

@@ -207,6 +207,11 @@ main { position: relative; padding: 0 32px 64px; }
 .aaa-card .pl { background: linear-gradient(160deg, var(--goldbg), var(--panel) 60%); }
 
 .bands3 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; }
+/* The pack's eight tiers (ADR-018). .bands3 is the v2 contract's three-card
+   grid, whose 1.3fr lead column features one band; with eight cards it wraps
+   3-3-2 and widens a whole column. Eight tile evenly as 4 x 2. */
+.bands3.bands8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.bands8 .bandcard .pl { padding: 22px; }
 .bandcard .pl { padding: 26px; min-height: 250px; height: 100%; display: flex; flex-direction: column; }
 .bandcard .stripe { height: 10px; border-radius: 999px; background: var(--c); margin: 18px 0 22px; transform-origin: left; transform: scaleX(0); transition: transform 1.1s var(--ease) .25s; }
 .bandcard.in .stripe { transform: none; }
@@ -476,6 +481,7 @@ footer span:last-child { color: var(--gold); }
 
 /* ── Narrower frames ──────────────────────────────────────────────── */
 @container app (max-width: 1100px) {
+  .bands3.bands8 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .links button { padding: 10px 11px; font-size: 11px; }
   .brand span { display: none; }
   .hero { grid-column: span 12; }
@@ -512,7 +518,7 @@ footer span:last-child { color: var(--gold); }
   .hero-art { inset: 0; opacity: calc(var(--poster-op) * .55); }
   .hero-in { padding: 24px; }
   .hero .h1 { font-size: 50px; }
-  .bands3, .passes, .split, .sub-grid { grid-template-columns: minmax(0, 1fr); }
+  .bands3, .bands3.bands8, .passes, .split, .sub-grid { grid-template-columns: minmax(0, 1fr); }
   /* On a phone the gate verdict comes first once a scan lands. */
   .split:has(#gres[data-o]) #gres { order: -1; }
   .seg button { padding: 10px 12px; font-size: 11px; }

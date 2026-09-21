@@ -717,7 +717,7 @@ try {
           // selected. Since ACC-115 nothing is pre-selected on load (the old
           // pre-selection ticked already-approved rows), so select them the
           // way an operator does rather than faking the state.
-          await page.getByRole('button', { name: 'Select all pending people' }).click()
+          await page.getByRole('checkbox', { name: 'Select all pending people' }).click()
         }
         if (screen.slug === 'submission') {
           // The approved artboard leaves the name, phone, and role at their
