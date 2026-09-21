@@ -360,7 +360,7 @@ point only. v2 remains the pixel contract (ADR-017).
 **This lane IS on the critical path.** The pass must name the tier that is
 printed on the band the volunteer hands over. ACC-111 was parked for it.
 
-- [~] **ACC-112** · Transcribe the pack into `design/source/accreditation/`
+- [x] **ACC-112** · Transcribe the pack into `design/source/accreditation/`
       (the ten sheets + `access-matrix.json`) and write ADR-018. Acceptance: all
       26 allow rows, every `+ photo ID` flag and the 22:00 window present; the
       pack's three internal discrepancies recorded, not

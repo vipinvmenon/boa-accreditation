@@ -575,3 +575,73 @@ out of 39,110,080 (0.1829%). The CDN run's Anton probe reported unloaded
 faces, so this is evidence that the CDN source is not a valid capture baseline
 under the file-based harness, not a claim that the local assets are visually
 free. The local 28-shot capture is the accepted v2 reference.
+
+---
+
+## ADR-018 — The printed accreditation pack is the domain contract for tiers and zones
+
+**Accepted 21 Sep 2026.** Supersedes ADR-001 **on tier and zone vocabulary
+only.** ADR-017 is untouched: v2 remains the pixel contract.
+
+The accreditation pack arrived after the design: a master zone map, the woven
+wristband artwork, and one allow/turn-away sheet per zone. The bands are
+already manufactured. A pass that names a tier the volunteer cannot find in the
+box is worse than no pass, so **the pack wins over the 8-Sep design on what
+exists and what it is called**:
+
+| | 8-Sep design (ADR-001) | The pack (this ADR) |
+|---|---|---|
+| Tiers | 3 — Working Crew, Stage, AAA | **8** — AAA, Artist, Stage, Promoters Lounge, Crew, Photo, Eddie's Lounge, General Admission |
+| Zones | 7 — Site … Artist area | **6** — Festival Area, Eddie's Lounge, Promoters Lounge, Photo Pit, Backstage, Main Stage |
+| Access | an array of zones per type | **26 explicit (zone, tier) rows**, each with a `+ photo ID` flag and an optional local-time window |
+
+**Where the truth lives.** `design/source/accreditation/sheets/` holds the ten
+sheets verbatim; `design/source/accreditation/access-matrix.json` is their
+transcription. The JSON is a record, not a design: if it disagrees with a sheet,
+re-read the sheet. `lib/design.ts` and the `boa_acc_type` /
+`boa_acc_zone_access` seed are mirrors of it, and
+`tests/unit/accreditation-contract.test.ts` proves all three agree.
+
+**Rules carried from the pack, as data:**
+
+- **Absence is refusal.** A (zone, tier) pair not in `boa_acc_zone_access` is a
+  turn-away. There is no `allowed` boolean to get backwards.
+- **`+ photo ID`** is a per-row flag, not a per-tier one: Artist needs it in
+  five zones and not in the Festival Area.
+- **Promoters Lounge → Backstage from 22:00 IST only.** Stored as
+  `from_local_time time` with `Asia/Kolkata` named on the table, never as a
+  `timestamptz` (non-negotiable #8 governs instants; this is a daily wall-clock
+  rule, not an instant).
+- **Zone order is the sheets' own "ZONE n OF 6"** and is load-bearing, as the
+  old `ALL_ZONES` order was. **Tier order is the master sheet's "Where each band
+  goes"**, most access to least. The artwork sheet's 01–08 numbering is the
+  printer's order and is kept only to tie a band in hand to its artwork row.
+
+**Requestable tiers.** A vendor may request Stage, Promoters Lounge, Crew,
+Photo or Eddie's Lounge. **AAA and Artist** are named lists approved directly
+(the existing AAA nomination guard extends to Artist). **General Admission** is
+3,000 ticket-holder bands issued by ticketing; it is in the matrix so the zone
+sheets are complete, and it is never accredited here.
+
+**Who picks the tier.** Organisations submit *crew type* (docs/ROSTER-FORM.md),
+not a tier. `boa_acc_person.requested_type_code` is **advisory** — a hint from
+an importer mapping — and `type_code` is still set only by `boa_acc_decide`.
+Non-negotiable #3 holds.
+
+**The app does not enforce zones.** The gate scans one thing: entry to the
+site, and it hands over the band. Zone boundaries are enforced by guards
+reading the band colour against the printed sheet. The app's job is to show
+the right tier and its zone strip on the pass and the gate card, so the band
+handed over is the right one.
+
+**Four discrepancies inside the pack are recorded, not reconciled** (P1–P4 in
+the JSON). The one with consequences is P2: the master sheet says Artist needs
+ID "for lounges", the per-zone sheets say it needs ID in every zone except
+Festival Area. **The per-zone sheets win** — they are what a guard holds at
+that boundary, and the stricter reading fails safe.
+
+**Still open, Vipin's call:** the eight type-chip colours for dark and light
+themes. The band colours are fixed by the artwork (green, magenta, orange,
+royal blue, purple, yellow, red, black/grey/white); the on-screen chip colours
+must also pass contrast on both themes and must not collide with the three
+scan verdict colours. Until decided, ACC-115 is blocked.

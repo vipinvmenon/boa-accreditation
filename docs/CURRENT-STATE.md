@@ -948,6 +948,17 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — ACC-112 done: the pack is the domain contract (ADR-018)
+
+ADR-018 is written. The ten sheets and `access-matrix.json` were already
+committed (`bfa5620`). This session **re-read the JSON against the ten sheet
+images Vipin attached** and it agrees on every point checked: 6 zones in
+"ZONE n OF 6" order, 8 tiers, **26 allow rows** (Festival 8, Eddie's 3,
+Promoters 3, Photo Pit 5, Backstage 4, Main Stage 3), every `+ PHOTO ID` flag,
+and the 22:00 Promoters Lounge → Backstage window. The four discrepancies
+(P1–P4) are recorded, not reconciled.
+
+
 ### 21 Sep 2026 — ACC-116: the roster form is live (Google Form, not a workbook)
 
 The printed accreditation pack arrived (8 tiers, 6 zones); it is transcribed
