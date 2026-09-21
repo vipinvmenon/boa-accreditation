@@ -955,6 +955,34 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 22 Sep 2026 — ACC-116/117: desk column "Accreditation type" — code live, column NOT yet added
+
+Responses are in (13 rows as of this entry, counted via the sheet's CSV export
+without reading anyone's details). Vipin wants an **Accreditation type** column
+for Salman to fill per person.
+
+- `addAccreditationColumn` is committed (`6f56fda`) and **pushed to the live
+  Apps Script project** (hash-verified, 18,773 chars, saved).
+- The importer now accepts that one extra column (`e1da1d8`). Before that
+  change, adding the column would have made every export fail with "Invalid
+  header" — the importer (built in a parallel session) required exactly eight.
+- **The column itself is not in the sheet yet.** The Apps Script function
+  dropdown would not take a selection from Claude in Chrome (clicks, synthetic
+  events, cursor placement and type-ahead all failed to commit it). Needs one
+  human action: choose `addAccreditationColumn` in the Run dropdown ▸ Run.
+
+Two things happened during the attempts, both harmless and both checked:
+
+- One Run executed the default `buildRosterForm` instead. It is idempotent: the
+  log showed the same three links and no notes, and the sheet afterwards still
+  had 13 rows × 8 columns with the header unchanged.
+- One type-ahead attempt typed two characters (`a`, space) into the live script
+  because the listbox never took focus. Removed with two undos, verified
+  byte-identical by hash, saved. No run happened on the altered text.
+  **Lesson: never send keystrokes to the Apps Script page while the editor can
+  hold focus.**
+
+
 ### 21 Sep 2026 — deployed: `main` pushed (`fba720c..b790111`)
 
 Pushed at Vipin's instruction. The new build reached production within about 60s.
