@@ -44,7 +44,7 @@ whenever needed.
 | 4 | Crew type | multiple choice + Other | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor · **Other (write-in)** |
 | 5 | Job title | text | no | 2–60 characters |
 | 6 | Days on site | single choice | yes | Build days only (5–9 Oct) · Show day only (10 Oct) · Both build and show |
-| 7 | Vehicle registration | text | no | e.g. `KA01AB1234`; lower case and spaces accepted, normalised on import |
+| 7 | Loading vehicle registration | text | no | Only for a vehicle loading or unloading equipment. e.g. `KA01AB1234`; lower case and spaces accepted, normalised on import |
 
 The form does not collect respondents' email addresses.
 
@@ -97,7 +97,7 @@ Google names each response column after its question title. The importer
 
 ```
 Timestamp, Organisation, Full name, Mobile number, Crew type, Job title,
-Days on site, Vehicle registration
+Days on site, Loading vehicle registration
 ```
 
 **Do not reword a question in the form editor after launch.** It renames the
@@ -132,6 +132,11 @@ title where given, otherwise the crew type.
   phone and plate patterns to the database CHECKs after normalisation.
   Mutation-tested: renaming a crew type, loosening the phone pattern, or turning
   on email collection each fail it.
-- **Not verified:** that Google renders it as intended. The script has never
-  been executed by Google. Run it, open the form, and make one test submission
-  before sending the link.
+- **Seen rendered, 21 Sep 2026:** Vipin ran the script and shared a phone
+  screenshot of the live form showing Job title, Days on site (three radio
+  options) and Vehicle registration with the Submit button. That confirms Google
+  executed the script and rendered those questions. It does **not** show the
+  Crew type options, the Other write-in, the validation messages, or a
+  submission landing in the response sheet — those are still unverified.
+- **Not yet verified:** a test submission reaching the response sheet with the
+  column names above. Make one before sending the link.

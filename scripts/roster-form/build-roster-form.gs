@@ -17,7 +17,8 @@
  * an existing one, so a mistaken re-run cannot touch responses already in.
  *
  * WHAT IT COLLECTS — and nothing more (CLAUDE.md non-negotiable #9):
- *   organisation, full name, phone, crew type, job title, days, vehicle reg.
+ *   organisation, full name, phone, crew type, job title, days, and a loading
+ *   vehicle's registration where there is one.
  * No ID number, no Aadhaar, no photo, no address, no date of birth, and the
  * form does not collect respondents' email addresses.
  *
@@ -48,7 +49,7 @@ var Q = {
   CREW_TYPE: 'Crew type',
   JOB: 'Job title',
   DAYS: 'Days on site',
-  VEHICLE: 'Vehicle registration',
+  VEHICLE: 'Loading vehicle registration',
 };
 
 /** As given by Salman, 21 Sep 2026, plus an "Other" write-in (Vipin, same day)
@@ -171,11 +172,15 @@ function buildRosterForm() {
     .setChoiceValues(DAYS)
     .setRequired(true);
 
-  // 7. Vehicle registration — optional.
+  // 7. Loading vehicle registration — optional, and only for vehicles that load
+  // or unload equipment (Vipin, 21 Sep). Not for personal transport.
   form
     .addTextItem()
     .setTitle(Q.VEHICLE)
-    .setHelpText('Only if they are driving a vehicle in. Example: KA01AB1234. Leave blank otherwise.')
+    .setHelpText(
+      'Only for a vehicle loading or unloading equipment. Example: KA01AB1234. ' +
+        'Leave blank for everyone else.'
+    )
     .setValidation(
       FormApp.createTextValidation()
         .requireTextMatchesPattern('^[A-Za-z]{2} ?[0-9]{1,2} ?[A-Za-z]{0,3} ?[0-9]{1,4}$')

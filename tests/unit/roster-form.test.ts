@@ -117,7 +117,7 @@ describe('roster form', () => {
       'Crew type',
       'Job title',
       'Days on site',
-      'Vehicle registration',
+      'Loading vehicle registration',
     ])
   })
 
@@ -182,7 +182,7 @@ describe('roster form', () => {
   })
 
   it('accepts only plates the database will accept once uppercased and unspaced', () => {
-    const p = new RegExp(run().items.find((i) => i.title === 'Vehicle registration')!.pattern!)
+    const p = new RegExp(run().items.find((i) => i.title === 'Loading vehicle registration')!.pattern!)
     for (const ok of ['KA01AB1234', 'ka01ab1234', 'KA 01 AB 1234', 'DL3C1']) {
       expect(p.test(ok)).toBe(true)
       expect(DB_PLATE.test(normPlate(ok))).toBe(true)
