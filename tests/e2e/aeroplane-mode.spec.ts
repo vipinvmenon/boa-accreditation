@@ -24,7 +24,8 @@ const PULL = {
     fullName: `E2E Person ${index + 1}`,
     roleText: 'Working crew',
     orgName: 'E2E Org',
-    typeCode: 'crew' as const,
+    // PEOPLE[3] carries a pack tier the v1 enum did not have (ADR-018).
+    typeCode: index === 3 ? ('promoters_lounge' as const) : ('crew' as const),
     dayValidity: 'build_show' as const,
   })),
   ledger: [],
@@ -222,6 +223,26 @@ test.describe('gate aeroplane mode', () => {
     expect(requests).toHaveLength(2)
     expect(requests[0]).not.toBe(requests[1])
     await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done'])
+  })
+
+  test('renders a pack tier, its band and six-zone strip from the offline cache', async ({ page }) => {
+    const gate = (await installFixture(page, [])).page
+    await reloadColdOffline(gate)
+
+    await scan(gate, `BOA26:${PEOPLE[3].passToken}`)
+    await expectVerdict(gate, 'Approved')
+    const band = gate.locator('.gband')
+    await expect(band.locator('b')).toHaveText('Promoters Lounge')
+    await expect(band.locator('small')).toHaveText('Hand over a royal blue band')
+    await expect(gate.locator('.zones span')).toHaveText([
+      'Festival Area',
+      "—— Eddie's Lounge",
+      'Promoters Lounge · + ID',
+      '—— Photo Pit',
+      'Backstage · + ID · after 22:00',
+      '—— Main Stage',
+    ])
+    await expect(gate.locator('.zones span.off')).toHaveCount(3)
   })
 
   test('preserves the whole queue after a 401 and drains it after recovery', async ({ page }) => {
