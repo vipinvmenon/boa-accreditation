@@ -213,7 +213,7 @@ before ACC-031 mints the 38 real invite tokens.
 > Commit messages on that branch still use the old IDs: `fix(ACC-109)` there is
 > ACC-129 here, `fix(ACC-115)` is ACC-135.
 
-- [ ] **ACC-120** · `/desk/login` blank in production: prerendered page has no
+- [x] **ACC-120** · `/desk/login` blank in production: prerendered page has no
       script nonce under the nonce CSP → every script blocked. Make it dynamic;
       `verify:deploy` fails if any `<script>` lacks the header's nonce · **C** · due Sat 19
 - [x] **ACC-121** · Favicon from the recovered logo (every tab 404s `/favicon.ico`) · **C** · due Sat 19

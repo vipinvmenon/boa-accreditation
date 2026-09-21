@@ -955,6 +955,21 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — deployed: `main` pushed (`fba720c..b790111`)
+
+Pushed at Vipin's instruction. The new build reached production within about 60s.
+**`corepack pnpm verify:deploy`: 20/20 against the live site**, including
+`/desk/login` rendered per request, 12/12 scripts carrying the response's
+nonce, and all 62 gate precache URLs resolving. The production login page was
+opened in a real browser: the form renders with **0 console errors**, so the
+blank-login defect (ACC-120) is fixed on production.
+
+**Not verified on production:** a signed-in walkthrough of the Control room,
+queue or gate. That needs an operator's password, which an agent must not
+type. The Control room's eight-tier parse is proven by e2e on mocked data
+only.
+
+
 ### 21 Sep 2026 — eight-band grid; `test:visual` on the merged tree; deploy
 
 **Grid.** Vipin reported the Control room band grid uneven: `.bands3` is the
