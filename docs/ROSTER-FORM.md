@@ -20,16 +20,37 @@ response" after each one to keep that quick.
 
 `scripts/roster-form/build-roster-form.gs` is a Google Apps Script. It cannot be
 created through the Drive connector — that connector has no Forms API — so it
-is run once by a human:
+is run by a human, in an Apps Script project at <https://script.google.com>:
 
-1. <https://script.google.com> ▸ New project
-2. Paste the file over everything ▸ Save
+1. Paste the file over everything ▸ Save
+2. **Keeping a form that already exists?** Paste its *edit* link (ending
+   `/edit`) into `KEEP_FORM` at the top. Not the respondent link — the script
+   refuses that one, because its ID cannot be opened.
 3. Select `buildRosterForm` ▸ Run, and authorise
-4. The execution log prints three links: **the form link to send out**, the
-   form's edit link, and the response spreadsheet
+4. The execution log prints the form link to send out, the edit link and the
+   response spreadsheet
 
-Re-running creates a second form and sheet. It never edits or deletes an
-existing one, so a mistaken re-run cannot touch responses already in.
+### One stable link
+
+The first run creates the form (or adopts `KEEP_FORM`) and stores its ID in the
+project's Script properties. **Every later run updates that same form in place**
+— same respondent link, same response sheet. Change a question in the script,
+run again, and the live form changes; nothing new is minted.
+
+How it stays safe to re-run:
+
+- Questions are matched by a stored ID, then by title, then by a known former
+  title (`legacyTitles`), so a rename edits the existing question rather than
+  adding a second one and splitting its column.
+- It plans every change before touching the form. If a question must change
+  *type* (e.g. free text → dropdown) Google cannot convert it in place; with no
+  responses the script rebuilds it and logs a note, and **with responses it
+  refuses before changing anything**.
+- Questions it does not manage are left alone and named in the log.
+- The linked response sheet is kept; one is created only if none is linked.
+
+`forgetForm` clears the stored ID, so the next run creates a brand-new form. The
+old form is not deleted.
 
 The response sheet downloads as Excel (**File ▸ Download ▸ Microsoft Excel**)
 whenever needed.
@@ -126,17 +147,25 @@ title where given, otherwise the crew type.
 
 ## What has and has not been verified
 
-- `tests/unit/roster-form.test.ts` runs the script against recording stubs of
-  `FormApp` and `SpreadsheetApp` and proves the questions, their order, the
-  dropdown values, the validation patterns and the sheet link. It also pins the
-  phone and plate patterns to the database CHECKs after normalisation.
-  Mutation-tested: renaming a crew type, loosening the phone pattern, or turning
-  on email collection each fail it.
-- **Seen rendered, 21 Sep 2026:** Vipin ran the script and shared a phone
-  screenshot of the live form showing Job title, Days on site (three radio
-  options) and Vehicle registration with the Submit button. That confirms Google
-  executed the script and rendered those questions. It does **not** show the
-  Crew type options, the Other write-in, the validation messages, or a
-  submission landing in the response sheet — those are still unverified.
+- `tests/unit/roster-form.test.ts` runs the script against a **stateful** fake
+  of `FormApp`, `SpreadsheetApp` and `PropertiesService` — a Drive that keeps
+  forms between runs, and script properties that persist — and proves: the
+  questions, order, choices and validation; that a second run updates the same
+  form and sheet; adoption of an existing form by edit link, with the old
+  vehicle title renamed in place; rebuilding a retyped question when there are
+  no responses; refusing, **with the form untouched**, when there are; refusing
+  the respondent link; leaving unmanaged questions alone; and `forgetForm`. It
+  also pins the phone and plate patterns to the database CHECKs after
+  normalisation.
+- That suite caught a real defect before release: the first idempotent version
+  threw "Nothing has been changed" *after* it had already edited earlier
+  questions. It now plans first and refuses before any change.
+- Mutation-tested: renaming a crew type, loosening the phone pattern, enabling
+  email collection, turning off Other, and not remembering the form each fail
+  it.
+- **Seen rendered, 21 Sep 2026:** Vipin's phone screenshot of the first-version
+  live form (Job title, Days on site, Vehicle registration, Submit). Confirms
+  Google ran that version. The update-in-place version has **not** yet been run
+  on Google.
 - **Not yet verified:** a test submission reaching the response sheet with the
-  column names above. Make one before sending the link.
+  column names above.
