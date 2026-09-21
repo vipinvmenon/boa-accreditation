@@ -64,8 +64,8 @@ var Q = {
   VEHICLE: 'Loading vehicle registration',
 };
 
-/** As given by Salman, 21 Sep 2026, plus an "Other" write-in (Vipin, same day)
- *  for anything the list does not cover. Add a type here, not in the form
+/** As given by Salman, 21 Sep 2026, plus an "Other" write-in and Special
+ *  Tickets Crew (both Vipin, same day). Add a type here, not in the form
  *  editor, so it stays recorded. */
 var CREW_TYPES = [
   'Security',
@@ -79,6 +79,7 @@ var CREW_TYPES = [
   'Generator',
   'Ground Production',
   'Sponsor',
+  'Special Tickets Crew',
 ];
 
 /** Mirrors the boa_acc_day_validity enum: build / show / build_show. */

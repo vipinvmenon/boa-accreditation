@@ -981,9 +981,14 @@ attempt failed. That exposed two defects — Google's permission error was being
 hidden, and `ensureDestination_` would have **relinked the form to a new sheet**
 on any sheet it could not open. Both fixed and tested (`7d5e8b6`).
 
+**Later the same day:** Special Tickets Crew added to the crew types. The script
+was updated live (hash-verified), run again, printed the same three links, and
+the option was read back from the live form, above `Other:`. The four
+superseded `vipinmenon006` forms were moved to Drive trash at Vipin's request;
+their four response sheets were not trashed and still exist.
+
 **Not verified:** a submission reaching the sheet. No test response has been
-made to the live form. The four earlier forms and their sheets in
-`vipinmenon006`'s Drive are superseded and still exist.
+made to the live form.
 
 **Not built:** the importer (ACC-117) and the crew type → band mapping (owed by
 Salman).

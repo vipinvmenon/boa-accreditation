@@ -226,6 +226,7 @@ describe('roster form — what it asks', () => {
       'Generator',
       'Ground Production',
       'Sponsor',
+      'Special Tickets Crew',
     ])
   })
 
