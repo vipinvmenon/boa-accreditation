@@ -955,21 +955,29 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
-### 22 Sep 2026 — ACC-116/117: desk column "Accreditation type" — code live, column NOT yet added
+### 22 Sep 2026 — ACC-116/117: desk column "Accreditation Type" — added by hand
 
 Responses are in (13 rows as of this entry, counted via the sheet's CSV export
 without reading anyone's details). Vipin wants an **Accreditation type** column
 for Salman to fill per person.
 
-- `addAccreditationColumn` is committed (`6f56fda`) and **pushed to the live
-  Apps Script project** (hash-verified, 18,773 chars, saved).
-- The importer now accepts that one extra column (`e1da1d8`). Before that
-  change, adding the column would have made every export fail with "Invalid
-  header" — the importer (built in a parallel session) required exactly eight.
-- **The column itself is not in the sheet yet.** The Apps Script function
-  dropdown would not take a selection from Claude in Chrome (clicks, synthetic
-  events, cursor placement and type-ahead all failed to commit it). Needs one
-  human action: choose `addAccreditationColumn` in the Run dropdown ▸ Run.
+- **Final state:** Vipin added the column by hand. Checked via CSV export:
+  column **I**, header `Accreditation Type` (capital T), all 14 response rows
+  now 9 cells wide. The dropdown's option list was **not** verified — CSV
+  export does not carry validation; the importer refuses any row whose value is
+  not an exact label, so a wrong option would surface at import, per row.
+- The importer accepts the column (`e1da1d8`), and now matches its header
+  ignoring case, since a person types it. Before `e1da1d8`, adding the column
+  would have made every export fail with "Invalid header" — the importer (built
+  in a parallel session) required exactly eight.
+- At Vipin's instruction ("discard changes if not needed"),
+  `addAccreditationColumn` was **removed** from the repo and from the live Apps
+  Script project; the live script is back to the pre-column version,
+  hash-verified and saved. Its tests went with it.
+
+History of the attempt, kept because the lessons matter: the Apps Script
+function dropdown would not take a selection from Claude in Chrome (clicks,
+synthetic events, cursor placement, type-ahead).
 
 Two things happened during the attempts, both harmless and both checked:
 

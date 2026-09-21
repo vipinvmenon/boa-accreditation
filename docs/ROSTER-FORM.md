@@ -163,34 +163,37 @@ together.
 
 ### The desk's column: Accreditation type
 
-Added 22 Sep 2026 at Vipin's request, for Salman to fill in. It is **not** a form
+Added 22 Sep 2026 **by hand in the sheet**, by Vipin, for Salman to fill in:
+column **I**, header `Accreditation Type`, a dropdown. It is **not** a form
 question — organisations never see it. It is the desk's band decision, per
 person, recorded next to the response:
 
 ```
-…, Loading vehicle registration, Accreditation type
+…, Loading vehicle registration, Accreditation Type
 ```
 
-- Added by `addAccreditationColumn` in the same script: always **to the right of
-  every form column**, because Google writes responses only into the form's own
-  columns, so a column out there stays on its row. Safe to re-run; it never
-  touches the form or a response.
-- A dropdown of the printed pack's tiers: AAA · Artist · Stage · Promoters
-  Lounge · Crew · Photo · Eddie's Lounge. **General Admission is left out**: it is
-  the public ticket band, not an accreditation.
-- **The importer accepts it** (`lib/roster-import.ts`, `DESK_HEADER`): the
-  header may be the eight form columns *optionally followed by this one*, and
-  nothing else — any other extra column is still refused.
-  - A filled cell becomes the row's tier hint (`requested_type_code`) and
-    **wins over the crew-type mapping**, because a person decided.
-  - **AAA and Artist** are named lists behind a nomination; the import RPC
-    refuses them as a hint. Those rows import with no hint and are listed in a
-    warning, to be approved through the desk's AAA nomination.
-  - A blank cell means *not yet decided*: the row falls back to the crew-type
-    mapping, never to a default tier.
-  - Anything that is not one of the dropdown's labels refuses that row.
-  - It remains a hint. The band is still set at approval, in the database
-    (non-negotiable #3).
+The dropdown's choices must be exactly the pack's tier labels, with a straight
+apostrophe: AAA · Artist · Stage · Promoters Lounge · Crew · Photo · Eddie's
+Lounge. **General Admission is not a choice**: it is the public ticket band, not
+an accreditation.
+
+**The importer accepts it** (`lib/roster-import.ts`, `DESK_HEADER`): the header
+may be the eight form columns *optionally followed by this one*, and nothing
+else — any other extra column is still refused. Because a person typed it, its
+header is matched **ignoring case and surrounding space**; the form's own
+headers stay exact.
+
+- A filled cell becomes the row's tier hint (`requested_type_code`) and **wins
+  over the crew-type mapping**, because a person decided.
+- **AAA and Artist** are named lists behind a nomination; the import RPC refuses
+  them as a hint. Those rows import with no hint and are listed in a warning, to
+  be approved through the desk's AAA nomination.
+- A blank cell means *not yet decided*: the row falls back to the crew-type
+  mapping, never to a default tier.
+- Anything that is not exactly one of the labels above refuses that row — a
+  curly apostrophe in `Eddie’s Lounge` included.
+- It remains a hint. The band is still set at approval, in the database
+  (non-negotiable #3).
 
 Rules for whoever edits the sheet by hand:
 

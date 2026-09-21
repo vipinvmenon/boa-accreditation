@@ -81,6 +81,15 @@ describe('the desk\'s Accreditation type column', () => {
     expect(v.rows).toHaveLength(1)
   })
 
+  it('its header is typed by hand, so case and surrounding space do not matter', () => {
+    for (const typed of ['Accreditation Type', 'ACCREDITATION TYPE', ' accreditation type ']) {
+      const csv = deskSheet([row(), 'Stage']).replace(DESK_HEADER, typed)
+      expect(validateRoster(csv).fatal, typed).toBeNull()
+    }
+    // but a different word is still a different column
+    expect(validateRoster(deskSheet([row(), 'Stage']).replace(DESK_HEADER, 'Accreditation')).fatal).toMatch(/Invalid header/)
+  })
+
   it('no other extra column is accepted — unknown columns are still refused', () => {
     expect(validateRoster(sheet(row()).replace(HEADER, `${HEADER},Aadhaar`)).fatal).toMatch(/Invalid header/)
     const twoExtra = [`${HEADER},${DESK_HEADER},Notes`, `${row()},Stage,x`].join('\n') + '\n'
@@ -303,14 +312,13 @@ describe('pinned to the form, the pack and the migration', () => {
     expect(Object.keys(DAYS_ANSWERS)).toEqual(ctx['DAYS'])
   })
 
-  it('the desk column and its choices are exactly the form script\'s', () => {
-    expect(DESK_HEADER).toBe(ctx['DESK_COLUMN'])
-    expect(Object.keys(DESK_TIERS)).toEqual(ctx['ACCREDITATION_TYPES'])
+  it('the desk column\'s choices are the pack\'s tier labels, minus General Admission', () => {
     // every desk choice is a real tier, with the pack's label, and GA is not one
     for (const [label, code] of Object.entries(DESK_TIERS)) {
       expect(TIERS.find((t) => t.code === code)?.label, label).toBe(label)
     }
     expect(Object.values(DESK_TIERS)).not.toContain('general_admission')
+    expect(Object.keys(DESK_TIERS)).toHaveLength(TIERS.length - 1)
   })
 
   it('requestable tiers are exactly lib/design.ts\'s requestable tiers', () => {
