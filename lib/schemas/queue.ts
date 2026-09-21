@@ -1,10 +1,13 @@
 import { z } from 'zod'
+import { tierCodeSchema } from './accreditation'
+import { requestableTierCodeSchema } from './org'
 
 export const QUEUE_FILTERS = ['pending', 'approved', 'rejected', 'aaa'] as const
 export const queueFilterSchema = z.enum(QUEUE_FILTERS)
 export type QueueFilter = z.infer<typeof queueFilterSchema>
 
-export const queueTypeSchema = z.enum(['crew', 'stage', 'aaa'])
+/** Any of the pack's eight tiers (ADR-018) — what a decided row may carry. */
+export const queueTypeSchema = tierCodeSchema
 export const queueDayValiditySchema = z.enum(['build', 'show', 'build_show'])
 
 export const queueOrgSchema = z.object({
@@ -67,7 +70,9 @@ export const queueActionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('approve_org'),
     orgId: z.string().uuid(),
-    typeCode: z.enum(['crew', 'stage']),
+    // Bulk approval is for requestable tiers only. The database refuses aaa
+    // here regardless; Artist and General Admission are refused as an affordance.
+    typeCode: requestableTierCodeSchema,
     dayValidity: queueDayValiditySchema,
   }),
   z.object({

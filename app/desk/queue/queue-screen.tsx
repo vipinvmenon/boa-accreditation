@@ -8,7 +8,8 @@ import {
   type QueueFilter,
   type QueueRow,
 } from '@/lib/schemas/queue'
-import { passType, type PassTypeCode } from '@/lib/design'
+import { tier, tierColour, type TierCode } from '@/lib/design'
+import { DECIDABLE_TIERS, isRequestable } from '@/lib/desk-tiers'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 
@@ -61,7 +62,7 @@ export function QueueScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [queueOrgs, setQueueOrgs] = useState<ReturnType<typeof queueResponseSchema.parse>['orgs']>([])
   const [nextOrg, setNextOrg] = useState<ReturnType<typeof queueResponseSchema.parse>['nextOrg']>(null)
-  const [type, setType] = useState<PassTypeCode>('crew')
+  const [type, setType] = useState<TierCode>('crew')
   const [dayValidity] = useState<'build' | 'show' | 'build_show'>('build_show')
   const [rejecting, setRejecting] = useState<string | null>(null)
   const [rejectingOrg, setRejectingOrg] = useState<string | null>(null)
@@ -154,7 +155,10 @@ export function QueueScreen() {
   }
 
   async function approveOrg(orgId: string) {
-    const ok = await post({ action: 'approve_org', orgId, typeCode: type === 'aaa' ? 'crew' : type, dayValidity })
+    // Org-level approve offers requestable tiers only (ADR-018); the button is
+    // disabled otherwise, so this guard is belt and braces, not a fallback.
+    if (!isRequestable(type)) return
+    const ok = await post({ action: 'approve_org', orgId, typeCode: type, dayValidity })
     if (ok) await load()
   }
 
@@ -226,7 +230,7 @@ export function QueueScreen() {
       <div className="selbar rv" style={{ ['--d' as string]: 2 }}>
         <button className="ck" type="button" role="checkbox" aria-checked={selected.size === rows.length && rows.length > 0} aria-label="Select all people in this view" onClick={() => setSelected((old) => old.size === rows.length ? new Set() : new Set(rows.map((row) => row.id)))}><Icon name="check" /></button>
         <span className="mono">{selected.size} of {rows.length} selected</span>
-        <button className="btn solo hide-s" type="button" onClick={() => setType((old) => old === 'crew' ? 'stage' : old === 'stage' ? 'aaa' : 'crew')}>Set type</button>
+        <button className="btn solo hide-s" type="button" onClick={() => setType((old) => { const i = DECIDABLE_TIERS.findIndex((t) => t.code === old); return DECIDABLE_TIERS[(i + 1) % DECIDABLE_TIERS.length]!.code })}>Set type</button>
         <button className="btn bad solo hide-s" type="button" disabled={busy || selected.size === 0} onClick={() => { const first = rows.find((row) => selected.has(row.id) && row.status === 'submitted'); if (first) { setRejecting(first.id); setReason('') } }}>Reject</button>
         <button className="btn go" type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()}>Approve<span className="ic"><Icon name="check" /></span></button>
       </div>
@@ -253,7 +257,7 @@ export function QueueScreen() {
                   ) : (
                     <button type="button" disabled={busy} onClick={() => { setRejectingOrg(orgId); setOrgReason('') }} className="btn bad solo">Reject</button>
                   )}
-                  <button type="button" disabled={busy || type === 'aaa'} onClick={() => void approveOrg(orgId)} className="btn go">Approve all<span className="ic"><Icon name="arrow-right" /></span></button>
+                  <button type="button" disabled={busy || !isRequestable(type)} onClick={() => void approveOrg(orgId)} className="btn go">Approve all<span className="ic"><Icon name="arrow-right" /></span></button>
                 </div>
               )}
             </div>
@@ -261,8 +265,7 @@ export function QueueScreen() {
             })()}
             {org.rows.map((row) => {
               const selectedRow = selected.has(row.id)
-              const rowType = row.type_code ? passType(row.type_code) : passType(type)
-              const rowColour = theme === 'dark' ? rowType.colour : rowType.colourLight
+              const rowColour = tierColour(row.type_code ?? type, theme)
               return (
                 <div key={row.id} className={`qrow${row.status === 'rejected' ? ' rej' : ''}`}>
                   <button className="ck" type="button" role="checkbox" aria-checked={selectedRow} aria-label={`${selectedRow ? 'Deselect' : 'Select'} ${row.full_name}`} onClick={() => setSelected((old) => { const next = new Set(old); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next })}><Icon name="check" /></button>
@@ -271,9 +274,9 @@ export function QueueScreen() {
                     <div className="sub">{row.role_text}, {row.phone}{row.vehicle_reg ? `, ${row.vehicle_reg}` : ''}</div>
                   </div>
                   <label className="pick" style={{ ['--c' as string]: rowColour }}>
-                    <select aria-label={`Band type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as PassTypeCode); setSelected(new Set([row.id])) }}>
-                      <option value="crew">Working Crew</option>
-                      <option value="stage">Stage</option>
+                    <select aria-label={`Band type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as TierCode); setSelected(new Set([row.id])) }}>
+                      {DECIDABLE_TIERS.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
+                      {row.type_code && !DECIDABLE_TIERS.some((t) => t.code === row.type_code) && <option value={row.type_code}>{tier(row.type_code).label}</option>}
                     </select><i><Icon name="caret-down" /></i>
                   </label>
                   <span className={`st ${row.status === 'approved' ? 'ok' : row.status === 'rejected' ? 'no' : 'wait'}`}>{statusLabels[row.status as keyof typeof statusLabels] ?? row.status}</span>

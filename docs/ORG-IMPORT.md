@@ -20,8 +20,10 @@ Rules:
   `contractor`;
 - `quota` is an integer from 0 through 500;
 - `contact_phone` is the full Indian mobile form `+91XXXXXXXXXX`;
-- `default_type` is `crew`, `stage`, or `aaa`; leave it empty only if the
-  lead explicitly chooses the system default;
+- `default_type` is a requestable tier (ADR-018): `stage`, `promoters_lounge`,
+  `crew`, `photo` or `eddies_lounge`. AAA and Artist are named lists approved
+  per person, and General Admission is ticketing. Leave it empty only if the
+  lead explicitly chooses the system default (`crew`);
 - names must be unique, and the lead must confirm each quota and contact;
 - do not add email, ID number, address, date of birth, token, or any other
   personal field.

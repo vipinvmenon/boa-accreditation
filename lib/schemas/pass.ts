@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { tierCodeSchema } from './accreditation'
 
 export const passSchema = z.object({
   id: z.string().uuid(),
@@ -8,7 +9,7 @@ export const passSchema = z.object({
   orgName: z.string(),
   passRef: z.string(),
   passToken: z.string().regex(/^[A-Za-z0-9_-]{22}$/),
-  typeCode: z.enum(['crew', 'stage', 'aaa']),
+  typeCode: tierCodeSchema,
   dayValidity: z.enum(['build', 'show', 'build_show']),
 })
 

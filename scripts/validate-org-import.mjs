@@ -4,7 +4,10 @@ import { z } from 'zod'
 
 export const HEADERS = ['name', 'kind', 'quota', 'contact_name', 'contact_phone', 'default_type']
 export const ORG_KINDS = ['vendor', 'crew', 'sponsor', 'media', 'security', 'contractor']
-const ORG_TYPE_CODES = ['crew', 'stage', 'aaa']
+// The requestable tiers (ADR-018) — lib/desk-tiers.ts REQUESTABLE_TIER_CODES,
+// copied because this .mjs cannot import TypeScript at runtime.
+// tests/unit/desk-tiers.test.ts fails if the copy drifts.
+export const ORG_TYPE_CODES = ['stage', 'promoters_lounge', 'crew', 'photo', 'eddies_lounge']
 export const orgCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   kind: z.enum(ORG_KINDS),

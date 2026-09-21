@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { TIER_CODES } from '@/lib/design'
+import { REQUESTABLE_TIER_CODES } from '@/lib/desk-tiers'
 
 /**
  * Mirrors the CHECK constraints on `public.boa_acc_org`
@@ -15,7 +17,14 @@ export const ORG_KINDS = [
   'contractor',
 ] as const
 
-export const ORG_TYPE_CODES = ['crew', 'stage', 'aaa'] as const
+/**
+ * Every tier boa_acc_type_code can hold (ADR-018). What an org row may carry
+ * when READ — the column is the enum, so all eight can appear.
+ */
+export const ORG_TYPE_CODES = TIER_CODES
+
+/** What an operator may SET as an org's default: the requestable tiers. */
+export const requestableTierCodeSchema = z.enum(REQUESTABLE_TIER_CODES)
 
 export const orgCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -26,7 +35,7 @@ export const orgCreateSchema = z.object({
     .string()
     .trim()
     .regex(/^\+91[6-9][0-9]{9}$/, 'Enter a 10-digit Indian mobile number'),
-  defaultType: z.enum(ORG_TYPE_CODES).optional(),
+  defaultType: requestableTierCodeSchema.optional(),
 })
 
 export type OrgCreateInput = z.infer<typeof orgCreateSchema>

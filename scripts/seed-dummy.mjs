@@ -45,7 +45,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // ── Shapes (same rules the database CHECK constraints enforce) ────────────
 
 const ORG_KINDS = ['vendor', 'crew', 'sponsor', 'media', 'security', 'contractor']
-const TYPE_CODES = ['crew', 'stage', 'aaa']
+// The pack's tiers an operator may decide (ADR-018): lib/design.ts TIER_CODES
+// less general_admission, which is ticketing and never accredited here.
+const TYPE_CODES = ['aaa', 'artist', 'stage', 'promoters_lounge', 'crew', 'photo', 'eddies_lounge']
 const DAY_VALIDITIES = ['build', 'show', 'build_show']
 const PHONE_RE = /^\+91[6-9][0-9]{9}$/
 const PLATE_RE = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/
