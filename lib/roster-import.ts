@@ -30,6 +30,26 @@ export const ROSTER_HEADER = [
   'Loading vehicle registration',
 ] as const
 
+/**
+ * The one column the desk may add to the right of the form's columns
+ * (docs/ROSTER-FORM.md, "The desk's column"). Salman's per-person accreditation
+ * decision. Optional: a sheet without it is still valid. No other extra column
+ * is accepted, so non-negotiable #9's "refuse unknown columns" still holds.
+ */
+export const DESK_HEADER = 'Accreditation type' as const
+
+/** The desk column's dropdown labels → tier codes. Pinned to the form script's
+ *  ACCREDITATION_TYPES by the unit test. General Admission is not a choice. */
+export const DESK_TIERS = {
+  AAA: 'aaa',
+  Artist: 'artist',
+  Stage: 'stage',
+  'Promoters Lounge': 'promoters_lounge',
+  Crew: 'crew',
+  Photo: 'photo',
+  "Eddie's Lounge": 'eddies_lounge',
+} as const
+
 /** The form's fixed crew-type choices. Anything else is an "Other" write-in. */
 export const FORM_CREW_TYPES = [
   'Security',
@@ -107,6 +127,8 @@ export type ValidRow = ImportRow & {
   crewType: string
   /** true when the crew type is not one of the form's fixed choices. */
   writeIn: boolean
+  /** The desk's Accreditation type, as a tier code, when the column is present and filled. */
+  deskTier: (typeof DESK_TIERS)[keyof typeof DESK_TIERS] | null
 }
 
 export type RowError = { row_no: number; organisation: string; errors: string[] }
@@ -229,14 +251,21 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
   }
 
   const header = table.shift()
+  const formPart = header?.slice(0, ROSTER_HEADER.length) ?? []
+  const extra = header?.slice(ROSTER_HEADER.length) ?? []
+  const hasDesk = extra.length === 1 && extra[0]!.trim() === DESK_HEADER
   if (
     !header ||
-    header.length !== ROSTER_HEADER.length ||
-    header.some((h, i) => h.trim() !== ROSTER_HEADER[i])
+    formPart.length !== ROSTER_HEADER.length ||
+    formPart.some((h, i) => h.trim() !== ROSTER_HEADER[i]) ||
+    (extra.length > 0 && !hasDesk)
   ) {
-    out.fatal = `Invalid header. Expected exactly: ${ROSTER_HEADER.join(', ')}`
+    out.fatal =
+      `Invalid header. Expected exactly: ${ROSTER_HEADER.join(', ')}` +
+      ` — optionally followed by the desk's "${DESK_HEADER}" column, and nothing else`
     return out
   }
+  const width = ROSTER_HEADER.length + (hasDesk ? 1 : 0)
   if (table.length === 0) {
     out.fatal = 'The response sheet has no data rows.'
     return out
@@ -246,17 +275,18 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
   const fixed = new Set(FORM_CREW_TYPES.map((t) => t.toLowerCase()))
   const seen = new Map<string, number>() // orgKey|phone -> first row_no
   const unmapped = new Set<string>()
+  const nominated: number[] = [] // rows the desk marked AAA or Artist
 
   table.forEach((cells, index) => {
     const row_no = index + 2 // the sheet's own row number
     const errors: string[] = []
     const organisation = (cells[1] ?? '').trim()
 
-    if (cells.length !== ROSTER_HEADER.length) {
+    if (cells.length !== width) {
       out.errors.push({
         row_no,
         organisation,
-        errors: [`expected ${ROSTER_HEADER.length} columns, received ${cells.length}`],
+        errors: [`expected ${width} columns, received ${cells.length}`],
       })
       return
     }
@@ -296,14 +326,35 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
     const plate = normalisePlate(plateRaw)
     if (!plate.ok) errors.push(`Loading vehicle registration "${plateRaw.trim()}" is not an Indian registration`)
 
+    // The desk's decision. Blank means "not decided yet" — never a default tier.
+    const deskRaw = hasDesk ? (cells[ROSTER_HEADER.length] ?? '').trim() : ''
+    const deskTier =
+      deskRaw === '' ? null : ((DESK_TIERS as Record<string, (typeof DESK_TIERS)[keyof typeof DESK_TIERS]>)[deskRaw] ?? null)
+    if (deskRaw !== '' && deskTier === null) {
+      errors.push(`${DESK_HEADER} "${deskRaw}" is not one of the desk's choices`)
+    }
+
     if (errors.length > 0 || !submitted_at || !phone || !days || !plate.ok) {
       out.errors.push({ row_no, organisation, errors })
       return
     }
 
     const writeIn = !fixed.has(crewType.toLowerCase())
-    const requested_type_code = tierFor.get(crewType.toLowerCase()) ?? null
-    if (crewType && requested_type_code === null) unmapped.add(crewType)
+    let requested_type_code: RequestableTier | null
+    if (deskTier !== null) {
+      // A person decided. It wins over the crew-type mapping — but AAA and
+      // Artist are named lists behind a nomination, which the RPC refuses as
+      // a hint, so they travel as no hint and are reported for the desk.
+      if ((REQUESTABLE_TIERS as readonly string[]).includes(deskTier)) {
+        requested_type_code = deskTier as RequestableTier
+      } else {
+        requested_type_code = null
+        nominated.push(row_no)
+      }
+    } else {
+      requested_type_code = tierFor.get(crewType.toLowerCase()) ?? null
+      if (crewType && requested_type_code === null) unmapped.add(crewType)
+    }
 
     const dupKey = `${orgKey(organisation)}|${phone}`
     const first = seen.get(dupKey)
@@ -328,8 +379,16 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
       out.errors.push({ row_no, organisation, errors: checked.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) })
       return
     }
-    out.rows.push({ ...checked.data, organisation, crewType, writeIn })
+    out.rows.push({ ...checked.data, organisation, crewType, writeIn, deskTier })
   })
+
+  if (nominated.length > 0) {
+    out.warnings.push(
+      `${nominated.length} row(s) marked AAA or Artist in "${DESK_HEADER}" (rows ${nominated.join(', ')}). ` +
+        'These are named lists behind a nomination: they import with no tier hint, and are approved ' +
+        'through the AAA nomination in the desk, not by the import.',
+    )
+  }
 
   if (unmapped.size > 0) {
     out.warnings.push(

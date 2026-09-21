@@ -16,6 +16,8 @@ import { describe, expect, it } from 'vitest'
 import { TIERS } from '@/lib/design'
 import {
   DAYS_ANSWERS,
+  DESK_HEADER,
+  DESK_TIERS,
   FORM_CREW_TYPES,
   REQUESTABLE_TIERS,
   ROSTER_HEADER,
@@ -65,6 +67,64 @@ describe('the column contract', () => {
   it('refuses a row with the wrong number of columns, by sheet row number', () => {
     const v = validateRoster(`${HEADER}\n${row()}\na,b,c\n`)
     expect(v.errors).toEqual([{ row_no: 3, organisation: 'b', errors: ['expected 8 columns, received 3'] }])
+  })
+})
+
+/** The same sheet with the desk's column on the right; `desk` fills it per row. */
+const deskSheet = (...rows: [string, string][]) =>
+  [`${HEADER},${DESK_HEADER}`, ...rows.map(([r, desk]) => `${r},${csvCell(desk)}`)].join('\r\n') + '\r\n'
+
+describe('the desk\'s Accreditation type column', () => {
+  it('is accepted as the one extra column, to the right of the form\'s', () => {
+    const v = validateRoster(deskSheet([row(), 'Stage']))
+    expect(v.fatal).toBeNull()
+    expect(v.rows).toHaveLength(1)
+  })
+
+  it('no other extra column is accepted — unknown columns are still refused', () => {
+    expect(validateRoster(sheet(row()).replace(HEADER, `${HEADER},Aadhaar`)).fatal).toMatch(/Invalid header/)
+    const twoExtra = [`${HEADER},${DESK_HEADER},Notes`, `${row()},Stage,x`].join('\n') + '\n'
+    expect(validateRoster(twoExtra).fatal).toMatch(/Invalid header/)
+    // and it must be on the right, not between form columns
+    const between = sheet(row()).replace('Crew type', `${DESK_HEADER},Crew type`)
+    expect(validateRoster(between).fatal).toMatch(/Invalid header/)
+  })
+
+  it('the desk\'s decision becomes the tier hint, winning over the crew-type mapping', () => {
+    const mapping = crewTypeMappingSchema.parse({ mapping: { Security: 'crew' } })
+    const v = validateRoster(deskSheet([row({ 'Crew type': 'Security' }), 'Stage']), mapping)
+    expect(v.rows[0]).toMatchObject({ requested_type_code: 'stage', deskTier: 'stage' })
+  })
+
+  it('a blank desk cell means undecided: it falls back to the mapping, never a default tier', () => {
+    const mapping = crewTypeMappingSchema.parse({ mapping: { Security: 'crew' } })
+    const v = validateRoster(deskSheet([row({ 'Crew type': 'Security' }), ''], [row({ 'Crew type': 'Bouncer', 'WhatsApp number': '9876543211' }), '']), mapping)
+    expect(v.rows.map((r) => [r.deskTier, r.requested_type_code])).toEqual([[null, 'crew'], [null, null]])
+  })
+
+  it('AAA and Artist import with no hint and are reported, because they need a nomination', () => {
+    const v = validateRoster(deskSheet([row(), 'AAA'], [row({ 'WhatsApp number': '9876543211' }), 'Artist']))
+    expect(v.errors).toEqual([])
+    expect(v.rows.map((r) => [r.deskTier, r.requested_type_code])).toEqual([['aaa', null], ['artist', null]])
+    expect(v.warnings.join('\n')).toMatch(/2 row\(s\) marked AAA or Artist .*rows 2, 3.*nomination/)
+    // and each still becomes a payload row the RPC accepts (no AAA/Artist hint in it)
+    const fields = Object.keys(importRowSchema.shape) as (keyof typeof importRowSchema.shape)[]
+    for (const r of v.rows) {
+      const payload = Object.fromEntries(fields.map((k) => [k, r[k]]))
+      expect(importRowSchema.safeParse(payload).success).toBe(true)
+      expect(payload['requested_type_code']).toBeNull()
+    }
+  })
+
+  it('refuses a desk value that is not one of its choices, by row', () => {
+    const v = validateRoster(deskSheet([row(), 'General Admission']))
+    expect(v.rows).toHaveLength(0)
+    expect(v.errors[0]!.errors.join()).toMatch(/Accreditation type "General Admission" is not one of the desk's choices/)
+  })
+
+  it('a desk-column sheet expects nine cells per row', () => {
+    const v = validateRoster(`${HEADER},${DESK_HEADER}\n${row()}\n`)
+    expect(v.errors[0]!.errors).toEqual(['expected 9 columns, received 8'])
   })
 })
 
@@ -241,6 +301,16 @@ describe('pinned to the form, the pack and the migration', () => {
   it('crew types and day answers are exactly the form\'s choices', () => {
     expect([...FORM_CREW_TYPES]).toEqual(ctx['CREW_TYPES'])
     expect(Object.keys(DAYS_ANSWERS)).toEqual(ctx['DAYS'])
+  })
+
+  it('the desk column and its choices are exactly the form script\'s', () => {
+    expect(DESK_HEADER).toBe(ctx['DESK_COLUMN'])
+    expect(Object.keys(DESK_TIERS)).toEqual(ctx['ACCREDITATION_TYPES'])
+    // every desk choice is a real tier, with the pack's label, and GA is not one
+    for (const [label, code] of Object.entries(DESK_TIERS)) {
+      expect(TIERS.find((t) => t.code === code)?.label, label).toBe(label)
+    }
+    expect(Object.values(DESK_TIERS)).not.toContain('general_admission')
   })
 
   it('requestable tiers are exactly lib/design.ts\'s requestable tiers', () => {
