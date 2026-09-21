@@ -183,7 +183,7 @@ function orgSheet(org, name, lean) {
   rows.push({ r: 1, height: 34, cells: [{ c: 1, v: org.name, s: STYLE.TITLE }] })
 
   // Live counter, so an org can see how much of its quota is left without counting.
-  rows.push({
+  if (!lean) rows.push({
     r: 2,
     cells: [{
       c: 1,
@@ -194,6 +194,7 @@ function orgSheet(org, name, lean) {
         `"   ·   Left: ",${org.quota}-COUNTA(${nameCol}${FIRST_DATA_ROW}:${nameCol}${lastDataRow}))`,
     }],
   })
+  if (lean) rows.push({ r: 2, cells: [{ c: 1, v: `Quota: ${org.quota}`, s: STYLE.COUNTER }] })
 
   if (!lean) rows.push({
     r: 3,
@@ -234,7 +235,7 @@ function orgSheet(org, name, lean) {
     name,
     cols: HEADINGS.map(([, width]) => ({ width })),
     freezeRow: HEADER_ROW,
-    merges: [`A1:${colLetter(lastCol)}1`, `A2:${colLetter(lastCol)}2`, `A3:${colLetter(lastCol)}3`],
+    merges: lean ? [] : [`A1:${colLetter(lastCol)}1`, `A2:${colLetter(lastCol)}2`, `A3:${colLetter(lastCol)}3`],
     rows,
     validations: [
       {
@@ -424,6 +425,36 @@ DEADLINE
 `
   await writeFile(join(outDir, 'roster-template-HOW-TO.txt'), readme, 'utf8')
 
+  // The access matrix as a flat CSV, for pasting or importing as a single tab
+  // where a full workbook cannot travel. Generated from the same transcription
+  // as the workbook tab, never retyped.
+  const q = (v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
+  const at = new Map(matrix.access.map((a) => [`${a.zone}|${a.tier}`, a]))
+  const bandRows = [
+    ['BAND', 'QTY', ...matrix.zones.map((z) => z.label.toUpperCase())],
+    ...[...matrix.tiers]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((t) => [
+        t.label,
+        t.print_qty === null ? 'TBC' : String(t.print_qty),
+        ...matrix.zones.map((z) => {
+          const rule = at.get(`${z.code}|${t.code}`)
+          if (!rule) return 'NO'
+          if (rule.from_local_time) return `+ PHOTO ID after ${rule.from_local_time}`
+          return rule.requires_photo_id ? '+ PHOTO ID' : 'YES'
+        }),
+      ]),
+  ]
+  const bandsCsv =
+    bandRows.map((r) => r.map(q).join(',')).join('\n') +
+    '\n\n' +
+    [
+      '"+ PHOTO ID = the band alone is not entry; the matching photo ID and lanyard must be shown."',
+      '"NO = turn away. Cut, taped or transferred bands are void: refuse entry and call the zone supervisor."',
+      '"AAA and Artist are named lists approved separately. They cannot be requested on a roster."',
+    ].join('\n') + '\n'
+  await writeFile(join(outDir, 'bands-and-zones.csv'), bandsCsv, 'utf8')
+
   const manifest = ['org_name,quota,tab_name']
     .concat(orgs.map((o) => {
       const tab = o.name.replace(/[:\\/?*[\]]/g, '-').trim().slice(0, 90)
@@ -451,6 +482,7 @@ DEADLINE
     `  wrote    ${gsOut}\n` +
     `  wrote    ${join(outDir, 'roster-template.csv')}\n` +
     `  wrote    ${join(outDir, 'roster-template-HOW-TO.txt')}\n` +
+    `  wrote    ${join(outDir, 'bands-and-zones.csv')}\n` +
     `  wrote    ${join(outDir, 'tabs.csv')}\n` +
     `\nNext: open a new Google Sheet, Extensions > Apps Script, paste in\n` +
     `${gsOut}, Save, then Run > buildWorkbook.\n` +
