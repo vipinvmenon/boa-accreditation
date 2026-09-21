@@ -207,6 +207,17 @@ before ACC-031 mints the 38 real invite tokens.
 - [x] **ACC-032** · Confirmation copy, duplicate-phone path, closed-org path · **C** · due Sat 19
 - [x] **ACC-033** · `/desk` Control room on `boa_acc_desk_dashboard()` · **C** · due Sat 19
 
+> **Renumbered on merge, 21 Sep.** These production-hardening tasks were added on
+> `polish/production-hardening` as ACC-100–117, the same IDs as the v2 and
+> accreditation-pack tasks below. They are now **ACC-120–137 (old ID + 20)**.
+> Commit messages on that branch still use the old IDs: `fix(ACC-109)` there is
+> ACC-129 here, `fix(ACC-115)` is ACC-135.
+
+- [ ] **ACC-120** · `/desk/login` blank in production: prerendered page has no
+      script nonce under the nonce CSP → every script blocked. Make it dynamic;
+      `verify:deploy` fails if any `<script>` lacks the header's nonce · **C** · due Sat 19
+- [x] **ACC-121** · Favicon from the recovered logo (every tab 404s `/favicon.ico`) · **C** · due Sat 19
+
 **Acceptance: Bhoopesh opens a link on his own phone, adds himself with a
 vehicle, and watches the seat count move.** Not a demo on my machine.
 
@@ -214,6 +225,30 @@ vehicle, and watches the seat count move.** Not a demo on my machine.
 > No slack after this. A link sent on 24 Sep leaves four fewer days to chase 38
 > companies, and **R2 (vendors simply not submitting) is the risk most likely to
 > kill the gate.** First chase: Fri 25 Sep.
+
+## Phase 2b — Production hardening · Mon 21 Sep – Sat 3 Oct
+
+Inside the pixel contract: no font, palette or layout change. Every async
+screen gets explicit loading / empty / error / ready states that cannot be
+mistaken for each other. Plan: `polish/production-hardening` branch.
+`test:visual` must stay 7/7 PASS on every task.
+
+- [ ] **ACC-122** · `components/states/` — Skeleton, EmptyState, InlineError (`role="alert"`, Retry); one `lib/error-copy.ts` replacing 7 copies of `ERROR_COPY` · **C** · due Tue 22
+- [ ] **ACC-123** · Queue: a real loading state (first load no longer reads "No people / 0 approved"); "Org N of M pending" only on the Pending filter · **C** · due Wed 23
+- [ ] **ACC-124** · Other desk screens + status bar: skeletons, empty states with a next step, try/finally on every fetch, no swallowed errors · **C** · due Thu 24
+- [ ] **ACC-125** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
+- [ ] **ACC-126** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
+- [ ] **ACC-127** · Per-route titles (`%s · BOA Accreditation`), one button-label casing rule · **C** · due Wed 30
+- [ ] **ACC-128** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
+- [x] **ACC-129** · Gate safety: vehicle Turn away can log a clear (stale state); gate idles on REFUSE; double issue; scanner over empty cache; outbox drains only after an issue · **C** · due Sun 20
+- [x] **ACC-135** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
+- [ ] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
+- [ ] **ACC-131** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
+- [ ] **ACC-136** · Desk nav: Control room · Queue · Orgs & links · Master list · Passes · AAA; Devices/Users in account menu · **C** · due Thu 24
+- [ ] **ACC-132** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
+- [ ] **ACC-137** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
+- [ ] **ACC-133** · Sample data that looks real: plate placeholders; one shared outbox-status hook · **C** · due Fri 25
+- [ ] **ACC-134** · Operator copy instead of designer rationale (Vipin reviews factual copy) · **C** · due Mon 28
 
 ## Phase 3 — The desk · Mon 21 – Sat 26 Sep
 

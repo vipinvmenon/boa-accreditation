@@ -117,27 +117,31 @@ test.describe('Queue interactions', () => {
   test('starts with no rows selected after load', async ({ page }) => {
     await openQueue(page)
 
-    await expect(page.getByRole('checkbox', { name: 'Select all people in this view' })).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByRole('checkbox', { name: 'Select all pending people' })).toHaveAttribute('aria-checked', 'false')
     await expect(page.getByText('0 of 1 selected')).toBeVisible()
   })
 
   test('selects every row with select-all', async ({ page }) => {
     await openQueue(page)
 
-    await page.getByRole('checkbox', { name: 'Select all people in this view' }).click()
+    await page.getByRole('checkbox', { name: 'Select all pending people' }).click()
 
-    await expect(page.getByRole('checkbox', { name: 'Select all people in this view' })).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByRole('checkbox', { name: 'Select all pending people' })).toHaveAttribute('aria-checked', 'true')
     await expect(page.getByText('1 of 1 selected')).toBeVisible()
   })
 
   test('clears selection when a filter reloads the queue', async ({ page }) => {
     await openQueue(page)
-    await page.getByRole('checkbox', { name: 'Select all people in this view' }).click()
+    await page.getByRole('checkbox', { name: 'Select all pending people' }).click()
 
     await page.getByRole('button', { name: /Approved/ }).click()
 
+    // The Approved tab has nothing selectable, so it has no bulk bar at all.
+    await expect(page.getByRole('checkbox', { name: 'Select all pending people' })).toHaveCount(0)
+    // Back on Pending, the earlier selection did not survive the reload.
+    await page.getByRole('button', { name: /Pending/ }).click()
     await expect(page.getByText('0 of 1 selected')).toBeVisible()
-    await expect(page.getByRole('checkbox', { name: 'Select all people in this view' })).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByRole('checkbox', { name: 'Select all pending people' })).toHaveAttribute('aria-checked', 'false')
   })
 
   test('clears selection after a mutation reloads the queue', async ({ page }) => {
@@ -158,15 +162,15 @@ test.describe('Queue interactions', () => {
       const filter = new URL(route.request().url()).searchParams.get('filter') ?? 'pending'
       await route.fulfill({ json: queueResponse(filter) })
     })
-    await page.getByRole('checkbox', { name: 'Select all people in this view' }).click()
+    await page.getByRole('checkbox', { name: 'Select all pending people' }).click()
 
-    await page.locator('.selbar').getByRole('button', { name: 'Approve', exact: true }).click()
+    await page.locator('.selbar').getByRole('button', { name: 'Approve selected' }).click()
 
     await expect.poll(() => postedActions.length).toBe(1)
     expect(postedActions.map((action) => action.action === 'decide' ? action.personId : null)).toEqual(
       PEOPLE.filter((person) => person.status === 'submitted').map((person) => person.id),
     )
     await expect(page.getByText('0 of 1 selected')).toBeVisible()
-    await expect(page.getByRole('checkbox', { name: 'Select all people in this view' })).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByRole('checkbox', { name: 'Select all pending people' })).toHaveAttribute('aria-checked', 'false')
   })
 })

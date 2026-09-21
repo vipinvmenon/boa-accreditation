@@ -946,7 +946,60 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-116 released 2026-09-21 (IST):** Form live and verified end to end 21 Sep; only the Organisation dropdown remains, blocked on ACC-030a (org list). Delete the test response before the link goes out.
 
+> _Merged 21 Sep from `polish/production-hardening`; task IDs in this block are that branch's, now ACC-120–137 (old + 20)._
+
+> **ACC-100 released 2026-09-19 (IST):** Fix committed + verified locally on polish/production-hardening; waiting on Vipin to choose how to deploy (merge to main vs cherry-pick), then verify:deploy + real sign-in on production
+
+
+> **ACC-108 released 2026-09-19 (IST):** Login rebuilt + committed (715e631); 404/error/global-error still to do — parked behind ACC-109 gate safety
+
 ## Session log
+
+### 21 Sep 2026 — `polish/production-hardening` merged into the v2 + pack line
+
+At Vipin's instruction ("keep only main, merge relevant things"). That branch
+held 12 commits not on this line, forked before the v2 redesign. **Its task IDs
+collided** with the v2 and pack tasks and are renumbered ACC-120–137 (old +
+20) in ROADMAP.md; its commit messages keep the old IDs.
+
+What came across, rebuilt onto the v2 markup and the eight tiers rather than
+taking either side wholesale:
+
+- **Gate outbox** (old ACC-109 → ACC-129): queued vehicle events go to
+  `/api/gate/vehicle`, not `/api/gate/issue`. On the v2 line they were still
+  posting to `/issue`, getting 400 and stalling every wristband queued behind
+  them. Also: single-flight drain on mount, reconnect and every 30s
+  (`useOutboxSync`); device token in `localStorage`; a never-pulled device
+  redirects to `/gate/setup`; a malformed cache fails closed; one issue per
+  scan, with the button locking.
+- **Vehicle**: the pressed button is the decision. Turn away always logs
+  `turned_away` and needs a reason; Log entry clears only when sticker and
+  wristband check out, and otherwise shows "Not cleared" with nothing logged.
+  One change of mine: the plate now stays on screen after logging (the v2
+  design shows it there); editing it clears the verdict.
+- **Queue** (old ACC-115 → ACC-135): a tier per row, where there used to be
+  one screen-wide type (on the v2 line a single-row Approve used the screen
+  type, not that row's picker). "Set type" applies to the selected rows only.
+  Only pending rows can be selected. Bulk reject takes one reason. Partial
+  failures are reported, and the failed rows stay selected. Approve all uses
+  the org call only when every pending row shares one requestable tier, and
+  otherwise goes row by row. No bulk bar on decided tabs.
+- **Login CSP** (old ACC-100 → ACC-120): `page.tsx` is a per-request server
+  page (`await connection()`) wrapping the v2 form, now in `login-form.tsx`.
+  The build lists `ƒ /desk/login`. The poster login and `login.css` were
+  dropped: v2 is the pixel contract (ADR-017). `verify-deploy.mjs` nonce check
+  came across.
+- **Favicon** (old ACC-101 → ACC-121): `app/icon.png`, `app/apple-icon.png`.
+
+**Verified locally on the merged tree:** typecheck; lint (0 errors); `test`
+14 files / 96; `check:sql` 30; `build`; **`test:e2e` 30/30**, including the
+incoming 6 vehicle/gate-safety cases and 8 queue cases, adapted to v2 labels
+and roles. No test was weakened to pass: the one behaviour assertion that
+changed ("Approve all disabled for a non-requestable tier") now asserts the
+row-by-row fallback sends that exact tier. **Not verified:** production. It
+still runs `origin/main` from 14 Sep. The login CSP fix and the Control room
+tier fix both need a deploy.
+
 
 ### 21 Sep 2026 — ACC-114 done: the pack's client mirrors and contract test
 
@@ -4072,6 +4125,187 @@ real font — not a mock), not via an authenticated browser session.
 **Not committed** — added to the existing uncommitted set: `app/phosphor.css`
 (new), `public/fonts/phosphor-light.woff2` (new), `components/icon.tsx`,
 `design/source/boa_design_v2.html`, `app/v2.css`, `scripts/build-gate-sw.mjs`.
+
+> _Merged 21 Sep from `polish/production-hardening`; task IDs in this block are that branch's, now ACC-120–137 (old + 20)._
+
+### 19 Sep 2026 — ACC-100: production `/desk/login` was a blank page; ACC-101 favicon
+
+**Found by opening production in a real browser, not by any gate.**
+`/desk/login` rendered an empty `<body>` with 24 CSP errors in the console.
+Cause: the page was a pure `'use client'` component, so `next build`
+prerendered it (`○`), and Vercel served that copy from the CDN
+(`x-nextjs-prerender: 1`, `x-vercel-cache: HIT`, `age: 424688` ≈ 4.9 days).
+A prerendered page's `<script>` tags carry no nonce, while `middleware.ts`
+sends a fresh `nonce-… 'strict-dynamic'` CSP on every response. So the
+browser blocked all 12 scripts and the form never mounted. `/` redirects
+there, so the desk had no working front door.
+
+Most likely broken since the nonce CSP shipped (`5575e64`, 14 Sep 21:15), which
+fits the CDN copy's age. **Not verified** exactly when it started. Every
+`verify:deploy` run since then passed, because it checked only for the
+`<title>` in the HTML. Vendor `/s/*` links were never affected: those routes
+are force-dynamic and their nonces matched (checked with curl on 19 Sep).
+
+Fix, on branch `polish/production-hardening`:
+- `app/desk/login/page.tsx` is now a server page that calls
+  `await connection()` and renders the unchanged form, moved to
+  `login-form.tsx`. The route is now `ƒ`.
+- `scripts/verify-deploy.mjs` now **fails** if `/desk/login` is prerendered
+  or if any `<script>` lacks the response's nonce. Mutation-checked: against
+  the unfixed production it reports `0/12 stamped` and fails. Against a local
+  `next start` of the fix it reports `12/12 stamped` and passes.
+- The remaining `○` HTML routes are `/`, `/desk/operators` (both pure
+  redirects) and `/_not-found` (static text). None of them needs JS.
+
+ACC-101: `app/icon.png` (256) and `app/apple-icon.png` (180) are the "B" from
+the recovered logo on `#0A0A0A`. Every tab previously 404'd on
+`/favicon.ico`.
+
+**Verified locally:** `typecheck`, `lint`, `test` 53/53, `build`, and
+`test:e2e` 4/4 (aeroplane mode; run on `PLAYWRIGHT_PORT=4174` because an
+unrelated process holds 4173). `test:visual` passes 7/7 screens after
+`design:reference`. In the browser pane against `next start`, the form
+renders, there are 0 console errors, and 0 scripts are missing a nonce.
+**Not yet verified:** production. This needs a deploy, then
+`corepack pnpm verify:deploy` and a real sign-in.
+
+### 19 Sep 2026 — ACC-109: gate safety bugs (found by auditing the mock-shaped UI)
+
+Vipin flagged "dumb issues" (the blank Queue button, Web/Mob tabs, a camera
+button labelled "search by name", scan-state tabs stuck on Approved). The
+root cause is that `design/source/boa_design_body.html` is a *clickable
+presentation mock*, and its preview machinery (DCLogic `vpTabs`,
+`scanStates`, sample data) was transcribed as product. A full audit of the
+gate and desk turned up worse than dead buttons. ACC-109 fixes the ones that
+would have hurt on 4 Oct. The rest are ACC-110 to ACC-117 in ROADMAP.
+
+**Fixed, each proven by a test that fails on the old code:**
+1. **Vehicle events never reached the server.** `gate/outbox.ts` posted
+   every outbox entry to `/api/gate/issue`, which answers a `vehicle_event`
+   with 400. Because a failed entry blocks everything behind it, **every
+   wristband issue queued after the first vehicle event on a device
+   stalled.** Now routed to `/api/gate/vehicle`, and no ledger row is
+   written. New `gate/outbox.test.ts` fails on the old outbox and passes on
+   the fix.
+2. **Vehicle "Turn away" could log a CLEAR.** Both buttons did
+   `setPlateVisual(x); recordEvent()` in one click, so `recordEvent` read
+   the previous render's value. The button now passes its intent
+   explicitly.
+   - "Log entry" clears only when the sticker and an active wristband both
+     check out. Otherwise it shows "Not cleared" with the reason and logs
+     nothing.
+   - "Turn away" needs a reason and always logs `turned_away`.
+   - Three new e2e cases fail on the old screen and pass now.
+   - `scripts/visual-check.mjs` had been clicking twice to paper over this
+     bug. It now clicks once.
+3. **The gate idled on red REFUSE** ("Do not issue a wristband" before
+   anyone was scanned). It now has an explicit idle state, "Ready · scan
+   the next pass", and "Next person" returns to it.
+4. **Double issue.** A second tap on "Issue wristband" queued a second
+   issue. The button locks as "Wristband issued" until "Next person".
+5. **An unconfigured device showed a scanner** that answered Refuse to
+   every real pass. With no roster and no `rosterAsOf`, `/gate` now
+   redirects to `/gate/setup`.
+6. **The outbox drained only right after an issue**, and the vehicle page
+   never drained. `gate/use-outbox-sync.ts` drains on mount, on the
+   `online` event and every 30 s, on both screens. `drainOutbox` is now
+   single-flight, so concurrent triggers share one drain. No new fast
+   path: reads are still Dexie and writes are still the outbox.
+7. **Device token in `sessionStorage`, contrary to docs/SECURITY.md**
+   ("localStorage"). A phone that closed the tab silently stopped syncing.
+   It's now in `localStorage` via `gate/device-token.ts`, with a one-time
+   read fallback so already set-up devices keep their token. The status
+   line says "not syncing — run setup" when there is no token.
+8. **A malformed cached row made a scan silently do nothing**, because an
+   uncaught ZodError left no verdict. Found in the browser pane with a
+   hand-seeded row. It now fails closed: red, plus "cached list could not
+   be read — re-run gate setup".
+
+**Two existing e2e tests were changed, deliberately:**
+- The 500 test drained by tapping "Issue wristband" a second time on the
+  same person, which *was* the double-issue bug. It now reconnects instead,
+  and asserts 4 requests / 3 done rather than 5 / 4.
+- The 401 test asserted exactly one request. The `online` event now also
+  drains, so it asserts the invariant instead: only the head entry is ever
+  sent, and nothing is dropped.
+
+**Verified:** `typecheck`, `lint` (3 pre-existing `<img>` warnings),
+`test` 54/54, `test:e2e` 10/10 (`PLAYWRIGHT_PORT=4174`), and `test:visual`
+7/7 screens, 28/28 variants. The harness now seeds a device token (a real
+configured device has one) and uses goto instead of reload after seeding.
+
+In the browser pane against `next start`, with a hand-seeded roster and no
+device token (so nothing could reach the live database):
+- idle reads Ready
+- scan → Approved → two taps → exactly 1 outbox row, button locked
+- a vehicle with no sticker shows "Not cleared", with nothing logged
+- a malformed row fails closed
+- an unconfigured `/gate` goes to setup
+
+Test data was deleted from the pane afterwards.
+
+**Not verified:** a real phone, a real camera, or real signal loss. That
+is still ACC-057/058 physical rehearsal. Also not verified: a real
+`/api/gate/vehicle` round trip against the live database; the e2e test
+mocks the route.
+
+### 19 Sep 2026 — ACC-115: the approval queue no longer lies about selection or type
+
+The mock's queue checkboxes are **status marks**: approved rows are drawn
+ticked and pending rows unticked. The app transcribed them as a *selection*
+and pre-selected every approved row on load. Consequences, all fixed in
+`app/desk/queue/queue-screen.tsx`:
+
+- **Blank "Approve selected".** With nothing selected its colour was set to
+  `undefined`, so it fell back to the UA's near-black disabled text: a blank
+  green box. It now uses an explicit ink3 colour, plus a shared
+  `.d-btn:disabled` treatment in `app/hover.css`.
+- **Fake count.** The "N of N selected" label came from the RPC's row count
+  (`boa_acc_approval_queue` builds it from `count`), not from what was
+  ticked. It's now computed client-side, e.g. "2 of 5 selected" or "Nothing
+  pending in this view". The RPC field is left alone and ignored, so no
+  migration was needed; noted here as dead output.
+- **Pre-selection of decided rows.** Only pending rows are selectable.
+  Decided rows show the design's tick as a non-interactive status mark.
+- **One screen-wide type.**
+  - Before: "Set type" cycled crew → stage → AAA blind, and one row's
+    dropdown re-typed every untyped row.
+  - Now: each pending row has its own type, and "Set type" (same label and
+    footprint, native select overlay) applies one type to the selected
+    rows only.
+  - Untyped rows still default to **Working Crew**, as before and as drawn.
+    The org's `defaultType` is deliberately *not* used yet, because it
+    would change what "Approve all" stamps on real people. **Question for
+    Vipin.**
+- **Bulk Reject** used to open a reason box on the first selected row only.
+  It now rejects every selected row with one shared reason, via an inline
+  confirm.
+- **Approve selected / Approve all.** Each row is decided with its own
+  type. A partial failure is reported ("Approved 1 of 2. 1 did not go
+  through…") and the failed rows stay selected. "Approve all" uses
+  `boa_acc_approve_org` only when every pending row in the org shows the
+  same non-AAA type; otherwise it decides row by row.
+- "Org N of M pending" is shown only on Pending, using the org's real
+  position. The bulk bar is hidden on decided tabs.
+- "Next org →" is now a button that scrolls to that org.
+- There's a real loading line. The first load no longer reads "No people in
+  this view".
+- A network failure in `post()` no longer leaves `busy` stuck.
+
+**Visual contract held without amending the mock.** The harness now selects
+the pending rows the way an operator would, before the screenshot, instead
+of relying on the old fake pre-selection.
+
+**Verified:**
+- `test:visual` 7/7, 28/28. Queue is 0.43–0.57%.
+- New `tests/e2e/queue.spec.ts`, 8 cases, runs against the same Zod-parsed
+  fixture the visual gate renders. All 8 fail on the old screen, but at the
+  first shared step (its label reads "14 of 14 selected"), so this is
+  weaker per-assertion proof than ACC-109's tests.
+- `test:e2e` 18/18, `test` 54/54, `typecheck` and `lint` pass.
+
+**Not verified:** against the live database. The desk has no logged-in e2e
+pass (ACC-090a).
 
 ## Template for the next session update
 

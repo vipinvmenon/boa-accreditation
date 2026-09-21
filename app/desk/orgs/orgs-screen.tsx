@@ -10,7 +10,7 @@ import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
  * Not part of the approved design (design/source/boa_design_body.html has no
  * orgs screen — the 7 screens in scripts/visual-check.mjs's SCREENS are the
  * whole pixel contract), so this is built from the design's own tokens
- * (lib/design.ts / app/globals.css / app/desk/login/page.tsx's precedent),
+ * (lib/design.ts / app/globals.css / app/desk/login/login-form.tsx's precedent),
  * not a transcription. Not gated by test:visual for the same reason.
  *
  * Per docs/ARCHITECTURE.md rule 1, this screen never imports the Supabase

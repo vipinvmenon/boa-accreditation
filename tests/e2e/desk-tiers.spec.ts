@@ -87,11 +87,15 @@ test.describe('desk tiers (ACC-115)', () => {
     const picker = page.getByLabel('Band type for Pending Person')
     await expect(picker.locator('option')).toHaveText(TIERS.filter((t) => t.code !== 'general_admission').map((t) => t.label))
 
+    // The org call stamps one tier and takes requestable tiers only (ADR-018).
+    // A non-requestable tier falls back to one decision per person, so the
+    // person still gets exactly the tier on screen.
     const approveAll = page.getByRole('button', { name: 'Approve all' })
     await picker.selectOption('artist')
-    await expect(approveAll).toBeDisabled()
+    await approveAll.click()
+    await expect.poll(() => posted).toEqual([{ action: 'decide', personId: PERSON_ID, approve: true, typeCode: 'artist', dayValidity: 'build_show', reason: null }])
+    posted.length = 0
     await picker.selectOption('photo')
-    await expect(approveAll).toBeEnabled()
     await approveAll.click()
     await expect.poll(() => posted).toEqual([{ action: 'approve_org', orgId: ORG_ID, typeCode: 'photo', dayValidity: 'build_show' }])
   })

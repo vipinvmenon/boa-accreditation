@@ -106,3 +106,16 @@
 .foc-bg-panel:focus {
   background: var(--panel) !important;
 }
+
+/*
+ * ACC-115 — a disabled desk button must read as disabled. Before this, a
+ * disabled "Approve selected" dropped its colour to `undefined`, fell back to
+ * the UA's near-black disabled text on the dark panel, and rendered as a
+ * blank green box. `!important` for the same reason as the hovers above: the
+ * button's own colour is an inline style.
+ */
+.d-btn:disabled,
+.d-btn[aria-disabled='true'] {
+  opacity: 0.45 !important;
+  cursor: default !important;
+}

@@ -318,6 +318,10 @@ async function seedGateDexie(page, { vehicle = false } = {}) {
     request.onerror = () => reject(request.error)
     request.onsuccess = () => {
       const database = request.result
+      // A configured gate device holds its token (gate/device-token.ts).
+      // Without one the status line adds "not syncing — run setup", which
+      // is right for a real unconfigured phone but not the approved state.
+      localStorage.setItem('boa-gate-device-token', 'visual-fixture-token')
       const transaction = database.transaction(['roster', 'ledger', 'outbox', 'sticker', 'meta'], 'readwrite')
       for (const store of ['roster', 'ledger', 'outbox', 'sticker', 'meta']) transaction.objectStore(store).clear()
 
@@ -708,6 +712,13 @@ try {
         await installCaptureClock(page)
         if (screen.data === 'desk') await installDeskFixtures(page, view.slug)
         await page.goto(base + route, { waitUntil: 'networkidle' })
+        if (screen.slug === 'queue') {
+          // The artboard shows an operator mid-review with the pending rows
+          // selected. Since ACC-115 nothing is pre-selected on load (the old
+          // pre-selection ticked already-approved rows), so select them the
+          // way an operator does rather than faking the state.
+          await page.getByRole('button', { name: 'Select all pending people' }).click()
+        }
         if (screen.slug === 'submission') {
           // The approved artboard leaves the name, phone, and role at their
           // placeholder state. It captures the illustrative vehicle example
@@ -737,7 +748,9 @@ try {
         }
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
-          await page.reload({ waitUntil: 'networkidle' })
+          // goto, not reload: an unseeded /gate redirects to /gate/setup, so the
+          // first load may have left the page there.
+          await page.goto(base + route, { waitUntil: 'networkidle' })
           await page.context().setOffline(true)
           const captureState = GATE_CAPTURE_STATE[screen.slug]
           console.log(`  ${screen.slug}: fixture state ${captureState} (reference-aligned capture contract)`)
@@ -748,16 +761,11 @@ try {
             await page.getByText('Approved', { exact: true }).first().waitFor()
           } else if (screen.slug === 'vehicle' && captureState !== 'idle') {
             await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
-            await page.getByRole('button', { name: 'Log entry and open gate' }).click()
-            // The real control records the visual check on the first click and
-            // evaluates it on the next render; repeat the user action so the
-            // screenshot reaches the approved design's cleared state.
+            // One press clears. It used to take two, because the button set the
+            // plate check in state and read the stale value in the same click;
+            // that bug is fixed, and the screen now keeps the plate on show.
             await page.getByRole('button', { name: 'Log entry and open gate' }).click()
             await page.locator('#vres h2.g-verdict').filter({ hasText: 'Cleared' }).waitFor()
-            // The source-approved vehicle state keeps the illustrative plate
-            // visible after the result settles; refilling is capture-only and
-            // does not invoke or bypass the vehicle handler.
-            await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
           }
         }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)

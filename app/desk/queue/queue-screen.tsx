@@ -59,10 +59,18 @@ export function QueueScreen() {
   const [filter, setFilter] = useState<QueueFilter>('pending')
   const [rows, setRows] = useState<QueueRow[]>([])
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, aaa: 0 })
+  // Only pending ('submitted') rows are ever selectable: the mock's ticked
+  // boxes on approved rows are status marks, not a selection.
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Each pending row's chosen tier. One screen-wide type re-typed every
+  // untyped row when any one dropdown changed, and "Set type" cycled it blind.
+  const [rowTypes, setRowTypes] = useState<Map<string, TierCode>>(new Map())
+  const [bulkRejecting, setBulkRejecting] = useState(false)
+  const [bulkReason, setBulkReason] = useState('')
+  const [notice, setNotice] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
   const [queueOrgs, setQueueOrgs] = useState<ReturnType<typeof queueResponseSchema.parse>['orgs']>([])
   const [nextOrg, setNextOrg] = useState<ReturnType<typeof queueResponseSchema.parse>['nextOrg']>(null)
-  const [type, setType] = useState<TierCode>('crew')
   const [dayValidity] = useState<'build' | 'show' | 'build_show'>('build_show')
   const [rejecting, setRejecting] = useState<string | null>(null)
   const [rejectingOrg, setRejectingOrg] = useState<string | null>(null)
@@ -93,7 +101,11 @@ export function QueueScreen() {
     setCounts(parsed.data.counts)
     setQueueOrgs(parsed.data.orgs)
     setNextOrg(parsed.data.nextOrg)
-    setSelected(new Set())
+    const pendingIds = new Set(parsed.data.rows.filter((row) => row.status === 'submitted').map((row) => row.id))
+    setSelected((old) => new Set([...old].filter((id) => pendingIds.has(id))))
+    setBulkRejecting(false)
+    setBulkReason('')
+    setLoaded(true)
     setError(null)
   }
 
@@ -111,12 +123,19 @@ export function QueueScreen() {
 
   async function post(body: unknown) {
     setBusy(true)
-    const response = await fetch('/api/desk/queue', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setBusy(false)
+    let response: Response
+    try {
+      response = await fetch('/api/desk/queue', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    } catch {
+      setError('No connection. Nothing was changed. Try again.')
+      return false
+    } finally {
+      setBusy(false)
+    }
     if (response.status === 401) {
       router.replace('/desk/login')
       return false
@@ -129,12 +148,20 @@ export function QueueScreen() {
     return true
   }
 
+  // Untyped rows default to Crew, the standard band. The org's defaultType is
+  // deliberately not used: that would change what "Approve all" stamps.
+  function typeFor(row: QueueRow): TierCode {
+    return rowTypes.get(row.id) ?? row.type_code ?? 'crew'
+  }
+
   async function decide(personId: string, approve: boolean, rejectReason?: string) {
+    const row = rows.find((candidate) => candidate.id === personId)
+    setNotice(null)
     const ok = await post({
       action: 'decide',
       personId,
       approve,
-      typeCode: approve ? type : null,
+      typeCode: approve && row ? typeFor(row) : null,
       dayValidity: approve ? dayValidity : null,
       reason: approve ? null : rejectReason ?? null,
     })
@@ -145,21 +172,56 @@ export function QueueScreen() {
     }
   }
 
-  async function approveSelected() {
-    const ids = [...selected]
+  /**
+   * One request per person, each with that row's own tier. Reports partial
+   * failure instead of stopping silently; the rows that failed stay selected
+   * so the operator can see and retry exactly those.
+   */
+  async function decideMany(ids: string[], approve: boolean, rejectReason?: string) {
+    setNotice(null)
+    const failed: string[] = []
     for (const id of ids) {
-      const ok = await post({ action: 'decide', personId: id, approve: true, typeCode: type, dayValidity })
-      if (!ok) return
+      const row = rows.find((candidate) => candidate.id === id)
+      if (!row || row.status !== 'submitted') continue
+      const ok = await post({
+        action: 'decide',
+        personId: id,
+        approve,
+        typeCode: approve ? typeFor(row) : null,
+        dayValidity: approve ? dayValidity : null,
+        reason: approve ? null : rejectReason ?? null,
+      })
+      if (!ok) failed.push(id)
     }
+    const done = ids.length - failed.length
+    const verb = approve ? 'Approved' : 'Rejected'
+    setNotice(failed.length === 0 ? `${verb} ${done}.` : `${verb} ${done} of ${ids.length}. ${failed.length} did not go through and are still selected.`)
     await load()
+    setSelected(new Set(failed))
   }
 
   async function approveOrg(orgId: string) {
-    // Org-level approve offers requestable tiers only (ADR-018); the button is
-    // disabled otherwise, so this guard is belt and braces, not a fallback.
-    if (!isRequestable(type)) return
-    const ok = await post({ action: 'approve_org', orgId, typeCode: type, dayValidity })
-    if (ok) await load()
+    const pending = rows.filter((row) => row.org_id === orgId && row.status === 'submitted')
+    const types = new Set(pending.map(typeFor))
+    const [only] = [...types]
+    // The org RPC stamps ONE tier on every pending row and takes requestable
+    // tiers only (ADR-018). Use it only when that is exactly what the screen
+    // shows; otherwise approve row by row so each person gets their own tier.
+    if (types.size === 1 && only && isRequestable(only)) {
+      setNotice(null)
+      const ok = await post({ action: 'approve_org', orgId, typeCode: only, dayValidity })
+      if (ok) await load()
+      return
+    }
+    await decideMany(pending.map((row) => row.id), true)
+  }
+
+  function setTypeForSelected(next: TierCode) {
+    setRowTypes((old) => {
+      const map = new Map(old)
+      for (const id of selected) map.set(id, next)
+      return map
+    })
   }
 
   async function rejectOrg(orgId: string) {
@@ -172,6 +234,14 @@ export function QueueScreen() {
       await load()
     }
   }
+
+  const selectable = useMemo(() => rows.filter((row) => row.status === 'submitted'), [rows])
+  const pendingTab = filter === 'pending'
+  const selectedLabel = !loaded
+    ? 'Loading…'
+    : selectable.length === 0
+      ? 'Nothing pending in this view'
+      : `${selected.size} of ${selectable.length} selected`
 
   const orgs = useMemo(() => {
     const grouped = new Map<string, { name: string; kind: string; rows: QueueRow[] }>()
@@ -227,23 +297,46 @@ export function QueueScreen() {
           {QUEUE_FILTERS.map((item) => <button key={item} type="button" aria-pressed={filter === item} onClick={() => void setFilterAndLoad(item)}>{filterLabels[item]}<b>{counts[item]}</b></button>)}
         </div>
       </div>
+      {/* Decided tabs have nothing selectable, so no bulk bar. */}
+      {pendingTab && (
       <div className="selbar rv" style={{ ['--d' as string]: 2 }}>
-        <button className="ck" type="button" role="checkbox" aria-checked={selected.size === rows.length && rows.length > 0} aria-label="Select all people in this view" onClick={() => setSelected((old) => old.size === rows.length ? new Set() : new Set(rows.map((row) => row.id)))}><Icon name="check" /></button>
-        <span className="mono">{selected.size} of {rows.length} selected</span>
-        <button className="btn solo hide-s" type="button" onClick={() => setType((old) => { const i = DECIDABLE_TIERS.findIndex((t) => t.code === old); return DECIDABLE_TIERS[(i + 1) % DECIDABLE_TIERS.length]!.code })}>Set type</button>
-        <button className="btn bad solo hide-s" type="button" disabled={busy || selected.size === 0} onClick={() => { const first = rows.find((row) => selected.has(row.id) && row.status === 'submitted'); if (first) { setRejecting(first.id); setReason('') } }}>Reject</button>
-        <button className="btn go" type="button" disabled={busy || selected.size === 0 || type === 'aaa'} onClick={() => void approveSelected()}>Approve<span className="ic"><Icon name="check" /></span></button>
+        <button className="ck" type="button" role="checkbox" aria-checked={selected.size > 0 && selected.size === selectable.length} aria-label={selected.size === selectable.length && selectable.length > 0 ? 'Deselect all pending people' : 'Select all pending people'} disabled={selectable.length === 0} onClick={() => setSelected((old) => old.size === selectable.length ? new Set() : new Set(selectable.map((row) => row.id)))}><Icon name="check" /></button>
+        <span className="mono" aria-live="polite">{selectedLabel}</span>
+        {bulkRejecting ? (
+          <>
+            <input aria-label="Reason for rejecting the selected people" value={bulkReason} onChange={(e) => setBulkReason(e.target.value)} placeholder="Reason" style={{ ...inputStyle, minWidth: '150px' }} />
+            <button className="btn solo" type="button" onClick={() => { setBulkRejecting(false); setBulkReason('') }}>Cancel</button>
+            <button className="btn bad solo" type="button" disabled={busy || bulkReason.trim().length === 0} onClick={() => void decideMany([...selected], false, bulkReason.trim())}>Reject {selected.size}</button>
+          </>
+        ) : (
+          <>
+            {/* "Set type" keeps the design's label and footprint; an invisible
+                native <select> over it applies one tier to the selected rows. */}
+            <label className="btn solo hide-s" aria-disabled={selected.size === 0} style={{ position: 'relative' }}>
+              Set type
+              <select aria-label="Set type for the selected people" disabled={selected.size === 0} value="" onChange={(e) => { if (e.target.value) setTypeForSelected(e.target.value as TierCode) }} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}>
+                <option value="" disabled>Set type</option>
+                {DECIDABLE_TIERS.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
+              </select>
+            </label>
+            <button className="btn bad solo hide-s" type="button" aria-label="Reject selected" disabled={busy || selected.size === 0} onClick={() => { setBulkRejecting(true); setBulkReason('') }}>Reject</button>
+            <button className="btn go" type="button" aria-label="Approve selected" disabled={busy || selected.size === 0} onClick={() => void decideMany([...selected], true)}>{busy ? 'Working…' : 'Approve'}<span className="ic"><Icon name="check" /></span></button>
+          </>
+        )}
       </div>
-      {error && <p style={{ color: 'var(--bad)' }}>{error}</p>}
-      {orgs.map(([orgId, org], orgIndex) => (
-          <section key={orgId} className="bz rv section" style={{ ['--d' as string]: 3 }}>
+      )}
+      {error && <p role="alert" style={{ color: 'var(--bad)' }}>{error}</p>}
+      {notice && <p role="status" className="mono">{notice}</p>}
+      {orgs.map(([orgId, org]) => (
+          <section key={orgId} id={`org-${orgId}`} className="bz rv section" style={{ ['--d' as string]: 3, scrollMarginTop: '120px' }}>
             <div className="pl">
             {(() => {
               const orgMeta = queueOrgs.find((item) => item.id === orgId)
+              const pendingPosition = queueOrgs.findIndex((item) => item.id === orgId)
               return (
             <div className="org-h">
               <div>
-                <span className="mono">Org {orgIndex + 1} of {queueOrgs.length} pending</span>
+                <span className="mono">{pendingTab && pendingPosition >= 0 ? `Org ${pendingPosition + 1} of ${queueOrgs.length} pending` : orgKindLabels[orgMeta?.kind ?? org.kind] ?? org.kind}</span>
                 <h2 className="h2">{org.name}</h2>
                 <div aria-label={`Contact ${orgMeta?.contactName ?? 'unknown'} ${orgMeta?.contactPhone ?? ''}; ${orgMeta?.used ?? 0} of ${orgMeta?.quota ?? 0} used; ${orgMeta?.status ?? 'unknown'}; default ${orgMeta?.defaultType ?? 'unknown'}`} className="sub">{orgKindLabels[orgMeta?.kind ?? org.kind] ?? orgMeta?.kind ?? org.kind}, quota {orgMeta?.quota ?? '—'}, submitted {org.rows[0]?.submitted_at ? new Date(org.rows[0].submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'} by {orgMeta?.contactName ?? '—'}</div>
               </div>
@@ -257,7 +350,7 @@ export function QueueScreen() {
                   ) : (
                     <button type="button" disabled={busy} onClick={() => { setRejectingOrg(orgId); setOrgReason('') }} className="btn bad solo">Reject</button>
                   )}
-                  <button type="button" disabled={busy || !isRequestable(type)} onClick={() => void approveOrg(orgId)} className="btn go">Approve all<span className="ic"><Icon name="arrow-right" /></span></button>
+                  <button type="button" disabled={busy || !org.rows.some((row) => row.status === 'submitted')} onClick={() => void approveOrg(orgId)} className="btn go">Approve all<span className="ic"><Icon name="arrow-right" /></span></button>
                 </div>
               )}
             </div>
@@ -265,16 +358,21 @@ export function QueueScreen() {
             })()}
             {org.rows.map((row) => {
               const selectedRow = selected.has(row.id)
-              const rowColour = tierColour(row.type_code ?? type, theme)
+              const pendingRow = row.status === 'submitted'
+              const rowTier = pendingRow ? typeFor(row) : row.type_code ?? 'crew'
+              const rowColour = tierColour(rowTier, theme)
               return (
                 <div key={row.id} className={`qrow${row.status === 'rejected' ? ' rej' : ''}`}>
-                  <button className="ck" type="button" role="checkbox" aria-checked={selectedRow} aria-label={`${selectedRow ? 'Deselect' : 'Select'} ${row.full_name}`} onClick={() => setSelected((old) => { const next = new Set(old); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next })}><Icon name="check" /></button>
+                  {/* A decided row is not selectable; an approved row keeps the
+                      design's tick as a status mark, not a control. */}
+                  {pendingRow ? <button className="ck" type="button" role="checkbox" aria-checked={selectedRow} aria-label={`${selectedRow ? 'Deselect' : 'Select'} ${row.full_name}`} onClick={() => setSelected((old) => { const next = new Set(old); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next })}><Icon name="check" /></button>
+                  : <button className="ck" type="button" role="checkbox" aria-checked={row.status === 'approved'} disabled aria-label={statusLabels[row.status as keyof typeof statusLabels] ?? row.status}><Icon name="check" /></button>}
                   <div>
                     <div className="nm">{row.full_name}</div>
                     <div className="sub">{row.role_text}, {row.phone}{row.vehicle_reg ? `, ${row.vehicle_reg}` : ''}</div>
                   </div>
                   <label className="pick" style={{ ['--c' as string]: rowColour }}>
-                    <select aria-label={`Band type for ${row.full_name}`} value={row.type_code ?? type} onChange={(e) => { setType(e.target.value as TierCode); setSelected(new Set([row.id])) }}>
+                    <select aria-label={`Band type for ${row.full_name}`} disabled={!pendingRow} value={rowTier} onChange={(e) => { const next = e.target.value as TierCode; setRowTypes((old) => new Map(old).set(row.id, next)) }}>
                       {DECIDABLE_TIERS.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
                       {row.type_code && !DECIDABLE_TIERS.some((t) => t.code === row.type_code) && <option value={row.type_code}>{tier(row.type_code).label}</option>}
                     </select><i><Icon name="caret-down" /></i>
@@ -288,11 +386,12 @@ export function QueueScreen() {
                 </div>
               )
             })}
-            <div className="q-foot"><div className="sums"><span style={{ color: 'var(--grn)' }}>{org.rows.filter((row) => row.status === 'approved').length} Approved</span><span>{org.rows.filter((row) => row.status === 'submitted').length} Pending</span><span style={{ color: 'var(--bad)' }}>{org.rows.filter((row) => row.status === 'rejected').length} Rejected</span></div><button className="linkbtn" type="button">Next org: {nextOrg?.name ?? '—'} <Icon name="arrow-right" /></button></div>
+            <div className="q-foot"><div className="sums"><span style={{ color: 'var(--grn)' }}>{org.rows.filter((row) => row.status === 'approved').length} Approved</span><span>{org.rows.filter((row) => row.status === 'submitted').length} Pending</span><span style={{ color: 'var(--bad)' }}>{org.rows.filter((row) => row.status === 'rejected').length} Rejected</span></div>{pendingTab && nextOrg && <button className="linkbtn" type="button" onClick={() => document.getElementById(`org-${nextOrg.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Next org: {nextOrg.name} <Icon name="arrow-right" /></button>}</div>
             </div>
           </section>
         ))}
-        {orgs.length === 0 && !error && <p className="pad">No people in this view.</p>}
+        {!loaded && !error && <p className="pad mono">Loading the queue…</p>}
+        {loaded && orgs.length === 0 && !error && <p className="pad">{pendingTab ? 'Nobody is waiting for a decision.' : 'No people in this view.'}</p>}
       <style jsx>{`
         .qrow { position: relative; }
         .q-actions { position: absolute; right: 26px; bottom: 10px; justify-content: flex-end; opacity: 0; pointer-events: none; transition: opacity .3s var(--ease); }

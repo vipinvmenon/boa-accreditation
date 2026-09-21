@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useRouter } from 'next/navigation'
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
-import { drainOutbox, enqueueIssue, queuedCount, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { enqueueIssue, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { useOutboxSync } from '@/gate/use-outbox-sync'
+import { readDeviceToken } from '@/gate/device-token'
 import { scanFrame } from '@/gate/scanner'
 import { DAY_VALIDITY, tierColour } from '@/lib/design'
 import { gateBandCard } from '@/gate/band-card'
@@ -14,35 +17,38 @@ import { Icon } from '@/components/icon'
 import { GateChrome } from './gate-chrome'
 
 export default function GatePage() {
+  const router = useRouter()
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
   const [resolution, setResolution] = useState<GateResolution | null>(null)
   const [serial, setSerial] = useState('')
-  const [queued, setQueued] = useState(0)
+  // The pass token a band was just issued to. Locks "Issue wristband" until
+  // "Next person" so a second tap cannot queue a duplicate issue.
+  const [issuedTo, setIssuedTo] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [cameraActive, setCameraActive] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [online, setOnline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const loadCache = useCallback(async () => {
     const current = await readGateSnapshot()
+    // A device that has never pulled has no roster and no rosterAsOf. It
+    // must not show a scanner that answers "Refuse" to every real pass —
+    // /gate/setup's own copy promises exactly that.
+    if (current.roster.length === 0 && current.meta.rosterAsOf === null) {
+      router.replace('/gate/setup')
+      return
+    }
     setSnapshot(current)
-    setQueued(await queuedCount())
-  }, [])
+  }, [router])
+
+  const { online, queued, canSync, sync, refresh } = useOutboxSync(loadCache)
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadCache(), 0)
-    const updateOnline = () => setOnline(navigator.onLine)
-    window.addEventListener('online', updateOnline)
-    window.addEventListener('offline', updateOnline)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('online', updateOnline)
-      window.removeEventListener('offline', updateOnline)
-    }
+    return () => window.clearTimeout(timer)
   }, [loadCache])
 
   const resolve = useCallback(async (raw: string) => {
@@ -74,8 +80,20 @@ export default function GatePage() {
         })
       }
     }
-    setResolution(resolveScan(raw, roster, byPerson, pending))
+    try {
+      setResolution(resolveScan(raw, roster, byPerson, pending))
+    } catch {
+      // resolveScan Zod-parses the cached rows. A malformed cache must not
+      // leave the volunteer staring at an unchanged screen: fail closed, say
+      // why, and point at the fix.
+      setResolution({ status: 'red', reason: 'invalid_token' })
+      setMessage('This device’s cached list could not be read. Do not issue — re-run gate setup.')
+      setSerial('')
+      setIssuedTo(null)
+      return
+    }
     setSerial('')
+    setIssuedTo(null)
     setMessage(null)
   }, [snapshot])
 
@@ -111,8 +129,9 @@ export default function GatePage() {
   }, [resolve])
 
   const issue = async () => {
-    if (!resolution || resolution.status !== 'green') return
+    if (!resolution || resolution.status !== 'green' || issuedTo === resolution.person.passToken) return
     const token = resolution.person.passToken
+    setIssuedTo(token)
     const action: GateIssue = {
       idempotencyKey: crypto.randomUUID(),
       passToken: token,
@@ -122,14 +141,22 @@ export default function GatePage() {
       isReissue: false,
     }
     await enqueueIssue(action)
-    setQueued(await queuedCount())
-    setMessage('Wristband queued locally. The ledger will update when the outbox drains.')
-    const deviceToken = sessionStorage.getItem('boa-gate-device-token')
-    if (deviceToken && navigator.onLine) {
-      await drainOutbox(deviceToken)
-      setQueued(await queuedCount())
-      await loadCache()
-    }
+    setMessage(
+      readDeviceToken() === null
+        ? 'Wristband recorded on this device. It cannot sync until gate setup is run again.'
+        : online
+          ? 'Wristband recorded. Syncing now.'
+          : 'Wristband recorded on this device. It syncs when signal returns.',
+    )
+    await refresh()
+    await sync()
+  }
+
+  const nextPerson = () => {
+    setResolution(null)
+    setIssuedTo(null)
+    setSerial('')
+    setMessage(null)
   }
 
   const theme = useDomTheme()
@@ -139,6 +166,7 @@ export default function GatePage() {
   const person = resolution?.status === 'red' ? null : resolution?.person
   const card = person ? gateBandCard(person.typeCode) : null
   const stickerDue = resolution?.status === 'green' ? resolution.stickerDue : false
+  const issued = resolution?.status === 'green' && issuedTo === resolution.person.passToken
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
   const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
   const searchResults = useMemo(() => {
@@ -171,7 +199,7 @@ export default function GatePage() {
       </section>
       <div className="split">
           <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
-            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued</span></div>
+            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued{canSync ? '' : ' | not syncing, run setup'}</span></div>
             <div className="vf">
               <i className="c" /><i className="c" /><i className="c" /><i className="c" />
               <div className="sweep"><i /></div>
@@ -222,12 +250,12 @@ export default function GatePage() {
           </div></div>
           <div className="bz result rv" id="gres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': colour } as CSSProperties}><div className="pl">
             <div className="flood" /><div className="r-top"><div className="seg" data-seg><span className="thumb" /><button type="button" data-o="idle" aria-pressed={!outcome}>Scanning</button><button type="button" data-o="ok" aria-pressed={outcome === 'ok'}>Approved</button><button type="button" data-o="col" aria-pressed={outcome === 'col'}>Collected</button><button type="button" data-o="bad" aria-pressed={outcome === 'bad'}>Refuse</button></div></div>
-            <div className="r-body">{!resolution && <div className="idle"><span className="mono">Waiting for a scan</span><h2 className="verdict stag" style={{ '--i': 0, color: 'var(--ink)' } as CSSProperties}>Ready</h2><p className="stag" style={{ '--i': 1 } as CSSProperties}>Hold the pass code inside the frame. Works with the radio off.</p></div>}{resolution && <><h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{verdict}</h2><p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</p></>}
+            <div className="r-body">{!resolution && <div className="idle"><span className="mono">Waiting for a scan</span><h2 className="verdict stag" style={{ '--i': 0, color: 'var(--ink)' } as CSSProperties}>Ready</h2><p className="stag" style={{ '--i': 1 } as CSSProperties}>Hold the pass code inside the frame. Works with the radio off.</p></div>}{resolution && <><h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{verdict}</h2><p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{issued ? 'Band issued · send them through' : resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</p></>}
               {person && card && <div className="person"><div className="nm">{person.fullName}</div><div className="org">{person.orgName}<br /><span>{person.roleText} · {person.dayValidity === 'build_show' ? 'Build + show day' : DAY_VALIDITY[person.dayValidity]}</span></div></div>}
               {person && card && <><div className="gband" style={{ '--c': tierColour(person.typeCode, theme) } as CSSProperties}><b>{card.label}</b><small>{card.handOver}</small></div><div className="zones">{card.zones.map((zone) => <span key={zone.zone} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}</div>{stickerDue && <div className="vehbox"><span className="mono">Sticker due</span><b>{person.vehicleReg}</b></div>}</>}
               {resolution?.status === 'amber' && <div className="note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
               {resolution?.status === 'red' && <div className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}><b>Do not let them in.</b> This token is not on the approved list.</div>}
-              {resolution && <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} className="btn go big hov-invert-grn">Issue wristband<span className="ic"><Icon name="check" /></span></button></>}<button type="button" onClick={() => { setResolution(null); setMessage(null) }} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: 'var(--grn)' }}>{message}</div>}</div>}
+              {resolution && <div className="dock">{resolution.status === 'green' && <><label className="serial"><span>Band serial</span><input aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="optional" /></label><button type="button" onClick={() => void issue()} disabled={issued} className="btn go big hov-invert-grn">{issued ? 'Wristband issued' : 'Issue wristband'}<span className="ic"><Icon name="check" /></span></button></>}<button type="button" onClick={nextPerson} className="btn wide">Next person</button>{message && <div role="status" className="mono" style={{ color: resolution.status === 'red' ? 'var(--bad)' : 'var(--grn)' }}>{message}</div>}</div>}
             </div>
           </div></div>
       </div>

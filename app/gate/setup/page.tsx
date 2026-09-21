@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { pullGate } from '@/gate/client'
+import { writeDeviceToken } from '@/gate/device-token'
 import { ensureGateServiceWorker } from '../register-sw'
 
 export default function GateSetupPage() {
@@ -19,7 +20,7 @@ export default function GateSetupPage() {
     setBusy(true)
     try {
       const snapshot = await pullGate(token.trim())
-      sessionStorage.setItem('boa-gate-device-token', token.trim())
+      writeDeviceToken(token.trim())
       setCount(snapshot.roster.length)
       setAsOf(snapshot.meta.rosterAsOf)
       if (await ensureGateServiceWorker()) {

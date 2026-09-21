@@ -1,8 +1,25 @@
 import { gateIssueResultSchema } from '@/lib/schemas/gate'
+import { vehicleEventResponseSchema } from '@/lib/schemas/vehicle'
 import { gateDb } from './db'
 import { classifyFailure, nextAttemptDelayMs, selectDrainBatch } from './outbox-policy'
 
-export async function drainOutbox(deviceToken: string): Promise<void> {
+/**
+ * One drain at a time per page. Since ACC-109 a drain can start from the
+ * `online` event, the 30 s timer and an issue at nearly the same moment; two
+ * concurrent drains could both read an entry as 'pending' before either marks
+ * it 'syncing' and send it twice. Idempotency keys make that harmless on the
+ * server, but it is wasted radio time at the gate — so callers share one.
+ */
+let inFlight: Promise<void> | null = null
+
+export function drainOutbox(deviceToken: string): Promise<void> {
+  inFlight ??= drainOnce(deviceToken).finally(() => {
+    inFlight = null
+  })
+  return inFlight
+}
+
+async function drainOnce(deviceToken: string): Promise<void> {
   const entries = await gateDb.outbox.toArray()
   const batch = selectDrainBatch(entries, Date.now())
   for (const selected of batch) {
@@ -10,6 +27,24 @@ export async function drainOutbox(deviceToken: string): Promise<void> {
     if (!entry) continue
     await gateDb.outbox.update(entry.id, { status: 'syncing' })
     try {
+      // Vehicle events have their own endpoint and write no ledger row. Until
+      // ACC-109 they were posted to /api/gate/issue, rejected with a 400, and
+      // — because a failed action blocks everything behind it — stalled every
+      // wristband issue queued after the first vehicle event on the device.
+      if (entry.kind === 'vehicle_event') {
+        const response = await fetch('/api/gate/vehicle', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-boa-device-token': deviceToken },
+          body: JSON.stringify(entry.payload),
+        })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          throw { code: String(response.status), message: typeof body === 'object' && body !== null ? JSON.stringify(body) : 'sync failed' }
+        }
+        const result = vehicleEventResponseSchema.parse(body)
+        await gateDb.outbox.update(entry.id, { status: 'done', result })
+        continue
+      }
       const response = await fetch('/api/gate/issue', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-boa-device-token': deviceToken },
