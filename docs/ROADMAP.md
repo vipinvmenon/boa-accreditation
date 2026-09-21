@@ -409,7 +409,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       `accreditation-contract.test.ts`. Acceptance: typecheck, lint, test green;
       the contract test fails when any single matrix cell is mutated, proven by
       running it · **C** · due Wed 24 Sep
-- [~] **ACC-115** · Desk + gate surfaces render 8 tiers and 6 zones from the
+- [x] **ACC-115** · Desk + gate surfaces render 8 tiers and 6 zones from the
       data layer, not fixtures. Acceptance: queue, master, passes, control room
       and gate all render; `test:e2e` green. **Blocked on the eight type-chip
       colours** — Vipin's call, see ADR-018 · **C/V** · due Fri 26 Sep
@@ -419,7 +419,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       Acceptance: form run once, opened by a human, every dropdown and
       validation seen working, test submission lands in the sheet. **Org
       dropdown blocked on ACC-030a** (free text until then) · **C/V** · due Mon 22 Sep
-- [~] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
+- [ ] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
       the form's response sheet (exported CSV, columns per
       `docs/ROSTER-FORM.md`). Acceptance: a 500-row fixture imports in one
       call; quota refusal and duplicate phones reported per row; the

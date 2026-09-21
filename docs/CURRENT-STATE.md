@@ -955,6 +955,40 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — ACC-115 done; ACC-117 built, not applied; one branch left
+
+**ACC-115 done.** Queue, master list, passes, Control room (desk agent), and
+gate + vehicle (gate agent) render the eight tiers and six zones from the
+data layer via `tier()`, `tierColour()` and `zoneStrip()`. Every Zod mirror now
+takes the eight codes. `test:e2e` passes 30/30 on the merged tree, including
+`tests/e2e/desk-tiers.spec.ts` and a pack-tier scan after a cold offline
+reload. Tested on mocked API data only; no authenticated walkthrough against
+production. **Production's Control room is almost certainly broken until
+this deploys:** `main` as deployed (`origin/main`, 14 Sep) parses dashboard
+types as `crew|stage|aaa`, and the database returns eight since ACC-113.
+
+**ACC-117 built, NOT done.** `boa_acc_import_roster` (lead/admin only; per-row
+`inserted | duplicate_phone | quota_exceeded | invalid`; quota under the org
+row lock; never sets tier or pass), `lib/roster-import.ts`,
+`scripts/import-roster.mjs` (`--offline`, `--dry`, `--as <email>`),
+`data/crew-type-tiers.json` (empty: Salman owes the mapping). It adds an
+advisory `boa_acc_person.requested_day_validity`. The pass CHECK forbids
+`day_validity` before approval, so without it the form's days answer had
+nowhere to go. **Migration `202609211100` is NOT applied.** It was validated
+only in rolled-back transactions on production (pgTAP 14/14, privileges
+86/86, 500 rows in 268 ms). Until it is applied, `test:db` fails
+`import-roster.test.sql` and the 4 new privileges lines; that is expected.
+Unverified: a real sheet export, and the sheet's timezone setting.
+
+**Branches:** only `main` remains locally. `design/scroll-animations` was
+fast-forwarded into it; every other branch was either contained, had its
+work re-landed under other hashes, or was superseded (checked per branch).
+Five Cursor-managed detached worktrees under `~/.cursor/worktrees/` were left
+alone; git cannot remove them, and their commits are on `main`. **`main` is
+156 commits ahead of `origin/main` and has not been pushed.** Pushing deploys
+production.
+
+
 ### 21 Sep 2026 — `polish/production-hardening` merged into the v2 + pack line
 
 At Vipin's instruction ("keep only main, merge relevant things"). That branch
