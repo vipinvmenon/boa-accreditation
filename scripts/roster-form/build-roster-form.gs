@@ -120,7 +120,7 @@ function questionSpecs_() {
       legacyTitles: ['Mobile number', 'WhatsApp Number'],
       help: '10 digits, no +91, no spaces. Example: 9876543210',
       pattern: '^[6-9][0-9]{9}$',
-      patternHelp: 'Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9. No +91, no spaces.',
+      patternHelp: 'Enter a 10-digit Indian WhatsApp number starting with 6, 7, 8 or 9. No +91, no spaces.',
     },
     {
       // Multiple choice, not a dropdown: Google Forms only offers a write-in
@@ -184,7 +184,7 @@ function buildRosterForm() {
   form.setDescription(
     'One submission per person. After you submit, use "Submit another response" ' +
       'to add the next one.\n\n' +
-      'We collect only name, mobile number, crew type and, for loading vehicles, ' +
+      'We collect only name, WhatsApp number, crew type and, for loading vehicles, ' +
       'the registration. Do not send ID numbers, Aadhaar, photos, addresses or ' +
       'dates of birth.\n\n' +
       'Every person must carry photo ID matching the name given here. Bands are ' +
