@@ -95,18 +95,57 @@ class FakeForm {
   setDestination = (_type: string, id: string) => void (this.destination = id)
 }
 
+/** The tab Google creates for form responses: a header row, some response
+ *  rows, and whatever the desk adds to the right. */
+class FakeSheet {
+  headers: string[]
+  validations: { col: number; row: number; rows: number; values: string[] }[] = []
+  notes: Record<number, string> = {}
+  constructor(
+    headers: string[],
+    public responseRows: number,
+    readonly maxRows = 1000,
+  ) {
+    this.headers = [...headers]
+  }
+  getName = () => 'Form Responses 1'
+  getFormUrl = () => 'https://docs.google.com/forms/d/linked/viewform'
+  getLastColumn = () => this.headers.length
+  getLastRow = () => 1 + this.responseRows
+  getMaxRows = () => this.maxRows
+  getRange = (row: number, col: number, rows = 1, cols = 1) => {
+    const r = {
+      getValues: () => [this.headers.slice(col - 1, col - 1 + cols)],
+      setValue: (v: string) => {
+        if (row !== 1) throw new Error('test fake only models the header row')
+        this.headers[col - 1] = v
+        return r
+      },
+      setFontWeight: () => r,
+      setNote: (n: string) => ((this.notes[col] = n), r),
+      setDataValidation: (v: { values: string[] }) => {
+        this.validations.push({ col, row, rows, values: v.values })
+        return r
+      },
+    }
+    return r
+  }
+}
+
 /** A Google account: Drive contents and one project's script properties. */
 function makeWorld() {
   const forms = new Map<string, FakeForm>()
   const sheets: string[] = []
   const props = new Map<string, string>()
   const noAccess = new Set<string>() // form/sheet IDs this account cannot open
+  const spreadsheets = new Map<string, FakeSheet>() // response tab by spreadsheet ID
   let nextForm = 1
   return {
     forms,
     sheets,
     props,
     noAccess,
+    spreadsheets,
     newForm() {
       const f = new FakeForm(`form${String(nextForm++).padStart(24, '0')}`)
       forms.set(f.id, f)
@@ -147,7 +186,21 @@ function run(world: World, opts: { orgs?: string[]; keep?: string; fn?: string }
       },
       openById: (id: string) => {
         if (world.noAccess.has(id)) throw new Error('You do not have permission to access the requested document.')
-        return { getUrl: () => `https://sheets.example/${id}` }
+        const tab = world.spreadsheets.get(id)
+        return {
+          getUrl: () => `https://sheets.example/${id}`,
+          getSheets: () => (tab ? [{ getFormUrl: () => null }, tab] : []),
+        }
+      },
+      newDataValidation: () => {
+        const v = { values: [] as string[] }
+        const b = {
+          requireValueInList: (vals: string[]) => ((v.values = [...vals]), b),
+          setAllowInvalid: () => b,
+          setHelpText: () => b,
+          build: () => v,
+        }
+        return b
       },
     },
     PropertiesService: {
@@ -397,5 +450,78 @@ describe('roster form — patterns agree with the database', () => {
     expect(name.test('A')).toBe(false)
     expect(job.test('A'.repeat(60))).toBe(true)
     expect(job.test('A'.repeat(61))).toBe(false)
+  })
+})
+
+describe('roster form — the desk\'s Accreditation type column', () => {
+  const FORM_HEADERS = ['Timestamp', ...TITLES]
+
+  /** A live form with a linked sheet holding `rows` responses. */
+  const live = (rows = 5) => {
+    const w = makeWorld()
+    run(w)
+    const f = onlyForm(w)
+    const tab = new FakeSheet(FORM_HEADERS, rows)
+    w.spreadsheets.set(f.destination!, tab)
+    f.responses = rows
+    return { w, f, tab }
+  }
+
+  it('adds it to the right of every form column, as a dropdown of the pack\'s tiers', () => {
+    const { w, tab } = live()
+    const logs = run(w, { fn: 'addAccreditationColumn' })
+    expect(tab.headers).toEqual([...FORM_HEADERS, 'Accreditation type'])
+    const col = FORM_HEADERS.length + 1
+    expect(tab.validations).toEqual([
+      {
+        col,
+        row: 2,
+        rows: 999,
+        values: ['AAA', 'Artist', 'Stage', 'Promoters Lounge', 'Crew', 'Photo', "Eddie's Lounge"],
+      },
+    ])
+    expect(logs.join('\n')).toMatch(/Added "Accreditation type" in column I/)
+  })
+
+  it('is safe to run again: one column, not two', () => {
+    const { w, tab } = live()
+    run(w, { fn: 'addAccreditationColumn' })
+    const logs = run(w, { fn: 'addAccreditationColumn' })
+    expect(tab.headers.filter((h) => h === 'Accreditation type')).toHaveLength(1)
+    expect(logs.join('\n')).toMatch(/Already present/)
+  })
+
+  it('never touches the form, its questions or its responses', () => {
+    const { w, f } = live()
+    const before = f.items.map((i) => [i.id, i.title, i.type])
+    run(w, { fn: 'addAccreditationColumn' })
+    expect(f.items.map((i) => [i.id, i.title, i.type])).toEqual(before)
+    expect(f.responses).toBe(5)
+  })
+
+  it('never creates a form when the project has none', () => {
+    const w = makeWorld()
+    expect(() => run(w, { fn: 'addAccreditationColumn' })).toThrow(/Run buildRosterForm first/)
+    expect(w.forms.size).toBe(0)
+  })
+
+  it('logs counts, never anyone\'s details', () => {
+    const { w } = live(42)
+    const logs = run(w, { fn: 'addAccreditationColumn' }).join('\n')
+    expect(logs).toMatch(/Responses so far: 42/)
+    expect(logs).not.toMatch(/[6-9][0-9]{9}/) // no phone numbers
+  })
+
+  it('offers only tiers that exist in the printed pack, minus General Admission', () => {
+    const matrix = JSON.parse(
+      readFileSync(new URL('../../design/source/accreditation/access-matrix.json', import.meta.url), 'utf8'),
+    ) as { tiers: { label: string; code: string }[] }
+    const packLabels = matrix.tiers.map((t) => t.label)
+    const { w, tab } = live()
+    run(w, { fn: 'addAccreditationColumn' })
+    const offered = tab.validations[0]!.values
+    for (const o of offered) expect(packLabels).toContain(o)
+    expect(offered).not.toContain('General Admission')
+    expect(offered).toHaveLength(packLabels.length - 1)
   })
 })

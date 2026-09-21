@@ -161,6 +161,36 @@ Days on site, Loading vehicle registration
 column and breaks the import silently. Change the title in the script and here,
 together.
 
+### The desk's column: Accreditation type
+
+Added 22 Sep 2026 at Vipin's request, for Salman to fill in. It is **not** a form
+question — organisations never see it. It is the desk's band decision, per
+person, recorded next to the response:
+
+```
+…, Loading vehicle registration, Accreditation type
+```
+
+- Added by `addAccreditationColumn` in the same script: always **to the right of
+  every form column**, because Google writes responses only into the form's own
+  columns, so a column out there stays on its row. Safe to re-run; it never
+  touches the form or a response.
+- A dropdown of the printed pack's tiers: AAA · Artist · Stage · Promoters
+  Lounge · Crew · Photo · Eddie's Lounge. **General Admission is left out**: it is
+  the public ticket band, not an accreditation.
+- A blank cell means *not yet decided*. The importer must treat it that way —
+  never as a default tier.
+
+Rules for whoever edits the sheet by hand:
+
+- Keep desk columns to the right. **Never insert a column between form
+  columns**, and never insert rows: responses are written into the next empty
+  row.
+- Sorting and filtering are fine; they move whole rows.
+- Adding a new *form question* later makes Google add its column after the
+  form's existing ones, which may land where the desk column is. Check the
+  header row after any question is added.
+
 ## What the form cannot enforce
 
 - **Quota.** A form has no idea how many people an organisation has already
