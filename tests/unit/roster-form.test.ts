@@ -100,11 +100,13 @@ function makeWorld() {
   const forms = new Map<string, FakeForm>()
   const sheets: string[] = []
   const props = new Map<string, string>()
+  const noAccess = new Set<string>() // form/sheet IDs this account cannot open
   let nextForm = 1
   return {
     forms,
     sheets,
     props,
+    noAccess,
     newForm() {
       const f = new FakeForm(`form${String(nextForm++).padStart(24, '0')}`)
       forms.set(f.id, f)
@@ -120,6 +122,7 @@ function run(world: World, opts: { orgs?: string[]; keep?: string; fn?: string }
     FormApp: {
       create: () => world.newForm(),
       openById: (id: string) => {
+        if (world.noAccess.has(id)) throw new Error('You do not have permission to access the requested document.')
         const f = world.forms.get(id)
         if (!f) throw new Error('No item with the given ID could be found.')
         return f
@@ -142,7 +145,10 @@ function run(world: World, opts: { orgs?: string[]; keep?: string; fn?: string }
         world.sheets.push(id)
         return { getId: () => id, getUrl: () => `https://sheets.example/${id}` }
       },
-      openById: (id: string) => ({ getUrl: () => `https://sheets.example/${id}` }),
+      openById: (id: string) => {
+        if (world.noAccess.has(id)) throw new Error('You do not have permission to access the requested document.')
+        return { getUrl: () => `https://sheets.example/${id}` }
+      },
     },
     PropertiesService: {
       getScriptProperties: () => ({
@@ -322,6 +328,23 @@ describe('roster form — one stable link', () => {
     const logs = run(w)
     expect(f.items).toContain(extra)
     expect(logs.join('\n')).toMatch(/does not manage.*Added by hand/)
+  })
+
+  it('reports Google\'s own reason when the form cannot be opened', () => {
+    const w = makeWorld()
+    const other = w.newForm()
+    w.noAccess.add(other.id) // e.g. owned by a different Google account
+    expect(() => run(w, { keep: other.getEditUrl() })).toThrow(/Google said: You do not have permission/)
+  })
+
+  it('never relinks the form when its existing sheet cannot be opened', () => {
+    const w = makeWorld()
+    const f = w.newForm()
+    f.destination = 'sheet-owned-elsewhere'
+    w.noAccess.add('sheet-owned-elsewhere')
+    expect(() => run(w, { keep: f.getEditUrl() })).toThrow(/has NOT been changed/)
+    expect(f.destination).toBe('sheet-owned-elsewhere')
+    expect(w.sheets).toHaveLength(0)
   })
 
   it('forgetForm makes the next run start a new form', () => {

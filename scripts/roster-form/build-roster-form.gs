@@ -272,9 +272,13 @@ function openOrCreateForm_(props) {
     try {
       form = FormApp.openById(id);
     } catch (e) {
+      // Keep Google's own reason: "no access" and "does not exist" need
+      // different fixes, and the script cannot tell them apart for you.
       throw new Error(
-        'Could not open the form ' + id + '. Check KEEP_FORM is the form\'s edit link ' +
-          'and that this Google account can edit it. To start over instead, run forgetForm.'
+        'Could not open the form ' + id + ' (Google said: ' + e.message + '). ' +
+          'Usually this Google account cannot edit that form — run the script signed in ' +
+          'as the form\'s owner, or have the owner share it with you as an editor. ' +
+          'Check KEEP_FORM is the edit link. To start over instead, run forgetForm.'
       );
     }
     props.setProperty(PROP_FORM_ID, id);
@@ -360,14 +364,33 @@ function syncQuestion_(form, step, props) {
   return { item: q, id: q.getId(), recreated: recreated };
 }
 
-/** Keeps the existing response sheet; only creates one if none is linked. */
+/** Keeps the existing response sheet; only creates one if none is linked.
+ *
+ *  "No sheet is linked" and "a sheet is linked but cannot be opened" are
+ *  deliberately different. Only the first creates a sheet. Treating the second
+ *  the same way would silently relink the form, and every response after that
+ *  would go somewhere nobody is looking. */
 function ensureDestination_(form) {
+  var destId = null;
   try {
-    var destId = form.getDestinationId();
-    if (destId) return SpreadsheetApp.openById(destId).getUrl();
+    destId = form.getDestinationId();
   } catch (e) {
-    // No destination yet — fall through and create one.
+    destId = null; // Google throws when no destination is set.
   }
+
+  if (destId) {
+    try {
+      return SpreadsheetApp.openById(destId).getUrl();
+    } catch (e) {
+      throw new Error(
+        'The form is linked to response sheet ' + destId + ' but this account cannot ' +
+          'open it (Google said: ' + e.message + '). The form has been updated; the ' +
+          'link to its sheet has NOT been changed. Share that sheet with this account, ' +
+          'or run the script as its owner.'
+      );
+    }
+  }
+
   var sheet = SpreadsheetApp.create(SHEET_TITLE);
   form.setDestination(FormApp.DestinationType.SPREADSHEET, sheet.getId());
   return sheet.getUrl();
