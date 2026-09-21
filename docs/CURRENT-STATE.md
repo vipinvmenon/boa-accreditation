@@ -945,6 +945,48 @@ Verified by attempting the thing, not by reading a grant table:
 
 ## Session log
 
+### 21 Sep 2026 — ACC-116: the roster form is live (Google Form, not a workbook)
+
+The printed accreditation pack arrived (8 tiers, 6 zones); it is transcribed
+at `design/source/accreditation/access-matrix.json` (ACC-112, ADR-018 still to
+write). Rosters are now collected by **one Google Form** linked to one response
+sheet — Salman's call, recorded in `docs/ROSTER-FORM.md`. A per-org workbook was
+built first and abandoned; its code is removed (recoverable from git).
+
+**Live, owned by `vipinmenon16@gmail.com`** (Vipin: "use any one account"):
+
+- Send to organisations: <https://docs.google.com/forms/d/e/1FAIpQLSdJWSkxUFdhzB919ufQCJEvIqwEu-5yPw2U3D87z4uKd99Cfw/viewform>
+- Edit: <https://docs.google.com/forms/d/1ITVqE7NAcwSDW_uZnGC5z7EaOTga-tyAATY_Xf07TPA/edit>
+- Responses: <https://docs.google.com/spreadsheets/d/1i8lwUIDdZ3BNuAN-QsTM0UsHceDXStGmINjb3bIVFXs/edit>
+- Built by the Apps Script project "BOA 2026 - Crew Accreditation", running
+  `scripts/roster-form/build-roster-form.gs` byte-for-byte (verified by hash in
+  the editor, 15,308 chars) with `KEEP_FORM = ''`.
+
+**Verified in Chrome on 21 Sep, by running it — not asserted:**
+
+- `buildRosterForm` run twice. Both runs printed the **same** three links above
+  and completed with no "rebuilt" or "unmanaged question" notes. This is the
+  fix for "it creates new links on each run".
+- The live form, read as a respondent, has the seven questions in order with
+  the committed wording, including the eleven crew types plus `Other:`.
+- The response sheet's header row is exactly the documented contract:
+  `Timestamp, Organisation, Full name, WhatsApp number, Crew type, Job title,
+  Days on site, Loading vehicle registration`.
+
+**Found live and fixed in the script before this run:** the project runs as
+`vipinmenon16` but the earlier forms belong to `vipinmenon006`, so the first
+attempt failed. That exposed two defects — Google's permission error was being
+hidden, and `ensureDestination_` would have **relinked the form to a new sheet**
+on any sheet it could not open. Both fixed and tested (`7d5e8b6`).
+
+**Not verified:** a submission reaching the sheet. No test response has been
+made to the live form. The four earlier forms and their sheets in
+`vipinmenon006`'s Drive are superseded and still exist.
+
+**Not built:** the importer (ACC-117) and the crew type → band mapping (owed by
+Salman).
+
+
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)
 
 The `design fidelity` GitHub Actions job had been red for hours across

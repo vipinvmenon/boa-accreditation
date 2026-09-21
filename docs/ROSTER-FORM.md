@@ -163,9 +163,10 @@ title where given, otherwise the crew type.
 - Mutation-tested: renaming a crew type, loosening the phone pattern, enabling
   email collection, turning off Other, and not remembering the form each fail
   it.
-- **Seen rendered, 21 Sep 2026:** Vipin's phone screenshot of the first-version
-  live form (Job title, Days on site, Vehicle registration, Submit). Confirms
-  Google ran that version. The update-in-place version has **not** yet been run
-  on Google.
-- **Not yet verified:** a test submission reaching the response sheet with the
-  column names above.
+- **Run live, 21 Sep 2026, in Chrome:** the script ran twice in the Apps Script
+  project as `vipinmenon16@gmail.com` and printed the same form, send link and
+  response sheet both times. The live form shows all seven questions with the
+  committed wording, including the crew types and `Other:`. The response sheet's
+  header row matches the column contract above exactly. Links are in
+  `docs/CURRENT-STATE.md`.
+- **Not yet verified:** a submission reaching the response sheet.
