@@ -1,0 +1,144 @@
+{
+  "_": [
+    "TRANSCRIPTION, NOT DESIGN. Every value here is read off the printed sheets in",
+    "./sheets/. Nothing is inferred, tidied or averaged. If a value here looks wrong,",
+    "the fix is to re-read the sheet, never to 'correct' the JSON.",
+    "",
+    "This file is the DOMAIN contract, the way design/source/boa_design_v2.html is the",
+    "PIXEL contract (ADR-017) and design/source/boa_design_body.html is the frozen C8",
+    "colour record. See ADR-018.",
+    "",
+    "lib/design.ts and the boa_acc_type / boa_acc_zone_access seed are both mirrors of",
+    "this file. tests/unit/accreditation-contract.test.ts proves all three agree."
+  ],
+  "transcribed_on": "2026-09-21",
+  "source_sheets": "design/source/accreditation/sheets/",
+  "timezone": "Asia/Kolkata",
+
+  "artwork_spec": {
+    "size": "20 mm x 13 in",
+    "construction": "jacquard woven",
+    "dated": false,
+    "tiers": 8,
+    "master_px": "3900 x 236"
+  },
+
+  "rules": {
+    "photo_id": "+ PHOTO ID - band alone is not entry; the matching ID and lanyard must be shown.",
+    "void": "Cut, taped or transferred bands are void: refuse entry and call the zone supervisor.",
+    "turn_away": "Anything outside a band's colours is a turn-away.",
+    "absence": "A (zone, tier) pair absent from `access` is a turn-away. There is no 'allowed' flag to get backwards."
+  },
+
+  "zones": [
+    { "sheet_no": 1, "code": "festival_area",    "label": "Festival Area",    "label_kn": "ಫೆಸ್ಟಿವಲ್ ಪ್ರದೇಶ", "map_colour": "green" },
+    { "sheet_no": 2, "code": "eddies_lounge",    "label": "Eddie's Lounge",   "label_kn": "ಎಡ್ಡೀಸ್ ಲೌಂಜ್",   "map_colour": "red" },
+    { "sheet_no": 3, "code": "promoters_lounge", "label": "Promoters Lounge", "label_kn": "ಪ್ರೊಮೋಟರ್ಸ್ ಲೌಂಜ್", "map_colour": "blue" },
+    { "sheet_no": 4, "code": "photo_pit",        "label": "Photo Pit",        "label_kn": "ಫೋಟೋ ಪಿಟ್",       "map_colour": "yellow" },
+    { "sheet_no": 5, "code": "backstage",        "label": "Backstage",        "label_kn": "ಬ್ಯಾಕ್‌ಸ್ಟೇಜ್",     "map_colour": "purple" },
+    { "sheet_no": 6, "code": "main_stage",       "label": "Main Stage",       "label_kn": "ಮುಖ್ಯ ವೇದಿಕೆ",    "map_colour": "orange" }
+  ],
+  "_zone_order": [
+    "ORDER IS LOAD-BEARING, as it was for the old boa_acc_zone enum. It is the",
+    "sheets' own 'ZONE n OF 6' numbering. Every zone strip renders in this order,",
+    "with zones a pass does NOT hold prefixed '-- '. The Postgres enum declares its",
+    "values in this same order. Do not reorder it.",
+    "",
+    "Note the master map's legend prints the six in a different, two-column reading",
+    "order (Festival, Photo Pit, Main Stage / Backstage, Eddie's, Promoters). The",
+    "numbered sheets win: they are explicit and they are what a guard holds."
+  ],
+
+  "tiers": [
+    { "sort_order": 1, "artwork_no": 4, "code": "aaa",              "label": "AAA",              "print_qty": 100,  "band_colour": "green",              "requestable": false, "note": "Every zone" },
+    { "sort_order": 2, "artwork_no": 6, "code": "artist",           "label": "Artist",           "print_qty": 100,  "band_colour": "magenta",            "requestable": false, "note": "Every zone - +ID for lounges" },
+    { "sort_order": 3, "artwork_no": 7, "code": "stage",            "label": "Stage",            "print_qty": 50,   "band_colour": "orange",             "requestable": true,  "note": "Festival - Photo pit - Backstage - Main stage" },
+    { "sort_order": 4, "artwork_no": 3, "code": "promoters_lounge", "label": "Promoters Lounge", "print_qty": 50,   "band_colour": "royal blue",         "requestable": true,  "note": "Festival - Promoters +ID - Backstage after 10 PM" },
+    { "sort_order": 5, "artwork_no": 5, "code": "crew",             "label": "Crew",             "print_qty": 500,  "band_colour": "purple",             "requestable": true,  "note": "Festival - Photo pit" },
+    { "sort_order": 6, "artwork_no": 8, "code": "photo",            "label": "Photo",            "print_qty": null, "band_colour": "yellow",             "requestable": true,  "note": "Festival - Photo pit" },
+    { "sort_order": 7, "artwork_no": 2, "code": "eddies_lounge",    "label": "Eddie's Lounge",   "print_qty": 50,   "band_colour": "red",                "requestable": true,  "note": "Festival - Eddie's +ID" },
+    { "sort_order": 8, "artwork_no": 1, "code": "general_admission","label": "General Admission","print_qty": 3000, "band_colour": "black / grey / white","requestable": false, "note": "Festival area only" }
+  ],
+  "_tier_order": [
+    "sort_order is the master sheet's own 'WHERE EACH BAND GOES' order, which runs",
+    "from most access to least. That is the order the desk and gate list tiers in.",
+    "",
+    "artwork_no is the separate numbering on the wristband artwork sheet (01 GA ..",
+    "08 Photo), which is the printer's running order. It is recorded so a band in",
+    "hand can be tied back to its artwork row. It is NOT a display order.",
+    "",
+    "print_qty for `photo` is null because the artwork sheet says QTY TBC. It is not",
+    "guessed, and a mirror that invents a number fails the contract test.",
+    "",
+    "requestable=false means a vendor may not ask for it on the submission form:",
+    "  aaa, artist       - named lists, approved directly (nomination-gated)",
+    "  general_admission - 3000 ticket-holder bands issued by ticketing, not",
+    "                      accredited here. Present only so the zone matrix and the",
+    "                      printed reference sheet are complete."
+  ],
+
+  "access": [
+    { "zone": "festival_area", "tier": "general_admission", "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "eddies_lounge",     "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "promoters_lounge",  "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "aaa",               "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "crew",              "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "artist",            "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "stage",             "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "festival_area", "tier": "photo",             "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+
+    { "zone": "eddies_lounge", "tier": "eddies_lounge",     "requires_photo_id": true,  "from_local_time": null, "to_local_time": null },
+    { "zone": "eddies_lounge", "tier": "artist",            "requires_photo_id": true,  "from_local_time": null, "to_local_time": null },
+    { "zone": "eddies_lounge", "tier": "aaa",               "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+
+    { "zone": "promoters_lounge", "tier": "promoters_lounge", "requires_photo_id": true,  "from_local_time": null, "to_local_time": null },
+    { "zone": "promoters_lounge", "tier": "artist",           "requires_photo_id": true,  "from_local_time": null, "to_local_time": null },
+    { "zone": "promoters_lounge", "tier": "aaa",              "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+
+    { "zone": "photo_pit", "tier": "photo",  "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "photo_pit", "tier": "crew",   "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "photo_pit", "tier": "stage",  "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "photo_pit", "tier": "aaa",    "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "photo_pit", "tier": "artist", "requires_photo_id": true,  "from_local_time": null, "to_local_time": null },
+
+    { "zone": "backstage", "tier": "aaa",              "requires_photo_id": false, "from_local_time": null,    "to_local_time": null },
+    { "zone": "backstage", "tier": "artist",           "requires_photo_id": true,  "from_local_time": null,    "to_local_time": null },
+    { "zone": "backstage", "tier": "stage",            "requires_photo_id": false, "from_local_time": null,    "to_local_time": null },
+    { "zone": "backstage", "tier": "promoters_lounge", "requires_photo_id": true,  "from_local_time": "22:00", "to_local_time": null },
+
+    { "zone": "main_stage", "tier": "aaa",    "requires_photo_id": false, "from_local_time": null, "to_local_time": null },
+    { "zone": "main_stage", "tier": "artist", "requires_photo_id": true,  "from_local_time": null, "to_local_time": null },
+    { "zone": "main_stage", "tier": "stage",  "requires_photo_id": false, "from_local_time": null, "to_local_time": null }
+  ],
+
+  "discrepancies": [
+    {
+      "id": "P1",
+      "what": "Two sheets are headed 'ZONE n OF 5' - an older five-zone set with no Photo Pit.",
+      "sheets": ["superseded-zone-4-of-5-backstage.jpg", "superseded-zone-5-of-5-main-stage.jpg"],
+      "resolution": "The 'OF 6' sheets are current and win. The two 'OF 5' sheets are kept, prefixed 'superseded-', as the record of what was printed first.",
+      "reconcile": false
+    },
+    {
+      "id": "P2",
+      "what": "The master sheet annotates ARTIST 'Every zone - +ID for lounges', implying photo ID only in the two lounges. The per-zone sheets mark ARTIST '+ PHOTO ID' in Photo Pit, Backstage and Main Stage as well.",
+      "sheets": ["00-master-zones-and-band-access.jpg", "05-zone-4-of-6-photo-pit.jpg", "06-zone-5-of-6-backstage.jpg", "07-zone-6-of-6-main-stage.jpg"],
+      "resolution": "The per-zone sheets win. They are the sheet a guard physically holds at that boundary, and the stricter reading fails safe. Transcribed as: artist requires photo ID everywhere EXCEPT Festival Area.",
+      "reconcile": false
+    },
+    {
+      "id": "P3",
+      "what": "The wristband artwork sheet gives PHOTO as 'QTY TBC' while every other tier carries a number.",
+      "sheets": ["01-wristbands-final-artwork.jpg"],
+      "resolution": "print_qty is null. Not zero, not guessed. Fill it in when the printer confirms.",
+      "reconcile": false
+    },
+    {
+      "id": "P4",
+      "what": "The two BACKSTAGE sheets disagree on their own heading: the superseded one is 'ZONE 4 OF 5', the current one 'ZONE 5 OF 6'. Both carry the same allow list, including the 22:00 Promoters rule.",
+      "sheets": ["superseded-zone-4-of-5-backstage.jpg", "06-zone-5-of-6-backstage.jpg"],
+      "resolution": "Numbering differs, content agrees. Recorded so nobody reads the pair as a rule change.",
+      "reconcile": false
+    }
+  ]
+}

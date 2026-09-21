@@ -26,6 +26,7 @@
     "validate:paper": "node scripts/validate-paper-fallback.mjs",
     "validate:paper:live": "node scripts/reconcile-paper-fallback.mjs",
     "validate:org-import": "node scripts/validate-org-import.mjs",
+    "make:roster-sheet": "node scripts/make-roster-sheet.mjs",
     "task": "node scripts/task.mjs",
     "bootstrap": "node scripts/bootstrap.mjs",
     "db:push": "node scripts/db-push.mjs",

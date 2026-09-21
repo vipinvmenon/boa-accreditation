@@ -343,10 +343,49 @@ org list wins: `task block` the redesign task with a reason and commit it.
       `users`, `login`, `gate/setup`) plus `error`/`not-found` from the v2
       primitives. Not pixel-gated — nothing exists to gate
       against · **CU** · due Fri 3 Oct
-- [~] **ACC-111** · v2 sign-off: full gate green, guard-mutation proof, manual
+- [ ] **ACC-111** · v2 sign-off: full gate green, guard-mutation proof, manual
       walkthrough at 390/900/1360 and light theme, dated CURRENT-STATE entry
       with measured numbers, DESIGN-SYSTEM rewritten for the new authoring
       model. Do not push or deploy · **CU** · due Fri 3 Oct
+
+## Phase 4b — The accreditation pack · 21 Sep → 3 Oct
+
+**Added 21 Sep on Vipin's instruction.** The printed pack arrived: eight woven
+wristband tiers, six zones, a per-zone allow/turn-away sheet, `+ photo ID`, and
+a 22:00 window on Promoters Lounge → Backstage. The app implements the 8-Sep
+design's three types and seven zones. The bands are already manufactured, so the
+pack wins on domain vocabulary — see ADR-018, which supersedes ADR-001 on that
+point only. v2 remains the pixel contract (ADR-017).
+
+**This lane IS on the critical path.** The pass must name the tier that is
+printed on the band the volunteer hands over. ACC-111 was parked for it.
+
+- [ ] **ACC-112** · Transcribe the pack into `design/source/accreditation/`
+      (the ten sheets + `access-matrix.json`) and write ADR-018. Acceptance: all
+      26 allow rows, every `+ photo ID` flag and the 22:00 window present; the
+      pack's three internal discrepancies recorded, not
+      reconciled · **C** · due Mon 22 Sep
+- [ ] **ACC-113** · The migration: rebuild both enums, add
+      `boa_acc_zone_access`, add advisory `boa_acc_person.requested_type_code`,
+      reseed `boa_acc_type`. Acceptance: `check:sql` + `test:db` green;
+      `db:state` shows 6 zones, 8 types, 26 access rows; `anon` still holds zero
+      grants, proven in `privileges.test.sql` · **C** · due Tue 23 Sep
+- [ ] **ACC-114** · `lib/design.ts` + the Zod mirrors + a new
+      `accreditation-contract.test.ts`. Acceptance: typecheck, lint, test green;
+      the contract test fails when any single matrix cell is mutated, proven by
+      running it · **C** · due Wed 24 Sep
+- [ ] **ACC-115** · Desk + gate surfaces render 8 tiers and 6 zones from the
+      data layer, not fixtures. Acceptance: queue, master, passes, control room
+      and gate all render; `test:e2e` green. **Blocked on the eight type-chip
+      colours** — Vipin's call, see ADR-018 · **C/V** · due Fri 26 Sep
+- [~] **ACC-116** · Roster workbook: `scripts/make-roster-sheet.mjs`, the Apps
+      Script builder, `docs/ROSTER-SHEET.md`. **Blocked on ACC-030a.**
+      Acceptance: run against the real 38-org CSV, produces a script that builds
+      38 correctly-quota'd tabs · **C** · due Sat 27 Sep
+- [ ] **ACC-117** · `boa_acc_import_roster` + `validate-roster.mjs` +
+      `load-roster.mjs`. Acceptance: a 500-row fixture imports in one call;
+      quota refusal and duplicate phones reported per row; the privileges test
+      covers the new function · **C** · due Sun 28 Sep
 
 > ## ▶ MILESTONE B — Sun 4 Oct · the gate works
 > **Freeze begins.** Hot fixes only, each with `db:state` before and after and a

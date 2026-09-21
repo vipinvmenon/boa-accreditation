@@ -937,6 +937,12 @@ Verified by attempting the thing, not by reading a grant table:
 > masks, thresholds, or task state were changed, and no roadmap task completion
 > is claimed.
 
+
+> **ACC-111 released 2026-09-21 (IST):** Parked 21 Sep: the final accreditation pack replaces the 3-type/7-zone domain (ADR-018, ACC-112..115). v2 pixel sign-off must be re-run after the type chips change, so signing off now would be thrown away.
+
+
+> **ACC-112 released 2026-09-21 (IST):** Matrix transcribed and self-validated (6 zones, 8 tiers, 26 access rows, 4 discrepancies recorded); ADR-018 still to write. Paused 21 Sep on Vipin's instruction: the roster workbook (ACC-116) is needed first, links are already late.
+
 ## Session log
 
 ### 13 Sep 2026 — CI infra: `design fidelity` job fixed (Linux font-rendering nondeterminism, not a real regression)

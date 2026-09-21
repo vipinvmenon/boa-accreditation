@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 import { z } from 'zod'
 
 export const HEADERS = ['name', 'kind', 'quota', 'contact_name', 'contact_phone', 'default_type']
@@ -163,4 +164,9 @@ async function main() {
   console.log('No database writes were performed.')
 }
 
-await main()
+// Only run the CLI when this file IS the entry point. Other scripts import
+// parseCsv/orgCreateSchema from here (scripts/make-roster-sheet.mjs), and an
+// unguarded top-level main() would run this validator against THEIR argv.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  await main()
+}

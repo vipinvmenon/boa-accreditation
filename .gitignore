@@ -40,3 +40,7 @@ supabase/.branches/
 # .env.example carries no values, only the shape, and every new agent needs it.
 .env*
 !.env.example
+
+# Generated roster workbook artefacts — carry real organisation names and
+# rosters (names, phone numbers). Never commit these.
+/build/
