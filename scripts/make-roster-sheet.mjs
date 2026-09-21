@@ -252,6 +252,72 @@ function orgSheet(org, name, lean) {
   }
 }
 
+/**
+ * A single-tab roster sheet with working dropdowns, small enough to be created
+ * directly over an API that only accepts inline content. This is the only
+ * shape that can be *created* with data validation intact; a 40-tab workbook
+ * can only be imported.
+ */
+function templateSheet(rowCount) {
+  const lastCol = HEADINGS.length
+  const lastRow = FIRST_DATA_ROW + rowCount - 1
+  const rows = []
+
+  rows.push({
+    r: 1,
+    height: 34,
+    cells: [{ c: 1, v: 'BANGALORE OPEN AIR 2026 — CREW LIST', s: STYLE.TITLE }],
+  })
+  rows.push({
+    r: 2,
+    cells: [{
+      c: 1,
+      s: STYLE.SUBTITLE,
+      v: 'Put your organisation name here →',
+    }, { c: 2, s: STYLE.TEXT }],
+  })
+  rows.push({
+    r: 3,
+    height: 30,
+    cells: [{
+      c: 1,
+      s: STYLE.NOTE,
+      v:
+        'One person per row. Phone = 10 digits only, no +91, no spaces — a cell starting with "+" ' +
+        'is read as a formula and the number gets mangled. Band and Days are dropdowns. ' +
+        'Do not add, rename or reorder columns: name, phone, role and vehicle registration only — ' +
+        'no ID number, no Aadhaar, no photo, no address, no date of birth.',
+    }],
+  })
+  rows.push({
+    r: HEADER_ROW,
+    cells: HEADINGS.map(([head], i) => ({ c: i + 1, v: head, s: STYLE.HEADER })),
+  })
+  for (let i = 0; i < rowCount; i += 1) {
+    rows.push({ r: FIRST_DATA_ROW + i, s: STYLE.TEXT, cells: [{ c: 2, s: STYLE.TEXT }] })
+  }
+
+  return {
+    name: 'Roster',
+    cols: HEADINGS.map(([, width]) => ({ width })),
+    freezeRow: HEADER_ROW,
+    merges: [`A1:${colLetter(lastCol)}1`, `A3:${colLetter(lastCol)}3`],
+    rows,
+    validations: [
+      {
+        ref: `${colLetter(5)}${FIRST_DATA_ROW}:${colLetter(5)}${lastRow}`,
+        values: REQUESTABLE_TIERS,
+        help: 'Crew, Stage, Photo, Eddie\'s Lounge or Promoters Lounge. Blank = the desk decides.',
+      },
+      {
+        ref: `${colLetter(6)}${FIRST_DATA_ROW}:${colLetter(6)}${lastRow}`,
+        values: DAY_CHOICES,
+        help: 'Build = 5-9 Oct load-in. Show = 10 Oct. Both = all of it. Required.',
+      },
+    ],
+  }
+}
+
 function buildWorkbook(orgs, lean, matrix) {
   const taken = new Set(['Rules', 'Bands & zones'])
   const truncated = []
@@ -471,6 +537,9 @@ DEADLINE
   // A stripped copy, small enough to travel as base64 through an API that only
   // accepts inline content. Same tabs, same columns, same dropdown; without the
   // per-tab prose (it is on the Rules tab) and the pre-created blank rows.
+  const singlePath = join(outDir, 'roster-single-tab.xlsx')
+  await writeFile(singlePath, buildXlsx([templateSheet(300)]))
+
   const lean = buildWorkbook(orgs, true, matrix)
   const leanPath = join(outDir, 'boa-2026-rosters-lean.xlsx')
   await writeFile(leanPath, lean.xlsx)
@@ -478,6 +547,7 @@ DEADLINE
   process.stdout.write(
     `make-roster-sheet: ${orgs.length} organisations, ${total} places total\n` +
     `  wrote    ${xlsxPath}\n` +
+    `  wrote    ${singlePath}\n` +
     `  wrote    ${leanPath}\n` +
     `  wrote    ${gsOut}\n` +
     `  wrote    ${join(outDir, 'roster-template.csv')}\n` +
