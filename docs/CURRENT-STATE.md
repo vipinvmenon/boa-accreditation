@@ -995,7 +995,12 @@ attempt failed. That exposed two defects — Google's permission error was being
 hidden, and `ensureDestination_` would have **relinked the form to a new sheet**
 on any sheet it could not open. Both fixed and tested (`7d5e8b6`).
 
-**Later the same day:** Special Tickets Crew added to the crew types. The script
+**Later the same day:** BOA Internal Crew added the same way — pushed to the
+live script (hash-verified), run, same three links, and read back from the live
+form between Special Tickets Crew and `Other:`. The form now offers thirteen
+crew types plus Other.
+
+Special Tickets Crew added to the crew types. The script
 was updated live (hash-verified), run again, printed the same three links, and
 the option was read back from the live form, above `Other:`. The four
 superseded `vipinmenon006` forms were moved to Drive trash at Vipin's request;
