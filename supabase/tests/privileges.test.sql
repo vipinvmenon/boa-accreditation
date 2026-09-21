@@ -8,6 +8,7 @@
 -- @proves: CRITICAL | authenticated cannot select pass_token on boa_acc_person
 -- @proves: HIGH     | authenticated CAN select the columns the desk actually needs
 -- @proves: HIGH     | authenticated gets EXECUTE on boa_acc_is_operator and boa_acc_mint_invite only
+-- @proves: HIGH     | boa_acc_import_roster: authenticated EXECUTE only (lead/admin checked inside); anon and service_role zero
 -- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
 -- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
 --
@@ -32,7 +33,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(82) as line
+  select 0 as n, plan(86) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -86,6 +87,14 @@ select line from (
   union all select 86, column_privs_are('public', 'boa_acc_zone_access', 'requires_photo_id', 'authenticated', array['SELECT'], 'authenticated: SELECT on boa_acc_zone_access.requires_photo_id')
   union all select 87, ok((select relrowsecurity from pg_class where oid = 'public.boa_acc_zone_access'::regclass), 'RLS enabled on boa_acc_zone_access')
   union all select 88, column_privs_are('public', 'boa_acc_person', 'requested_type_code', 'anon', array[]::text[], 'anon: zero on boa_acc_person.requested_type_code')
+  -- ACC-117 · the roster import. Lead/admin-checked inside the body, same
+  -- shape as boa_acc_mint_invite: authenticated gets EXECUTE, anon nothing,
+  -- and service_role nothing — the loader acts as a real operator's session,
+  -- never as the service role, so the role check cannot be skipped.
+  union all select 89, function_privs_are('public', 'boa_acc_import_roster', array['uuid','jsonb'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_import_roster')
+  union all select 90, function_privs_are('public', 'boa_acc_import_roster', array['uuid','jsonb'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_import_roster')
+  union all select 91, function_privs_are('public', 'boa_acc_import_roster', array['uuid','jsonb'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_import_roster')
+  union all select 92, column_privs_are('public', 'boa_acc_person', 'requested_day_validity', 'anon', array[]::text[], 'anon: zero on boa_acc_person.requested_day_validity')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')

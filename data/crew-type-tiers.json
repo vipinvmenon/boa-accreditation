@@ -1,0 +1,4 @@
+{
+  "source": "EMPTY on purpose. The crew type -> tier mapping is Salman's call (docs/ROSTER-FORM.md, 'Open'). Until he gives it, no imported row carries a tier hint. Values must be a requestable tier: stage, promoters_lounge, crew, photo, eddies_lounge.",
+  "mapping": {}
+}

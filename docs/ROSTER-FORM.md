@@ -171,15 +171,91 @@ together.
 
 ## Importing
 
-> **Not built yet — ACC-117.** No validator or loader exists for the response
-> sheet, and neither does `boa_acc_import_roster`. Do not claim a roster has been
-> loaded until they do.
+> **Built (ACC-117), not yet applied to the database.** The migration
+> `202609211100_boa_acc_import_roster.sql` is committed but has **not** been
+> pushed to production, so the loader's real-load mode fails until it is.
+> No roster has been loaded. Do not claim one has.
 
-Intended shape: export the response sheet as CSV, validate it offline, then load
-it through an operator-only `SECURITY DEFINER` RPC — **not** through
-`boa_acc_submit`, whose 60-per-hour-per-token throttle is a control on the public
-surface and would take nine hours for a 500-person roster. Role text is the job
-title where given, otherwise the crew type.
+Export the response sheet as CSV (**File ▸ Download ▸ Comma-separated values**),
+then:
+
+```bash
+node scripts/import-roster.mjs responses.csv --offline   # validate only, touches nothing
+node scripts/import-roster.mjs responses.csv --dry       # + read-only org match and quota preview
+node scripts/import-roster.mjs responses.csv --as you@example.com --report data/roster-import.local.csv
+```
+
+(`corepack pnpm roster:import -- …` runs the same thing.)
+
+**What the validator does** (`lib/roster-import.ts`, pure, unit-tested in
+`tests/unit/import-roster.test.ts`):
+
+| Column | Rule |
+|---|---|
+| header | exactly the contract above, in order, or nothing is read |
+| Timestamp | US locale `M/D/YYYY H:MM:SS`, no zone in the cell. **Read as Asia/Kolkata** and sent as `…+05:30`. That is an assumption about the spreadsheet's time-zone setting, which the CSV does not carry — check **File ▸ Settings** on the response sheet says GMT+05:30 before the first real import. Becomes `submitted_at` |
+| Organisation | matched to `boa_acc_org.name` trimmed, whitespace-collapsed, case-insensitive. Unmatched names are reported with their row numbers |
+| Full name | 2–80 characters |
+| WhatsApp number | read as a **string**; 10 digits starting 6–9 → `+91…`. Spaces and dashes tolerated; a spreadsheet round-trip like `9.87E9` is refused, never repaired |
+| Crew type / Job title | role text is the job title if given, else the crew type; 2–60 characters or the row is **refused, never truncated** |
+| Days on site | the three answers → `build` / `show` / `build_show` |
+| Loading vehicle registration | upper-cased, spaces removed, then the database's plate CHECK; blank is no vehicle |
+
+A row is refused with every problem listed, by sheet row number. A phone
+repeated within one organisation is flagged, and the database refuses it.
+
+**Crew type → tier.** `data/crew-type-tiers.json` is the mapping, and it is
+**empty** — Salman owes it. Until it is filled, no row carries a tier hint and
+the loader says so. Values may only be a tier a vendor can request (ADR-018:
+stage, promoters_lounge, crew, photo, eddies_lounge); a write-in "Other" crew
+type never gets a hint and is flagged for a person to decide.
+
+**What the loader does.** One call per organisation to
+`public.boa_acc_import_roster(p_org_id uuid, p_rows jsonb)`, as the session of
+the operator named by `--as`, who must be an active **lead or admin**.
+It refuses to load if any row was refused or names an unknown organisation,
+unless `--partial` is given. The report file holds row number, organisation,
+outcome and reason — never a name or a phone.
+
+**What the RPC does.** Inserts each row as `submitted` and returns one result
+per row: `inserted`, `duplicate_phone`, `quota_exceeded` or `invalid`.
+
+- Quota under the same `select … for update` on the org row as `boa_acc_submit`,
+  so a web submission and an import cannot both take the last seat.
+- **Not** through `boa_acc_submit`, whose 60-per-hour-per-token throttle is a
+  control on the public surface and would take nine hours for 500 people.
+- Per row, not all-or-nothing: the rows that fit load, the others are reported.
+  Re-running the same file is safe — loaded rows come back `duplicate_phone`.
+  A closed org, an unknown org or a non-lead/admin caller refuses the whole call.
+- Sets only the advisory `requested_type_code` and **`requested_day_validity`**
+  — a column this migration adds, because `day_validity` cannot be set before
+  approval (the `pass_only_when_approved` CHECK) and the days answer would
+  otherwise be lost. Never `type_code`, `day_validity` or a pass. Nothing reads
+  either hint yet: the queue and `boa_acc_approve_org` do not show or use them.
+
+### What the import has and has not been verified to do
+
+- **Unit tests** (`tests/unit/import-roster.test.ts`): every column rule above,
+  a generated 500-row sheet validating into one 500-row payload, and pins to
+  the form script's questions/crew types/days, to `lib/design.ts`'s requestable
+  tiers, and to the exact jsonb fields the migration reads.
+- **Database, inside a transaction that was rolled back** (21 Sep 2026, against
+  production, nothing persisted — checked afterwards that the function, the
+  column and the fixture rows were absent): the migration applied cleanly;
+  `supabase/tests/import-roster.test.sql` passed 14/14 (500 rows in one call;
+  no pass, tier or validity on any row; quota and duplicates refused per row;
+  re-run refused as duplicates; approver and no-session callers refused); the
+  extended `privileges.test.sql` passed 86/86. Loosening the quota check to
+  `>` made the quota assertions fail. The loader's exact SQL
+  (`importRosterSql`) on a 500-row CSV inserted 500 in one call and a re-run
+  returned 500 `duplicate_phone`.
+- `--offline` and `--dry` were run against a generated file; `--dry` read the
+  live organisation list.
+- **Not verified:** the loader's real-load mode against the database (it
+  writes, and the migration is not applied); an export of the real response
+  sheet (it has no responses); the sheet's time-zone setting.
+- Until the migration is applied, `corepack pnpm test:db` fails on
+  `import-roster.test.sql` and on the four new `privileges.test.sql` lines.
 
 ## What has and has not been verified
 
