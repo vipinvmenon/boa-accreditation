@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { tierCodeSchema } from '@/lib/schemas/accreditation'
 
 const isoDateTime = z.string().datetime({ offset: true })
 
@@ -27,7 +28,9 @@ const gateRosterRowSchema = z.object({
   fullName: z.string().min(1),
   roleText: z.string().min(1),
   orgName: z.string().min(1),
-  typeCode: z.enum(['crew', 'stage', 'aaa']),
+  // The pack's eight tiers (ADR-018). Widened from v1's three; every v1 code
+  // is still a tier, so rows cached before the widening still parse.
+  typeCode: tierCodeSchema,
   dayValidity: z.enum(['build', 'show', 'build_show']),
 })
 

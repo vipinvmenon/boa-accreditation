@@ -11,6 +11,7 @@
  */
 import Dexie, { type EntityTable } from 'dexie'
 import { z } from 'zod'
+import { tierCodeSchema } from '@/lib/schemas/accreditation'
 
 const uuid = z.string().uuid()
 const timestamp = z.string().datetime({ offset: true })
@@ -25,7 +26,10 @@ export const rosterRowSchema = z.object({
   fullName: z.string().min(1),
   roleText: z.string().min(1),
   orgName: z.string().min(1),
-  typeCode: z.enum(['crew', 'stage', 'aaa']),
+  // Widened to the pack's eight tiers (ADR-018) with no Dexie version bump:
+  // typeCode is not an index, and crew/stage/aaa rows already cached remain
+  // valid tiers, so no stored row needs rewriting.
+  typeCode: tierCodeSchema,
   dayValidity: z.enum(['build', 'show', 'build_show']),
 })
 
