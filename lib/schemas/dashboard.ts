@@ -14,10 +14,22 @@ export const dashboardOrgSchema = z.object({
   status: z.string(),
 })
 
-/** One row of the three pass types. label/colour/etc come from lib/design.ts. */
+/**
+ * One row per tier, in boa_acc_type.sort_order (ADR-018). `count` is the RPC's;
+ * `note` is boa_acc_type.note, merged in by /api/desk/dashboard (absent when
+ * that read fails — the card simply omits it). Label, band and colour come
+ * from lib/design.ts's pack mirror.
+ */
 export const dashboardTypeSchema = z.object({
   code: z.enum(ORG_TYPE_CODES),
   count: z.number(),
+  note: z.string().nullable().optional(),
+})
+
+/** The columns /api/desk/dashboard reads from boa_acc_type to enrich `types`. */
+export const dashboardTypeNoteSchema = z.object({
+  code: z.enum(ORG_TYPE_CODES),
+  note: z.string().nullable(),
 })
 
 /**
