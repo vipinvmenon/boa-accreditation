@@ -378,14 +378,18 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       data layer, not fixtures. Acceptance: queue, master, passes, control room
       and gate all render; `test:e2e` green. **Blocked on the eight type-chip
       colours** — Vipin's call, see ADR-018 · **C/V** · due Fri 26 Sep
-- [~] **ACC-116** · Roster workbook: `scripts/make-roster-sheet.mjs`, the Apps
-      Script builder, `docs/ROSTER-SHEET.md`. **Blocked on ACC-030a.**
-      Acceptance: run against the real 38-org CSV, produces a script that builds
-      38 correctly-quota'd tabs · **C** · due Sat 27 Sep
-- [ ] **ACC-117** · `boa_acc_import_roster` + `validate-roster.mjs` +
-      `load-roster.mjs`. Acceptance: a 500-row fixture imports in one call;
-      quota refusal and duplicate phones reported per row; the privileges test
-      covers the new function · **C** · due Sun 28 Sep
+- [~] **ACC-116** · Roster collection form: `scripts/roster-form/build-roster-form.gs`
+      builds a Google Form linked to a response sheet; `docs/ROSTER-FORM.md`.
+      Changed 21 Sep from a per-org workbook to a single form, at Salman's call.
+      Acceptance: form run once, opened by a human, every dropdown and
+      validation seen working, test submission lands in the sheet. **Org
+      dropdown blocked on ACC-030a** (free text until then) · **C/V** · due Mon 22 Sep
+- [ ] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
+      the form's response sheet (exported CSV, columns per
+      `docs/ROSTER-FORM.md`). Acceptance: a 500-row fixture imports in one
+      call; quota refusal and duplicate phones reported per row; the
+      privileges test covers the new function. **Needs the crew type → band
+      mapping from Salman** · **C** · due Sun 28 Sep
 
 > ## ▶ MILESTONE B — Sun 4 Oct · the gate works
 > **Freeze begins.** Hot fixes only, each with `db:state` before and after and a

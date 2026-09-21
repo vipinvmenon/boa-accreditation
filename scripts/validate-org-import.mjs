@@ -164,9 +164,9 @@ async function main() {
   console.log('No database writes were performed.')
 }
 
-// Only run the CLI when this file IS the entry point. Other scripts import
-// parseCsv/orgCreateSchema from here (scripts/make-roster-sheet.mjs), and an
-// unguarded top-level main() would run this validator against THEIR argv.
+// Only run the CLI when this file IS the entry point. Other scripts may import
+// parseCsv/orgCreateSchema from here, and an unguarded top-level main() would
+// run this validator against THEIR argv.
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   await main()
 }
