@@ -290,7 +290,7 @@ const STYLES_XML =
  *   validations: [{ ref, values: [], help }],
  * }
  */
-function worksheetXml(sheet) {
+function worksheetXml(sheet, intern) {
   const cols = (sheet.cols ?? [])
     .map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.width}" customWidth="1"/>`)
     .join('')
@@ -303,7 +303,9 @@ function worksheetXml(sheet) {
           const s = cell.s ? ` s="${cell.s}"` : ''
           if (cell.formula) return `<c r="${ref}"${s}><f>${xmlEscape(cell.formula)}</f></c>`
           if (cell.v === undefined || cell.v === null || cell.v === '') return `<c r="${ref}"${s}/>`
-          return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(cell.v)}</t></is></c>`
+          // Shared strings, not inline. Google Sheets' XLSX importer silently
+          // drops <is><t> inline strings: the tab arrives named but empty.
+          return `<c r="${ref}"${s} t="s"><v>${intern(cell.v)}</v></c>`
         })
         .join('')
       const ht = row.height ? ` ht="${row.height}" customHeight="1"` : ''
@@ -338,9 +340,17 @@ function worksheetXml(sheet) {
         .join('')}</dataValidations>`
     : ''
 
+  let maxR = 1
+  let maxC = 1
+  for (const row of sheet.rows ?? []) {
+    if (row.r > maxR) maxR = row.r
+    for (const cell of row.cells ?? []) if (cell.c > maxC) maxC = cell.c
+  }
+  const dimension = `<dimension ref="A1:${colLetter(maxC)}${maxR}"/>`
+
   return (
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${pane}` +
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${dimension}${pane}` +
     (cols ? `<cols>${cols}</cols>` : '') +
     `<sheetData>${rows}</sheetData>${merges}${validations}</worksheet>`
   )
@@ -348,6 +358,31 @@ function worksheetXml(sheet) {
 
 export function buildXlsx(sheets) {
   if (!sheets.length) throw new Error('a workbook needs at least one sheet')
+
+  const strings = []
+  const stringIndex = new Map()
+  let stringCount = 0
+  const intern = (value) => {
+    const key = String(value)
+    stringCount += 1
+    let at = stringIndex.get(key)
+    if (at === undefined) {
+      at = strings.length
+      strings.push(key)
+      stringIndex.set(key, at)
+    }
+    return at
+  }
+
+  // Worksheets are rendered first so the string table is complete before it is
+  // written out.
+  const sheetXml = sheets.map((s) => worksheetXml(s, intern))
+
+  const sharedStrings =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${stringCount}" uniqueCount="${strings.length}">` +
+    strings.map((v) => `<si><t xml:space="preserve">${xmlEscape(v)}</t></si>`).join('') +
+    '</sst>'
 
   const files = [
     {
@@ -358,6 +393,7 @@ export function buildXlsx(sheets) {
 <Default Extension="xml" ContentType="application/xml"/>
 <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
 <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
 ${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('\n')}
 </Types>`,
     },
@@ -381,10 +417,12 @@ ${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" Co
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 ${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('\n')}
 <Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+<Relationship Id="rId${sheets.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
 </Relationships>`,
     },
     { name: 'xl/styles.xml', data: STYLES_XML },
-    ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: worksheetXml(s) })),
+    { name: 'xl/sharedStrings.xml', data: sharedStrings },
+    ...sheetXml.map((data, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data })),
   ]
 
   return zip(files)
