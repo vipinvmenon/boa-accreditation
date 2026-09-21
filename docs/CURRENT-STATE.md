@@ -987,8 +987,26 @@ the option was read back from the live form, above `Other:`. The four
 superseded `vipinmenon006` forms were moved to Drive trash at Vipin's request;
 their four response sheets were not trashed and still exist.
 
-**Not verified:** a submission reaching the sheet. No test response has been
-made to the live form.
+**End to end, verified 21 Sep:** Vipin submitted a test response to the live
+form. Read back from the response sheet (CSV export, not a screenshot), it
+landed as one row with every answer under the right header:
+`9/21/2026 20:22:21, Test, Test, 9999999999, Merch Crew, Test, Both build and
+show, (blank)`.
+
+Three facts the importer (ACC-117) must handle, observed on that row:
+
+- **The phone lands as a number, not text** (right-aligned in the sheet). The
+  CSV export gave all ten digits intact, and the form only accepts numbers
+  starting 6–9, so no leading zero can be lost, but the importer must read the
+  column as a string and must not trust spreadsheet number formatting.
+- **The timestamp is `M/D/YYYY HH:MM:SS`** with no timezone: the sheet's
+  locale is US. Do not parse it as D/M, and do not treat it as a `timestamptz`
+  without fixing the zone.
+- **The test row is still there, and it is a real response.** The importer
+  must not load it, and while it exists the script will refuse any question
+  *type* change (e.g. Organisation becoming a dropdown when ACC-030a lands).
+  Delete it from the form (Responses ▸ ⋮ ▸ Delete all responses) and from row
+  2 of the sheet before the link goes out.
 
 **Not built:** the importer (ACC-117) and the crew type → band mapping (owed by
 Salman).

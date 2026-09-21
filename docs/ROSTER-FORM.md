@@ -205,4 +205,8 @@ title where given, otherwise the crew type.
   committed wording, including the crew types and `Other:`. The response sheet's
   header row matches the column contract above exactly. Links are in
   `docs/CURRENT-STATE.md`.
-- **Not yet verified:** a submission reaching the response sheet.
+- **End to end, 21 Sep 2026:** a test submission to the live form landed in
+  the response sheet as one row with every answer under the right header,
+  read back via CSV export. Importer notes from that row: the phone column is
+  stored as a number (read it as a string), and the timestamp is US-locale
+  `M/D/YYYY` with no timezone.
