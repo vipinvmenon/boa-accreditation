@@ -40,6 +40,9 @@ enum order. Source for both: `design/source/accreditation/access-matrix.json`.
 
 `boa_acc_person.requested_type_code` is **advisory** (the importer's crew-type
 hint). `type_code` is still set only by `boa_acc_decide`.
+`boa_acc_person.requested_day_validity` (ACC-117) is advisory too: the roster
+form's "Days on site" answer. `day_validity` is still set only at approval —
+the `pass_only_when_approved` CHECK refuses it on a submitted row.
 
 ## The load-bearing constraints
 
