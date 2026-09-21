@@ -6,6 +6,8 @@ import Link from 'next/link'
 import type { Dashboard } from '@/lib/schemas/dashboard'
 import { ALL_ZONES, PROP, TYPES, glowFor, passType, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
+import { ControlRoomSkeleton } from '@/components/loading-skeleton'
+import { Icon } from '@/components/icon'
 
 /**
  * Transcribed from design/source/boa_design_body.html lines 65-146 (the
@@ -51,6 +53,13 @@ const onVar = 'var(--on,#0A0A0A)'
 const STATUS_LABEL: Record<string, string> = {
   open: 'Open',
   submitted: 'Submitted',
+  approved: 'Approved',
+  closed: 'Closed',
+}
+
+const STATUS_COPY: Record<string, string> = {
+  open: 'Open',
+  submitted: 'Pending',
   approved: 'Approved',
   closed: 'Closed',
 }
@@ -154,11 +163,7 @@ export function ControlRoomScreenV1() {
           </div>
         )}
 
-        {!dash && !loadError && (
-          <div className="d-pad-sec" style={{ color: inkVar }}>
-            Loading…
-          </div>
-        )}
+        {!dash && !loadError && <ControlRoomSkeleton />}
 
         {dash && (
           <>
@@ -637,7 +642,8 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
     if (!root) return
 
     const revealables = root.querySelectorAll<HTMLElement>('.rv')
-    if (!('IntersectionObserver' in window)) {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion || !('IntersectionObserver' in window)) {
       revealables.forEach((element) => element.classList.add('in'))
       return
     }
@@ -664,8 +670,8 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
             <h1 className="h1"><span>{headline.value === null ? headline.label : <><V2Count value={headline.value} /> {headline.label}</>}</span></h1>
             {milestone && <p className="when"><b>{milestone.days} day{milestone.days === 1 ? '' : 's'}</b> to {milestone.label}</p>}
             <div className="row">
-              <Link href="/desk/queue" className="btn go">Clear the queue <span className="n">{dash.pendingTotal}</span><span className="ic">↗</span></Link>
-              <Link href="/gate" className="btn">Open the gate scanner<span className="ic">⌁</span></Link>
+              <Link href="/desk/queue" className="btn go">Clear the queue <span className="n">{dash.pendingTotal}</span><span className="ic"><Icon name="arrow-up-right" /></span></Link>
+              <Link href="/gate" className="btn">Open the gate scanner<span className="ic"><Icon name="scan" /></span></Link>
             </div>
           </div>
         </div></div>
@@ -678,7 +684,7 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
           <span className="mono" style={{ color: 'var(--gold)' }}>AAA override</span>
           <div className="v"><V2Count value={dash.aaaStamped} suffix={`/ ${dash.aaaNominatedApproved}`} /></div>
           <p>{Math.max(dash.aaaNominatedApproved - dash.aaaStamped, 0)} still to stamp from the named list</p>
-          <div className="row" style={{ marginTop: 'auto' }}><Link href="/desk/aaa" className="btn gold">Manage list<span className="ic">→</span></Link></div>
+          <div className="row" style={{ marginTop: 'auto' }}><Link href="/desk/aaa" className="btn gold">Manage list<span className="ic"><Icon name="arrow-right" /></span></Link></div>
         </div></div>
         <V2Stat className="stat quad" label="Organisations" value={dash.submittedOrgs} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
       </div>
@@ -686,21 +692,21 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
         <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">Three bands. No fourth.</h2></div>
         <div className="bands3">{TYPES.map((type, index) => <V2BandCard key={type.code} type={type} count={typeCounts.get(type.code) ?? 0} theme={theme} delay={index + 7} />)}</div>
 
-        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.orgs.length} compan{dash.orgs.length === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first ↕</span></div>
-        <div className="bz rv"><div className="pl list">
+        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.submittedOrgs} compan{dash.submittedOrgs === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first <Icon name="sort-descending" /></span></div>
+        <div className="bz rv"><div className="pl"><div className="list-scroll" tabIndex={0} aria-label="Organisations on site"><div className="list">
           <div className="list-head"><span className="mono">Organisations</span><span className="mono">{dash.orgs.length} listed</span></div>
           {dash.orgs.map((org) => {
             const type = passType(org.defaultType as PassTypeCode)
             const colour = theme === 'dark' ? type.colour : type.colourLight
             const percentage = org.quota > 0 ? Math.min(org.used / org.quota, 1) : 0
             return <div className="li" key={org.id}>
-              <div><div className="nm">{org.name}</div><div className="sub">{titleCase(org.kind)} · {org.contactName} · {org.contactPhone}</div></div>
+              <div><div className="nm">{org.name}</div><div className="sub">{titleCase(org.kind)}, {org.contactName}, {org.contactPhone}</div></div>
               <div className="band" style={{ '--c': colour } as React.CSSProperties}>{type.label}</div>
               <div className="qt"><span className="num"><b>{org.used}</b>/{org.quota}</span><div className="meter"><i style={{ '--w': percentage, '--c': percentage >= 1 ? 'var(--gold)' : 'var(--grn)' } as React.CSSProperties} /></div></div>
-              <span className={`st ${org.status === 'approved' ? 'ok' : org.status === 'submitted' ? 'wait' : 'mute'}`}>{STATUS_LABEL[org.status] ?? titleCase(org.status)}</span>
+              <span className={`st ${org.status === 'approved' ? 'ok' : org.status === 'submitted' ? 'wait' : 'mute'}`}>{STATUS_COPY[org.status] ?? STATUS_LABEL[org.status] ?? titleCase(org.status)}</span>
             </div>
           })}
-        </div></div>
+        </div></div></div></div>
     </main>
   )
 }
@@ -724,6 +730,6 @@ export function ControlRoomScreen() {
   }, [router])
 
   if (loadError) return <main><p role="alert" className="pad" style={{ color: 'var(--bad)' }}>{loadError}</p></main>
-  if (!dash) return <main><p role="status" className="pad mono">Loading…</p></main>
+  if (!dash) return <main><div role="status"><ControlRoomSkeleton /></div></main>
   return <ControlRoomV2 dash={dash} theme={theme} />
 }

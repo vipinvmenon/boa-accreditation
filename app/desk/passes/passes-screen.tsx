@@ -6,6 +6,7 @@ import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
 import { ALL_ZONES, passType, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
+import { PassesSkeleton } from '@/components/loading-skeleton'
 
 export type RenderedPass = Pass & { qrSvg: string }
 
@@ -16,7 +17,7 @@ function share(url: string, text: string): void {
 
 function zonesFor(typeCode: PassTypeCode) {
   const held = new Set(passType(typeCode).zones)
-  return ALL_ZONES.map((label) => ({ label: held.has(label), text: held.has(label) ? label : `—— ${label}` }))
+  return ALL_ZONES.map((label) => ({ label: held.has(label), text: label }))
 }
 
 function dayCopy(dayValidity: Pass['dayValidity']): string {
@@ -108,7 +109,9 @@ export function PassesScreen() {
       </section>
 
       <div className="passes">
-        {loading && <p role="status" className="passes-state">Loading passes…</p>}
+        {loading && (
+          <PassesSkeleton />
+        )}
         {!loading && error && <p role="alert" className="passes-state passes-state-error">Unable to load passes.</p>}
         {!loading && !error && passes.length === 0 && <p className="passes-state">No approved passes yet — approve in the queue →</p>}
         {passes.map((pass, i) => {

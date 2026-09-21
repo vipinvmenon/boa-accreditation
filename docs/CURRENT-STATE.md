@@ -3526,6 +3526,408 @@ this task.
 
 > **ACC-109 fresh targeted evidence 2026-09-20 (IST, HEAD `ffb03c1d0833d750be610121b8faf804c88c66ae`):** After a fresh `corepack pnpm build`, the requested Gate and Vehicle visual runs compared all eight variants at exact reference dimensions with no blocked, not-built, or known-gap cases. In order (dark/web, light/web, dark/mobile, light/mobile), Gate measured **2.21% / 0.19% / 2.78% / 0.49%** (1360×1530 desktop and 390×1661 mobile); Vehicle measured **6.72% / 0.54% / 10.92% / 1.35%** (1360×1294 desktop and 390×1581 mobile). Five of eight variants passed and three exceeded the 0.8% ceiling; ACC-109 remains incomplete. The build generated **60 precached assets** across **3 routes, 30 scripts, 1 CSS, 24 fonts, and 1 WASM** (`public/gate/zxing_reader.wasm`). `PLAYWRIGHT_PORT=4321 corepack pnpm test:e2e` passed **4/4** aeroplane-mode tests. No production code, references, masks, or unrelated files were changed.
 
+### 20 Sep 2026 — visual gate went from 9/28 to 28/28: a stale baseline, a capture race, a test-integrity violation, and one contract/privacy conflict, each measured before touching anything
+
+Picked up mid-session on top of Cursor's uncommitted ACC-104–111 work (26/28
+failing per the entry above). Ran the full suite fresh rather than trusting
+either side's prior numbers. Every claim below was measured, most with the
+`.diff.png`/`.ref.png`/`.actual.png` triptychs open, not inferred.
+
+**1. The reference baseline was stale relative to its own source — 10 of 19
+original failures, zero app changes.** `design/reference/manifest.json` was
+written at `11:15:29`; `design/source/boa_design_v2.html` was last modified at
+`11:15:47`, 18 seconds later. The symptom was a uniform ±8–9 luminance offset
+across every `dark` page background (light variants passed at 0.08–0.64%,
+dark failed at 3–11%, on *identical* pixel geometry) — nearly mistaken for a
+theme-rendering defect before measuring it. `corepack pnpm design:reference`
+against the current committed contract resolved it outright: queue dark/mob
+7.49%→0.70%, vehicle dark/mob 10.85%→0.37%, master dark/mob 5.56%→0.02%.
+
+**2. A test-integrity violation, found and removed.** `visual-check.mjs` had
+`installQueueMobileCaptureRule()` injecting CSS into the *running app* at
+capture time — `.qrow { grid-template-areas: ... !important } .qrow >
+.q-actions { display: none !important }` — to hide shipped hover-action
+buttons so the screenshot would match. It was masking a real defect: the
+contract's mobile `.qrow` is two grid rows (`"ck nm st" ". pk pk"`); the app
+declared a third `". act act"` row for `.q-actions`, which — even while
+`display:none` — added 12px of row-gap to *every* queue row on mobile.
+Fixed `.q-actions` to stay an absolutely-positioned overlay at that tier (as
+it already is on desktop), costing zero layout height, and deleted the
+injection from `visual-check.mjs`. Queue now passes all four variants at the
+same numbers *without* the crutch (`app/desk/queue/queue-screen.tsx`,
+`scripts/visual-check.mjs`).
+
+**3. Control room was captured mid-animation.** `settleCaptureMotion()` had
+an early `return` in its control-room branch (both `capture-design-reference.mjs`
+and `visual-check.mjs`) that skipped the generic "all finite animations
+settled" and "count value stable for 3 frames" waits — so the 1100ms count-up
+and the `.meter` `scaleX` transitions (1.2s + 0.3s delay) were still running
+at capture. The diff was entirely wrong digits (`47` captured as `35`, `38`
+as `29`). Removed the early return: control-room dark/web 0.82%→0.55% FAIL→PASS,
+and the dark/light asymmetry vanished (0.55 vs 0.55) — confirming light text
+on dark merely made a pre-existing mid-animation race easier to see, it
+wasn't a colour-theme defect. A pre-existing `CONTROL_ROOM_COUNT_MS = {
+dark: 320, light: 1200 }` on an animation that is 1100ms in *both* themes was
+also corrected to `{ dark: 1200, light: 1200 }`, but measured separately —
+**that change alone moved nothing** (0.82%→0.83%); the early-return removal
+was the actual fix, recorded honestly rather than crediting the wrong change.
+
+**4. `.pick { height: 66.5px }` — initially flagged as a hardcoded
+screenshot value, then verified correct and restored as a derivation.**
+Removing it (matching the "no magic numbers" instinct) made the page 150px
+*shorter* and failed everything. Measured the contract directly in a real
+browser (`design/source/boa_design_v2.html`, queue's band-type `<select>`):
+`.pick` genuinely renders 66.5px while its `<select>` is 44px, because the
+select is an inline-block sitting on a text baseline and inherits a 22.5px
+line-height strut below it — a real CSS artefact of the contract's own
+markup, not a screenshot-fitted constant. Restored as `height: calc(44px +
+1.5em)` with the measurement recorded in a comment, so the number reads as
+what it is (`44 + 1.5em`) rather than a mystery literal (`app/v2.css`).
+
+**5. A gate hole proved by mutation, not assumed.** Deleted the
+`@fontsource/archivo/600.css` import (needed by `.field label` / `.plist
+.who`, which inherit Archivo via `--body`/`--label` rather than setting a
+family) and re-ran `lint`: **it stayed green.** Under v2 almost every weight
+now arrives by CSS inheritance from ancestor `font-family` declarations, and
+`audit-font-weights.mjs` parses only literal `style`/`style-hover` attributes
+— which v2 has none of. The import itself is present and correct; the gate
+that is supposed to prove it is not. Not fixed this session (re-pointing the
+audit at v2's actual CSS rules is real work); recorded here rather than left
+looking like live cover, per this file's own rule.
+
+**6. Gate: exactly 60px too tall on all four variants, one extra button.**
+The contract has a single `.btn.wide` ("Can't scan? Search by name"); the
+app had two — an added "Start camera" button, because `getUserMedia` needs a
+real user gesture the contract's static mock has no equivalent for. Never
+recorded as a deviation. Fixed by moving the gesture *inside* the `.vf`
+viewfinder itself as a centred tap target (`.vf-start`, absolutely
+positioned, zero added height — the frame already occupies that footprint),
+restored the exact "Can't scan? Search by name" copy (the app had silently
+shortened it to "Search by name" when the second button existed), and added
+a `cameraActive` state so the tap target disappears once the stream is live
+and reappears on error (verified live: clicking it in a real browser
+correctly triggers `getUserMedia`, and the existing "Camera unavailable…"
+error path still fires when permission is refused). Gate: 4.34–5.70%
+FAIL → 0.02–0.08% PASS, all four at identical pixel dimensions to the
+reference. `corepack pnpm test:e2e` (all 11 specs, including the 4-test
+aeroplane-mode suite) still passes — the manual scanner input and outbox
+flow the offline tests drive were untouched.
+
+**7. A genuine, pre-existing e2e test bug, unrelated to any of the above,
+fixed in passing.** `tests/e2e/chrome-interactions.spec.ts`'s gate-drawer
+test used `page.getByRole('button', { name: 'Menu' })`, which
+substring-matches the profile button's accessible name "**Operator Menu**"
+too — a strict-mode violation, reproduced identically with and without every
+change above (confirmed via `git stash` before touching it). Added `{ exact:
+true }`, matching the sibling desk-drawer test at line 118 which already had
+it. All 11 e2e specs pass.
+
+**8. Submission mobile — a real contract/privacy conflict, not a bug,
+resolved with the user's explicit sign-off before editing the contract.**
+The mock's "Your list" hardcodes `'Suhas Bhat','Truck driver, KA 51 AB
+2290','wait'` and `'Imran Sheikh','Backline. Rejected: name did not match
+ID','no'` into its `P` array. `boa_acc_org_roster()` (ADR-016,
+`supabase/migrations/202609151000_boa_acc_org_roster.sql`) deliberately
+returns only `full_name`/`role_text`/`status` to this public,
+unauthenticated surface — its own header comment explicitly rejects
+returning vehicle registrations or rejection reasons as something that
+"would unnecessarily expose personal data to every holder of an org link."
+The app was correct; the mock's demo copy took a liberty the real privacy
+architecture forbids. Masking the text alone could not close it: even with
+`.plist .why` painted out, the mock's 2-line wrap vs the app's 1-line
+content left the page 19px (1.09%) shorter — `visual-check.mjs`'s
+`areaPenalty = |refArea − actArea| / max(...)` fails on that alone,
+independent of any content match. Asked the user directly rather than
+editing the pixel contract unilaterally (non-negotiable #1: "needs Vipin,
+not an edit"); confirmed, and trimmed `design/source/boa_design_v2.html`'s
+`P` array to `'Suhas Bhat','Truck driver','wait'` /
+`'Imran Sheikh','Backline','no'` — matching exactly what the real RPC
+returns (the visual fixture's `role_text` values were already `'Truck
+driver'`/`'Backline'`; only the mock's invented extra copy was removed).
+No bundle edit needed — `capture-design-reference.mjs`'s `BUNDLE` already
+points at `boa_design_v2.html` directly (ACC-100), not
+`boa_design_bundle.html`. Regenerated the reference: submission now passes
+all four variants at **identical** dimensions (390×1860 = 390×1860), content
+matching byte-for-byte — the `.plist .why` mask added during investigation
+was removed afterward as unnecessary, keeping the gate maximally sensitive
+to a real future regression in that region.
+
+**Verified, in full, after all eight fixes:**
+- `corepack pnpm test:visual` — **28/28, 7/7 screens PASS, 0 BLOCKED, 0 KNOWN
+  GAP.**
+- **Guard-mutation proof, run live:** renamed a fixture (`Ranjith Kumar` →
+  `Ranjith Kumar MUTATED`) in `scripts/visual-fixtures/desk.mjs` — queue
+  correctly failed (5.08–5.48% on mobile). Reverted; `diff` against the
+  pre-mutation backup was empty; queue passed again at the prior numbers. A
+  gate nobody has seen fail is not a gate.
+- `corepack pnpm typecheck` — clean. `corepack pnpm lint` — 0 errors, the 4
+  pre-existing `<img>` warnings only. `corepack pnpm test` — 53/53.
+  `corepack pnpm test:e2e` — 11/11. `corepack pnpm check:sql` — 28
+  migrations, clean.
+- **Live browser walkthrough**, not just screenshots: `/gate` at 390px, at
+  960px (the `@container app (max-width: 1100px)` tier `visual-check.mjs`
+  does not capture at either 1360 or 390 — genuinely no automated cover, so
+  this is the only verification it has), and in light theme, on an isolated
+  `next start` instance (not the harness's own ephemeral server). Clicked
+  the new `.vf-start` tap target: triggers `getUserMedia`, and the existing
+  "Camera unavailable…" error path fires correctly when the sandboxed
+  browser refuses camera permission — confirming both the happy path and the
+  pre-existing error handling survived the change.
+
+**Not verified, stated plainly:** the 1100px container tier still has no
+*automated* cover on any of the other six screens (queue's own 1100px
+`.q-actions` rule was read and left alone — the contract has no 1100px
+`.qrow` rule at all, so this is Cursor's own defensive addition, not a
+regression, and it only matters on hover, which the capture harness cannot
+exercise). Desk screens (`/desk/queue`, `/desk/master`, etc.) were not
+walked through live in this session — no operator credential is available
+in this environment, same limitation this file has recorded since 12 Sep.
+`ACC-111` is still `[~]` IN FLIGHT; none of this is claimed as that task's
+sign-off, only as the measured state of the visual gate right now.
+
+**Uncommitted at the time of writing**, deliberately — mixed into Cursor's
+own in-flight ACC-104–111 tree, not swept up unasked: `app/gate/page.tsx`,
+`app/v2.css`, `app/desk/queue/queue-screen.tsx`, `scripts/visual-check.mjs`,
+`scripts/capture-design-reference.mjs`, `design/source/boa_design_v2.html`,
+`tests/e2e/chrome-interactions.spec.ts`, plus everything already listed as
+uncommitted in the entry above this one.
+
+### 20 Sep 2026 — three live-browser bug reports triaged: one real overlap bug fixed, one an artefact of that same bug, one a contract-level legibility characteristic recorded, not fixed
+
+Vipin reported three things after opening the real app in Safari, with
+screenshots: icons "not visible", the profile menu "overlaps", and
+"inconsistent border radius". Investigated each on its own evidence rather
+than acting on the label — one was real, one turned out to be caused by the
+other, one was a design characteristic of the approved contract itself.
+
+**1. Profile menu overlapping the status pill — real bug, fixed.**
+`.profile-menu` is `position: absolute` inside `.profile-wrap`, which wraps
+only the avatar button. `.island` is horizontally centred
+(`width: max-content; margin: 0 auto`) and `.status` can wrap to a second
+line on narrow viewports, so the CSS-only `top: calc(100% + 10px)` (relative
+to the ~40px-tall avatar) had no reliable way to clear the status pill
+sitting just below it — confirmed live: `getBoundingClientRect()` on both
+elements showed a genuine overlapping rectangle before the fix. This menu is
+**ADR-015's addition** — entirely absent from `design/source/boa_design_v2.html`
+— so it needed no sign-off to change, unlike the contract-level items below.
+Fixed by measuring the real gap at open-time (`useLayoutEffect` keyed on the
+open state, in both `app/gate/gate-chrome.tsx` and `app/desk/desk-chrome.tsx`,
+which each have their own independent copy of this chrome) and setting `top`
+as an inline style: `Math.max(avatarWrapHeight, statusBarBottom -
+avatarWrapTop) + 10`. Verified live: `overlaps: false` via a real
+`getBoundingClientRect()` intersection check after the fix, both
+`corepack pnpm test:visual` (28/28, unaffected — this only changes behaviour
+on click, never a resting-state pixel) and `corepack pnpm test:e2e` (11/11,
+including the two chrome-interaction specs that exercise this exact
+dropdown) still pass.
+
+**2. "Inconsistent border-radius" — was the overlap bug, not a separate
+defect.** The screenshot showed the profile menu's top edge looking
+square-cornered. `getComputedStyle(menu).borderRadius` was `14px`
+(`var(--r-sm)`) the whole time — never wrong. Re-screenshotted live after
+fix #1 alone: the corners render correctly rounded once the status pill
+no longer collides with the menu's top edge. Recorded as one bug, not two,
+rather than "fixing" a border-radius that was never broken.
+
+**3. Icons "not visible" — verified byte-identical to the approved contract,
+not a regression.** Traced the contract's own icon-hydration script
+(`design/source/boa_design_v2.html`'s `inlineIcons()`, which walks every
+`<i class="ph-light ph-X">` and replaces it with
+`<svg class="ph-icon"><use href="#ph-X"></use></svg>` against an inline
+`<symbol>` sprite): the path data for `arrow-up-right` there
+(`M56 200 200 56M96 56h104v104`) is character-for-character identical to
+`components/icon.tsx`'s. Cropped the exact same pixel region from
+`test-results/visual/control-room-dark-web.actual.png` and `.ref.png` at
+zero tolerance (`PIL.ImageChops.difference`, not pixelmatch's 12%
+threshold): `diff bbox = None`, max channel delta `(0,0,0)` — a literal
+byte-for-byte match, on three separate icon instances checked (the hero's
+arrow-up-right, the AAA card's gold arrow-right). **The icons are genuinely
+thin (1.5px stroke) and low-contrast (the `.ic` wrapper tints its background
+to only ~10% opacity of the button's own colour) by the approved contract's
+own design** — this is not something the implementation introduced. Not
+fixed: strengthening stroke-width or background tint would mean editing
+`design/source/boa_design_v2.html`'s `.ph-icon`/`.btn .ic` rules, which is
+the same "needs Vipin, not a silent edit" boundary as the submission fix
+above, and is a legibility judgement call, not a bug with one correct
+answer. Flagged for a decision, not acted on.
+
+**Verified after the fixes:** `corepack pnpm typecheck` clean; `lint` 0
+errors; `test` 53/53; `test:visual` 28/28 (7/7 screens, 0 blocked, 0 known
+gap, unchanged from the entry above — confirming the profile-menu fix moved
+no resting-state pixel); `test:e2e` 11/11. Live-browser screenshots taken
+before and after on an isolated `next start` instance, not the harness's own
+ephemeral server, showing the overlap gone and the rounded corners intact.
+
+**Not committed**, added to the same uncommitted set as above:
+`app/gate/gate-chrome.tsx`, `app/desk/desk-chrome.tsx`.
+
+### 20 Sep 2026 — the profile-menu "fix" above was itself wrong; reverted. Icon contrast bumped throughout, with sign-off.
+
+Vipin looked at the fixed profile menu and pushed back: it now looked
+disconnected from the avatar (a large gap under the status pill, no visible
+relationship to its trigger), and asked for it to sit attached to the
+avatar's down-right instead. Correct call — the entry above over-corrected.
+A dropdown briefly covering nearby content while open is normal, unremarkable
+UI behaviour in every design system; there was no actual defect in the
+*original* CSS-only positioning (`top: calc(100% + 10px); right: 0`), only
+in how the previous entry characterised it. **Reverted in full**: removed
+the `useLayoutEffect` status-bar-avoidance logic and its two new refs
+(`profilePopupRef`, `statusRef`) from both `app/gate/gate-chrome.tsx` and
+`app/desk/desk-chrome.tsx`, restoring the original ADR-015 CSS positioning
+exactly. Verified live: the menu now opens 10px below the avatar, attached,
+matching "down-right of the profile" — the brief partial overlap with the
+status pill while open is visible but benign (solid background, fully
+readable, standard dropdown layering).
+
+**Icon contrast — fixed throughout, with explicit sign-off.** The prior
+entry found the app byte-identical to the approved contract and declined to
+touch it without Vipin's go-ahead. Asked directly; he confirmed the icons
+read the same (too faint) "throughout the app" and it's a colour/weight
+problem, not a per-instance one. Two systemic values in
+`design/source/boa_design_v2.html`, mirrored into `app/v2.css`:
+- `.ph-icon` `stroke-width: 1.5` → `2` — every icon instance in the app
+  renders through this one class, so this is a true global change, not a
+  per-button patch.
+- `.btn .ic` background tint `color-mix(in srgb, var(--bf) 10%, transparent)`
+  → `18%` — more grounding behind the circular icon holders specifically
+  (hero buttons, "Manage list", etc.).
+
+No other `color-mix(in srgb, var(--bf)` rule exists in either file (checked
+by grep) — nothing else needed touching for this to be genuinely global.
+Regenerated `design/reference/` from the edited contract and reran the full
+suite: **28/28, 7/7 screens PASS, 0 BLOCKED, 0 KNOWN GAP** — the new,
+thicker/darker icons match the newly-regenerated reference exactly, proving
+the change is real and propagated correctly through the whole pipeline, not
+just eyeballed. Visually confirmed with pixel crops of the same two icon
+instances checked in the previous entry (`arrow-up-right` on the hero
+"Clear the queue" button, `arrow-right` on the gold "Manage list" button):
+both visibly bolder and more grounded than before.
+
+**Verified:** `typecheck` clean, `lint` 0 errors, `test` 53/53, `test:visual`
+28/28, `test:e2e` 11/11. Live browser check on an isolated `next start`
+instance confirmed both the reverted menu position and the bolder icons
+together, in the same screenshot.
+
+**Not committed**, same uncommitted set as above — no new files, only
+further edits to `app/gate/gate-chrome.tsx`, `app/desk/desk-chrome.tsx`,
+`design/source/boa_design_v2.html`, `app/v2.css`.
+
+### 21 Sep 2026 — the icon fix was wrong at the root the whole time: hand-drawn SVG paths standing in for a real font. Found by comparing against a stale browser tab Vipin still had open, fixed by vendoring the actual font.
+
+Three rounds of stroke-width/tint tuning this session (1.5px→2px→2.5px,
+10%→18%→32%) never closed the gap Vipin kept reporting, because none of them
+were the actual defect. He pointed at a `design/proposals/` browser tab still
+open in Safari, showing crisp, clearly-legible icons, and asked "is it like
+this in design? Refer design." That tab's path no longer exists on disk
+(`design/proposals/` is empty — ACC-100's `git mv` removed it) — it was
+showing a **stale, pre-ACC-100 render**, cached in the browser from before
+the file moved.
+
+Pulled the true original from git history (`git show 3dee66e:design/proposals/
+boa_design_v2.html`, the commit before ACC-100 touched it) and inspected a
+live render of it directly: `document.title` confirmed it, and inspecting
+the rendered icon element gave `font-family: "Phosphor-Light"` — a real,
+professionally-hinted **font glyph** (`<i class="ph-light ph-arrow-up-right">`,
+loaded from `cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1`), not an SVG.
+ACC-100 (correctly, per its own brief) removed the CDN dependency the CSP
+blocks anyway, but replaced the font entirely with a runtime script
+(`inlineIcons()`) that swapped every `<i class="ph-light ph-X">` for a
+hand-drawn `<svg><use></use></svg>` referencing a hand-traced `<symbol>`
+sprite. Font hinting and a hand-drawn 1.5px stroke path are not comparable
+rendering pipelines — no amount of stroke-width or tint tuning on the SVG
+approximation was ever going to reach the font's actual optical weight,
+which is exactly what three rounds of failed tuning this session
+demonstrated without anyone naming the real cause.
+
+**The fix vendors the actual font instead of approximating it again:**
+- Downloaded the real npm package (`npm pack @phosphor-icons/web@2.1.1`, MIT
+  licensed) and extracted only `src/light/Phosphor-Light.woff2` (155 KB —
+  the whole Light-weight glyph set, comparable to a single `@fontsource`
+  weight) — committed to `public/fonts/phosphor-light.woff2`, not a new npm
+  dependency (the package is 46 MB unpacked; installing it whole for one
+  font file was rejected).
+- `app/phosphor.css` (new): a local `@font-face` for it, plus only the 14
+  icon-name `content` rules this app actually uses, transcribed verbatim
+  from the package's own `style.css` (grepped for
+  `.ph-light.ph-<name>:before { content: "\eXXX" }` — the codepoints are the
+  font's, not invented). Imported once from `app/layout.tsx`.
+- `components/icon.tsx` rewritten from a 70-line hand-drawn SVG path table
+  to `<i aria-hidden="true" className={'ph-light ph-' + name} />` — same
+  external API (`<Icon name="X" />`), every call site unchanged (checked:
+  none pass any prop beyond `name`).
+- `design/source/boa_design_v2.html`: removed `inlineIcons()`, its
+  `MutationObserver`, both call sites, the SVG `<symbol>` sprite, and the
+  now-dead `.ph-icon` rule; added the same local `@font-face` +
+  `.ph-light.ph-<name>` rules (relative path `../../public/fonts/
+  phosphor-light.woff2`, matching how the four text fonts already reference
+  `node_modules/@fontsource/...` from this file). The markup underneath was
+  **already** `<i class="ph-light ph-X">` throughout — ACC-100 never
+  touched it, only wrapped it in the runtime SVG-swap — so removing the
+  swap script alone restored the original rendering exactly.
+- Reverted `.btn .ic`'s background tint from this session's 32% back to the
+  **original 10%** and deleted the vestigial `.ph-icon` stroke-width rule
+  from `app/v2.css`, in both files — the boosted values were compensating
+  for the wrong rendering pipeline and are no longer motivated once the
+  real font is in place.
+- `scripts/build-gate-sw.mjs`: added `/fonts/phosphor-light.woff2` as an
+  explicit fixed `PRECACHE` entry, alongside the existing `/assets/
+  boa-logo.png` one. `staticAssets()` only walks `.next/static`; a file
+  under `public/` is copied through by Next verbatim and is invisible to
+  that scan, and the `fonts` auto-detection filter's `-latin(-ext)?-` regex
+  is `@fontsource`'s own naming convention — it would never have matched
+  this file's name even if the scan reached it. A missing precache entry
+  silently disables the offline behaviour it's the only source of (the
+  exact failure mode already documented once in this file, 11 Sep, for the
+  gate service worker precaching 404ing routes); confirmed live this time —
+  `grep`'d the generated `public/gate/sw.js` for the path, and `curl`'d
+  `http://localhost:3010/fonts/phosphor-light.woff2` for a real `200`
+  before calling it done, not assumed from the precache count alone.
+
+**A real regression, caught and fixed before it shipped:** first full
+`test:visual` after this rework showed queue red at 10.5–10.8%, page height
+1707px against a reference that had *shrunk* to 1557px. The `.pick { height:
+calc(44px + 1.5em) }` rule from earlier this session was a measured
+derivation of the **SVG-based** caret's inline-block baseline strut — a real
+number for a pipeline that no longer exists. A real font glyph's `<i>`
+participates in the text line-box like any other inline element, with
+different metrics; the derivation was now simply wrong, not fixed. Removed
+the override entirely rather than re-deriving a new constant — `.pick`
+naturally matches the contract's own un-overridden `position: relative;
+display: block` once both sides use the same rendering pipeline. Rebuilt,
+reran: **1360×1557 both sides, 0.39–0.40%, PASS.**
+
+**Verified, all of it, not asserted:**
+- `corepack pnpm typecheck` clean. `corepack pnpm lint` — 0 errors, the 4
+  pre-existing `<img>` warnings only.
+- `corepack pnpm test` — 53/53.
+- `corepack pnpm test:visual` — **28/28, 7/7 screens PASS, 0 BLOCKED, 0
+  KNOWN GAP**, every dimension pixel-identical to its reference (not just
+  under threshold) after the queue fix.
+- `corepack pnpm test:e2e` — 11/11.
+- `corepack pnpm check:sql` — 28 migrations, clean.
+- **Looked at the actual rendered pixels myself, critically, before
+  claiming anything** — the specific discipline this session's earlier
+  rounds skipped, which is exactly how two rounds of "fixed" icon contrast
+  shipped without being fixed. Cropped and inspected, side by side against
+  the freshly-regenerated reference: Control Room's hero buttons (arrow,
+  scan-corners), Passes' paper-plane/printer icons, Queue's select caret —
+  three different screens, different icons, all matching the true
+  original's crispness, not just passing a percentage.
+- Live in a real browser (isolated `next start` on :3010, not the harness's
+  own ephemeral server): `/gate` renders correctly with the real font
+  glyphs, the merged camera tap-target, and the reattached profile menu
+  together in one screenshot.
+
+**Not verified:** `/desk/*` screens live in a real signed-in session — no
+operator credential is available in this environment, same limitation
+recorded repeatedly in this file since 12 Sep. Their icons were checked via
+`test:visual`'s real API-fixture-backed render (real app code, real CSS,
+real font — not a mock), not via an authenticated browser session.
+
+**Not committed** — added to the existing uncommitted set: `app/phosphor.css`
+(new), `public/fonts/phosphor-light.woff2` (new), `components/icon.tsx`,
+`design/source/boa_design_v2.html`, `app/v2.css`, `scripts/build-gate-sw.mjs`.
+
 ## Template for the next session update
 
 ```

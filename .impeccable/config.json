@@ -1,0 +1,98 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.007Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "hero-eyebrow-chip",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.026Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.041Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.055Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "wide-tracking",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.070Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.085Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.099Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.113Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "aphoristic-cadence",
+        "value": "*",
+        "files": [
+          "design/source/boa_design_v2.html"
+        ],
+        "createdAt": "2026-09-20T14:53:28.127Z",
+        "reason": "design/source/*.html is the locked, approved pixel contract (CLAUDE.md non-negotiable #1: 'reproduce it, do not reinterpret it... a visual deviation is a defect, not a preference'; DESIGN-SYSTEM.md: transcribed verbatim, never corrected). These are the design lead's own approved choices for v2 (eyebrow tags, nested .bz/.pl bezels, .mono 10-10.5px labels, uppercase body copy, the LIVE pulse tied to real server data, the brand's short-sentence headline voice), not AI-slop to house-style. Fixing them here means redesigning the approved contract unilaterally, which the project's own rules require Vipin's sign-off for, not a scanner."
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "app/v2.css"
+        ],
+        "createdAt": "2026-09-20T15:30:26.020Z",
+        "reason": "app/v2.css is app/v2.css's own header comment: transcribed verbatim from design/source/boa_design_v2.html, already exempted for this same rule. Same approved contract, same animations (.frame max-width, .burger i top, etc.), just the app-side copy of the identical CSS rather than the design-source file. Same non-negotiable #1 boundary — not unilaterally switching these to transform/opacity, which would deviate from the pixel contract's actual behaviour."
+      }
+    ]
+  }
+}

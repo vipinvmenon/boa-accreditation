@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { operatorRoleSchema, type InviteOperatorInput, type OperatorRow } from '@/lib/schemas/operator'
+import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
 /**
  * Not part of the approved design — design/source/boa_design_body.html has no
@@ -87,6 +88,7 @@ export function UsersScreen() {
 
   const [busyId, setBusyId] = useState<string | null>(null)
   const [rowError, setRowError] = useState<string | null>(null)
+  const [announcement, setAnnouncement] = useState('Loading operators.')
 
   useEffect(() => {
     let cancelled = false
@@ -99,7 +101,11 @@ export function UsersScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        if (!cancelled) setLoadError(copyForError(body))
+        if (!cancelled) {
+          const message = copyForError(body)
+          setLoadError(message)
+          setAnnouncement(`Could not load operators. ${message}`)
+        }
         return
       }
       const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
@@ -107,6 +113,7 @@ export function UsersScreen() {
       setOperators(body.operators)
       setCallerId(body.callerId)
       setLoadError(null)
+      setAnnouncement('Operators loaded.')
     }
     void loadOperators()
     return () => {
@@ -125,7 +132,11 @@ export function UsersScreen() {
       router.replace('/desk/login')
       return
     }
-    if (!res.ok) return
+    if (!res.ok) {
+      const message = copyForError(await res.json().catch(() => null))
+      setAnnouncement(`Could not refresh operators. ${message}`)
+      return
+    }
     const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
     setOperators(body.operators)
     setCallerId(body.callerId)
@@ -147,10 +158,13 @@ export function UsersScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        setInviteMessage({ kind: 'error', text: copyForError(body) })
+        const message = copyForError(body)
+        setInviteMessage({ kind: 'error', text: message })
+        setAnnouncement(`Could not send invitation. ${message}`)
         return
       }
       setInviteMessage({ kind: 'ok', text: `Invitation sent to ${form.email}.` })
+      setAnnouncement(`Invitation sent to ${form.email}.`)
       setForm(EMPTY_FORM)
       await refetchOperators()
     } finally {
@@ -173,13 +187,16 @@ export function UsersScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        setRowError(copyForError(body))
+        const message = copyForError(body)
+        setRowError(message)
+        setAnnouncement(`Could not ${active ? 'activate' : 'deactivate'} operator. ${message}`)
         return
       }
       const body = (await res.json()) as { operator: OperatorRow }
       setOperators((prev) =>
         (prev ?? []).map((o) => (o.user_id === userId ? { ...o, active: body.operator.active } : o)),
       )
+      setAnnouncement(`Operator ${active ? 'activated' : 'deactivated'}.`)
     } finally {
       setBusyId(null)
     }
@@ -188,6 +205,9 @@ export function UsersScreen() {
   return (
     <main className="utility-screen">
       <div className="utility-inner">
+        {!inviteMessage && !loadError && !rowError && (
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
+        )}
         <header className="utility-head">
           <div>
             <div className="tag">Desk operations</div>
@@ -286,7 +306,7 @@ export function UsersScreen() {
           {loadError && <p role="alert" className="utility-error">{loadError}</p>}
           {rowError && <p role="alert" className="utility-error">{rowError}</p>}
           {operators === null && !loadError && (
-            <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>Loading…</p>
+            <div role="status"><UtilityScreenSkeleton kind="users" /></div>
           )}
           {operators !== null && operators.length === 0 && (
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No operators visible to you.</p>

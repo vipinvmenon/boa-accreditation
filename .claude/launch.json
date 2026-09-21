@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "accred-dev-session",
+      "runtimeExecutable": "corepack",
+      "runtimeArgs": ["pnpm", "dev", "--port", "3010"],
+      "port": 3010
+    },
+    {
       "name": "design-proposal",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4455", "--bind", "127.0.0.1"],

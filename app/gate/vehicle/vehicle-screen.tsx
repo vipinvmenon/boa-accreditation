@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useDomTheme } from '@/lib/use-theme'
-import { PROP, passType } from '@/lib/design'
+import { PROP, passType, type PassTypeCode } from '@/lib/design'
 import { gateDb } from '@/gate/db'
 import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { findActiveWristband, normalizePlate, queueVehicleEvent } from '@/gate/vehicle-flow'
@@ -22,6 +22,10 @@ type Result = {
 
 function formatIssuedAt(iso: string): string {
   return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).replace(',', '')
+}
+
+function presentationTypeLabel(typeCode: PassTypeCode) {
+  return typeCode === 'crew' ? 'Working crew' : passType(typeCode).label
 }
 
 export function VehicleScreen() {
@@ -98,7 +102,7 @@ export function VehicleScreen() {
         ...(stickerIssue?.stickerNo ? { stickerNo: stickerIssue.stickerNo } : {}),
         ...(stickerIssue?.occurredAt ? { occurredAt: stickerIssue.occurredAt } : {}),
         ...(holder && wristband
-          ? { wristbandDetail: `${passType(holder.typeCode).label} · ${passType(holder.typeCode).band} · Band ${wristband.bandSerial ?? 'blank serial'}` }
+          ? { wristbandDetail: `${presentationTypeLabel(holder.typeCode)} · ${passType(holder.typeCode).band.toLowerCase()} · band ${wristband.bandSerial ?? 'blank serial'}` }
           : {}),
       })
       setReason('')
@@ -112,7 +116,7 @@ export function VehicleScreen() {
   const cleared = result?.outcome === 'cleared'
   const outcome = cleared ? 'ok' : result ? 'bad' : undefined
   return (
-    <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0} bmsPending={0}>
+    <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0} bmsPending={14}>
       <section className="head rv">
         <div><span className="tag gold">Vehicle entrance</span><h1 className="h1">Sticker and band. Both.</h1><p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside.</p></div>
       </section>
@@ -136,7 +140,7 @@ export function VehicleScreen() {
             ].map(([label, detail]) => <div key={label} className="li"><span aria-hidden="true" className={`ok${cleared ? '' : ' x'}`}><Icon name={cleared ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="sub">{detail}</div></div></div>)}</div>
             {result?.outcome === 'turned_away' && <div className="field"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input id="vehicle-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
             </>}
-            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => { setPlateVisual(true); void recordEvent() }} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry & open gate'}<span className="ic"><Icon name="arrow-right" /></span></button><button type="button" onClick={() => { setPlateVisual(false); void recordEvent() }} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away — log reason</button></div>
+            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => { setPlateVisual(true); void recordEvent() }} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry and open gate'}<span className="ic"><Icon name="arrow-right" /></span></button><button type="button" onClick={() => { setPlateVisual(false); void recordEvent() }} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away and log reason</button></div>
           </div>
         </div>
         </div>

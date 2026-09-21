@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { type AaaNomination } from '@/lib/schemas/aaa'
+import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
 const labelStyle: React.CSSProperties = {
   fontFamily: "'JetBrains Mono',monospace",
@@ -36,6 +37,7 @@ export function AaaScreen() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [announcement, setAnnouncement] = useState('Loading AAA nominees.')
 
   useEffect(() => {
     let cancelled = false
@@ -48,7 +50,9 @@ export function AaaScreen() {
       }
       const body: unknown = await response.json().catch(() => null)
       if (!response.ok) {
-        setLoadError(errorCopy(body))
+        const message = errorCopy(body)
+        setLoadError(message)
+        setAnnouncement(`Could not load AAA nominees. ${message}`)
         return
       }
       if (
@@ -58,9 +62,11 @@ export function AaaScreen() {
         !Array.isArray(body.nominations)
       ) {
         setLoadError(ERROR_COPY['internal']!)
+        setAnnouncement(`Could not load AAA nominees. ${ERROR_COPY['internal']!}`)
         return
       }
       setNominations(body.nominations as AaaNomination[])
+      setAnnouncement('AAA nominees loaded.')
     }
     void load()
     return () => {
@@ -84,12 +90,15 @@ export function AaaScreen() {
       return
     }
     if (!response.ok) {
-      setFormError(errorCopy(body))
+      const message = errorCopy(body)
+      setFormError(message)
+      setAnnouncement(`Could not add nominee. ${message}`)
       return
     }
     if (body && typeof body === 'object' && 'nomination' in body) {
       setNominations((current) => [...(current ?? []), body.nomination as AaaNomination])
       setForm({ fullName: '', phone: '+91', orgHint: '' })
+      setAnnouncement('AAA nominee added.')
     }
   }
 
@@ -103,18 +112,24 @@ export function AaaScreen() {
       return
     }
     if (!response.ok) {
-      setLoadError(errorCopy(body))
+      const message = errorCopy(body)
+      setLoadError(message)
+      setAnnouncement(`Could not approve nomination. ${message}`)
       return
     }
     if (body && typeof body === 'object' && 'nomination' in body) {
       const updated = body.nomination as AaaNomination
       setNominations((current) => (current ?? []).map((item) => (item.id === id ? updated : item)))
+      setAnnouncement('AAA nomination approved.')
     }
   }
 
   return (
     <main className="utility-screen">
       <div className="utility-inner">
+        {!formError && !loadError && (
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
+        )}
         <header className="utility-head">
           <div>
             <div className="tag gold">AAA override</div>
@@ -141,7 +156,7 @@ export function AaaScreen() {
         </div></section>
 
         {loadError && <p role="alert" className="utility-error">{loadError}</p>}
-        {nominations === null && !loadError && <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))' }}>Loading…</p>}
+        {nominations === null && !loadError && <div role="status"><UtilityScreenSkeleton kind="aaa" /></div>}
         {nominations?.length === 0 && <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))' }}>No AAA nominees yet.</p>}
         <div className="utility-list">
           {nominations?.map((nomination) => (

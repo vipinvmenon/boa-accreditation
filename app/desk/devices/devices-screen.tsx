@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DEVICE_SCOPES, type DeviceRow, type MintedDevice } from '@/lib/schemas/device'
+import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -69,6 +70,7 @@ export function DevicesScreen() {
 
   const [revokingId, setRevokingId] = useState<string | null>(null)
   const [revokeError, setRevokeError] = useState<string | null>(null)
+  const [announcement, setAnnouncement] = useState('Loading devices.')
 
   useEffect(() => {
     let cancelled = false
@@ -81,12 +83,17 @@ export function DevicesScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        if (!cancelled) setLoadError(copyForError(body))
+        if (!cancelled) {
+          const message = copyForError(body)
+          setLoadError(message)
+          setAnnouncement(`Could not load devices. ${message}`)
+        }
         return
       }
       const body = (await res.json()) as { devices: DeviceRow[] }
       if (cancelled) return
       setDevices(body.devices)
+      setAnnouncement('Devices loaded.')
       setLoadError(null)
     }
     void loadDevices()
@@ -116,7 +123,9 @@ export function DevicesScreen() {
     }
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      setMintError(copyForError(body))
+      const message = copyForError(body)
+      setMintError(message)
+      setAnnouncement(`Could not mint device. ${message}`)
       return
     }
     const body = (await res.json()) as { device: MintedDevice }
@@ -133,6 +142,7 @@ export function DevicesScreen() {
       const listBody = (await listRes.json()) as { devices: DeviceRow[] }
       setDevices(listBody.devices)
     }
+    setAnnouncement(`Device ${body.device.gate_label} minted.`)
   }
 
   async function handleRevoke(id: string) {
@@ -146,12 +156,15 @@ export function DevicesScreen() {
     }
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      setRevokeError(copyForError(body))
+      const message = copyForError(body)
+      setRevokeError(message)
+      setAnnouncement(`Could not revoke device. ${message}`)
       return
     }
     setDevices((prev) =>
       (prev ?? []).map((d) => (d.id === id ? { ...d, revoked_at: new Date().toISOString() } : d))
     )
+    setAnnouncement('Device revoked.')
   }
 
   async function copyToken(token: string) {
@@ -166,6 +179,9 @@ export function DevicesScreen() {
   return (
     <main className="utility-screen">
       <div className="utility-inner">
+        {!mintError && !loadError && !revokeError && (
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
+        )}
         <header className="utility-head"><div><div className="tag">Gate access</div><h1 className="h1">Devices</h1></div></header>
 
         <section className="utility-section bz"><div className="pl pad">
@@ -269,7 +285,7 @@ export function DevicesScreen() {
           {loadError && <p role="alert" className="utility-error">{loadError}</p>}
           {revokeError && <p role="alert" className="utility-error">{revokeError}</p>}
           {devices === null && !loadError && (
-            <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>Loading…</p>
+            <div role="status"><UtilityScreenSkeleton kind="devices" /></div>
           )}
           {devices !== null && devices.length === 0 && (
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No devices yet.</p>

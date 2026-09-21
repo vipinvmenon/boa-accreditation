@@ -1,0 +1,54 @@
+/**
+ * The Phosphor Icons "Light" weight font, self-hosted — the same family and
+ * weight design/source/boa_design_v2.html was built against (originally
+ * loaded from cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light,
+ * which the app's own CSP (`font-src 'self'`) blocks, same reasoning as
+ * ADR-005 for the four text faces).
+ *
+ * Vendored from the real npm package (MIT licensed, Phosphor Icons), not
+ * hand-approximated: `public/fonts/phosphor-light.woff2` is that package's
+ * own `src/light/Phosphor-Light.woff2`, copied in unmodified — see the
+ * dated CURRENT-STATE.md entry for how and why. The font file carries every
+ * Phosphor glyph (155 KB, comparable to a single @fontsource weight); only
+ * the 14 icon-name rules this app actually uses are transcribed below, out
+ * of the package's several-thousand-line style.css, by grepping its own
+ * `.ph-light.ph-<name>:before { content: "\eXXX" }` rules verbatim — the
+ * codepoints are the font's, not invented.
+ */
+@font-face {
+  font-family: 'Phosphor-Light';
+  src: url('/fonts/phosphor-light.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.ph-light {
+  font-family: 'Phosphor-Light' !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.ph-light.ph-arrow-right:before { content: '\e06c'; }
+.ph-light.ph-arrow-up-right:before { content: '\e092'; }
+.ph-light.ph-caret-down:before { content: '\e136'; }
+.ph-light.ph-check:before { content: '\e182'; }
+.ph-light.ph-download-simple:before { content: '\e20c'; }
+.ph-light.ph-magnifying-glass:before { content: '\e30c'; }
+.ph-light.ph-moon:before { content: '\e330'; }
+.ph-light.ph-paper-plane-tilt:before { content: '\e398'; }
+.ph-light.ph-plus:before { content: '\e3d4'; }
+.ph-light.ph-printer:before { content: '\e3dc'; }
+.ph-light.ph-scan:before { content: '\ebb6'; }
+.ph-light.ph-sort-descending:before { content: '\e446'; }
+.ph-light.ph-sun:before { content: '\e472'; }
+.ph-light.ph-x:before { content: '\e4f6'; }

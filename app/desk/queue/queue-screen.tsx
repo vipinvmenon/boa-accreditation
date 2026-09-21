@@ -92,7 +92,7 @@ export function QueueScreen() {
     setCounts(parsed.data.counts)
     setQueueOrgs(parsed.data.orgs)
     setNextOrg(parsed.data.nextOrg)
-    setSelected(new Set(parsed.data.rows.filter((row) => row.status === 'submitted').map((row) => row.id)))
+    setSelected(new Set())
     setError(null)
   }
 
@@ -194,7 +194,8 @@ export function QueueScreen() {
 
     const revealables = root.querySelectorAll<HTMLElement>('.rv')
     revealables.forEach((element) => element.classList.remove('in'))
-    if (!('IntersectionObserver' in window)) {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion || !('IntersectionObserver' in window)) {
       revealables.forEach((element) => element.classList.add('in'))
       return
     }
@@ -293,8 +294,19 @@ export function QueueScreen() {
         .qrow { position: relative; }
         .q-actions { position: absolute; right: 26px; bottom: 10px; justify-content: flex-end; opacity: 0; pointer-events: none; transition: opacity .3s var(--ease); }
         .qrow:hover .q-actions, .qrow:focus-within .q-actions { opacity: 1; pointer-events: auto; }
+        @container app (max-width: 1100px) {
+          .q-actions { position: static; display: none; grid-column: 3 / -1; grid-row: 2; justify-content: flex-end; opacity: 1; }
+          .qrow:hover .q-actions, .qrow:focus-within .q-actions { display: flex; }
+        }
         @container app (max-width: 700px) {
-          .q-actions { right: 18px; bottom: 9px; }
+          /* The contract's mobile row is two grid rows: "ck nm st" / ". pk pk"
+             (boa_design_v2.html, @container app (max-width: 700px)). Declaring a
+             third ". act act" row for these hover-revealed buttons added a 12px
+             row gap to EVERY row even while they are display:none, which is a
+             real 12px-per-row layout defect, not a rendering artefact. They are
+             an overlay on desktop; keep them an overlay here so they cost no
+             layout height and the row geometry stays the contract's. */
+          .qrow > .q-actions { position: absolute; right: 18px; bottom: 9px; grid-column: auto; grid-row: auto; }
         }
       `}</style>
     </main>

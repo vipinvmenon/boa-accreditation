@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
 import { dashboardSchema, type Dashboard } from '@/lib/schemas/dashboard'
@@ -10,6 +10,7 @@ import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
+import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { z } from 'zod'
 
 const ROLE_LABEL: Record<OperatorRow['role'], string> = {
@@ -41,6 +42,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const profileButtonRef = useRef<HTMLButtonElement>(null)
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -83,10 +85,14 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     function onPointerDown(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false)
+        profileButtonRef.current?.focus()
       }
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+        profileButtonRef.current?.focus()
+      }
     }
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -110,8 +116,76 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
 
   const activeNav = NAV.find((item) => item.href === pathname)?.id
 
+  useLayoutEffect(() => {
+    const links = document.getElementById('desk-links')
+    const pip = links?.querySelector<HTMLElement>('.pip')
+    if (!links || !pip) return
+
+    const movePip = () => {
+      const active = links.querySelector<HTMLElement>('[aria-current="page"]')
+      if (!active) return
+      pip.style.width = `${active.offsetWidth}px`
+      pip.style.transform = `translateX(${active.offsetLeft}px)`
+    }
+
+    const previous = window.sessionStorage.getItem('boa-pip')
+    if (previous) {
+      try {
+        const geometry = JSON.parse(previous) as { left?: number; width?: number }
+        if (typeof geometry.left === 'number' && typeof geometry.width === 'number') {
+          pip.style.width = `${geometry.width}px`
+          pip.style.transform = `translateX(${geometry.left}px)`
+        }
+      } catch {
+        window.sessionStorage.removeItem('boa-pip')
+      }
+    }
+
+    let frame = 0
+    let settleFrame = 0
+    frame = requestAnimationFrame(() => {
+      if (previous) {
+        links.classList.add('pip-ready')
+        settleFrame = requestAnimationFrame(movePip)
+      } else {
+        movePip()
+        settleFrame = requestAnimationFrame(() => links.classList.add('pip-ready'))
+      }
+      window.sessionStorage.removeItem('boa-pip')
+    })
+    const observer = new ResizeObserver(movePip)
+    observer.observe(links)
+    window.addEventListener('resize', movePip)
+    return () => {
+      cancelAnimationFrame(frame)
+      cancelAnimationFrame(settleFrame)
+      observer.disconnect()
+      window.removeEventListener('resize', movePip)
+    }
+  }, [activeNav])
+
   function toggleTheme() {
     document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'light' : 'dark')
+  }
+
+  function closeProfileMenu() {
+    setMenuOpen(false)
+    profileButtonRef.current?.focus()
+  }
+
+  function closeMobileMenu() {
+    setMobileOpen(false)
+    mobileMenuButtonRef.current?.focus()
+  }
+
+  function rememberPip() {
+    const links = document.getElementById('desk-links')
+    const active = links?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!active) return
+    window.sessionStorage.setItem('boa-pip', JSON.stringify({
+      left: active.offsetLeft,
+      width: active.offsetWidth,
+    }))
   }
 
   async function signOut() {
@@ -134,30 +208,35 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
               <span className="pip" aria-hidden="true" />
               {NAV.map((item) => {
                 const active = item.id === activeNav
-                return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined}>{item.label}</Link>
+                return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>
               })}
             </div>
             <div className="nav-end">
               <div ref={menuRef} className="profile-wrap">
-                <button type="button" className="av" onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Operator menu">
-                  {me?.display_name?.slice(0, 2).toUpperCase() ?? 'AV'}
+                <button ref={profileButtonRef} type="button" className="av" onClick={() => {
+                  if (menuOpen) {
+                    closeProfileMenu()
+                    return
+                  }
+                  setMobileOpen(false)
+                  setMenuOpen(true)
+                }} aria-controls="desk-profile-menu" aria-expanded={menuOpen} aria-label="Operator menu">
+                  {me?.display_name?.slice(0, 2).toUpperCase() ?? 'VI'}
                 </button>
-                {menuOpen && (
-                  <div role="menu" aria-label="Operator menu" className="profile-menu">
-                    <div className="profile-head"><strong>{me?.display_name ?? 'Loading…'}</strong><span>{me ? ROLE_LABEL[me.role] : ''}</span></div>
-                    <button type="button" role="menuitem" onClick={() => { toggleTheme(); setMenuOpen(false) }}>
+                <div id="desk-profile-menu" aria-label="Operator menu" className="profile-menu" hidden={!menuOpen}>
+                    <div className="profile-head"><strong>{me ? me.display_name : <LoadingSkeleton width="86px" />}</strong><span>{me ? ROLE_LABEL[me.role] : <LoadingSkeleton width="52px" />}</span></div>
+                    <button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}>
                       <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                     </button>
-                    <Link href="/desk/users" role="menuitem" onClick={() => setMenuOpen(false)}>Manage users</Link>
-                    <button type="button" role="menuitem" onClick={() => void signOut()} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
-                  </div>
-                )}
+                    <Link href="/desk/users" onClick={closeProfileMenu}>Manage users</Link>
+                    <button type="button" onClick={() => { closeProfileMenu(); void signOut() }} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+                </div>
               </div>
               <button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
                 if (mobileOpen) {
-                  setMobileOpen(false)
-                  mobileMenuButtonRef.current?.focus()
+                  closeMobileMenu()
                 } else {
+                  setMenuOpen(false)
                   setMobileOpen(true)
                 }
               }} aria-label="Menu" aria-controls="desk-menu" aria-expanded={mobileOpen}><i /><i /></button>
@@ -165,15 +244,14 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="status">
             <span className="live"><b />Live</span>
-            <span className="hide-s">Build 05–09 Oct · Show 10 Oct</span>
-            <span>{dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : 'Loading bands'}</span>
-            <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : 'Loading BMS'}</Link>
+            <span className="hide-s">Build 05-09 Oct, show 10 Oct</span>
+            <span>{dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : <LoadingSkeleton className="status-skeleton" width="132px" />}</span>
+            <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : <LoadingSkeleton className="status-skeleton" width="96px" />}</Link>
           </div>
         </header>
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
           {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
-            setMobileOpen(false)
-            mobileMenuButtonRef.current?.focus()
+            closeMobileMenu()
           }}>{item.label}</Link>)}
         </div>
         {children}

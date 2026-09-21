@@ -7,6 +7,7 @@ import { passType, typeColour, type PassTypeCode } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
 import { formatMasterBand, formatMasterCollected } from '@/lib/format'
 import { Icon } from '@/components/icon'
+import { LoadingSkeleton } from '@/components/loading-skeleton'
 
 export function MasterScreen() {
   const router = useRouter()
@@ -105,7 +106,20 @@ export function MasterScreen() {
       <div className="bz rv section" style={{ ['--d' as string]: 2 }}>
         <div className="pl">
           {error && <div role="alert" className="mrow">Unable to load the master list.</div>}
-          {loading && !error && <div className="mrow">Loading…</div>}
+          {loading && !error && (
+            <div className="table-skeleton" role="status" aria-label="Loading master list">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div className="mrow" key={index}>
+                  <LoadingSkeleton width="42%" />
+                  <LoadingSkeleton width="68px" />
+                  <LoadingSkeleton width="56px" />
+                  <LoadingSkeleton width="76px" />
+                  <LoadingSkeleton width="82px" />
+                  <LoadingSkeleton width="92px" />
+                </div>
+              ))}
+            </div>
+          )}
           {!loading && !error && rows.length === 0 && <div className="empty">Nobody matches that. Try a phone number or a band serial.</div>}
           {!loading && !error && rows.map((row) => {
             const type = row.typeCode ? passType(row.typeCode as PassTypeCode) : null

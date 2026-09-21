@@ -46,6 +46,21 @@ function DeskLoginForm() {
     linkError ? 'That link is invalid or has expired. Ask for a new one.' : null,
   )
   const [resetSent, setResetSent] = useState(false)
+  const statusAnnouncement = error
+    ? `Error: ${error}`
+    : busy
+      ? mode === 'forgot-password'
+        ? 'Sending password reset link.'
+        : mode === 'set-password'
+          ? 'Setting password.'
+          : 'Signing in.'
+      : mode === 'checking'
+        ? 'Checking your session.'
+        : mode === 'redirecting'
+          ? 'Session confirmed. Redirecting to the desk.'
+          : resetSent
+            ? 'If the email has desk access, a reset link is on its way.'
+            : ''
 
   useEffect(() => {
     let cancelled = false
@@ -134,6 +149,13 @@ function DeskLoginForm() {
   return (
     <main className="utility-auth">
       <div className="utility-inner">
+        {!error && (
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusAnnouncement}</div>
+        )}
+        <div className="auth-brand">
+          <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+          <span>Accred<br />desk</span>
+        </div>
         <div className="tag">BOA accreditation</div>
         <h1 className="h1">
           {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : 'Desk sign in'}

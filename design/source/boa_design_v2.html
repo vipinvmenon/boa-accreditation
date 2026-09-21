@@ -21,6 +21,22 @@
 @font-face { font-family: "JetBrains Mono"; src: url("../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: Oswald; src: url("../../node_modules/@fontsource/oswald/files/oswald-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: Oswald; src: url("../../node_modules/@fontsource/oswald/files/oswald-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Phosphor-Light"; src: url("../../public/fonts/phosphor-light.woff2") format("woff2"); font-weight: normal; font-style: normal; font-display: block; }
+.ph-light { font-family: "Phosphor-Light" !important; speak: never; font-style: normal; font-weight: normal; font-variant: normal; text-transform: none; line-height: 1; letter-spacing: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.ph-light.ph-arrow-right:before { content: "\e06c"; }
+.ph-light.ph-arrow-up-right:before { content: "\e092"; }
+.ph-light.ph-caret-down:before { content: "\e136"; }
+.ph-light.ph-check:before { content: "\e182"; }
+.ph-light.ph-download-simple:before { content: "\e20c"; }
+.ph-light.ph-magnifying-glass:before { content: "\e30c"; }
+.ph-light.ph-moon:before { content: "\e330"; }
+.ph-light.ph-paper-plane-tilt:before { content: "\e398"; }
+.ph-light.ph-plus:before { content: "\e3d4"; }
+.ph-light.ph-printer:before { content: "\e3dc"; }
+.ph-light.ph-scan:before { content: "\ebb6"; }
+.ph-light.ph-sort-descending:before { content: "\e446"; }
+.ph-light.ph-sun:before { content: "\e472"; }
+.ph-light.ph-x:before { content: "\e4f6"; }
 </style>
 <style>
 /* ── Brand tokens (unchanged from v1) ─────────────────────────────── */
@@ -76,7 +92,6 @@ button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--grn); outline-offset: 3px; }
 .num { font-variant-numeric: tabular-nums; }
 img { display: block; max-width: 100%; }
-.ph-icon { display: inline-block; width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 
 /* ── Frame: web = full width, mob = 390 device ────────────────────── */
 .frame { position: relative; container: app / inline-size; margin: 0 auto; width: 100%; max-width: 1440px; transition: max-width .7s var(--ease); }
@@ -438,22 +453,6 @@ footer span:last-child { color: var(--gold); }
 </style>
 </head>
 <body>
-<svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
-  <symbol id="ph-arrow-right" viewBox="0 0 256 256"><path d="M40 128h176M144 56l72 72-72 72"/></symbol>
-  <symbol id="ph-arrow-up-right" viewBox="0 0 256 256"><path d="M56 200 200 56M96 56h104v104"/></symbol>
-  <symbol id="ph-caret-down" viewBox="0 0 256 256"><path d="m48 96 80 80 80-80"/></symbol>
-  <symbol id="ph-check" viewBox="0 0 256 256"><path d="m40 144 56 56L216 80"/></symbol>
-  <symbol id="ph-download-simple" viewBox="0 0 256 256"><path d="M128 40v128M80 120l48 48 48-48M40 200h176"/></symbol>
-  <symbol id="ph-magnifying-glass" viewBox="0 0 256 256"><circle cx="116" cy="116" r="76"/><path d="m170 170 54 54"/></symbol>
-  <symbol id="ph-moon" viewBox="0 0 256 256"><path d="M216 144a88 88 0 0 1-104-104 88 88 0 1 0 104 104Z"/></symbol>
-  <symbol id="ph-paper-plane-tilt" viewBox="0 0 256 256"><path d="m232 40-88 176-40-80-80-40Z"/><path d="M104 136 232 40"/></symbol>
-  <symbol id="ph-plus" viewBox="0 0 256 256"><path d="M40 128h176M128 40v176"/></symbol>
-  <symbol id="ph-printer" viewBox="0 0 256 256"><path d="M72 96V40h112v56M72 184H40V104h176v80h-32M72 152h112v64H72z"/></symbol>
-  <symbol id="ph-scan" viewBox="0 0 256 256"><path d="M88 40H56a16 16 0 0 0-16 16v32M168 40h32a16 16 0 0 1 16 16v32M88 216H56a16 16 0 0 1-16-16v-32M168 216h32a16 16 0 0 0 16-16v-32M80 80h96v96H80z"/></symbol>
-  <symbol id="ph-sort-descending" viewBox="0 0 256 256"><path d="M40 64h176M40 128h128M40 192h80"/></symbol>
-  <symbol id="ph-sun" viewBox="0 0 256 256"><circle cx="128" cy="128" r="48"/><path d="M128 24v24M128 208v24M232 128h-24M48 128H24M201.5 54.5l-17 17M71.5 184.5l-17 17M201.5 201.5l-17-17M71.5 71.5l-17-17"/></symbol>
-  <symbol id="ph-x" viewBox="0 0 256 256"><path d="m64 64 128 128M192 64 64 192"/></symbol>
-</svg>
 <div id="v2-ready" data-v2-ready="false" hidden></div>
 <div class="frame" id="frame">
 
@@ -768,7 +767,7 @@ $('#mq').addEventListener('input', e => {
 });
 
 /* ── Submission ── */
-const P = [['Ranjith Kumar','Stage tech','ok'],['Vinay Shetty','Rigger','ok'],['Suhas Bhat','Truck driver, KA 51 AB 2290','wait'],['Imran Sheikh','Backline. Rejected: name did not match ID','no']];
+const P = [['Ranjith Kumar','Stage tech','ok'],['Vinay Shetty','Rigger','ok'],['Suhas Bhat','Truck driver','wait'],['Imran Sheikh','Backline','no']];
 const PL = { ok: 'Approved', wait: 'Submitted', no: 'Rejected' };
 function renderP(newFirst) {
   $('#plist').innerHTML = P.map((p, i) => `<div class="li ${newFirst && i === 0 ? 'new' : ''}"><div><div class="who">${esc(p[0])}</div><div class="why">${esc(p[1])}</div></div><span class="st ${p[2]}">${PL[p[2]]}</span></div>`).join('');
@@ -899,21 +898,6 @@ function veh(o) {
 }
 $('#vseg').addEventListener('click', e => { const b = e.target.closest('[data-o]'); if (b) veh(b.dataset.o); });
 
-/* ── Local Phosphor Light icon set ── */
-function inlineIcons(root = document) {
-  root.querySelectorAll('i[class*="ph-light"]').forEach((el) => {
-    const name = [...el.classList].find((c) => c.startsWith('ph-') && c !== 'ph-light');
-    if (!name) return;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'ph-icon');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = `<use href="#${name}"></use>`;
-    el.replaceWith(svg);
-  });
-}
-new MutationObserver(() => inlineIcons()).observe(document.body, { childList: true, subtree: true });
-inlineIcons();
-
 /* ── Preview tools ── */
 $('#vp').addEventListener('click', e => {
   const b = e.target.closest('[data-vp]'); if (!b) return;
@@ -930,7 +914,7 @@ addEventListener('resize', () => { movePip(); $$('.seg[data-seg]').forEach(syncS
 gate('idle'); veh('ok');
 go('dash');
 document.fonts.ready.then(() => {
-  movePip(); $$('.seg[data-seg]').forEach(syncSeg); inlineIcons();
+  movePip(); $$('.seg[data-seg]').forEach(syncSeg);
   $('#v2-ready').dataset.v2Ready = 'true';
 });
 </script>

@@ -108,6 +108,13 @@ if (missing.length) {
 const PRECACHE = [
   ...routes,
   '/assets/boa-logo.png',
+  // The self-hosted Phosphor Light icon font. Lives under public/, which
+  // Next copies through verbatim and staticAssets() above never scans (it
+  // only walks .next/static) — the `fonts` filter's `-latin(-ext)?-` regex
+  // was built for @fontsource's naming and would never have matched this
+  // file even if it did. Missing entries here silently turn offline icons
+  // off; explicit, like the logo above.
+  '/fonts/phosphor-light.woff2',
   ...new Set([...scripts, ...css, ...fonts, ...wasm]),
   ...localWasm,
 ]

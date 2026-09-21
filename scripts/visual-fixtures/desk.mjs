@@ -79,7 +79,7 @@ export const dashboard = {
 export const operators = {
   callerId: uuid(900),
   operators: [
-    { user_id: uuid(900), role: 'approver', display_name: 'QA Visual', active: true, created_at: IST('01', '09:00') },
+    { user_id: uuid(900), role: 'approver', display_name: 'Bhoopesh S', active: true, created_at: IST('01', '09:00') },
   ],
 }
 

@@ -52,6 +52,7 @@ import './globals.css'
 import './responsive.css'
 import './hover.css'
 import './v2.css'
+import './phosphor.css'
 
 export const metadata: Metadata = {
   title: 'BOA Accreditation',

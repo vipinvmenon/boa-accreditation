@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ORG_KINDS, ORG_TYPE_CODES, type OrgRow, type InviteRow, type MintedInvite } from '@/lib/schemas/org'
+import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -77,6 +78,7 @@ export function OrgsScreen() {
   const [mintError, setMintError] = useState<string | null>(null)
   const [justMinted, setJustMinted] = useState<{ orgId: string; invite: MintedInvite } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [announcement, setAnnouncement] = useState('Loading organisations.')
 
   useEffect(() => {
     let cancelled = false
@@ -89,13 +91,17 @@ export function OrgsScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        if (!cancelled) setLoadError(copyForError(body))
+        if (!cancelled) {
+          setLoadError(copyForError(body))
+          setAnnouncement(`Could not load organisations. ${copyForError(body)}`)
+        }
         return
       }
       const body = (await res.json()) as { orgs: OrgRow[] }
       if (cancelled) return
       setOrgs(body.orgs)
       setLoadError(null)
+      setAnnouncement('Organisations loaded.')
     }
     void loadOrgs()
     return () => {
@@ -127,12 +133,15 @@ export function OrgsScreen() {
     }
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      setCreateError(copyForError(body))
+      const message = copyForError(body)
+      setCreateError(message)
+      setAnnouncement(`Could not create organisation. ${message}`)
       return
     }
     const body = (await res.json()) as { org: OrgRow }
     setOrgs((prev) => [body.org, ...(prev ?? [])])
     setForm(EMPTY_FORM)
+    setAnnouncement(`Organisation ${body.org.name} created.`)
   }
 
   async function loadInvites(orgId: string) {
@@ -141,9 +150,14 @@ export function OrgsScreen() {
       router.replace('/desk/login')
       return
     }
-    if (!res.ok) return
+    if (!res.ok) {
+      const message = copyForError(await res.json().catch(() => null))
+      setAnnouncement(`Could not load invite links. ${message}`)
+      return
+    }
     const body = (await res.json()) as { invites: InviteRow[] }
     setInvitesByOrg((prev) => ({ ...prev, [orgId]: body.invites }))
+    setAnnouncement('Invite links loaded.')
   }
 
   async function toggleOrg(orgId: string) {
@@ -173,7 +187,9 @@ export function OrgsScreen() {
     }
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      setMintError(copyForError(body))
+      const message = copyForError(body)
+      setMintError(message)
+      setAnnouncement(`Could not mint invite link. ${message}`)
       return
     }
     const body = (await res.json()) as { invite: MintedInvite }
@@ -181,6 +197,7 @@ export function OrgsScreen() {
     setMintLabel('')
     setCopied(false)
     await loadInvites(orgId)
+    setAnnouncement('Invite link minted.')
   }
 
   function linkFor(token: string): string {
@@ -200,6 +217,9 @@ export function OrgsScreen() {
   return (
     <main className="utility-screen">
       <div className="utility-inner">
+        {!createError && !loadError && !mintError && (
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
+        )}
         <header className="utility-head"><div><div className="tag">Allocation desk</div><h1 className="h1">Orgs</h1></div></header>
 
         <section className="utility-section bz"><div className="pl pad">
@@ -315,7 +335,7 @@ export function OrgsScreen() {
 
           {loadError && <p role="alert" className="utility-error">{loadError}</p>}
           {orgs === null && !loadError && (
-            <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>Loading…</p>
+            <div role="status"><UtilityScreenSkeleton kind="orgs" /></div>
           )}
           {orgs !== null && orgs.length === 0 && (
             <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No orgs yet.</p>
@@ -336,13 +356,22 @@ export function OrgsScreen() {
                         {org.kind} · quota {org.quota} · {org.status} · {org.contact_name}
                       </p>
                     </div>
-                    <button type="button" onClick={() => toggleOrg(org.id)} className="btn solo hov-fill-grn">
+                    <button
+                      type="button"
+                      onClick={() => toggleOrg(org.id)}
+                      className="btn solo hov-fill-grn"
+                      aria-expanded={isOpen}
+                      aria-controls={`org-invites-${org.id}`}
+                    >
                       {isOpen ? 'Close' : 'Invite links'}
                     </button>
                   </div>
 
-                  {isOpen && (
-                    <div style={{ marginTop: '16px', borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: '16px' }}>
+                  <div
+                      id={`org-invites-${org.id}`}
+                      hidden={!isOpen}
+                      style={{ marginTop: '16px', borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: '16px' }}
+                    >
                       <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
                         <input
                           value={mintLabel}
@@ -413,8 +442,7 @@ export function OrgsScreen() {
                           ))}
                         </div>
                       )}
-                    </div>
-                  )}
+                  </div>
                 </div></div>
               )
             })}

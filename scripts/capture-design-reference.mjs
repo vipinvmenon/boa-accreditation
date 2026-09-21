@@ -45,6 +45,16 @@ const VIEWPORTS = [
 ]
 
 const THEMES = ['dark', 'light']
+// Keep the frozen reference's historical milestone and Control Room counter
+// timing deterministic. These values apply only while capturing references.
+const CAPTURE_NOW = '2026-09-19T00:00:00'
+// The Control Room count-up runs for 1100ms (boa_design_v2.html: `(t - t0) / 1100`).
+// Wait past that so the counter is SETTLED on its final value, which is the only
+// deterministic instant. A per-theme wait (this was dark:320, light:1200) captured
+// dark mid-animation, so two browser launches landed on different digits and the
+// dark variants failed while light passed — a harness artefact, not a UI defect.
+const CONTROL_ROOM_COUNT_MS = { dark: 1200, light: 1200 }
+const HERO_DRIFT_PHASE_MS = 1000
 
 /**
  * Screens whose real route is a PUBLIC surface (docs/ARCHITECTURE.md: invite
@@ -84,6 +94,84 @@ async function setTheme(page, want) {
   if (now !== want) throw new Error(`theme toggle did not reach ${want} (got ${now})`)
 }
 
+async function installCaptureClock(page) {
+  await page.addInitScript((now) => {
+    const NativeDate = Date
+    const fixed = NativeDate.parse(now)
+    class CaptureDate extends NativeDate {
+      constructor(...args) {
+        super(...(args.length ? args : [fixed]))
+      }
+
+      static now() {
+        return fixed
+      }
+    }
+    globalThis.Date = CaptureDate
+    globalThis.__visualCaptureMotion = { countStartedAt: null }
+    new MutationObserver(() => {
+      const state = globalThis.__visualCaptureMotion
+      if (!state || state.countStartedAt !== null) return
+      const nodes = [...document.querySelectorAll('.screen.on [data-count], main .num')]
+      if (nodes.some((node) => !/^\s*0(?:\D|$)/.test(node.textContent ?? ''))) {
+        state.countStartedAt = performance.now()
+      }
+    }).observe(document, { subtree: true, childList: true, characterData: true })
+  }, CAPTURE_NOW)
+}
+
+/**
+ * Freeze only the scanner's deliberately infinite animation, then wait for
+ * every finite reveal/count motion to settle. This is capture-only: the
+ * source and app must present the same deterministic scanner phase without
+ * changing either production stylesheet.
+ */
+async function settleCaptureMotion(page, screen, theme) {
+  await page.evaluate((heroPhase) => {
+    for (const element of document.querySelectorAll('.screen.on .sweep i, main .sweep i, .screen.on .hero-art, main .hero-art')) {
+      const animation = element.getAnimations()[0]
+      if (!animation) continue
+      animation.pause()
+      animation.currentTime = element.matches('.hero-art') ? heroPhase : 1300
+    }
+  }, HERO_DRIFT_PHASE_MS)
+
+  if (screen === 'control-room') {
+    await page.waitForFunction(({ duration }) => {
+      const state = window.__visualCaptureMotion
+      const nodes = [...document.querySelectorAll('.screen.on [data-count], main .num')]
+      if (!state || !nodes.length) return false
+      if (state.countStartedAt === null) {
+        const started = nodes.some((node) => !/^\s*0(?:\D|$)/.test(node.textContent ?? ''))
+        if (started) state.countStartedAt = performance.now()
+      }
+      return state.countStartedAt !== null && performance.now() - state.countStartedAt >= duration
+    }, { duration: CONTROL_ROOM_COUNT_MS[theme] }, { timeout: 5000 })
+    // No early return — see the matching note in scripts/visual-check.mjs. The
+    // generic animation-settled and count-stable waits below must also run, or
+    // control-room is captured mid count-up and mid meter transition.
+  }
+
+  await page.waitForFunction(() => {
+    const root = document.querySelector('.screen.on, main')
+    if (!root) return false
+    const animations = [...root.querySelectorAll('*'), root]
+      .flatMap((element) => element.getAnimations())
+      .filter((animation) => !animation.effect?.getTiming().iterations || animation.effect.getTiming().iterations !== Infinity)
+    return animations.every((animation) => animation.playState === 'finished' || animation.currentTime >= (Number(animation.effect?.getTiming().delay) || 0) + (Number(animation.effect?.getTiming().duration) || 0))
+  }, undefined, { timeout: 5000 })
+
+  await page.waitForFunction(() => {
+    const nodes = [...document.querySelectorAll('.screen.on [data-count], main .num')]
+    const signature = nodes.map((node) => node.textContent).join('|')
+    const state = window.__visualCaptureMotion ?? { signature: '', stableFrames: 0 }
+    state.stableFrames = state.signature === signature ? state.stableFrames + 1 : 0
+    state.signature = signature
+    window.__visualCaptureMotion = state
+    return state.stableFrames >= 3
+  }, undefined, { timeout: 5000 })
+}
+
 const browser = await chromium.launch({ args: FONT_STABLE_ARGS })
 rmSync(OUT, { recursive: true, force: true })
 mkdirSync(OUT, { recursive: true })
@@ -98,6 +186,7 @@ for (const view of VIEWPORTS) {
   })
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
+  await installCaptureClock(page)
   await page.goto(BUNDLE, { waitUntil: 'networkidle' })
 
   // Wait for the design's own readiness hook and an active screen, not a
@@ -147,6 +236,7 @@ for (const view of VIEWPORTS) {
         if (nav) nav.style.display = hide ? 'none' : ''
         if (tools) tools.style.display = 'none'
       }, PUBLIC_SCREENS.has(screen.slug))
+      await settleCaptureMotion(page, screen.slug, theme)
 
       const file = `${screen.slug}-${theme}-${view.slug}.png`
       await page.screenshot({ path: join(OUT, file), fullPage: true })

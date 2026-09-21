@@ -108,6 +108,15 @@ const VIEWPORTS = [
   { slug: 'mob', width: 390, height: 844 },
 ]
 const THEMES = ['dark', 'light']
+// The approved Control Room references were captured on the day before the
+// links-out boundary. Keep that historical state in the harness only; the
+// production screen must continue to use the real clock.
+const CAPTURE_NOW = '2026-09-19T00:00:00'
+// Must stay in step with scripts/capture-design-reference.mjs. The count-up runs
+// 1100ms; wait past it so the settled value is what gets compared. See the note
+// there on why the previous per-theme dark:320 wait failed the dark variants.
+const CONTROL_ROOM_COUNT_MS = { dark: 1200, light: 1200 }
+const HERO_DRIFT_PHASE_MS = 1000
 
 const args = process.argv.slice(2)
 const only = args.includes('--screen') ? args[args.indexOf('--screen') + 1] : null
@@ -441,13 +450,93 @@ async function maskRects(page, slug) {
   return rects
 }
 
+async function installCaptureClock(page) {
+  await page.addInitScript((now) => {
+    const NativeDate = Date
+    const fixed = NativeDate.parse(now)
+    class CaptureDate extends NativeDate {
+      constructor(...args) {
+        super(...(args.length ? args : [fixed]))
+      }
+
+      static now() {
+        return fixed
+      }
+    }
+    globalThis.Date = CaptureDate
+    globalThis.__visualCaptureMotion = { countStartedAt: null }
+    new MutationObserver(() => {
+      const state = globalThis.__visualCaptureMotion
+      if (!state || state.countStartedAt !== null) return
+      const nodes = [...document.querySelectorAll('.screen.on [data-count], main .num')]
+      if (nodes.some((node) => !/^\s*0(?:\D|$)/.test(node.textContent ?? ''))) {
+        state.countStartedAt = performance.now()
+      }
+    }).observe(document, { subtree: true, childList: true, characterData: true })
+  }, CAPTURE_NOW)
+}
+
+/**
+ * Freeze only the scanner's deliberately infinite animation, then wait for
+ * every finite reveal/count motion to settle. This is capture-only: the
+ * source and app must present the same deterministic scanner phase without
+ * changing either production stylesheet.
+ */
+async function settleCaptureMotion(page, screen, theme) {
+  await page.evaluate((heroPhase) => {
+    for (const element of document.querySelectorAll('.screen.on .sweep i, main .sweep i, .screen.on .hero-art, main .hero-art')) {
+      const animation = element.getAnimations()[0]
+      if (!animation) continue
+      animation.pause()
+      animation.currentTime = element.matches('.hero-art') ? heroPhase : 1300
+    }
+  }, HERO_DRIFT_PHASE_MS)
+
+  if (screen === 'control-room') {
+    await page.waitForFunction(({ duration }) => {
+      const state = window.__visualCaptureMotion
+      const nodes = [...document.querySelectorAll('.screen.on [data-count], main .num')]
+      if (!state || !nodes.length) return false
+      if (state.countStartedAt === null) {
+        const started = nodes.some((node) => !/^\s*0(?:\D|$)/.test(node.textContent ?? ''))
+        if (started) state.countStartedAt = performance.now()
+      }
+      return state.countStartedAt !== null && performance.now() - state.countStartedAt >= duration
+    }, { duration: CONTROL_ROOM_COUNT_MS[theme] }, { timeout: 5000 })
+    // Deliberately NO early return. Returning here skipped the two generic waits
+    // below, so control-room was captured while its count-ups and its .meter
+    // scaleX transitions (1.2s + .3s delay) were still running — the numbers and
+    // meter fills differed between the two browser launches. The count wait above
+    // is a precondition for those waits, not a replacement for them.
+  }
+
+  await page.waitForFunction(() => {
+    const root = document.querySelector('.screen.on, main')
+    if (!root) return false
+    const animations = [...root.querySelectorAll('*'), root]
+      .flatMap((element) => element.getAnimations())
+      .filter((animation) => !animation.effect?.getTiming().iterations || animation.effect.getTiming().iterations !== Infinity)
+    return animations.every((animation) => animation.playState === 'finished' || animation.currentTime >= (Number(animation.effect?.getTiming().delay) || 0) + (Number(animation.effect?.getTiming().duration) || 0))
+  }, undefined, { timeout: 5000 })
+
+  await page.waitForFunction(() => {
+    const nodes = [...document.querySelectorAll('.screen.on [data-count], main .num')]
+    const signature = nodes.map((node) => node.textContent).join('|')
+    const state = window.__visualCaptureMotion ?? { signature: '', stableFrames: 0 }
+    state.stableFrames = state.signature === signature ? state.stableFrames + 1 : 0
+    state.signature = signature
+    window.__visualCaptureMotion = state
+    return state.stableFrames >= 3
+  }, undefined, { timeout: 5000 })
+}
+
 /**
  * Wait for the real desk route to have mounted its fixture-backed content and
  * for the source-aligned reveal work visible in the capture viewport to finish.
  * This is intentionally capture-only: the approved references remain frozen,
  * and no production component is taught about screenshots.
  */
-async function waitForV2CaptureReady(page, screen) {
+async function waitForV2CaptureReady(page, screen, theme) {
   await page.evaluate(() => document.fonts.ready)
 
   if (screen === 'master') {
@@ -469,8 +558,6 @@ async function waitForV2CaptureReady(page, screen) {
     }, undefined, { timeout: 30000 })
   }
 
-  if (!['master', 'passes', 'gate', 'vehicle'].includes(screen)) return
-
   if (screen === 'gate' || screen === 'vehicle') {
     const resultId = screen === 'gate' ? '#gres' : '#vres'
     const expectedState = GATE_CAPTURE_STATE[screen]
@@ -478,6 +565,12 @@ async function waitForV2CaptureReady(page, screen) {
       const result = document.querySelector(selector)
       return result !== null && (expectedState === 'idle' ? !result.hasAttribute('data-o') : result.getAttribute('data-o') === 'ok')
     }, { selector: resultId, expectedState }, { timeout: 5000 })
+  }
+
+  if (screen === 'control-room') {
+    await page.waitForSelector('main .num', { timeout: 30000 })
+    await settleCaptureMotion(page, screen, theme)
+    return
   }
 
   // The source uses IntersectionObserver rather than forcing every .rv to
@@ -492,6 +585,8 @@ async function waitForV2CaptureReady(page, screen) {
     })
     return visible.length > 0 && visible.every((element) => element.classList.contains('in') && element.getAnimations().length === 0)
   }, undefined, { timeout: 5000 })
+
+  await settleCaptureMotion(page, screen, theme)
 }
 
 function paintRects(png, rects) {
@@ -610,12 +705,16 @@ try {
           viewport: { width: view.width, height: view.height },
           deviceScaleFactor: 1,
         })
+        await installCaptureClock(page)
         if (screen.data === 'desk') await installDeskFixtures(page, view.slug)
         await page.goto(base + route, { waitUntil: 'networkidle' })
         if (screen.slug === 'submission') {
           // The approved artboard leaves the name, phone, and role at their
           // placeholder state. It captures the illustrative vehicle example
-          // switched on, so exercise only that real interaction here.
+          // switched on, so exercise only that real interaction here. Use DOM
+          // actions instead of locator actions: the source capture never
+          // scrolls to the off-screen form on mobile, and scrolling it would
+          // trigger the app's viewport reveal observer.
           await page.evaluate(() => {
             const reveal = document.querySelector('.reveal')
             if (!reveal) throw new Error('submission vehicle reveal is missing')
@@ -624,12 +723,17 @@ try {
                 if (event.propertyName === 'grid-template-rows') resolve()
               }, { once: true })
             })
+            const toggle = document.querySelector('[role="switch"]')
+            if (!toggle) throw new Error('submission vehicle toggle is missing')
+            toggle.click()
           })
-          await page.getByRole('switch').click()
           await page.evaluate(() => window.__visualRevealSettled)
-          const vehicleField = page.getByLabel('Vehicle registration')
-          await vehicleField.fill('KA 05 MJ 8871')
-          await vehicleField.blur()
+          await page.evaluate(() => {
+            const input = document.querySelector('#submission-vehicle')
+            if (!input) throw new Error('submission vehicle field is missing')
+            input.value = 'KA 05 MJ 8871'
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+          })
         }
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
@@ -644,11 +748,11 @@ try {
             await page.getByText('Approved', { exact: true }).first().waitFor()
           } else if (screen.slug === 'vehicle' && captureState !== 'idle') {
             await page.getByLabel('Vehicle registration').fill(GATE_PLATE)
-            await page.getByRole('button', { name: 'Log entry & open gate' }).click()
+            await page.getByRole('button', { name: 'Log entry and open gate' }).click()
             // The real control records the visual check on the first click and
             // evaluates it on the next render; repeat the user action so the
             // screenshot reaches the approved design's cleared state.
-            await page.getByRole('button', { name: 'Log entry & open gate' }).click()
+            await page.getByRole('button', { name: 'Log entry and open gate' }).click()
             await page.locator('#vres h2.g-verdict').filter({ hasText: 'Cleared' }).waitFor()
             // The source-approved vehicle state keeps the illustrative plate
             // visible after the result settles; refilling is capture-only and
@@ -657,7 +761,7 @@ try {
           }
         }
         await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
-        await waitForV2CaptureReady(page, screen.slug)
+        await waitForV2CaptureReady(page, screen.slug, theme)
         // Filling inputs and clicking buttons (the gate/vehicle flows above)
         // can leave the page scrolled away from the top. A `fullPage`
         // screenshot resizes the viewport to the full document height without
