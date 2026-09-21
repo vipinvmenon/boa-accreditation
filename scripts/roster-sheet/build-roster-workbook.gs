@@ -104,9 +104,19 @@ function buildWorkbook() {
     built++;
   }
 
-  // Drop Google's default empty "Sheet1" if it is still lying around.
-  var leftover = ss.getSheetByName('Sheet1');
-  if (leftover && ss.getSheets().length > 1) ss.deleteSheet(leftover);
+  // Drop any leftover tab that is not ours and holds nobody — Google's default
+  // "Sheet1", or the single tab left behind when the spreadsheet was created by
+  // importing a seed file. Never touches a tab with people on it.
+  var wanted = { 'Rules': true };
+  for (var w = 0; w < ORGS.length; w++) wanted[tabNameFor(ORGS[w][0])] = true;
+  var all = ss.getSheets();
+  for (var d = 0; d < all.length; d++) {
+    var sh = all[d];
+    if (wanted[sh.getName()]) continue;
+    if (sheetHasData(sh)) continue;
+    if (ss.getSheets().length <= 1) break;  // a spreadsheet must keep one tab
+    ss.deleteSheet(sh);
+  }
 
   ss.setActiveSheet(ss.getSheetByName('Rules'));
   SpreadsheetApp.getUi().alert(
