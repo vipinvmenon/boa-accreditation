@@ -953,7 +953,9 @@ write). Rosters are now collected by **one Google Form** linked to one response
 sheet — Salman's call, recorded in `docs/ROSTER-FORM.md`. A per-org workbook was
 built first and abandoned; its code is removed (recoverable from git).
 
-**Live, owned by `vipinmenon16@gmail.com`** (Vipin: "use any one account"):
+**Live, owned by `vipinmenon16@gmail.com`** (Vipin: "use any one account").
+The links table and the superseded forms not to send are in
+[ROSTER-FORM.md › Live links](ROSTER-FORM.md#live-links):
 
 - Send to organisations: <https://docs.google.com/forms/d/e/1FAIpQLSdJWSkxUFdhzB919ufQCJEvIqwEu-5yPw2U3D87z4uKd99Cfw/viewform>
 - Edit: <https://docs.google.com/forms/d/1ITVqE7NAcwSDW_uZnGC5z7EaOTga-tyAATY_Xf07TPA/edit>
@@ -964,7 +966,7 @@ built first and abandoned; its code is removed (recoverable from git).
 
 **Verified in Chrome on 21 Sep, by running it — not asserted:**
 
-- `buildRosterForm` run twice. Both runs printed the **same** three links above
+- `buildRosterForm` run three times. Every run printed the **same** three links above
   and completed with no "rebuilt" or "unmanaged question" notes. This is the
   fix for "it creates new links on each run".
 - The live form, read as a respondent, has the seven questions in order with

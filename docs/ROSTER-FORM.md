@@ -6,6 +6,40 @@ How the organisations tell us who is coming, and how that becomes rows in
 **Sibling of [ORG-IMPORT.md](ORG-IMPORT.md).** That file covers loading the
 *organisations*. This one covers collecting their *people*.
 
+## Live links
+
+**Owner: `vipinmenon16@gmail.com`.** Every link below belongs to that Google
+account. Links checked 21 Sep 2026: the script was run three times and printed
+the same three links every time.
+
+| What | Who gets it | Link |
+|---|---|---|
+| **The form** | **Send this to organisations.** The only link that leaves the team | <https://docs.google.com/forms/d/e/1FAIpQLSdJWSkxUFdhzB919ufQCJEvIqwEu-5yPw2U3D87z4uKd99Cfw/viewform> |
+| Form editor | Desk only. Change questions in the script, not here | <https://docs.google.com/forms/d/1ITVqE7NAcwSDW_uZnGC5z7EaOTga-tyAATY_Xf07TPA/edit> |
+| Response sheet | Desk only. Holds names and phone numbers, **never share outside the desk** | <https://docs.google.com/spreadsheets/d/1i8lwUIDdZ3BNuAN-QsTM0UsHceDXStGmINjb3bIVFXs/edit> |
+| Apps Script project | Whoever maintains the form. Runs `build-roster-form.gs` | <https://script.google.com/home/projects/1rHY2JPc-l5T7Q4pAEKIku9OXaKKHBLK1cJwz8Avtx1-wkSINdScq6ZGv/edit> |
+
+Form ID `1ITVqE7NAcwSDW_uZnGC5z7EaOTga-tyAATY_Xf07TPA` ·
+response sheet ID `1i8lwUIDdZ3BNuAN-QsTM0UsHceDXStGmINjb3bIVFXs`.
+
+Re-running the script keeps all of these. It changes only if someone runs
+`forgetForm`, and then a **new** form and link are created, which would have to
+be sent out again.
+
+### Superseded: do not send
+
+Four earlier test forms, owned by `vipinmenon006@gmail.com`, were created on
+21 Sep before the script could update in place. They are **not** linked to
+anything the desk reads. Anything submitted to them is lost to the import. As of
+this writing they still exist and should be trashed:
+
+| Form ID (`vipinmenon006`) | Notes |
+|---|---|
+| `1tqh0DpRcKbnW-QHZ9Su77eALKRR0WeToajJFph12Teo` | first run |
+| `1Ro7gO5zIZSgEslfBbjlMGMrf6V8lC67M95wPGMdRTIo` | holds one test response |
+| `1HwwXKCJwF36Q_fjv4fyf34uXn8-Z8VOHbaMKeoLfH_w` | |
+| `1MlTEB1odW4QcrrguVfZKh2j4eYchlyX5C5MP8-feC4c` | |
+
 ## Why a form
 
 Decided 21 Sep 2026 by Salman and Vipin, replacing a per-organisation workbook.
