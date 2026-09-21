@@ -278,8 +278,9 @@ describe('roster form — one stable link', () => {
     const vehicle = old.addTextItem().setTitle('Vehicle registration')
     old.destination = 'sheet-existing'
 
-    run(w, { keep: old.getEditUrl() })
+    const logs = run(w, { keep: old.getEditUrl() })
 
+    expect(logs.join('\n')).not.toMatch(/Forgotten/) // adopting is not forgetting
     expect(onlyForm(w)).toBe(old)
     expect(w.sheets).toHaveLength(0) // kept the linked sheet
     expect(vehicle.title).toBe('Loading vehicle registration') // same item, renamed

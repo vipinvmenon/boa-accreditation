@@ -240,15 +240,19 @@ function buildRosterForm() {
 
 /** Run once to make the next buildRosterForm create a brand-new form. */
 function forgetForm() {
-  var props = PropertiesService.getScriptProperties();
+  clearRemembered_(PropertiesService.getScriptProperties());
+  Logger.log('Forgotten. The next buildRosterForm run creates a new form. ' +
+    'The old form still exists — delete it in Google Drive if you no longer want it.');
+}
+
+/** Silent: used when adopting KEEP_FORM, where "forgotten" would be misleading. */
+function clearRemembered_(props) {
   var keys = props.getKeys();
   for (var i = 0; i < keys.length; i++) {
     if (keys[i] === PROP_FORM_ID || keys[i].indexOf(PROP_ITEM_PREFIX) === 0) {
       props.deleteProperty(keys[i]);
     }
   }
-  Logger.log('Forgotten. The next buildRosterForm run creates a new form. ' +
-    'The old form still exists — delete it in Google Drive if you no longer want it.');
 }
 
 function openOrCreateForm_(props) {
@@ -258,7 +262,7 @@ function openOrCreateForm_(props) {
   // An explicit KEEP_FORM wins, and the remembered question IDs belong to the
   // old form, so they are dropped.
   if (wanted && wanted !== stored) {
-    forgetForm();
+    clearRemembered_(props);
     stored = null;
   }
 
