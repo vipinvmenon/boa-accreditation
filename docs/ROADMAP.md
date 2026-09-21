@@ -360,7 +360,7 @@ point only. v2 remains the pixel contract (ADR-017).
 **This lane IS on the critical path.** The pass must name the tier that is
 printed on the band the volunteer hands over. ACC-111 was parked for it.
 
-- [ ] **ACC-112** · Transcribe the pack into `design/source/accreditation/`
+- [~] **ACC-112** · Transcribe the pack into `design/source/accreditation/`
       (the ten sheets + `access-matrix.json`) and write ADR-018. Acceptance: all
       26 allow rows, every `+ photo ID` flag and the 22:00 window present; the
       pack's three internal discrepancies recorded, not
@@ -378,7 +378,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       data layer, not fixtures. Acceptance: queue, master, passes, control room
       and gate all render; `test:e2e` green. **Blocked on the eight type-chip
       colours** — Vipin's call, see ADR-018 · **C/V** · due Fri 26 Sep
-- [~] **ACC-116** · Roster collection form: `scripts/roster-form/build-roster-form.gs`
+- [ ] **ACC-116** · Roster collection form: `scripts/roster-form/build-roster-form.gs`
       builds a Google Form linked to a response sheet; `docs/ROSTER-FORM.md`.
       Changed 21 Sep from a per-org workbook to a single form, at Salman's call.
       Acceptance: form run once, opened by a human, every dropdown and

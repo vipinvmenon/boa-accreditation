@@ -943,6 +943,9 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-112 released 2026-09-21 (IST):** Matrix transcribed and self-validated (6 zones, 8 tiers, 26 access rows, 4 discrepancies recorded); ADR-018 still to write. Paused 21 Sep on Vipin's instruction: the roster workbook (ACC-116) is needed first, links are already late.
 
+
+> **ACC-116 released 2026-09-21 (IST):** Form live and verified end to end 21 Sep; only the Organisation dropdown remains, blocked on ACC-030a (org list). Delete the test response before the link goes out.
+
 ## Session log
 
 ### 21 Sep 2026 — ACC-116: the roster form is live (Google Form, not a workbook)
