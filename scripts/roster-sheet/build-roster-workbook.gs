@@ -55,6 +55,10 @@ var REQUESTABLE_TIERS = [
   'Promoters Lounge',
 ];
 
+/** Guard against re-running buildWorkbook over tabs organisations have filled.
+ *  Leave this false. See resetSheet(). */
+var ALLOW_OVERWRITE = false;
+
 var HEADER_ROW = 4;      // row holding the column headings
 var FIRST_DATA_ROW = 5;  // first row an org types into
 var OVERFLOW_ROWS = 10;  // greyed rows past quota, so the ceiling is visible
@@ -86,8 +90,19 @@ function buildWorkbook() {
     seen[tab] = true;
   }
 
+  // Rules carries no roster data, so it is always safe to refresh.
   buildRulesTab(ss);
-  for (var j = 0; j < ORGS.length; j++) buildOrgTab(ss, ORGS[j][0], Number(ORGS[j][1]));
+
+  var built = 0, kept = 0;
+  for (var j = 0; j < ORGS.length; j++) {
+    var existing = ss.getSheetByName(tabNameFor(ORGS[j][0]));
+    if (existing && sheetHasData(existing) && !ALLOW_OVERWRITE) {
+      kept++;
+      continue;  // somebody is using it — leave it exactly as it is
+    }
+    buildOrgTab(ss, ORGS[j][0], Number(ORGS[j][1]));
+    built++;
+  }
 
   // Drop Google's default empty "Sheet1" if it is still lying around.
   var leftover = ss.getSheetByName('Sheet1');
@@ -95,8 +110,9 @@ function buildWorkbook() {
 
   ss.setActiveSheet(ss.getSheetByName('Rules'));
   SpreadsheetApp.getUi().alert(
-    'Built ' + ORGS.length + ' organisation tabs.\n\n' +
-    'Before you share: everyone with edit access can read every tab.'
+    'Built ' + built + ' organisation tab(s).' +
+    (kept ? '\nLeft ' + kept + ' tab(s) alone because they already have people on them.' : '') +
+    '\n\nBefore you share: everyone with edit access can read every tab.'
   );
 }
 
@@ -105,9 +121,37 @@ function tabNameFor(name) {
   return String(name).replace(/[:\\\/\?\*\[\]]/g, '-').trim().substring(0, 90);
 }
 
+/**
+ * Re-creating a tab destroys whatever is on it. Once organisations have started
+ * typing, that is somebody's afternoon. So a tab holding data is never silently
+ * replaced: buildWorkbook stops and names it, and you decide.
+ */
+function sheetHasData(sh) {
+  if (!sh) return false;
+  var last = sh.getLastRow();
+  if (last < FIRST_DATA_ROW) return false;
+  var names = sh.getRange(FIRST_DATA_ROW, 1, last - FIRST_DATA_ROW + 1, 1).getDisplayValues();
+  for (var i = 0; i < names.length; i++) {
+    if (String(names[i][0]).trim() !== '') return true;
+  }
+  return false;
+}
+
 function resetSheet(ss, name) {
   var existing = ss.getSheetByName(name);
-  if (existing) ss.deleteSheet(existing);
+  if (existing) {
+    if (sheetHasData(existing) && !ALLOW_OVERWRITE) {
+      throw new Error(
+        'The tab "' + name + '" already has people on it. Nothing has been changed.\n\n' +
+        'Re-running buildWorkbook would delete them. If you are certain you want to ' +
+        'start this workbook over, set ALLOW_OVERWRITE = true at the top of the ' +
+        'script, run once, then set it back to false.\n\n' +
+        'If you only need to ADD an organisation, delete the ORGS lines for the ' +
+        'tabs that already exist and run again — only the missing tabs get built.'
+      );
+    }
+    ss.deleteSheet(existing);
+  }
   return ss.insertSheet(name);
 }
 

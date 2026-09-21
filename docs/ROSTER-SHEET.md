@@ -111,6 +111,17 @@ Each tab gets: the org name and quota in a locked header, a live
 rows, and ten grey rows past the quota line so the ceiling is visible rather
 than discovered.
 
+### Re-running it is safe
+
+`buildWorkbook` never silently replaces a tab that already has people on it. If
+an organisation has started typing, that tab is left exactly as it is and the
+run reports how many it skipped. So you can add a late organisation by running
+it again — only the missing tabs get built.
+
+Starting the whole workbook over is deliberately awkward: set
+`ALLOW_OVERWRITE = true` at the top of the script, run once, set it back. That
+flag is the only way to destroy a filled tab.
+
 ---
 
 ## Getting the data back
