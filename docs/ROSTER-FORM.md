@@ -97,7 +97,7 @@ whenever needed.
 | 1 | Organisation | dropdown, or text | yes | Dropdown once `ORGS` is filled in (ACC-030a); free text until then |
 | 2 | Full name | text | yes | 2–80 characters, as on their photo ID |
 | 3 | WhatsApp number | text | yes | 10 digits starting 6–9, no `+91`. The importer adds `+91`. Renamed from "Mobile number" by Vipin, 21 Sep |
-| 4 | Crew type | multiple choice + Other | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor · Special Tickets Crew · **Other (write-in)** |
+| 4 | Crew type | multiple choice + Other | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor · Special Tickets Crew · BOA Internal Crew · **Other (write-in)** |
 | 5 | Job title | text | no | 2–60 characters |
 | 6 | Days on site | single choice | yes | Build days only (5–9 Oct) · Show day only (10 Oct) · Both build and show |
 | 7 | Loading vehicle registration | text | no | Only for a vehicle loading or unloading equipment. e.g. `KA01AB1234`; lower case and spaces accepted, normalised on import |
@@ -116,8 +116,8 @@ approval**, which is where the schema already puts that decision
 (`boa_acc_person.type_code` is set only by `boa_acc_decide`). Non-negotiable #3
 is untouched.
 
-The crew type list is Salman's, plus **Special Tickets Crew** and a write-in
-**Other**, both added by Vipin on 21 Sep so nobody who falls outside the list is
+The crew type list is Salman's, plus **Special Tickets Crew**, **BOA Internal
+Crew** and a write-in **Other**, all added by Vipin on 21 Sep so nobody who falls outside the list is
 blocked from being submitted.
 
 It is a multiple-choice question rather than a dropdown for exactly that
