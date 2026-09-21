@@ -20,12 +20,15 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './validate-org-import.mjs'
-import { buildXlsx, sheetName, colLetter, STYLE } from './roster-sheet/xlsx.mjs'
+import { buildXlsx, sheetName, colLetter, STYLE, BAND_STYLE, ZONE_STYLE } from './roster-sheet/xlsx.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const GS_PATH = join(root, 'scripts/roster-sheet/build-roster-workbook.gs')
+const MATRIX_PATH = join(root, 'design/source/accreditation/access-matrix.json')
 const BEGIN = '// EDIT ME — one line per organisation: [name, quota]'
 const END = '// ───────────────────────────────────────────────────────── END EDIT ME ──────'
+const MATRIX_BEGIN = '// ─────────────────────────────────────────────────────────────────────────────\nvar MATRIX = null;'
+const MATRIX_END = '// ────────────────────────────────────────────────────────── END MATRIX ──────'
 
 /** The five columns an organisation fills. Must stay in step with COLUMNS in
  *  the .gs and with lib/schemas/submission.ts. */
@@ -86,6 +89,79 @@ const RULES = [
   ['Bands are handed over at the gate from 4 October. Not on this sheet, no band.', 0],
 ]
 
+/**
+ * The pack's access matrix, as a tab. Built from the committed transcription,
+ * never typed in here — if the two disagree the printed sheets win and the
+ * transcription is what gets corrected.
+ */
+function bandsSheet(matrix) {
+  const zones = matrix.zones
+  const tiers = [...matrix.tiers].sort((a, b) => a.sort_order - b.sort_order)
+  const at = new Map(matrix.access.map((a) => [`${a.zone}|${a.tier}`, a]))
+  const rows = []
+  const lastCol = zones.length + 2
+
+  rows.push({ r: 1, height: 34, cells: [{ c: 1, v: 'BANDS & ZONES — who gets in where', s: STYLE.TITLE }] })
+  rows.push({
+    r: 2,
+    cells: [{
+      c: 1,
+      s: STYLE.SUBTITLE,
+      v: 'BANGALORE OPEN AIR · 10 OCTOBER 2026 · transcribed from the printed accreditation pack',
+    }],
+  })
+
+  rows.push({
+    r: 4,
+    height: 34,
+    cells: [
+      { c: 1, v: 'BAND', s: STYLE.HEADER },
+      { c: 2, v: 'QTY', s: STYLE.HEADER },
+      ...zones.map((z, i) => ({ c: i + 3, v: z.label.toUpperCase(), s: ZONE_STYLE[z.code] })),
+    ],
+  })
+
+  tiers.forEach((tier, i) => {
+    const cells = [
+      { c: 1, v: tier.label, s: BAND_STYLE[tier.code] },
+      { c: 2, v: tier.print_qty === null ? 'TBC' : String(tier.print_qty), s: STYLE.SMALL },
+    ]
+    zones.forEach((z, zi) => {
+      const rule = at.get(`${z.code}|${tier.code}`)
+      let v = '—'
+      let style = STYLE.DENY
+      if (rule) {
+        style = STYLE.ALLOW
+        v = 'YES'
+        if (rule.requires_photo_id) { v = '+ PHOTO ID'; style = STYLE.ALLOW_COND }
+        if (rule.from_local_time) {
+          v = `+ PHOTO ID\nafter ${rule.from_local_time}`
+          style = STYLE.ALLOW_COND
+        }
+      }
+      cells.push({ c: zi + 3, v, s: style })
+    })
+    rows.push({ r: 5 + i, height: 30, cells })
+  })
+
+  const foot = 5 + tiers.length + 1
+  const notes = [
+    '“+ PHOTO ID” means the band alone is not entry — the matching photo ID and lanyard must be shown.',
+    'A blank cell is a turn-away. Cut, taped or transferred bands are void: refuse entry and call the zone supervisor.',
+    'AAA and Artist are named lists approved separately. They cannot be requested on a roster tab.',
+  ]
+  notes.forEach((n, i) => rows.push({ r: foot + i, cells: [{ c: 1, v: n, s: STYLE.SMALL }] }))
+
+  return {
+    name: 'Bands & zones',
+    cols: [{ width: 22 }, { width: 8 }, ...zones.map(() => ({ width: 17 }))],
+    freezeRow: 4,
+    merges: [`A1:${colLetter(lastCol)}1`, `A2:${colLetter(lastCol)}2`,
+      ...notes.map((_, i) => `A${foot + i}:${colLetter(lastCol)}${foot + i}`)],
+    rows,
+  }
+}
+
 function rulesSheet() {
   return {
     name: 'Rules',
@@ -104,7 +180,7 @@ function orgSheet(org, name, lean) {
   const nameCol = colLetter(1)
   const rows = []
 
-  rows.push({ r: 1, height: 30, cells: [{ c: 1, v: org.name, s: STYLE.TITLE }] })
+  rows.push({ r: 1, height: 34, cells: [{ c: 1, v: org.name, s: STYLE.TITLE }] })
 
   // Live counter, so an org can see how much of its quota is left without counting.
   rows.push({
@@ -175,10 +251,10 @@ function orgSheet(org, name, lean) {
   }
 }
 
-function buildWorkbook(orgs, lean) {
-  const taken = new Set(['Rules'])
+function buildWorkbook(orgs, lean, matrix) {
+  const taken = new Set(['Rules', 'Bands & zones'])
   const truncated = []
-  const sheets = [rulesSheet()]
+  const sheets = [rulesSheet(), bandsSheet(matrix)]
 
   for (const org of orgs) {
     const name = sheetName(org.name, taken)
@@ -245,9 +321,21 @@ async function main() {
 
   const orgs = readOrgs(parseCsv(await readFile(csvPath, 'utf8')))
   const total = orgs.reduce((n, o) => n + o.quota, 0)
+  const matrix = JSON.parse(await readFile(MATRIX_PATH, 'utf8'))
 
   const block = orgs.map((o) => `  [${gsQuote(o.name)}, ${o.quota}],`).join('\n')
-  const gs = await readFile(GS_PATH, 'utf8')
+  let gs = await readFile(GS_PATH, 'utf8')
+
+  // Inject the access matrix the same way as ORGS, so the Apps Script and the
+  // XLSX are built from one transcription rather than two copies.
+  const mFrom = gs.indexOf(MATRIX_BEGIN)
+  const mTo = gs.indexOf(MATRIX_END)
+  if (mFrom === -1 || mTo === -1) fail('the MATRIX markers are missing from build-roster-workbook.gs')
+  gs =
+    gs.slice(0, mFrom + MATRIX_BEGIN.length) +
+    `\nvar MATRIX = ${JSON.stringify(matrix, null, 0)};\n` +
+    gs.slice(mTo)
+
   const from = gs.indexOf(BEGIN)
   const to = gs.indexOf(END)
   if (from === -1 || to === -1) fail('the ORGS markers are missing from build-roster-workbook.gs')
@@ -345,14 +433,14 @@ DEADLINE
     .join('\n') + '\n'
   await writeFile(join(outDir, 'tabs.csv'), manifest, 'utf8')
 
-  const { xlsx, truncated } = buildWorkbook(orgs, false)
+  const { xlsx, truncated } = buildWorkbook(orgs, false, matrix)
   const xlsxPath = join(outDir, 'boa-2026-rosters.xlsx')
   await writeFile(xlsxPath, xlsx)
 
   // A stripped copy, small enough to travel as base64 through an API that only
   // accepts inline content. Same tabs, same columns, same dropdown; without the
   // per-tab prose (it is on the Rules tab) and the pre-created blank rows.
-  const lean = buildWorkbook(orgs, true)
+  const lean = buildWorkbook(orgs, true, matrix)
   const leanPath = join(outDir, 'boa-2026-rosters-lean.xlsx')
   await writeFile(leanPath, lean.xlsx)
 

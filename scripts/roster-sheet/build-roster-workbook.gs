@@ -37,6 +37,15 @@ var ORGS = [
 ];
 // ───────────────────────────────────────────────────────── END EDIT ME ──────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCESS MATRIX — transcribed from the printed pack. Do not hand-edit: it is
+// regenerated from design/source/accreditation/access-matrix.json by
+// scripts/make-roster-sheet.mjs. If this disagrees with the printed sheets,
+// the sheets win and the transcription is what gets corrected.
+// ─────────────────────────────────────────────────────────────────────────────
+var MATRIX = null;
+// ────────────────────────────────────────────────────────── END MATRIX ──────
+
 var COLUMNS = [
   { key: 'full_name',      head: 'Full name',            width: 220, required: true  },
   { key: 'phone',          head: 'Phone (10 digits)',    width: 160, required: true  },
@@ -95,8 +104,9 @@ function buildWorkbook() {
     seen[tab] = true;
   }
 
-  // Rules carries no roster data, so it is always safe to refresh.
+  // Rules and the reference tab carry no roster data, so they always refresh.
   buildRulesTab(ss);
+  if (MATRIX) buildBandsTab(ss);
 
   var built = 0, kept = 0;
   for (var j = 0; j < ORGS.length; j++) {
@@ -112,7 +122,7 @@ function buildWorkbook() {
   // Drop any leftover tab that is not ours and holds nobody — Google's default
   // "Sheet1", or the single tab left behind when the spreadsheet was created by
   // importing a seed file. Never touches a tab with people on it.
-  var wanted = { 'Rules': true };
+  var wanted = { 'Rules': true, 'Bands & zones': true };
   for (var w = 0; w < ORGS.length; w++) wanted[tabNameFor(ORGS[w][0])] = true;
   var all = ss.getSheets();
   for (var d = 0; d < all.length; d++) {
@@ -291,6 +301,90 @@ function applyValidation(sh, quota) {
     .setHelpText('Build = 5–9 Oct load-in only. Show = 10 Oct only. Both = all of it. Required.')
     .build();
   sh.getRange(FIRST_DATA_ROW, 6, rows, 1).setDataValidation(days);
+}
+
+var BAND_COLOUR = {
+  general_admission: '#3A3A3A', eddies_lounge: '#D22B2B', promoters_lounge: '#1F4ED8',
+  aaa: '#16A34A', crew: '#7C3AED', artist: '#DB2777', stage: '#EA580C', photo: '#CA8A04'
+};
+var ZONE_COLOUR = {
+  festival_area: '#16A34A', eddies_lounge: '#D22B2B', promoters_lounge: '#1F4ED8',
+  photo_pit: '#CA8A04', backstage: '#7C3AED', main_stage: '#EA580C'
+};
+
+/** The pack's access matrix as a tab: which band gets into which zone. */
+function buildBandsTab(ss) {
+  var sh = resetSheet(ss, 'Bands & zones');
+  var zones = MATRIX.zones;
+  var tiers = MATRIX.tiers.slice().sort(function (a, b) { return a.sort_order - b.sort_order; });
+  var lastCol = zones.length + 2;
+
+  var at = {};
+  for (var a = 0; a < MATRIX.access.length; a++) {
+    at[MATRIX.access[a].zone + '|' + MATRIX.access[a].tier] = MATRIX.access[a];
+  }
+
+  sh.getRange(1, 1, 1, lastCol).merge()
+    .setValue('BANDS & ZONES — who gets in where')
+    .setFontSize(15).setFontWeight('bold').setFontColor(PAPER).setBackground(INK)
+    .setVerticalAlignment('middle');
+  sh.setRowHeight(1, 34);
+
+  sh.getRange(2, 1, 1, lastCol).merge()
+    .setValue('BANGALORE OPEN AIR · 10 OCTOBER 2026 · transcribed from the printed accreditation pack')
+    .setFontSize(9).setFontColor('#6B6B6B');
+
+  var head = ['BAND', 'QTY'];
+  for (var z = 0; z < zones.length; z++) head.push(zones[z].label.toUpperCase());
+  sh.getRange(4, 1, 1, lastCol).setValues([head])
+    .setFontWeight('bold').setFontColor('#FFFFFF').setWrap(true).setVerticalAlignment('middle');
+  sh.getRange(4, 1, 1, 2).setBackground(ACCENT);
+  for (var zc = 0; zc < zones.length; zc++) {
+    sh.getRange(4, zc + 3).setBackground(ZONE_COLOUR[zones[zc].code] || ACCENT);
+  }
+  sh.setRowHeight(4, 34);
+
+  for (var t = 0; t < tiers.length; t++) {
+    var tier = tiers[t];
+    var r = 5 + t;
+    sh.getRange(r, 1).setValue(tier.label)
+      .setFontWeight('bold').setFontColor('#FFFFFF')
+      .setBackground(BAND_COLOUR[tier.code] || '#3A3A3A').setVerticalAlignment('middle');
+    sh.getRange(r, 2).setValue(tier.print_qty === null ? 'TBC' : tier.print_qty).setFontSize(10);
+
+    for (var zz = 0; zz < zones.length; zz++) {
+      var rule = at[zones[zz].code + '|' + tier.code];
+      var cell = sh.getRange(r, zz + 3);
+      if (!rule) {
+        cell.setValue('—').setBackground('#F0EFEA').setFontColor('#A0A0A0');
+      } else if (rule.from_local_time) {
+        cell.setValue('+ PHOTO ID\nafter ' + rule.from_local_time)
+          .setBackground('#FDF0CE').setFontColor(WARN).setWrap(true);
+      } else if (rule.requires_photo_id) {
+        cell.setValue('+ PHOTO ID').setBackground('#FDF0CE').setFontColor(WARN);
+      } else {
+        cell.setValue('YES').setBackground('#D7F0DF').setFontColor(ACCENT).setFontWeight('bold');
+      }
+      cell.setHorizontalAlignment('center').setVerticalAlignment('middle');
+    }
+    sh.setRowHeight(r, 30);
+  }
+
+  var foot = 5 + tiers.length + 1;
+  var notes = [
+    ['“+ PHOTO ID” means the band alone is not entry — the matching photo ID and lanyard must be shown.'],
+    ['A blank cell is a turn-away. Cut, taped or transferred bands are void: refuse entry and call the zone supervisor.'],
+    ['AAA and Artist are named lists approved separately. They cannot be requested on a roster tab.']
+  ];
+  for (var n = 0; n < notes.length; n++) {
+    sh.getRange(foot + n, 1, 1, lastCol).merge().setValue(notes[n][0]).setFontSize(10);
+  }
+
+  sh.setColumnWidth(1, 160);
+  sh.setColumnWidth(2, 60);
+  for (var w = 0; w < zones.length; w++) sh.setColumnWidth(w + 3, 130);
+  sh.setFrozenRows(4);
+  sh.protect().setDescription('Reference — do not edit').setWarningOnly(true);
 }
 
 function buildRulesTab(ss) {

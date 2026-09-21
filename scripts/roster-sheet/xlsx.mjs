@@ -127,54 +127,157 @@ function zip(files) {
 }
 
 // ── Styles ───────────────────────────────────────────────────────────────────
-// Index order here IS the `s=` attribute used on cells. Keep them in step.
-export const STYLE = {
-  DEFAULT: 0,
-  TITLE: 1, // bold, paper on ink
-  COUNTER: 2, // bold, accent on muted
-  NOTE: 3, // small, red, wrapped
-  HEADER: 4, // bold, paper on accent
-  TEXT: 5, // plain text format (@) — stops phone numbers becoming 9.87E9
-  OVERFLOW: 6, // grey fill, text format
-  RULE_H: 7, // bold accent
-  RULE_WARN: 8, // red
+// Built from data rather than hand-written XML: the style index IS the `s=`
+// attribute on a cell, so a hand-maintained list drifts the moment anyone
+// inserts a font. Colours are the printed pack's, transcribed in
+// design/source/accreditation/access-matrix.json.
+
+const INK = 'FF14141A'
+const PAPER = 'FFF6F4EC'
+const ACCENT = 'FF05603F'
+const WARN = 'FF9E1F14'
+
+/** Wristband colours, as dyed. Text colour chosen for contrast on each. */
+export const BAND_FILL = {
+  general_admission: ['FF3A3A3A', 'FFFFFFFF'],
+  eddies_lounge: ['FFD22B2B', 'FFFFFFFF'],
+  promoters_lounge: ['FF1F4ED8', 'FFFFFFFF'],
+  aaa: ['FF16A34A', 'FFFFFFFF'],
+  crew: ['FF7C3AED', 'FFFFFFFF'],
+  artist: ['FFDB2777', 'FFFFFFFF'],
+  stage: ['FFEA580C', 'FFFFFFFF'],
+  photo: ['FFCA8A04', 'FFFFFFFF'],
 }
 
-const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<numFmts count="1"><numFmt numFmtId="164" formatCode="@"/></numFmts>
-<fonts count="7">
-<font><sz val="11"/><name val="Calibri"/></font>
-<font><b/><sz val="14"/><color rgb="FFF6F4EC"/><name val="Calibri"/></font>
-<font><b/><sz val="11"/><color rgb="FF05603F"/><name val="Calibri"/></font>
-<font><sz val="9"/><color rgb="FF9E1F14"/><name val="Calibri"/></font>
-<font><b/><sz val="11"/><color rgb="FFF6F4EC"/><name val="Calibri"/></font>
-<font><sz val="11"/><color rgb="FF8A8A8A"/><name val="Calibri"/></font>
-<font><sz val="11"/><color rgb="FF9E1F14"/><name val="Calibri"/></font>
-</fonts>
-<fills count="6">
-<fill><patternFill patternType="none"/></fill>
-<fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FF14141A"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFE6E3D8"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FF05603F"/><bgColor indexed="64"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFDDDAD0"/><bgColor indexed="64"/></patternFill></fill>
-</fills>
-<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
-<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="9">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>
-<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
-<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment wrapText="1" vertical="center"/></xf>
-<xf numFmtId="0" fontId="4" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
-<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
-<xf numFmtId="164" fontId="5" fillId="5" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>
-<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
-<xf numFmtId="0" fontId="6" fillId="0" borderId="0" xfId="0" applyFont="1"/>
-</cellXfs>
-<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
-</styleSheet>`
+/** Zone colours, as shaded on the site map. */
+export const ZONE_FILL = {
+  festival_area: ['FF16A34A', 'FFFFFFFF'],
+  eddies_lounge: ['FFD22B2B', 'FFFFFFFF'],
+  promoters_lounge: ['FF1F4ED8', 'FFFFFFFF'],
+  photo_pit: ['FFCA8A04', 'FFFFFFFF'],
+  backstage: ['FF7C3AED', 'FFFFFFFF'],
+  main_stage: ['FFEA580C', 'FFFFFFFF'],
+}
+
+// [name, size, bold, colour]
+const FONTS = [
+  ['Calibri', 11, false, null], // 0 body
+  ['Calibri', 16, true, PAPER], // 1 title
+  ['Calibri', 11, true, ACCENT], // 2 accent bold
+  ['Calibri', 9, false, WARN], // 3 note
+  ['Calibri', 11, true, PAPER], // 4 header
+  ['Calibri', 11, false, 'FF8A8A8A'], // 5 muted
+  ['Calibri', 11, false, WARN], // 6 warn
+  ['Calibri', 9, false, 'FF6B6B6B'], // 7 subtitle
+  ['Calibri', 11, true, 'FFFFFFFF'], // 8 on colour
+  ['Calibri', 10, false, INK], // 9 small body
+]
+
+// null = no fill
+const FILLS = [
+  null, // 0 none
+  null, // 1 gray125 (reserved slot — Excel expects it)
+  INK, // 2
+  'FFE6E3D8', // 3 muted
+  ACCENT, // 4
+  'FFDDDAD0', // 5 grey
+  'FFD7F0DF', // 6 allow
+  'FFFDF0CE', // 7 conditional
+  'FFF0EFEA', // 8 deny
+]
+const BAND_FILL_START = FILLS.length
+for (const code of Object.keys(BAND_FILL)) FILLS.push(BAND_FILL[code][0])
+const ZONE_FILL_START = FILLS.length
+for (const code of Object.keys(ZONE_FILL)) FILLS.push(ZONE_FILL[code][0])
+
+// [fontId, fillId, numFmt, wrap, vcenter]
+const XFS = [
+  [0, 0, 0, false, false], // DEFAULT
+  [1, 2, 0, false, true], // TITLE
+  [2, 3, 0, false, false], // COUNTER
+  [3, 0, 0, true, true], // NOTE
+  [4, 4, 0, false, false], // HEADER
+  [0, 0, 164, false, false], // TEXT
+  [5, 5, 164, false, false], // OVERFLOW
+  [2, 0, 0, false, false], // RULE_H
+  [6, 0, 0, false, false], // RULE_WARN
+  [7, 0, 0, false, false], // SUBTITLE
+  [2, 6, 0, false, true], // ALLOW
+  [6, 7, 0, true, true], // ALLOW_COND
+  [5, 8, 0, false, true], // DENY
+  [9, 0, 0, true, true], // SMALL
+]
+export const STYLE = {
+  DEFAULT: 0,
+  TITLE: 1,
+  COUNTER: 2,
+  NOTE: 3,
+  HEADER: 4,
+  TEXT: 5,
+  OVERFLOW: 6,
+  RULE_H: 7,
+  RULE_WARN: 8,
+  SUBTITLE: 9,
+  ALLOW: 10,
+  ALLOW_COND: 11,
+  DENY: 12,
+  SMALL: 13,
+}
+
+/** Style index for a tier's wristband colour swatch. */
+export const BAND_STYLE = {}
+for (const [i, code] of Object.keys(BAND_FILL).entries()) {
+  BAND_STYLE[code] = XFS.length
+  XFS.push([8, BAND_FILL_START + i, 0, false, true])
+}
+
+/** Style index for a zone's map colour, used on the matrix header. */
+export const ZONE_STYLE = {}
+for (const [i, code] of Object.keys(ZONE_FILL).entries()) {
+  ZONE_STYLE[code] = XFS.length
+  XFS.push([8, ZONE_FILL_START + i, 0, true, true])
+}
+
+function fontXml([name, size, bold, colour]) {
+  return (
+    '<font>' +
+    (bold ? '<b/>' : '') +
+    `<sz val="${size}"/>` +
+    (colour ? `<color rgb="${colour}"/>` : '') +
+    `<name val="${name}"/>` +
+    '</font>'
+  )
+}
+
+function fillXml(colour, index) {
+  if (index === 1) return '<fill><patternFill patternType="gray125"/></fill>'
+  if (!colour) return '<fill><patternFill patternType="none"/></fill>'
+  return `<fill><patternFill patternType="solid"><fgColor rgb="${colour}"/><bgColor indexed="64"/></patternFill></fill>`
+}
+
+function xfXml([fontId, fillId, numFmt, wrap, vcenter]) {
+  const align =
+    wrap || vcenter
+      ? `<alignment${wrap ? ' wrapText="1"' : ''}${vcenter ? ' vertical="center"' : ''}/>`
+      : ''
+  return (
+    `<xf numFmtId="${numFmt}" fontId="${fontId}" fillId="${fillId}" borderId="0" xfId="0"` +
+    ` applyFont="1" applyFill="1"${numFmt ? ' applyNumberFormat="1"' : ''}` +
+    `${align ? ' applyAlignment="1"' : ''}>${align}</xf>`
+  )
+}
+
+const STYLES_XML =
+  `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+  '<numFmts count="1"><numFmt numFmtId="164" formatCode="@"/></numFmts>' +
+  `<fonts count="${FONTS.length}">${FONTS.map(fontXml).join('')}</fonts>` +
+  `<fills count="${FILLS.length}">${FILLS.map(fillXml).join('')}</fills>` +
+  '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  `<cellXfs count="${XFS.length}">${XFS.map(xfXml).join('')}</cellXfs>` +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>'
 
 // ── Worksheet ────────────────────────────────────────────────────────────────
 
