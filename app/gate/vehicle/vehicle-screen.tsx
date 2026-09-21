@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useDomTheme } from '@/lib/use-theme'
-import { PROP, passType, type PassTypeCode } from '@/lib/design'
+import { PROP } from '@/lib/design'
+import { gateBandCard } from '@/gate/band-card'
 import { gateDb } from '@/gate/db'
 import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { findActiveWristband, normalizePlate, queueVehicleEvent } from '@/gate/vehicle-flow'
@@ -22,10 +23,6 @@ type Result = {
 
 function formatIssuedAt(iso: string): string {
   return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).replace(',', '')
-}
-
-function presentationTypeLabel(typeCode: PassTypeCode) {
-  return typeCode === 'crew' ? 'Working crew' : passType(typeCode).label
 }
 
 export function VehicleScreen() {
@@ -74,6 +71,7 @@ export function VehicleScreen() {
       )
       const wristband = sticker ? findActiveWristband(ledger, sticker.personId) : undefined
       const holder = sticker ? await gateDb.roster.where('personId').equals(sticker.personId).first() : undefined
+      const holderCard = holder ? gateBandCard(holder.typeCode) : undefined
       const cleared = Boolean(sticker && stickerIssue && wristband && plateVisual)
       const selectedReason = reason.trim()
 
@@ -101,8 +99,8 @@ export function VehicleScreen() {
         plate: plate.trim().toUpperCase(),
         ...(stickerIssue?.stickerNo ? { stickerNo: stickerIssue.stickerNo } : {}),
         ...(stickerIssue?.occurredAt ? { occurredAt: stickerIssue.occurredAt } : {}),
-        ...(holder && wristband
-          ? { wristbandDetail: `${presentationTypeLabel(holder.typeCode)} · ${passType(holder.typeCode).band.toLowerCase()} · band ${wristband.bandSerial ?? 'blank serial'}` }
+        ...(holderCard && wristband
+          ? { wristbandDetail: `${holderCard.label} · ${holderCard.band} · band ${wristband.bandSerial ?? 'blank serial'}` }
           : {}),
       })
       setReason('')
