@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
-import { passType, typeColour, type PassTypeCode } from '@/lib/design'
+import { tier, tierColour } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
 import { formatMasterBand, formatMasterCollected } from '@/lib/format'
 import { Icon } from '@/components/icon'
@@ -122,8 +122,8 @@ export function MasterScreen() {
           )}
           {!loading && !error && rows.length === 0 && <div className="empty">Nobody matches that. Try a phone number or a band serial.</div>}
           {!loading && !error && rows.map((row) => {
-            const type = row.typeCode ? passType(row.typeCode as PassTypeCode) : null
-            const typeColor = type ? typeColour(type.code, theme) : 'var(--ink3)'
+            const type = row.typeCode ? tier(row.typeCode) : null
+            const typeColor = type ? tierColour(type.code, theme) : 'var(--ink3)'
             const bandClass = row.status === 'rejected' || row.status === 'voided'
               ? 'ser void'
               : row.bandSerial ? 'ser' : 'ser none'

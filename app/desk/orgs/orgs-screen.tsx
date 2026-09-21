@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ORG_KINDS, ORG_TYPE_CODES, type OrgRow, type InviteRow, type MintedInvite } from '@/lib/schemas/org'
+import { ORG_KINDS, type OrgRow, type InviteRow, type MintedInvite } from '@/lib/schemas/org'
+import { REQUESTABLE_TIERS, type RequestableTierCode } from '@/lib/desk-tiers'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
 /**
@@ -50,7 +51,7 @@ type CreateFormState = {
   quota: string
   contactName: string
   contactPhone: string
-  defaultType: (typeof ORG_TYPE_CODES)[number]
+  defaultType: RequestableTierCode
 }
 
 const EMPTY_FORM: CreateFormState = {
@@ -282,9 +283,9 @@ export function OrgsScreen() {
                 }
                 className="utility-input"
               >
-                {ORG_TYPE_CODES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {REQUESTABLE_TIERS.map((t) => (
+                  <option key={t.code} value={t.code}>
+                    {t.label}
                   </option>
                 ))}
               </select>

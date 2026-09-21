@@ -68,10 +68,19 @@ export const dashboard = {
   bmsPending: 14,
   aaaStamped: 14,
   aaaNominatedApproved: 18,
+  // ACC-115: the RPC returns every boa_acc_type row in sort_order (ADR-018).
+  // The design's three counts are kept on the codes that survived; the five
+  // pack-only tiers have no design figure and read 0. Pixel sign-off against
+  // the three-band artboard is re-run under ACC-111.
   types: [
-    { code: 'crew', count: 520 },
-    { code: 'stage', count: 78 },
     { code: 'aaa', count: 14 },
+    { code: 'artist', count: 0 },
+    { code: 'stage', count: 78 },
+    { code: 'promoters_lounge', count: 0 },
+    { code: 'crew', count: 520 },
+    { code: 'photo', count: 0 },
+    { code: 'eddies_lounge', count: 0 },
+    { code: 'general_admission', count: 0 },
   ],
   orgs: DESIGN_ORGS.map((o, i) => ({ id: uuid(100 + i), ...o })),
 }

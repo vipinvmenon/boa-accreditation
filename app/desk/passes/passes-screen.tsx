@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
-import { ALL_ZONES, passType, type PassTypeCode } from '@/lib/design'
+import { tier, tierColour } from '@/lib/design'
+import { zoneChips } from '@/lib/desk-tiers'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { PassesSkeleton } from '@/components/loading-skeleton'
@@ -13,11 +14,6 @@ export type RenderedPass = Pass & { qrSvg: string }
 function share(url: string, text: string): void {
   const message = `${text}\n${url.startsWith('/') ? `${window.location.origin}${url}` : url}`
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
-}
-
-function zonesFor(typeCode: PassTypeCode) {
-  const held = new Set(passType(typeCode).zones)
-  return ALL_ZONES.map((label) => ({ label: held.has(label), text: label }))
 }
 
 function dayCopy(dayValidity: Pass['dayValidity']): string {
@@ -115,10 +111,10 @@ export function PassesScreen() {
         {!loading && error && <p role="alert" className="passes-state passes-state-error">Unable to load passes.</p>}
         {!loading && !error && passes.length === 0 && <p className="passes-state">No approved passes yet — approve in the queue →</p>}
         {passes.map((pass, i) => {
-          const type = passType(pass.typeCode)
-          const zones = zonesFor(pass.typeCode)
+          const type = tier(pass.typeCode)
+          const zones = zoneChips(pass.typeCode)
           return (
-            <article className="pass bz rv" key={pass.id} style={{ '--c': typeColour(type.code, theme), '--d': i % 3 } as React.CSSProperties}>
+            <article className="pass bz rv" key={pass.id} style={{ '--c': tierColour(type.code, theme), '--d': i % 3 } as React.CSSProperties}>
               <div className="pl">
                 <div className="ph">
                   <img src="/assets/boa-logo.png" alt="BOA" />
@@ -133,7 +129,7 @@ export function PassesScreen() {
                   <small>{type.band} band</small>
                 </div>
                 <div className="zones">
-                  {zones.map((zone) => <span key={zone.text} className={zone.label ? undefined : 'off'}>{zone.text}</span>)}
+                  {zones.map((zone) => <span key={zone.zone} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}
                 </div>
                 <div className="qr qr-wrap" role="img" aria-label={`QR code for ${pass.fullName}`} dangerouslySetInnerHTML={{ __html: pass.qrSvg }} />
                 {pass.vehicleReg && <div className="vehbox">
@@ -169,9 +165,4 @@ export function PassesScreen() {
       `}</style>
     </main>
   )
-}
-
-function typeColour(code: PassTypeCode, theme: 'dark' | 'light'): string {
-  const type = passType(code)
-  return theme === 'dark' ? type.colour : type.colourLight
 }

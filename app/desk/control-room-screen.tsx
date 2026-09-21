@@ -4,18 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Dashboard } from '@/lib/schemas/dashboard'
-import { ALL_ZONES, PROP, TYPES, glowFor, passType, type PassTypeCode } from '@/lib/design'
+import { tier, tierColour, type TierCode } from '@/lib/design'
+import { zoneChips } from '@/lib/desk-tiers'
 import { useDomTheme } from '@/lib/use-theme'
 import { ControlRoomSkeleton } from '@/components/loading-skeleton'
 import { Icon } from '@/components/icon'
 
 /**
- * Transcribed from design/source/boa_design_body.html lines 65-146 (the
- * `isDash` block) — the one screen in scripts/visual-check.mjs's SCREENS
- * whose `auth: 'operator'` means the automated gate can never mint a session
- * for it, so it is always reported BLOCKED rather than pass/fail (see that
- * script's own header). Verified by hand instead: signed in as a real
- * operator, against the real deployed route.
+ * The v2 Control room (design/source/boa_design_v2.html, the dashboard
+ * section). The band cards render every tier boa_acc_desk_dashboard() returns,
+ * in sort order (ADR-018); the v1 three-type renderer that used to sit beside
+ * this was unreferenced and has been removed.
  *
  * The shared desk NAV / BMS status bar is supplied by DeskChrome, which wraps
  * every authenticated desk route. The public submission screen remains
@@ -42,14 +41,6 @@ function copyForError(body: unknown): string {
   return ERROR_COPY['internal']!
 }
 
-const ruleVar = 'var(--rule,rgba(242,239,226,0.16))'
-const rule2Var = 'var(--rule2,rgba(242,239,226,0.32))'
-const inkVar = 'var(--ink,#F2EFE2)'
-const panelVar = 'var(--panel,#101012)'
-const goldVar = 'var(--gold,#E3BB72)'
-const grnVar = 'var(--grn,#00F5A5)'
-const onVar = 'var(--on,#0A0A0A)'
-
 const STATUS_LABEL: Record<string, string> = {
   open: 'Open',
   submitted: 'Submitted',
@@ -70,7 +61,7 @@ function titleCase(s: string): string {
 
 /**
  * The dates that do not move (CLAUDE.md). Bhoopesh and Salman already know
- * there are three bands and how approval works — what they don't have at a
+ * which bands exist and how approval works — what they don't have at a
  * glance is how many days are left, so the hero reports that instead of
  * re-explaining the rules every time the screen loads.
  */
@@ -93,465 +84,11 @@ function nextMilestone(now: Date): { label: string; days: number } | null {
  * want it acted on: a live decision queue outranks a BMS backlog, which
  * outranks a band still sitting uncollected.
  */
-function heroHeadline(dash: Dashboard): string {
-  if (dash.pendingTotal > 0) return `${dash.pendingTotal} waiting on a decision`
-  if (dash.bmsPending > 0) return `${dash.bmsPending} approved, not in BMS`
-  if (dash.bandsNotCollected > 0) return `${dash.bandsNotCollected} bands not collected`
-  return 'Queue is clear'
-}
-
 function heroMetric(dash: Dashboard): { value: number | null; label: string } {
   if (dash.pendingTotal > 0) return { value: dash.pendingTotal, label: 'waiting on a decision' }
   if (dash.bmsPending > 0) return { value: dash.bmsPending, label: 'approved, not in BMS' }
   if (dash.bandsNotCollected > 0) return { value: dash.bandsNotCollected, label: 'bands not collected' }
   return { value: null, label: 'Queue is clear' }
-}
-
-export function ControlRoomScreenV1() {
-  const router = useRouter()
-  const theme = useDomTheme()
-  const [dash, setDash] = useState<Dashboard | null>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      const res = await fetch('/api/desk/dashboard')
-      if (cancelled) return
-      if (res.status === 401) {
-        router.replace('/desk/login')
-        return
-      }
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        if (!cancelled) setLoadError(copyForError(body))
-        return
-      }
-      const body = (await res.json()) as Dashboard
-      if (cancelled) return
-      setDash(body)
-      setLoadError(null)
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const p = PROP[theme]
-
-  const stats = dash
-    ? [
-        { label: 'Submitted', value: dash.submittedTotal, sub: `${dash.submittedOrgs} organisation${dash.submittedOrgs === 1 ? '' : 's'}`, colour: p.ink },
-        { label: 'Approved', value: dash.approvedTotal, sub: `${dash.pendingTotal} awaiting decision`, colour: p.grn },
-        { label: 'Bands issued', value: dash.bandsIssued, sub: `${dash.bandsNotCollected} not yet collected`, colour: p.gold },
-        { label: 'Vehicle stickers', value: dash.stickersActive, sub: `${dash.stickersActive + dash.stickersPending} registrations approved`, colour: p.ink },
-        { label: 'Added to BMS', value: dash.bmsAdded, sub: `${dash.bmsPending} approved, not entered`, colour: p.gold },
-      ]
-    : []
-
-  const typeCounts = new Map((dash?.types ?? []).map((t) => [t.code, t.count]))
-  const milestone = nextMilestone(new Date())
-
-  return (
-    <div style={{ background: 'var(--bg,#0A0A0A)', minHeight: '100%', display: 'flex', justifyContent: 'center' }}>
-      <div className="d-shell">
-        {loadError && (
-          <div className="d-pad-sec" style={{ color: 'var(--bad,#FF6B5A)' }}>
-            {loadError}
-          </div>
-        )}
-
-        {!dash && !loadError && <ControlRoomSkeleton />}
-
-        {dash && (
-          <>
-            {/* Hero */}
-            <div style={{ position: 'relative', overflow: 'hidden', borderBottom: `1px solid ${ruleVar}` }}>
-              <div
-                className="d-poster d-poster-img"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  right: 0,
-                  backgroundImage: 'url(/assets/boa-poster.png)',
-                  backgroundSize: 'cover',
-                  backgroundRepeat: 'no-repeat',
-                }}
-              />
-              <div className="d-poster-scrim" style={{ position: 'absolute', inset: 0 }} />
-              <div
-                className="d-hero-pad d-hero-min d-hero-text"
-                style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-              >
-                <div
-                  style={{
-                    fontFamily: "'JetBrains Mono',monospace",
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    textTransform: 'uppercase',
-                    color: grnVar,
-                    marginBottom: '18px',
-                  }}
-                >
-                  Control room
-                </div>
-                <h1
-                  className="d-h1"
-                  style={{
-                    fontFamily: "'Anton',sans-serif",
-                    lineHeight: 0.92,
-                    letterSpacing: '0.01em',
-                    textTransform: 'uppercase',
-                    color: inkVar,
-                    margin: '0 0 18px',
-                    maxWidth: '18ch',
-                  }}
-                >
-                  {heroHeadline(dash)}
-                </h1>
-                {milestone && (
-                  <p
-                    style={{
-                      fontFamily: "'JetBrains Mono',monospace",
-                      fontSize: '13px',
-                      letterSpacing: '0.04em',
-                      color: 'var(--ink2,rgba(242,239,226,0.72))',
-                      margin: '0 0 24px',
-                    }}
-                  >
-                    <span style={{ color: goldVar, fontWeight: 700 }}>{milestone.days}</span>{' '}
-                    day{milestone.days === 1 ? '' : 's'} to {milestone.label}
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link
-                    href="/desk/queue"
-                    className="hov-invert-grn"
-                    style={{
-                      cursor: 'pointer',
-                      border: `1px solid ${grnVar}`,
-                      background: grnVar,
-                      color: onVar,
-                      padding: '15px 22px',
-                      fontFamily: "'Oswald',sans-serif",
-                      fontSize: '13.5px',
-                      fontWeight: 600,
-                      letterSpacing: '0.13em',
-                      textTransform: 'uppercase',
-                      minHeight: '50px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                    }}
-                  >
-                    Clear the queue
-                    <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: 700 }}>
-                      {dash.pendingTotal}
-                    </span>
-                  </Link>
-                  <Link
-                    href="/gate"
-                    className="hov-outline-grn"
-                    style={{
-                      cursor: 'pointer',
-                      border: `1px solid ${rule2Var}`,
-                      background: panelVar,
-                      color: inkVar,
-                      padding: '15px 22px',
-                      fontFamily: "'Oswald',sans-serif",
-                      fontSize: '13.5px',
-                      fontWeight: 600,
-                      letterSpacing: '0.13em',
-                      textTransform: 'uppercase',
-                      minHeight: '50px',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    Open the gate scanner
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="d-stat-cols" style={{ display: 'grid', borderBottom: `1px solid ${ruleVar}` }}>
-              {stats.map((s) => (
-                <div key={s.label} style={{ padding: '20px 18px 18px', borderRight: `1px solid ${ruleVar}` }}>
-                  <div
-                    style={{
-                      fontFamily: "'JetBrains Mono',monospace",
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: 'var(--ink3,rgba(166,201,180,0.58))',
-                    }}
-                  >
-                    {s.label}
-                  </div>
-                  <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '46px', lineHeight: 1, letterSpacing: '0.01em', color: s.colour, marginTop: '12px' }}>
-                    {s.value}
-                  </div>
-                  <div style={{ fontSize: '13px', lineHeight: 1.4, color: 'var(--ink3,rgba(242,239,226,0.42))', marginTop: '8px' }}>{s.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Wristbands */}
-            <div className="d-pad-sec" style={{ borderBottom: `1px solid ${ruleVar}` }}>
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono',monospace",
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: grnVar,
-                  marginBottom: '14px',
-                }}
-              >
-                Wristbands
-              </div>
-              <h2 className="d-h2" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 1, textTransform: 'uppercase', color: inkVar, margin: '0 0 22px' }}>
-                {dash.bandsIssued} issued · {dash.bandsNotCollected} not collected
-              </h2>
-
-              <div className="d-type-cols" style={{ display: 'grid', gap: '1px', background: ruleVar }}>
-                {TYPES.map((t) => {
-                  const c = theme === 'dark' ? t.colour : t.colourLight
-                  const held = new Set(t.zones)
-                  return (
-                    <div key={t.code} style={{ background: 'var(--bg,#0A0A0A)', padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
-                        <div
-                          style={{
-                            fontFamily: "'JetBrains Mono',monospace",
-                            fontSize: '9.5px',
-                            fontWeight: 700,
-                            letterSpacing: '0.14em',
-                            textTransform: 'uppercase',
-                            color: 'var(--ink3,rgba(242,239,226,0.52))',
-                          }}
-                        >
-                          {t.num}
-                        </div>
-                        <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '34px', lineHeight: 1, color: 'var(--ink2,rgba(242,239,226,0.72))' }}>
-                          {typeCounts.get(t.code) ?? 0}
-                        </div>
-                      </div>
-                      <div style={{ height: '8px', background: c, boxShadow: glowFor(c, theme) }} />
-                      <div>
-                        <div style={{ fontFamily: "'Anton',sans-serif", fontSize: '26px', lineHeight: 1, textTransform: 'uppercase', color: inkVar }}>
-                          {t.label}
-                        </div>
-                        <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: '12.5px', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: c, marginTop: '6px' }}>
-                          {t.band} band
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '13.5px', lineHeight: 1.5, color: 'var(--ink2,rgba(242,239,226,0.72))' }}>{t.note}</div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: 0,
-                          borderTop: `1px solid ${ruleVar}`,
-                          paddingTop: '12px',
-                          marginTop: 'auto',
-                        }}
-                      >
-                        {ALL_ZONES.map((z) => (
-                          <span
-                            key={z}
-                            style={{
-                              fontFamily: "'Oswald',sans-serif",
-                              fontSize: '9.5px',
-                              fontWeight: 500,
-                              letterSpacing: '0.1em',
-                              textTransform: 'uppercase',
-                              color: held.has(z) ? p.ink2 : p.ink3,
-                              padding: '3px 8px 3px 0',
-                            }}
-                          >
-                            {held.has(z) ? z : `—— ${z}`}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* AAA override */}
-            <div className="d-pad-sec" style={{ borderBottom: `1px solid ${ruleVar}`, borderTop: `2px solid ${goldVar}`, background: panelVar }}>
-              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                <div style={{ flex: '1 1 320px' }}>
-                  <div
-                    style={{
-                      fontFamily: "'JetBrains Mono',monospace",
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      letterSpacing: '0.18em',
-                      textTransform: 'uppercase',
-                      color: goldVar,
-                      marginBottom: '12px',
-                    }}
-                  >
-                    AAA override
-                  </div>
-                  <div style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--ink2,rgba(242,239,226,0.72))', maxWidth: '62ch' }}>
-                    <strong style={{ color: inkVar }}>
-                      {dash.aaaStamped} issued of {dash.aaaNominatedApproved} approved.
-                    </strong>
-                    {dash.aaaNominatedApproved > dash.aaaStamped && (
-                      <> {dash.aaaNominatedApproved - dash.aaaStamped} still to stamp.</>
-                    )}
-                  </div>
-                </div>
-                <Link
-                  href="/desk/aaa"
-                  className="hov-invert-gold"
-                  style={{
-                    cursor: 'pointer',
-                    border: `1px solid ${goldVar}`,
-                    background: goldVar,
-                    color: onVar,
-                    padding: '14px 22px',
-                    fontFamily: "'JetBrains Mono',monospace",
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    letterSpacing: '0.13em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Manage list →
-                </Link>
-              </div>
-            </div>
-
-            {/* Organisations */}
-            <div className="d-pad-sec">
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono',monospace",
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: grnVar,
-                  marginBottom: '14px',
-                }}
-              >
-                Organisations
-              </div>
-              <h2 className="d-h2" style={{ fontFamily: "'Anton',sans-serif", lineHeight: 1, textTransform: 'uppercase', color: inkVar, margin: '0 0 22px' }}>
-                {dash.orgs.length} compan{dash.orgs.length === 1 ? 'y' : 'ies'} on site
-              </h2>
-
-              {dash.orgs.length === 0 ? (
-                <p style={{ fontSize: '14px', color: 'var(--ink3,rgba(242,239,226,0.42))' }}>
-                  No organisations yet. Add one from <Link href="/desk/orgs" style={{ color: grnVar }}>Orgs</Link>.
-                </p>
-              ) : (
-                <div style={{ borderTop: `1px solid ${rule2Var}` }}>
-                  {dash.orgs.map((o) => {
-                    const pct = o.quota > 0 ? Math.round((o.used / o.quota) * 100) : 0
-                    const barFg = pct >= 100 ? p.gold : p.grn
-                    const type = passType(o.defaultType as PassTypeCode)
-                    const typeColourValue = theme === 'dark' ? type.colour : type.colourLight
-                    const statusFg = o.status === 'submitted' ? p.gold : o.status === 'approved' ? p.grn : p.ink3
-                    return (
-                      <div
-                        key={o.id}
-                        className="d-org-cols"
-                        style={{ display: 'grid', gap: '16px', padding: '16px 0', borderBottom: `1px solid ${ruleVar}`, alignItems: 'center' }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div
-                            style={{
-                              fontFamily: "'Oswald',sans-serif",
-                              fontSize: '17px',
-                              fontWeight: 600,
-                              letterSpacing: '0.02em',
-                              textTransform: 'uppercase',
-                              color: inkVar,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {o.name}
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "'JetBrains Mono',monospace",
-                              fontSize: '10.5px',
-                              letterSpacing: '0.07em',
-                              textTransform: 'uppercase',
-                              color: 'var(--ink3,rgba(242,239,226,0.42))',
-                              marginTop: '4px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {titleCase(o.kind)} · {o.contactName} · {o.contactPhone}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-                          <span style={{ width: '9px', height: '22px', background: typeColourValue, flex: '0 0 auto' }} />
-                          <span
-                            style={{
-                              fontFamily: "'Oswald',sans-serif",
-                              fontSize: '13px',
-                              fontWeight: 500,
-                              letterSpacing: '0.09em',
-                              textTransform: 'uppercase',
-                              color: 'var(--ink2,rgba(242,239,226,0.72))',
-                            }}
-                          >
-                            {type.label}
-                          </span>
-                        </div>
-                        <div>
-                          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '13px', fontWeight: 700, letterSpacing: '0.06em', color: inkVar }}>
-                            {o.used}
-                            <span style={{ color: 'var(--ink3,rgba(242,239,226,0.42))', fontWeight: 400 }}>/{o.quota}</span>
-                          </div>
-                          <div style={{ height: '3px', background: ruleVar, marginTop: '6px' }}>
-                            <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barFg }} />
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "'JetBrains Mono',monospace",
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            color: statusFg,
-                            textAlign: 'left',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {STATUS_LABEL[o.status] ?? titleCase(o.status)}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
 }
 
 function V2Count({ value, suffix }: { value: number; suffix?: string | undefined }) {
@@ -608,26 +145,40 @@ function V2Stat({
   )
 }
 
-function V2BandCard({ type, count, theme, delay }: { type: (typeof TYPES)[number]; count: number; theme: 'dark' | 'light'; delay: number }) {
-  const colour = theme === 'dark' ? type.colour : type.colourLight
-  const held = new Set(type.zones)
+/**
+ * One card per tier the database returns, in boa_acc_type.sort_order (the
+ * master sheet's "Where each band goes" order). Count and note come from the
+ * data layer; label, band name, colour and zone strip from the pack mirror in
+ * lib/design.ts, which accreditation-contract.test.ts proves against the seed.
+ */
+function V2BandCard({ code, count, note, theme, delay }: { code: TierCode; count: number; note: string | null; theme: 'dark' | 'light'; delay: number }) {
+  const t = tier(code)
   return (
-    <div className="bandcard bz rv" style={{ '--d': delay, '--c': colour } as React.CSSProperties}>
+    <div className="bandcard bz rv" style={{ '--d': delay, '--c': tierColour(code, theme) } as React.CSSProperties}>
       <div className="pl">
-        <div className="top"><span className="mono">{type.num}</span><span className="cnt num">{count}</span></div>
+        <div className="top"><span className="mono">{t.printQty === null ? 'Print qty TBC' : `${t.printQty} printed`}</span><span className="cnt num">{count}</span></div>
         <div className="stripe" />
-        <h3>{type.label}</h3>
-        <div className="col">{type.band} band</div>
-        <p>{type.note}</p>
-        <div className="zones">{ALL_ZONES.map((zone) => <span key={zone} className={held.has(zone) ? undefined : 'off'}>{zone}</span>)}</div>
+        <h3>{t.label}</h3>
+        <div className="col">{t.band} band</div>
+        {note && <p>{note}</p>}
+        <div className="zones">{zoneChips(code).map((zone) => <span key={zone.zone} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}</div>
       </div>
     </div>
   )
 }
 
+const COUNT_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
+const ORDINAL_WORDS = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh']
+
+/** The v2 heading "Three bands. No fourth.", counted from the data rather than written in. */
+function bandsHeading(n: number): string {
+  const count = COUNT_WORDS[n]
+  const next = ORDINAL_WORDS[n + 1]
+  return count && next ? `${count} band${n === 1 ? '' : 's'}. No ${next}.` : `${n} bands.`
+}
+
 function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'light' }) {
   const rootRef = useRef<HTMLElement>(null)
-  const typeCounts = new Map(dash.types.map((type) => [type.code, type.count]))
   const milestone = nextMilestone(new Date())
   const headline = heroMetric(dash)
   const approvedRatio = dash.submittedTotal > 0 ? dash.approvedTotal / dash.submittedTotal : 0
@@ -689,15 +240,15 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
         <V2Stat className="stat quad" label="Organisations" value={dash.submittedOrgs} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
       </div>
 
-        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">Three bands. No fourth.</h2></div>
-        <div className="bands3">{TYPES.map((type, index) => <V2BandCard key={type.code} type={type} count={typeCounts.get(type.code) ?? 0} theme={theme} delay={index + 7} />)}</div>
+        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{bandsHeading(dash.types.length)}</h2></div>
+        <div className="bands3">{dash.types.map((type, index) => <V2BandCard key={type.code} code={type.code} count={type.count} note={type.note ?? null} theme={theme} delay={index + 7} />)}</div>
 
         <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.submittedOrgs} compan{dash.submittedOrgs === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first <Icon name="sort-descending" /></span></div>
         <div className="bz rv"><div className="pl"><div className="list-scroll" tabIndex={0} aria-label="Organisations on site"><div className="list">
           <div className="list-head"><span className="mono">Organisations</span><span className="mono">{dash.orgs.length} listed</span></div>
           {dash.orgs.map((org) => {
-            const type = passType(org.defaultType as PassTypeCode)
-            const colour = theme === 'dark' ? type.colour : type.colourLight
+            const type = tier(org.defaultType)
+            const colour = tierColour(org.defaultType, theme)
             const percentage = org.quota > 0 ? Math.min(org.used / org.quota, 1) : 0
             return <div className="li" key={org.id}>
               <div><div className="nm">{org.name}</div><div className="sub">{titleCase(org.kind)}, {org.contactName}, {org.contactPhone}</div></div>
