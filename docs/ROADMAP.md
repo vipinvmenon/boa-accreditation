@@ -131,7 +131,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       Vipin is the admin and invites them himself as needed. Issuers must
       have logged in once, with signal, before the rehearsal · **V**
 
-- [~] **ACC-140** · Reconcile the docs with what is live: ROSTER-FORM.md still
+- [x] **ACC-140** · Reconcile the docs with what is live: ROSTER-FORM.md still
       says the import migration is unapplied (commit `a663dc0` applied it); the
       live form carries crew types the committed `CREW_TYPES` does not
       ("Artist Logistics", "Tech Production (Stage)" — write-ins or an editor

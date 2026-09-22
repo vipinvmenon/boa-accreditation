@@ -44,3 +44,4 @@ supabase/.branches/
 # Generated roster workbook artefacts — carry real organisation names and
 # rosters (names, phone numbers). Never commit these.
 /build/
+.playwright-mcp/

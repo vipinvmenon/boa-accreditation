@@ -68,7 +68,10 @@ seeded full-roster verification. Physical rehearsal remains unverified.
 **The app is deployed** at
 [accred.bangaloreopenair.com](https://accred.bangaloreopenair.com)
 (`bom1`). The latest static migration check covered **28 migration files**;
-the live applied-migration count was not rechecked during ACC-111.
+the live applied-migration count was not rechecked during ACC-111. **Superseded
+22 Sep:** `corepack pnpm db:state` against production now shows **31 local
+migration files**, all 31 in production's migration history, including
+`202609211100_boa_acc_import_roster` (ACC-140, below).
 
 **Current gate artifact evidence (20 Sep 2026):** the inspected generated
 `public/gate/sw.js` contains **60 precache entries**: **3 routes, 30 scripts,
@@ -985,6 +988,34 @@ Verified by attempting the thing, not by reading a grant table:
 > **ACC-108 released 2026-09-19 (IST):** Login rebuilt + committed (715e631); 404/error/global-error still to do — parked behind ACC-109 gate safety
 
 ## Session log
+
+### 22 Sep 2026 — ACC-140: docs reconciled against the live database and form
+
+Ran with real access, not assumed:
+
+- `corepack pnpm db:state` against production: **31/31 local migration files
+  are in production's migration history**, including
+  `202609211100_boa_acc_import_roster` — its function exists (checked by the
+  script's own witness). `anon` still holds zero table and function grants.
+  `boa_acc_person: 0` rows — no roster has been imported. `auth.users: 1`
+  (Vipin only).
+- Queried `boa_acc_org` directly (read-only, name/kind/status/quota/created_at
+  only): **all 38 rows are `PLACEHOLDER — <Kind> NN` fixtures** seeded 14 Sep
+  for the queue/master/passes tests. There are no real organisations. This
+  blocks any real import row (ACC-142) until real orgs exist.
+- Opened the **live respondent form** in a browser (public URL, no sign-in):
+  its Crew type options match `CREW_TYPES` in `build-roster-form.gs` exactly,
+  in order, `Other:` last. Confirms values seen in the response sheet outside
+  that list (`Artist Logistics`, `Tech Production (Stage)` /
+  `(stage)`) are **write-ins under Other**, not a form edited out of band.
+- Updated `docs/ROSTER-FORM.md`: the "not yet applied" import banner, the
+  crew-type→tier mapping section, and the tier-hint/AAA-refusal description
+  were all stale against ADR-019/ADR-020 and today's findings. Marked
+  superseded in place rather than deleted, so the old design stays legible.
+
+Not verified this session: the response sheet's own row count/content (no
+export was read), the sheet's time-zone setting, and whether
+`data/crew-type-tiers.json` matters at all going forward (ADR-019 says no).
 
 ### 22 Sep 2026 — ACC-116/117: desk column "Accreditation Type" — added by hand
 

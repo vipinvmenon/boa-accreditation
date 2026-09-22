@@ -135,9 +135,19 @@ Consequences for the desk and the importer:
 Change the list in `CREW_TYPES` in the script, not in the form editor, so the
 change is recorded.
 
-**Open:** the desk needs a crew type → band mapping to approve quickly. That is
-an operational call for Salman, not something to infer. Until it exists,
-approvers decide per organisation or per person.
+**Verified live, 22 Sep 2026:** the respondent form's Crew type options were
+read from the live form (not the sheet) and match `CREW_TYPES` in
+`build-roster-form.gs` exactly, in order, with `Other:` last. So values seen
+in the response sheet that are not on that list — `Artist Logistics`,
+`Tech Production (Stage)`, `Tech Production (stage)` — are **write-ins under
+Other**, working as designed, not a form edited out of band. They have no
+crew-type → band mapping and never will (see below).
+
+**Superseded 22 Sep (ADR-019):** the crew type → band mapping described as
+"Open" here is no longer being built. Column I, "Accreditation Type", set by
+Salman directly in the sheet, is the approval (ACC-140a) and always wins over
+crew type (see "The desk's column" below) — including for write-ins. A row
+with no column I value stays undecided; it does not fall back to a mapping.
 
 ### Why days are required
 
@@ -183,17 +193,24 @@ else — any other extra column is still refused. Because a person typed it, its
 header is matched **ignoring case and surrounding space**; the form's own
 headers stay exact.
 
-- A filled cell becomes the row's tier hint (`requested_type_code`) and **wins
-  over the crew-type mapping**, because a person decided.
-- **AAA and Artist** are named lists behind a nomination; the import RPC refuses
-  them as a hint. Those rows import with no hint and are listed in a warning, to
-  be approved through the desk's AAA nomination.
-- A blank cell means *not yet decided*: the row falls back to the crew-type
-  mapping, never to a default tier.
-- Anything that is not exactly one of the labels above refuses that row — a
-  curly apostrophe in `Eddie’s Lounge` included.
-- It remains a hint. The band is still set at approval, in the database
-  (non-negotiable #3).
+**Superseded 22 Sep (ADR-019, ACC-140a/b) — what is written below is the old
+design, not what ACC-141 builds:**
+
+- ~~A filled cell becomes the row's tier hint and wins over the crew-type
+  mapping.~~ A filled cell **is the approval.** There is no crew-type mapping
+  to win over (see "Crew type, not band" above) — column I is the only source.
+- ~~AAA and Artist are refused as a hint, routed to the AAA nomination
+  screen.~~ Salman choosing AAA or Artist in column I **is** the AAA/Artist
+  approval (ACC-140b). The import RPC records it as one; `/desk/aaa` is not
+  part of this path.
+- A blank cell still means *not yet decided* — but there is no mapping to fall
+  back to. The row imports as `submitted` and waits.
+- Anything that is not exactly one of the eight tier labels above still
+  refuses that row — a curly apostrophe in `Eddie’s Lounge` included.
+- ~~It remains a hint.~~ It is written as `type_code` at import (still inside
+  the database's approval path — ACC-141's RPC does the approving, not the
+  spreadsheet cell itself; non-negotiable #3 holds because the write only
+  happens inside that RPC, run by a lead/admin).
 
 Rules for whoever edits the sheet by hand:
 
@@ -215,10 +232,19 @@ Rules for whoever edits the sheet by hand:
 
 ## Importing
 
-> **Built (ACC-117), not yet applied to the database.** The migration
-> `202609211100_boa_acc_import_roster.sql` is committed but has **not** been
-> pushed to production, so the loader's real-load mode fails until it is.
-> No roster has been loaded. Do not claim one has.
+> **Built (ACC-117) and applied.** The migration
+> `202609211100_boa_acc_import_roster.sql` is in production's migration
+> history and `boa_acc_import_roster` exists there — checked with
+> `corepack pnpm db:state` on 22 Sep 2026. The loader's real-load mode is no
+> longer blocked by that. **No roster has still been loaded** — `db:state`
+> shows `boa_acc_person: 0` rows on 22 Sep. Do not claim one has.
+>
+> **`boa_acc_org` currently holds 38 rows, and every one is a fixture:**
+> `PLACEHOLDER — Vendor 01` … `PLACEHOLDER — Media 03`, seeded 14 Sep for
+> the queue/master-list/passes tests. There are **no real organisations**
+> in the database yet. The importer refuses any row whose Organisation
+> doesn't match an existing `boa_acc_org.name`, so every real row will be
+> refused until real orgs exist — see ROADMAP ACC-142.
 
 Export the response sheet as CSV (**File ▸ Download ▸ Comma-separated values**),
 then:
@@ -248,11 +274,14 @@ node scripts/import-roster.mjs responses.csv --as you@example.com --report data/
 A row is refused with every problem listed, by sheet row number. A phone
 repeated within one organisation is flagged, and the database refuses it.
 
-**Crew type → tier.** `data/crew-type-tiers.json` is the mapping, and it is
-**empty** — Salman owes it. Until it is filled, no row carries a tier hint and
-the loader says so. Values may only be a tier a vendor can request (ADR-018:
-stage, promoters_lounge, crew, photo, eddies_lounge); a write-in "Other" crew
-type never gets a hint and is flagged for a person to decide.
+**Superseded 22 Sep (ADR-019).** `data/crew-type-tiers.json` is not being
+filled in and this mapping is not being built — see "Crew type, not band"
+above. Column I is the only source of tier/approval; a row with no column I
+value stays `submitted`, never a guess from crew type.
+
+**Also changed 22 Sep (ACC-140g):** there is no quota check for now. The org
+row lock and duplicate-phone check below still apply; only the `quota_exceeded`
+outcome is disabled. `boa_acc_org.quota` stays in the schema, unused.
 
 **What the loader does.** One call per organisation to
 `public.boa_acc_import_roster(p_org_id uuid, p_rows jsonb)`, as the session of
