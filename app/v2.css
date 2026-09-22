@@ -273,6 +273,9 @@ main { position: relative; padding: 0 32px 64px; }
 .name-search-results { display: grid; gap: 1px; background: var(--hair); }
 .name-search-result { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 10px 14px; border: 0; background: var(--panel); color: var(--ink); text-align: left; }
 .name-search-result:hover { background: var(--shell); }
+.name-search-result { cursor: pointer; }
+.name-search-result[aria-selected="true"] { background: var(--shell); box-shadow: inset 3px 0 0 var(--grn); }
+.name-search-results[hidden] { display: none; }
 .name-search-result b, .name-search-result small { display: block; }
 .name-search-result b { font-family: var(--label); font-size: 14px; text-transform: uppercase; }
 .name-search-result small { margin-top: 3px; color: var(--ink3); font-family: var(--mono); font-size: 10px; letter-spacing: .04em; }

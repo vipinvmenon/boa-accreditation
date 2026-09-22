@@ -15,6 +15,7 @@ import { gateBandCard } from '@/gate/band-card'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { GateChrome } from './gate-chrome'
+import { PersonSearch } from './person-search'
 
 export default function GatePage() {
   const router = useRouter()
@@ -27,8 +28,6 @@ export default function GatePage() {
   const [message, setMessage] = useState<string | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [cameraActive, setCameraActive] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -169,13 +168,6 @@ export default function GatePage() {
   const issued = resolution?.status === 'green' && issuedTo === resolution.person.passToken
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
   const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
-  const searchResults = useMemo(() => {
-    const term = searchQuery.trim().toLowerCase()
-    if (!snapshot || term.length < 2) return []
-    return snapshot.roster
-      .filter((row) => `${row.fullName} ${row.roleText} ${row.orgName} ${row.vehicleReg ?? ''}`.toLowerCase().includes(term))
-      .slice(0, 8)
-  }, [snapshot, searchQuery])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -218,26 +210,7 @@ export default function GatePage() {
             <canvas ref={canvasRef} hidden />
             <input aria-label="Manual scanner input" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
             <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p></div>
-            <button type="button" onClick={() => { setSearchOpen(true); setCameraError(null) }} className="btn wide hov-outline-grn">Can&apos;t scan? Search by name<span className="ic"><Icon name="magnifying-glass" /></span></button>
-            {searchOpen && (
-              <div className="name-search">
-                <label className="field">
-                  <span>Search approved roster</span>
-                  <input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Name, phone or organisation" />
-                </label>
-                {searchQuery.trim().length >= 2 && searchResults.length === 0 && <p className="mono">No approved person matches that search.</p>}
-                {searchResults.length > 0 && (
-                  <div className="name-search-results">
-                    {searchResults.map((row) => (
-                      <button key={row.personId} type="button" className="name-search-result" onClick={() => { setSearchOpen(false); setSearchQuery(''); void resolve(row.passToken) }}>
-                        <span><b>{row.fullName}</b><small>{row.orgName} · {row.roleText}</small></span>
-                        <Icon name="arrow-right" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <PersonSearch roster={snapshot.roster} onOpen={() => setCameraError(null)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <div role="alert" className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}>{cameraError}</div>}
             <div style={{ marginTop: 26 }}><span className="mono">Last issued at this gate</span><div className="last" style={{ marginTop: 8 }}>
               {recent.map((row) => {

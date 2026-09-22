@@ -192,6 +192,24 @@ async function outboxStatuses(page: Page) {
   })
 }
 
+async function outboxIssues(page: Page) {
+  return page.evaluate(async () => {
+    const request = indexedDB.open('boa-accreditation-gate')
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    type Row = { status: string; payload: { passToken?: string; kind?: string; bandSerial?: string | null } }
+    const rows = await new Promise<Row[]>((resolve, reject) => {
+      const read = database.transaction('outbox', 'readonly').objectStore('outbox').getAll()
+      read.onsuccess = () => resolve(read.result as Row[])
+      read.onerror = () => reject(read.error)
+    })
+    database.close()
+    return rows.map((row) => ({ status: row.status, passToken: row.payload.passToken, kind: row.payload.kind, bandSerial: row.payload.bandSerial }))
+  })
+}
+
 test.describe('gate aeroplane mode', () => {
   test('enforces the nonce CSP while the WASM scanner decodes a QR', async ({ page }) => {
     const qrDataUrl = await QRCode.toDataURL('BOA26:pass-alpha', { margin: 2, width: 300 })
@@ -334,6 +352,46 @@ test.describe('gate aeroplane mode', () => {
     await expectVerdict(gate, 'Refuse')
     await gate.getByRole('button', { name: 'Next person' }).click()
     await expectVerdict(gate, 'Ready')
+  })
+
+  // ACC-147 / ACC-131. Gate APIs are mocked with page.route in installFixture,
+  // like every other case here; after the reload the context is offline, so
+  // the search can only have read the Dexie cache.
+  test('search by name with the radio off feeds the scanner path: green, typed serial, outbox', async ({ page }) => {
+    const { page: gate, requests } = await installFixture(page, ['success'])
+    await reloadColdOffline(gate)
+
+    await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
+    const box = gate.getByRole('combobox', { name: 'Search approved list' })
+    await expect(box).toBeFocused()
+    await box.fill('  PERSON 3 ')
+    await expect(gate.getByRole('option')).toHaveCount(1)
+    await expect(gate.getByRole('option', { name: /E2E Person 3/ })).toBeVisible()
+    await box.press('Enter')
+
+    await expectVerdict(gate, 'Approved')
+    await expect(gate.locator('.person .nm')).toHaveText('E2E Person 3')
+    await expect(box).toHaveCount(0)
+    await gate.getByLabel('Wristband serial, optional').fill('0417')
+    await gate.getByRole('button', { name: 'Issue wristband' }).click()
+    await expect(gate.getByText(/Offline \| 1 queued/)).toBeVisible()
+    await expect.poll(() => outboxIssues(gate)).toEqual([
+      { status: 'pending', passToken: PEOPLE[2].passToken, kind: 'wristband', bandSerial: '0417' },
+    ])
+    expect(requests).toEqual([])
+
+    // The same person found again, by tap this time, is already collected.
+    await gate.getByRole('button', { name: 'Next person' }).click()
+    await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
+    await gate.getByRole('combobox', { name: 'Search approved list' }).fill('e2e pers')
+    await expect(gate.getByRole('option')).toHaveCount(4)
+    await gate.getByRole('option', { name: /E2E Person 3/ }).click()
+    await expectVerdict(gate, 'Collected')
+
+    await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
+    await gate.getByRole('combobox', { name: 'Search approved list' }).fill('nobody here')
+    await expect(gate.getByText('No approved person matches that search.')).toBeVisible()
+    await expect(gate.getByRole('option')).toHaveCount(0)
   })
 
   test('a double tap on Issue wristband queues exactly one issue', async ({ page }) => {
