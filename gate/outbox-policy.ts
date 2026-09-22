@@ -57,7 +57,11 @@ export function classifyFailure(error: unknown): FailureKind {
     return 'duplicate'
   }
 
-  if (code === '28000' || code === '42501') return 'auth'
+  // 401/403 are the gate routes' own HTTP answer to a revoked device or a
+  // lapsed operator session (ACC-149/ACC-150). Their JSON body ("invalid_device",
+  // "not_authorized") matches none of the prose below, so until this line a 401
+  // was 'transient' and burned MAX_ATTEMPTS on the head of the queue.
+  if (code === '28000' || code === '42501' || code === '401' || code === '403') return 'auth'
   if (
     /not authorised|not authorized|authentication required|permission denied|jwt|unauthor|(?:^|\s)401(?:\s|$)|(?:^|\s)403(?:\s|$)/.test(
       message,

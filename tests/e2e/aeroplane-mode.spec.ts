@@ -452,8 +452,11 @@ test.describe('vehicle gate (ACC-109)', () => {
   test('Log entry with a valid sticker and wristband logs exactly one CLEARED event, in one press', async ({ page }) => {
     const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
     await seedVehicle(gate, 'KA05MJ8871', true)
-    await gate.goto('/gate/vehicle')
+    // Offline BEFORE the navigation: since ACC-149 the gate re-pulls on mount
+    // when online, and this fixture's pull answers with an empty ledger, which
+    // would replace the rows seeded straight into Dexie above.
     await gate.context().setOffline(true)
+    await gate.goto('/gate/vehicle')
     await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
     await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
     await expectVerdict(gate, 'Cleared')
@@ -483,8 +486,11 @@ test.describe('vehicle gate (ACC-109)', () => {
   test('Turn away on a valid vehicle logs TURNED AWAY, never cleared (the stale-state bug)', async ({ page }) => {
     const { page: gate } = await installFixture(page, ['success'])
     await seedVehicle(gate, 'KA05MJ8871', true)
-    await gate.goto('/gate/vehicle')
+    // Offline BEFORE the navigation: since ACC-149 the gate re-pulls on mount
+    // when online, and this fixture's pull answers with an empty ledger, which
+    // would replace the rows seeded straight into Dexie above.
     await gate.context().setOffline(true)
+    await gate.goto('/gate/vehicle')
     await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
     await gate.getByRole('button', { name: 'Turn away and log reason' }).click()
     await expect(gate.getByLabel('Turn-away reason')).toBeFocused()

@@ -83,4 +83,20 @@ describe('outbox drain routing (ACC-109)', () => {
     // A vehicle event never writes a check-in ledger row; the wristband does.
     expect((await gateDb.ledger.toArray()).map((row) => row.kind)).toEqual(['wristband'])
   })
+
+  it('a 401 keeps the whole queue, consumes no attempt and sends nothing behind the head (ACC-149)', async () => {
+    for (const [index, key] of ['88888888-8888-4888-8888-888888888881', '88888888-8888-4888-8888-888888888882'].entries()) {
+      await enqueueIssue({ idempotencyKey: key, passToken: `pass-${index}`, kind: 'wristband', bandSerial: '', vehicleReg: null, isReissue: false })
+      await gateDb.outbox.where('idempotencyKey').equals(key).modify({ createdAt: index + 1 })
+    }
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: 'invalid_device' }), { status: 401, headers: { 'content-type': 'application/json' } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await drainOutbox('revoked-token')
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const rows = await gateDb.outbox.orderBy('createdAt').toArray()
+    expect(rows.map((row) => [row.status, row.attempts])).toEqual([['pending', 0], ['pending', 0]])
+    expect(rows[0]?.lastError).toBe('authentication required')
+  })
 })
