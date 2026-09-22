@@ -15,6 +15,7 @@ import { gateBandCard } from '@/gate/band-card'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { GateChrome } from './gate-chrome'
+import { SyncStatus } from './sync-status'
 
 export default function GatePage() {
   const router = useRouter()
@@ -217,7 +218,7 @@ export default function GatePage() {
             </div>
             <canvas ref={canvasRef} hidden />
             <input aria-label="Manual scanner input" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
-            <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p></div>
+            <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p><SyncStatus onSynced={loadCache} top={-16} /></div>
             <button type="button" onClick={() => { setSearchOpen(true); setCameraError(null) }} className="btn wide hov-outline-grn">Can&apos;t scan? Search by name<span className="ic"><Icon name="magnifying-glass" /></span></button>
             {searchOpen && (
               <div className="name-search">

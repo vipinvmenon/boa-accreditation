@@ -78,7 +78,15 @@ async function drainOnce(deviceToken: string): Promise<void> {
         continue
       }
       if (kind === 'auth') {
-        await gateDb.outbox.update(entry.id, { status: 'pending', lastError: 'authentication required' })
+        // Keep the entry and its attempt count (an auth failure is not the
+        // entry's fault), but hold it briefly so the next trigger does not
+        // re-post it in a tight loop. gate/sync-scheduler.ts reads this
+        // lastError via hasAuthStoppedEntry and pauses until re-login.
+        await gateDb.outbox.update(entry.id, {
+          status: 'pending',
+          lastError: 'authentication required',
+          nextAttemptAt: Date.now() + nextAttemptDelayMs(entry.attempts + 1),
+        })
         break
       }
       const attempts = entry.attempts + 1

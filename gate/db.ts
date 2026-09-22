@@ -90,6 +90,10 @@ export const metaKeySchema = z.enum([
   'schemaVersion',
   'gateLabel',
   'volunteerName',
+  // ACC-149: epoch ms of this device's last successful roster pull and last
+  // full outbox drain, rendered as "Last synced". Not indexed; no version bump.
+  'lastPullAt',
+  'lastDrainAt',
 ])
 
 export const metaRowSchema = z.object({

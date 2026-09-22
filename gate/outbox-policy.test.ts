@@ -102,6 +102,8 @@ describe('classifyFailure', () => {
       new Error('permission denied'),
       { message: 'expired', code: '42501' },
       { message: 'expired', code: '28000' },
+      { message: '{"error":"invalid_device"}', code: '401' },
+      { message: '{"error":"not_authorized"}', code: '403' },
     ]) {
       expect(classifyFailure(error)).toBe('auth')
     }
