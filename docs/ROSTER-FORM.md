@@ -127,7 +127,10 @@ separate "Other" column.
 
 Consequences for the desk and the importer:
 
-- A write-in crew type has no band mapping. Those rows need a person to decide.
+- A write-in crew type has no band mapping, and needs none: column I decides
+  every row (ACC-141). The importer normalises a write-in's case and spacing
+  for display and role text only — `Tech Production (stage)` and
+  `Tech Production (Stage)` are one crew type (ACC-143, `normaliseCrewType`).
 - The form cannot validate write-in text. It becomes the role text when there is
   no job title, and the database limits role text to 2–60 characters, so the
   importer must refuse and report anything outside that rather than truncate it.
@@ -193,24 +196,24 @@ else — any other extra column is still refused. Because a person typed it, its
 header is matched **ignoring case and surrounding space**; the form's own
 headers stay exact.
 
-**Superseded 22 Sep (ADR-019, ACC-140a/b) — what is written below is the old
-design, not what ACC-141 builds:**
+**What the importer does with it (ACC-141, built 22 Sep on a branch; ADR-019,
+ACC-140a/b):**
 
-- ~~A filled cell becomes the row's tier hint and wins over the crew-type
-  mapping.~~ A filled cell **is the approval.** There is no crew-type mapping
-  to win over (see "Crew type, not band" above) — column I is the only source.
-- ~~AAA and Artist are refused as a hint, routed to the AAA nomination
-  screen.~~ Salman choosing AAA or Artist in column I **is** the AAA/Artist
-  approval (ACC-140b). The import RPC records it as one; `/desk/aaa` is not
-  part of this path.
-- A blank cell still means *not yet decided* — but there is no mapping to fall
-  back to. The row imports as `submitted` and waits.
-- Anything that is not exactly one of the eight tier labels above still
-  refuses that row — a curly apostrophe in `Eddie’s Lounge` included.
-- ~~It remains a hint.~~ It is written as `type_code` at import (still inside
-  the database's approval path — ACC-141's RPC does the approving, not the
-  spreadsheet cell itself; non-negotiable #3 holds because the write only
-  happens inside that RPC, run by a lead/admin).
+- A filled cell **is the approval.** The row's tier is column I and nothing
+  else — there is no crew-type mapping. The database approves the person and
+  mints the pass, inside `boa_acc_import_approve`, run by a lead/admin
+  (non-negotiables #3, #5). The spreadsheet cell itself authorises nothing.
+- **AAA and Artist are approvals too** (ACC-140b). For AAA the database
+  records the nomination column I stands for, then approves through the same
+  nomination guard the desk uses. `/desk/aaa` is not part of this path.
+- A blank cell means *not yet decided*: the row imports as `submitted`, with
+  no pass, and the importer lists it for Salman.
+- Anything that is not exactly one of the seven labels refuses that row — a
+  curly apostrophe in `Eddie’s Lounge`, a lower-case `stage` and
+  `General Admission` included.
+- Changing a cell for someone **already approved** is reported by the next
+  import (`tier_changed`) and **not applied**: their pass may already be out.
+  The desk changes it, not the sheet.
 
 Rules for whoever edits the sheet by hand:
 
@@ -224,34 +227,38 @@ Rules for whoever edits the sheet by hand:
 
 ## What the form cannot enforce
 
-- **Quota.** A form has no idea how many people an organisation has already
-  submitted. The quota is enforced on import, under the same row lock as the
-  web form (`boa_acc_submit`), and over-quota rows are refused and reported.
-- **Duplicates.** The same person submitted twice is caught on import by the
-  existing duplicate-phone check, not by the form.
+- **Quota.** Not enforced at all for now (ACC-140g). `boa_acc_org.quota`
+  stays in the schema, unread by the import.
+- **Duplicates.** The same person submitted twice is caught on import by
+  phone, not by the form: twice in one sheet, or already on another
+  organisation's roster.
+- **Spelling of the organisation.** Free text until the question becomes a
+  dropdown (ACC-116); misspellings are matched through a committed alias map
+  (below).
 
 ## Importing
 
-> **Built (ACC-117) and applied.** The migration
-> `202609211100_boa_acc_import_roster.sql` is in production's migration
-> history and `boa_acc_import_roster` exists there — checked with
-> `corepack pnpm db:state` on 22 Sep 2026. The loader's real-load mode is no
-> longer blocked by that. **No roster has still been loaded** — `db:state`
-> shows `boa_acc_person: 0` rows on 22 Sep. Do not claim one has.
+> **Built (ACC-141–143) on a branch, not applied.** The loader now calls
+> `public.boa_acc_import_approve`, created by
+> `supabase/migrations/202609221000_boa_acc_import_approve.sql`. **That
+> migration is not in production** until someone runs `db:push`; until then
+> the loader's real-load mode fails with "function does not exist", and
+> `corepack pnpm test:db` fails on `import-approve.test.sql` and on three
+> `privileges.test.sql` lines. `--offline` and `--dry` do not need it.
 >
-> **`boa_acc_org` currently holds 38 rows, and every one is a fixture:**
-> `PLACEHOLDER — Vendor 01` … `PLACEHOLDER — Media 03`, seeded 14 Sep for
-> the queue/master-list/passes tests. There are **no real organisations**
-> in the database yet. The importer refuses any row whose Organisation
-> doesn't match an existing `boa_acc_org.name`, so every real row will be
-> refused until real orgs exist — see ROADMAP ACC-142.
+> ACC-117's `boa_acc_import_roster` (submitted-only, with a quota) is still
+> applied in production and untouched, but **nothing calls it any more**.
+>
+> **`boa_acc_org` holds only 38 `PLACEHOLDER — …` fixture rows** (checked
+> 22 Sep). There are no real organisations yet; every real row is reported
+> as an unmatched organisation until the admin creates them.
 
 Export the response sheet as CSV (**File ▸ Download ▸ Comma-separated values**),
 then:
 
 ```bash
 node scripts/import-roster.mjs responses.csv --offline   # validate only, touches nothing
-node scripts/import-roster.mjs responses.csv --dry       # + read-only org match and quota preview
+node scripts/import-roster.mjs responses.csv --dry       # + read-only organisation match
 node scripts/import-roster.mjs responses.csv --as you@example.com --report data/roster-import.local.csv
 ```
 
@@ -262,73 +269,105 @@ node scripts/import-roster.mjs responses.csv --as you@example.com --report data/
 
 | Column | Rule |
 |---|---|
-| header | exactly the contract above, in order, or nothing is read |
+| header | exactly the contract above, in order, optionally followed by the desk's column I, or nothing is read |
 | Timestamp | US locale `M/D/YYYY H:MM:SS`, no zone in the cell. **Read as Asia/Kolkata** and sent as `…+05:30`. That is an assumption about the spreadsheet's time-zone setting, which the CSV does not carry — check **File ▸ Settings** on the response sheet says GMT+05:30 before the first real import. Becomes `submitted_at` |
-| Organisation | matched to `boa_acc_org.name` trimmed, whitespace-collapsed, case-insensitive. Unmatched names are reported with their row numbers |
+| Organisation | through `data/org-aliases.json`, then matched to `boa_acc_org.name` trimmed, whitespace-collapsed, case-insensitive. Unmatched names are reported with their row numbers, never guessed |
 | Full name | 2–80 characters |
 | WhatsApp number | read as a **string**; 10 digits starting 6–9 → `+91…`. Spaces and dashes tolerated; a spreadsheet round-trip like `9.87E9` is refused, never repaired |
-| Crew type / Job title | role text is the job title if given, else the crew type; 2–60 characters or the row is **refused, never truncated** |
-| Days on site | the three answers → `build` / `show` / `build_show` |
+| Crew type | case and spacing normalised (`normaliseCrewType`): a fixed choice takes the form's spelling; a write-in gets each word's first letter upper-cased, nothing lower-cased. Display and role text only — **never the tier** |
+| Job title | role text is the job title if given, else the crew type; 2–60 characters or the row is **refused, never truncated** |
+| Days on site | the three answers → `build` / `show` / `build_show`; sent as `day_validity` |
 | Loading vehicle registration | upper-cased, spaces removed, then the database's plate CHECK; blank is no vehicle |
+| Accreditation Type (column I) | exactly one of the seven labels → `type_code`; blank → `null` (undecided) |
 
-A row is refused with every problem listed, by sheet row number. A phone
-repeated within one organisation is flagged, and the database refuses it.
+A row is refused with every problem listed, by sheet row number. The output
+also lists undecided rows (for Salman), write-in crew types with their rows,
+and any phone that appears twice in the sheet.
 
-**Superseded 22 Sep (ADR-019).** `data/crew-type-tiers.json` is not being
-filled in and this mapping is not being built — see "Crew type, not band"
-above. Column I is the only source of tier/approval; a row with no column I
-value stays `submitted`, never a guess from crew type.
+**Organisation aliases (ACC-142).** `data/org-aliases.json` maps a misspelling
+seen in the sheet to the organisation's canonical name — seeded with
+`Banglore Open Air` and `Bangalore open air` → `Bangalore Open Air`. Add a line
+only for a spelling actually seen. The file refuses chains and conflicting
+entries. An alias whose canonical org has not been created yet is reported as
+unmatched ("is an alias of …, which is not a boa_acc_org yet"). The importer
+never creates or deletes an organisation.
 
-**Also changed 22 Sep (ACC-140g):** there is no quota check for now. The org
-row lock and duplicate-phone check below still apply; only the `quota_exceeded`
-outcome is disabled. `boa_acc_org.quota` stays in the schema, unused.
+**What the loader does.** One call per organisation (1000 rows per call at
+most) to `public.boa_acc_import_approve(p_org_id uuid, p_rows jsonb)`, as the
+session of the operator named by `--as`, who must be an active **lead or
+admin** — the database checks, not the script. It refuses to load if any row
+was refused or names an unknown organisation, unless `--partial` is given. The
+report file holds row number, organisation, outcome and reason — never a name
+or a phone.
 
-**What the loader does.** One call per organisation to
-`public.boa_acc_import_roster(p_org_id uuid, p_rows jsonb)`, as the session of
-the operator named by `--as`, who must be an active **lead or admin**.
-It refuses to load if any row was refused or names an unknown organisation,
-unless `--partial` is given. The report file holds row number, organisation,
-outcome and reason — never a name or a phone.
+**What the RPC does**, per row, in one transaction per organisation:
 
-**What the RPC does.** Inserts each row as `submitted` and returns one result
-per row: `inserted`, `duplicate_phone`, `quota_exceeded` or `invalid`.
+| Outcome | When |
+|---|---|
+| `approved` | column I filled, person new or still `submitted` → approved through `private.boa_acc_decide_one`: `type_code`, `day_validity`, `pass_token`, `pass_ref`, `approved_by` = the importing lead/admin |
+| `inserted` | column I blank, new person → `submitted`, no pass; the days answer kept in `requested_day_validity` |
+| `unchanged` | already imported and the sheet says the same thing. What a re-run returns |
+| `tier_changed` | already **approved**, and the sheet now says another tier or days, or the cell was cleared. **Reported, not applied** |
+| `skipped` | the person was rejected by the desk (or is a web-form draft); column I is not applied over it |
+| `refused` | a guard refused the approval (e.g. `aaa_not_nominated` when that phone's AAA nomination is already stamped to someone else). A new person stays imported as `submitted` |
+| `duplicate_phone` | the phone is earlier in the same call, or live on **another** organisation's roster |
+| `invalid` | a field rule failed, no days, or `general_admission` |
 
-- Quota under the same `select … for update` on the org row as `boa_acc_submit`,
-  so a web submission and an import cannot both take the last seat.
-- **Not** through `boa_acc_submit`, whose 60-per-hour-per-token throttle is a
-  control on the public surface and would take nine hours for 500 people.
-- Per row, not all-or-nothing: the rows that fit load, the others are reported.
-  Re-running the same file is safe — loaded rows come back `duplicate_phone`.
-  A closed org, an unknown org or a non-lead/admin caller refuses the whole call.
-- Sets only the advisory `requested_type_code` and **`requested_day_validity`**
-  — a column this migration adds, because `day_validity` cannot be set before
-  approval (the `pass_only_when_approved` CHECK) and the days answer would
-  otherwise be lost. Never `type_code`, `day_validity` or a pass. Nothing reads
-  either hint yet: the queue and `boa_acc_approve_org` do not show or use them.
+- **Idempotent on phone.** A person is matched by organisation and phone
+  (non-voided). Re-running the same file approves rows decided since the last
+  run and writes nothing else — name, role and plate edits in the sheet are
+  not applied to an existing person either.
+- **AAA.** Before approving as `aaa` the RPC records the nomination column I
+  stands for (`nominated_by` / `approved_by` = the importing lead/admin,
+  `org_hint` = the org), or approves an unapproved one already on file for
+  that phone. `decide_one` then checks and stamps it exactly as for the desk.
+  The nomination and the approval share one sub-transaction, so a refused
+  approval leaves no nomination behind. Artist has no nomination and is
+  approved like any other tier.
+- **No quota** (ACC-140g). The org row lock (`for update`, as
+  `boa_acc_submit`) and the closed-org refusal stay.
+- A closed or unknown org, a non-lead/admin caller, or a payload that is not
+  an array of at most 1000 refuses the whole call.
 
 ### What the import has and has not been verified to do
 
-- **Unit tests** (`tests/unit/import-roster.test.ts`): every column rule above,
-  a generated 500-row sheet validating into one 500-row payload, and pins to
-  the form script's questions/crew types/days, to `lib/design.ts`'s requestable
-  tiers, and to the exact jsonb fields the migration reads.
-- **Database, inside a transaction that was rolled back** (21 Sep 2026, against
-  production, nothing persisted — checked afterwards that the function, the
-  column and the fixture rows were absent): the migration applied cleanly;
-  `supabase/tests/import-roster.test.sql` passed 14/14 (500 rows in one call;
-  no pass, tier or validity on any row; quota and duplicates refused per row;
-  re-run refused as duplicates; approver and no-session callers refused); the
-  extended `privileges.test.sql` passed 86/86. Loosening the quota check to
-  `>` made the quota assertions fail. The loader's exact SQL
-  (`importRosterSql`) on a 500-row CSV inserted 500 in one call and a re-run
-  returned 500 `duplicate_phone`.
+- **Unit tests** (`tests/unit/import-roster.test.ts`, 37): every column rule
+  above; column I → `type_code`, blank → undecided and listed, AAA/Artist
+  carried, General Admission and a curly apostrophe refused; the live sheet's
+  write-ins (`Tech Production (stage)` ≡ `(Stage)`, `Artist Logistics`)
+  normalised and never setting a tier; the committed alias map resolving the
+  live sheet's variants and refusing chains/conflicts; a generated 500-row
+  sheet as one payload; and pins to the form script's questions/crew
+  types/days, to `lib/design.ts`'s tier labels, and to the exact jsonb fields
+  and outcomes the migration uses.
+- **Database, inside transactions that were rolled back** (22 Sep 2026,
+  against production via the Management API; afterwards a read-only query
+  confirmed `boa_acc_import_approve` does not exist, `boa_acc_person` and
+  `boa_acc_aaa_nomination` still hold 0 rows, `boa_acc_org` 38, and no test
+  user remains): the migration applied cleanly;
+  `supabase/tests/import-approve.test.sql` passed **26/26** (approve with
+  column I, blank stays submitted with no pass, AAA recorded-then-approved
+  through the guard, AAA with an unapproved nomination, AAA with a stamped
+  nomination still refused, Artist, re-run unchanged, a later run approving
+  only the newly decided row, changed tier and days and a cleared cell
+  reported and not applied with the pass unchanged, duplicates in-call and
+  cross-org, approver and no-session refused); `privileges.test.sql` with the
+  three new lines passed **89/89**.
+- **Mutation-tested** (each in its own rolled-back transaction): approving a
+  blank column I as `crew` failed 4 assertions; skipping the AAA nomination
+  record failed 10 (decide_one's guard refused every AAA row — the guard is
+  live, not bypassed); letting an approver call it failed the approver test.
+- **The loader's exact SQL** (`importApproveSql`) on a generated 501-row CSV
+  whose Organisation cells were the two seeded misspellings, against a
+  throwaway org with quota 1, rolled back: 401 approved (including one AAA)
+  and 100 submitted in one call, every approved row with a pass and no
+  submitted row with one; a re-run returned 501 `unchanged`.
 - `--offline` and `--dry` were run against a generated file; `--dry` read the
-  live organisation list.
-- **Not verified:** the loader's real-load mode against the database (it
-  writes, and the migration is not applied); an export of the real response
-  sheet (it has no responses); the sheet's time-zone setting.
-- Until the migration is applied, `corepack pnpm test:db` fails on
-  `import-roster.test.sql` and on the four new `privileges.test.sql` lines.
+  live organisation list (read-only).
+- **Not verified:** the loader's real-load mode against production (the
+  migration is not applied); `corepack pnpm test:db` as a whole (it would fail
+  until the migration is applied); an export of the real response sheet; the
+  sheet's time-zone setting.
 
 ## What has and has not been verified
 
