@@ -24,7 +24,7 @@ Owner column: **V** = Vipin · **C** = the coding agent (Claude/Cursor/Codex) ·
 ```
 Google Form ─▶ response sheet ─▶ Salman sets "Accreditation Type" (column I)
    ─▶ CSV ─▶ import-and-approve RPC (type + days + pass minted in the DB)   ──▶ R
-   ─▶ pass to each WhatsApp number ─▶ Bhoopesh's check-in desk (offline) ──▶ B
+   ─▶ pass to each WhatsApp number ─▶ up to 10 logged-in issuers (offline) ─▶ B
 ```
 
 Superseded 22 Sep: `boa_acc_submit ─▶ /s/[token] ─▶ 38 links ─▶ queue`. The
@@ -76,12 +76,11 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [ ] **ACC-140d** · How a pass reaches a person: WhatsApp to their own number
       (by hand from the desk), or printed and collected · **V/B** · *needed Thu 24 Sep*
 - [ ] **ACC-140e** · The date the form closes · **V/SN** · *needed Fri 25 Sep*
-- [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.
-      `auth.users` is currently 0, so nobody can sign in to the desk at all.
-      **Interim decision:** the four test identities use unique Gmail `+alias`
-      addresses routing to Vipin's personal inbox. Real addresses are deferred
-      until the app is ready, but must replace the aliases before invite links
-      go out on 20 Sep. **V** · *real addresses needed before launch*
+- [ ] **ACC-026a** · Email addresses for the team: Salman and Bhoopesh (desk),
+      and **up to 10 check-in issuers** (ADR-020), each invited through
+      `/desk/users` — invite → set password → log in. Only Vipin exists today.
+      Issuers must be invited and have logged in once, with signal, before
+      the rehearsal · **V** · *needed Thu 1 Oct*
 - [x] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
       (ACC-026) has no screen — inviting anyone today means constructing a
       `curl` by hand. Added 12 Sep 2026 on Vipin's direct request after
@@ -154,9 +153,37 @@ Decisions this phase needs, in the blocked section above: ACC-140a–e.
 - [ ] **ACC-146** · The daily loop, written into OPERATIONS.md: Salman decides
       in the sheet → export → import → passes sent → Bhoopesh enters BMS. Runs
       until the form closes (ACC-140e) · **C** · due Mon 28 Sep
-- [ ] **ACC-147** · Bhoopesh's check-in desk: find a person by name or phone
-      offline (ACC-131's search), scan the pass, type the serial. Mostly built;
-      acceptance is Bhoopesh doing it on his own phone · **C/B** · due Wed 30 Sep
+- [ ] **ACC-150** · **Issuers log in; no device tokens (ADR-020).** Add an
+      `issuer` operator role (check in and issue only: no approve, no import,
+      no user admin), invitable from `/desk/users`. `/api/gate/*` authorise the
+      logged-in operator's session, with the role checked **in the database**
+      (non-negotiable #3); every ledger row records the operator. Retire
+      `/gate/setup` pairing, `/desk/devices` and the device-token RPCs from
+      the app (the migration drops their grants; `privileges.test.sql` proves
+      `anon` still has nothing). Offline: log in once with signal; a session
+      that lapses offline leaves the outbox queued until re-login (the existing
+      401 test, re-pointed at session auth). Acceptance: pgTAP for issuer
+      allowed/refused per RPC; aeroplane-mode `test:e2e` green with a logged-in
+      issuer; SECURITY.md and ARCHITECTURE.md say what is true · **C** ·
+      due Sat 26 Sep
+- [ ] **ACC-147** · The check-in desk, for up to 10 issuers: find a person by
+      name or phone offline (ACC-131's search), scan the pass, type the band
+      serial. Mostly built; acceptance is two issuers doing it on their own
+      phones, logged in as themselves · **C/B** · due Wed 30 Sep
+- [ ] **ACC-148** · **Double-issue warning.** Offline, two issuers can each hand
+      a band to the same person; no app can stop that without signal. When the
+      phones sync, the server spots two live bands for one person and the
+      Control room lists it: person, both serials, both issuers, both times.
+      The ledger still records both — nothing is rejected or overwritten
+      (non-negotiable #2). Acceptance: pgTAP with two offline issues synced
+      in either order; the Control room renders it from the data layer ·
+      **C** · due Mon 28 Sep
+- [ ] **ACC-149** · **Sync as soon as there is signal.** The outbox drains on
+      reconnect and on a short timer; the roster re-pulls on a timer while
+      online, so a second phone shows amber "already issued" within about a
+      minute when the desk has signal. The last-synced time is visible on the
+      gate. Acceptance: `test:e2e` with two browser contexts — one issues,
+      the other shows amber after sync · **C** · due Tue 29 Sep
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
@@ -379,10 +406,14 @@ provably absent before approval · AAA unstampable without a nomination ·
 - [x] **ACC-055** · `/gate/vehicle` + `vehicle.test.sql` · **C** · due Thu 1 Oct
 - [x] **ACC-056** · `/api/gate/*`; SW precache incl. the `.wasm` · **C** · due Thu 1 Oct
 - [x] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
-- [ ] **ACC-058** · **Rehearsal: two real phones, one an iPhone, real aeroplane mode** · **V/B** · due **Sat 3 Oct**
+- [ ] **ACC-058** · **Rehearsal: three or more real phones, one an iPhone,
+      each logged in as a different issuer, real aeroplane mode.** Stage one
+      deliberate double issue offline and see ACC-148 catch it after sync ·
+      **V/B** · due **Sat 3 Oct**
 - [ ] **ACC-059** · Print the paper fallback: approved list by name (and by crew type), blank issue sheets · **B** · due Sat 3 Oct
 - [x] **ACC-060** · Optimise `boa-logo.png` — 290 KB is heavy for a gate precache · **C** · due Fri 2 Oct
-- [ ] **ACC-061** · Mint device tokens for 4 phones · **B** · due Sat 3 Oct
+- [-] **ACC-061** · Mint device tokens for 4 phones · **B** · due Sat 3 Oct
+      **Retired 22 Sep (ADR-020):** issuers log in; there are no device tokens.
 
 **Acceptance:** cold start with the radio off renders the scanner and the full
 cached roster · every step of the aeroplane-mode spec asserted in CI · **both

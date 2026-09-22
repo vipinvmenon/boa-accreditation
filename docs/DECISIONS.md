@@ -703,3 +703,29 @@ counts.
 **Open, and not decided by this ADR** (roadmap ACC-140a–e): whether column I
 *is* the approval; whether AAA/Artist may be decided in the sheet; whether
 organisations still matter; how a pass reaches a person; when the form closes.
+
+## ADR-020 — Check-in issuers log in as people; device tokens are retired
+
+**Accepted 22 Sep 2026, on Vipin's instruction.** Supersedes the device-token
+half of ADR-002 and the `/gate/setup` pairing flow.
+
+Wristbands will be handed out by **up to 10 people**, not Bhoopesh alone. Each
+gets the same path as the desk and as `boa-bar-control`: **invite → set
+password → log in.** No phone is paired and no device token is minted.
+
+- A new operator role, **`issuer`**: check in and issue bands only. It cannot
+  approve, import or manage users. Enforced in the database (non-negotiable #3).
+- `/api/gate/*` authorise the operator's session; every ledger row names the
+  person who issued the band.
+- **Offline cost, accepted:** an issuer must log in once with signal before a
+  shift. A session that lapses offline loses nothing — the outbox stays queued
+  until they log in again.
+- **Ten offline phones can double-issue.** Two issuers without signal can each
+  give the same person a band; nothing can prevent that while the phones cannot
+  talk. It is caught instead: phones sync as soon as there is signal, and the
+  Control room lists every person holding two live bands, with both serials and
+  both issuers (ACC-148, ACC-149). With signal at the desk, the second phone
+  shows amber "already issued" and it does not happen.
+
+Roadmap: ACC-150 (login), ACC-148 (warning), ACC-149 (sync); ACC-061 retired;
+ACC-058 rehearsal widened to three or more phones with a staged double issue.

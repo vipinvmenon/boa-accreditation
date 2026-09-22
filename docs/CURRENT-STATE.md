@@ -21,6 +21,9 @@ Phase R (ACC-140–147).
   typed three ways, and crew types not in the committed `CREW_TYPES`. No export
   has been read and nothing has been imported.
 - **Five decisions block Phase R:** ACC-140a–e in the roadmap.
+- **Up to 10 issuers, not device tokens (ADR-020).** Each logs in with their own
+  invite and password; an `issuer` role is to be added (ACC-150). Offline double
+  issues are caught after sync, not prevented (ACC-148, ACC-149). Not built yet.
 - Where this file below talks about invite links, `/s/[token]` as the
   collection path, or the queue as the approval path, read it as history.
 
