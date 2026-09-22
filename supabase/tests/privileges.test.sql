@@ -11,6 +11,7 @@
 -- @proves: HIGH     | boa_acc_import_roster: authenticated EXECUTE only (lead/admin checked inside); anon and service_role zero
 -- @proves: HIGH     | boa_acc_import_approve: authenticated EXECUTE only (lead/admin checked inside); anon and service_role zero
 -- @proves: HIGH     | boa_acc_double_issues: authenticated EXECUTE only (lead/approver/admin checked inside); anon and service_role zero
+-- @proves: HIGH     | boa_acc_pass_send: zero table grants for anyone; desk RPCs authenticated-only, the webhook's status write service_role-only
 -- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
 -- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
 --
@@ -35,7 +36,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(92) as line
+  select 0 as n, plan(113) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -103,6 +104,31 @@ select line from (
   union all select 1411, function_privs_are('public', 'boa_acc_import_approve', array['uuid','jsonb'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_import_approve')
   union all select 1412, function_privs_are('public', 'boa_acc_import_approve', array['uuid','jsonb'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_import_approve')
   union all select 1413, function_privs_are('public', 'boa_acc_import_approve', array['uuid','jsonb'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_import_approve')
+  -- ACC-144 · the WhatsApp send record. Zero table grants for everyone,
+  -- service_role included: every read and write goes through the RPCs. The
+  -- desk RPCs are authenticated-only (lead/admin checked inside); the webhook's
+  -- status write is service_role-only, reached after the HMAC check.
+  union all select 1441, table_privs_are('public', 'boa_acc_pass_send', 'anon', array[]::text[], 'anon: zero on boa_acc_pass_send')
+  union all select 1442, table_privs_are('public', 'boa_acc_pass_send', 'authenticated', array[]::text[], 'authenticated: zero on boa_acc_pass_send')
+  union all select 1443, table_privs_are('public', 'boa_acc_pass_send', 'service_role', array[]::text[], 'service_role: zero on boa_acc_pass_send')
+  union all select 1444, ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.boa_acc_pass_send'::regclass), 'RLS enabled and forced on boa_acc_pass_send')
+  union all select 1445, function_privs_are('public', 'boa_acc_pass_sends', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_sends')
+  union all select 1446, function_privs_are('public', 'boa_acc_pass_sends', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_pass_sends')
+  union all select 1447, function_privs_are('public', 'boa_acc_pass_sends', array[]::text[], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_pass_sends')
+  union all select 1448, function_privs_are('public', 'boa_acc_pass_send_unsent', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_unsent')
+  union all select 1449, function_privs_are('public', 'boa_acc_pass_send_unsent', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_pass_send_unsent')
+  union all select 1450, function_privs_are('public', 'boa_acc_pass_send_unsent', array[]::text[], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_pass_send_unsent')
+  union all select 1451, function_privs_are('public', 'boa_acc_pass_send_begin', array['uuid','boolean'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_begin')
+  union all select 1452, function_privs_are('public', 'boa_acc_pass_send_begin', array['uuid','boolean'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_pass_send_begin')
+  union all select 1453, function_privs_are('public', 'boa_acc_pass_send_begin', array['uuid','boolean'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_pass_send_begin')
+  union all select 1454, function_privs_are('public', 'boa_acc_pass_send_record', array['uuid','text','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_record')
+  union all select 1455, function_privs_are('public', 'boa_acc_pass_send_record', array['uuid','text','text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_pass_send_record')
+  union all select 1456, function_privs_are('public', 'boa_acc_pass_send_record', array['uuid','text','text'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_pass_send_record')
+  union all select 1457, function_privs_are('public', 'boa_acc_pass_send_status', array['text','text','timestamp with time zone','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_status')
+  union all select 1458, function_privs_are('public', 'boa_acc_pass_send_status', array['text','text','timestamp with time zone','text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_pass_send_status (webhook only)')
+  union all select 1459, function_privs_are('public', 'boa_acc_pass_send_status', array['text','text','timestamp with time zone','text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_pass_send_status')
+  union all select 1460, function_privs_are('private', 'boa_acc_pass_send_is_live', array['public.boa_acc_pass_send_status','text','timestamp with time zone'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_is_live')
+  union all select 1461, function_privs_are('private', 'boa_acc_pass_send_is_live', array['public.boa_acc_pass_send_status','text','timestamp with time zone'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_pass_send_is_live')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')
