@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { dashboardSchema, dashboardTypeNoteSchema } from '@/lib/schemas/dashboard'
+import {
+  dashboardSchema,
+  dashboardTypeNoteSchema,
+  doubleIssueListSchema,
+  type DashboardResponse,
+  type DoubleIssue,
+} from '@/lib/schemas/dashboard'
 
 // ACC-033. Every Control-room number comes from boa_acc_desk_dashboard()
 // (202609120010) in one call — holds lib/supabase-server.ts (the operator's
@@ -38,8 +44,21 @@ export async function GET() {
   const notes = dashboardTypeNoteSchema.array().safeParse(typeRows ?? [])
   const noteByCode = new Map(notes.success ? notes.data.map((row) => [row.code, row.note]) : [])
 
-  return NextResponse.json({
+  // ACC-148: names behind the count, read only when there is something to
+  // show. boa_acc_double_issues() does its own role check (lead/approver/
+  // admin). A failed read still returns the count, with a null list, so the
+  // warning never disappears because its detail could not load.
+  let doubleIssueList: DoubleIssue[] | null = []
+  if (parsed.data.doubleIssues > 0) {
+    const { data: rows, error: listError } = await supabase.rpc('boa_acc_double_issues')
+    const list = listError ? null : doubleIssueListSchema.safeParse(rows)
+    doubleIssueList = list?.success ? list.data : null
+  }
+
+  const body: DashboardResponse = {
     ...parsed.data,
     types: parsed.data.types.map((type) => ({ ...type, note: noteByCode.get(type.code) ?? null })),
-  })
+    doubleIssueList,
+  }
+  return NextResponse.json(body)
 }

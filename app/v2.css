@@ -231,6 +231,9 @@ main { position: relative; padding: 0 32px 64px; }
 .qt .num b { color: var(--ink); }
 .list-scroll { max-height: min(62vh, 680px); overflow: auto; overscroll-behavior: contain; scrollbar-color: var(--rule2) transparent; }
 .list-head { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 24px; background: var(--panel); box-shadow: inset 0 -1px 0 var(--hair); }
+/* ACC-148 · double-issue rows: person, the live bands, the count. Existing tokens only. */
+.list .li.dbl { grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto; align-items: start; }
+.list .li.dbl .qt .sub + .sub { margin-top: 6px; }
 
 /* ── Queue ────────────────────────────────────────────────────────── */
 .selbar { position: sticky; top: 112px; z-index: 5; display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 8px 8px 8px 18px; border-radius: 999px; background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 0 0 1px var(--hair), var(--lift); }
@@ -528,6 +531,7 @@ footer span:last-child { color: var(--gold); }
   .list .li { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; padding: 16px 18px; }
   .list .li .band { display: none; }
   .list .li .qt { grid-column: 1 / -1; order: 3; }
+  .list .li.dbl { grid-template-columns: minmax(0, 1fr) auto; }
   .qrow { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "ck nm st" ". pk pk"; gap: 12px 14px; padding: 16px 18px; }
   .qrow > .ck { grid-area: ck; } .qrow > div { grid-area: nm; } .qrow > .st { grid-area: st; } .qrow .pick { grid-area: pk; }
   .org-h { padding: 20px 18px; }

@@ -29,6 +29,7 @@ const WITNESSES = [
   ['202609110007_boa_acc_revoke_invite', 'function', 'private.boa_acc_revoke_invite'],
   ['202609110008_boa_acc_wipe_email', 'function', 'private.boa_acc_wipe_email'],
   ['202609221000_boa_acc_import_approve', 'function', 'public.boa_acc_import_approve'],
+  ['202609221300_boa_acc_double_issue', 'function', 'public.boa_acc_double_issues'],
 ]
 
 const t = describeTransport(root)
