@@ -77,14 +77,22 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-140d** · Passes are sent **by the app** to each person's own
       WhatsApp number, once their details are complete. **Decided 22 Sep
       (Vipin).** How the app sends is ACC-140f.
-- [ ] **ACC-140f** · WhatsApp sending method: (a) WhatsApp Business Cloud API —
-      fully automatic, needs Meta business verification, an approved message
-      template and a sending number, lead time outside our control; or (b) the
-      desk sends from the app with one tap per person (opens WhatsApp with the
-      pass pre-filled), works today. Recommended: build (b) now, add (a) if Meta
-      approves in time · **V** · *needed Wed 23 Sep*
-- [ ] **ACC-140g** · Quotas per organisation: enforce a cap per org on import,
-      or none? The importer enforces one today · **V/SN** · *needed Wed 23 Sep*
+- [x] **ACC-140f** · WhatsApp is sent **automatically through the WhatsApp
+      Business Cloud API**, from BOA's Meta-verified business account.
+      **Decided 22 Sep (Vipin).** The one-tap send is kept as the fallback if a
+      template is rejected or the API is down (ACC-144).
+- [x] **ACC-140g** · **No quotas for now. Decided 22 Sep (Vipin).** The import
+      does not refuse a row for being over a cap; Salman controls numbers
+      through column I. The quota column stays in the schema, unused.
+- [ ] **ACC-151** · WhatsApp Cloud API setup in Meta Business Manager (Vipin;
+      an agent never handles these values): (1) the sending phone number
+      registered on BOA's WhatsApp Business Account; (2) a **Utility** message
+      template, e.g. `boa_crew_pass`, with the person's name and a URL button
+      to their `/p/<token>`, submitted for approval — the agent drafts the
+      wording in ACC-144; (3) a permanent **System User** access token, the
+      phone-number ID and the WABA ID put into Vercel env vars by Vipin, never
+      pasted into chat or committed. Meta bills per template message sent ·
+      **V** · *needed Thu 24 Sep*
 - [x] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
       (ACC-026) has no screen — inviting anyone today means constructing a
       `curl` by hand. Added 12 Sep 2026 on Vipin's direct request after
@@ -114,8 +122,7 @@ Form; Salman decides each person's tier in the sheet's column I; the app takes
 over from the import. **This phase is the critical path to Milestone R.**
 Retired tasks below are marked `[-]` and no longer counted.
 
-Decided 22 Sep: ACC-140a–d (above). Still open: ACC-140f (WhatsApp method),
-ACC-140g (quotas). Not blocking:
+Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not blocking:
 
 - [ ] **ACC-140e** · The date the form closes. **TBD (Vipin, 22 Sep).** Not
       blocking: the daily import (ACC-146) runs until it closes · **V/SN**
@@ -149,7 +156,7 @@ ACC-140g (quotas). Not blocking:
       reaches it, and the form's Organisation question becomes a dropdown of
       that list (ACC-116) so new orgs cannot misspell. Existing free-text
       answers are matched through a committed alias map; anything unmatched is
-      reported by row, never guessed. Quota per ACC-140g · **C** ·
+      reported by row, never guessed. No quota check (ACC-140g) · **C** ·
       due Thu 24 Sep
 - [ ] **ACC-143** · Crew-type write-ins: normalise case/space for display
       ("Tech Production (stage)" = "(Stage)"); column I always wins; a row with
@@ -157,10 +164,16 @@ ACC-140g (quotas). Not blocking:
       Acceptance: unit tests on the live sheet's actual values · **C** ·
       due Fri 25 Sep
 - [ ] **ACC-144** · The app sends each approved person their pass on
-      WhatsApp, to their own number (ACC-140d). `/desk/passes` lists who is
-      approved and not yet sent; sending records who sent it and when, so no
-      one is sent twice by accident and no one is missed. Method per ACC-140f.
-      Nothing fires on zero people. Replaces ACC-137's org-scoped share ·
+      WhatsApp, to their own number, through the Cloud API (ACC-140d/f).
+      `/desk/passes` shows approved-and-not-sent; **Send** (one person, or all
+      unsent) is server-side only, lead/admin only, checked in the database.
+      Every send is recorded — who, when, Meta's message ID and delivery
+      status from the webhook — so no one is sent twice by accident and no one
+      is missed; failures are listed with Meta's reason. The access token is
+      server-only (never `NEXT_PUBLIC_`). One-tap `wa.me` send stays as the
+      fallback. Nothing fires on zero people. Replaces ACC-137. Acceptance: a
+      real template message delivered to Vipin's own number; a rejected send
+      shown with its reason; pgTAP on the send record. **Needs ACC-151** ·
       **C** · due Sat 26 Sep
 - [ ] **ACC-145** · First real import from the live sheet: `--offline`, `--dry`,
       then load, with `db:state` before and after; approved/submitted counts

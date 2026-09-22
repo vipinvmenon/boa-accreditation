@@ -24,8 +24,11 @@ Phase R (ACC-140–147).
   sheet is the AAA approval; organisations matter (the form goes to other orgs
   after BOA); the app sends each pass to the person's own WhatsApp. Vipin, as
   admin, invites the team — not a blocker. Vipin has the iPhone for ACC-053b.
-- **Still open:** ACC-140f (how WhatsApp is sent), ACC-140g (quotas);
-  ACC-140e (form close date) is TBD and not blocking.
+- **Also decided 22 Sep:** passes go out automatically through the WhatsApp
+  Business Cloud API on BOA's Meta-verified account (one-tap send kept as the
+  fallback); **no quotas** for now. Vipin owes the Meta setup (ACC-151: number,
+  approved template, system-user token into Vercel env). ACC-140e (form close
+  date) is TBD and not blocking.
 - **Up to 10 issuers, not device tokens (ADR-020).** Each logs in with their own
   invite and password; an `issuer` role is to be added (ACC-150). Offline double
   issues are caught after sync, not prevented (ACC-148, ACC-149). Not built yet.
