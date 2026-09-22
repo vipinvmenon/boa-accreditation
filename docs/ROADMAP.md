@@ -35,7 +35,7 @@ Everything else is off the critical path and can be cut. See "Cut order".
 
 ---
 
-## ⛔ Blocked on Vipin — every day of delay moves Milestone A
+## ⛔ Blocked on Vipin
 
 These block **all** of Phase 1. Nothing on the critical path can start without #1.
 
@@ -66,21 +66,25 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       login; this only adds a real-session pass on top · **V** · *optional*
 - [-] **ACC-030a** · The 38 organisations: name, kind, quota, contact name,
       contact phone. **Retired 22 Sep (ADR-019)** — replaced by ACC-140c.
-- [ ] **ACC-140a** · Is column I ("Accreditation Type") the approval itself, so
-      the import approves? Recommended: yes · **V/SN** · *needed Wed 23 Sep*
-- [ ] **ACC-140b** · AAA and Artist chosen in the sheet by Salman — accepted as
-      approval, replacing the `/desk/aaa` nomination? Today the importer
-      refuses them · **SN** · *needed Wed 23 Sep*
-- [ ] **ACC-140c** · Do organisations still matter (quota, grouping, a contact)?
-      Or one BOA org with crew type as the grouping? · **V/SN** · *needed Wed 23 Sep*
-- [ ] **ACC-140d** · How a pass reaches a person: WhatsApp to their own number
-      (by hand from the desk), or printed and collected · **V/B** · *needed Thu 24 Sep*
-- [ ] **ACC-140e** · The date the form closes · **V/SN** · *needed Fri 25 Sep*
-- [ ] **ACC-026a** · Email addresses for the team: Salman and Bhoopesh (desk),
-      and **up to 10 check-in issuers** (ADR-020), each invited through
-      `/desk/users` — invite → set password → log in. Only Vipin exists today.
-      Issuers must be invited and have logged in once, with signal, before
-      the rehearsal · **V** · *needed Thu 1 Oct*
+- [x] **ACC-140a** · Column I is the approval. **Decided 22 Sep (Vipin):**
+      Salman fills it in the live sheet; a filled cell approves on import.
+- [x] **ACC-140b** · AAA (and Artist) are decided by Salman in column I, and
+      that is the approval. **Decided 22 Sep (Vipin).** The import records the
+      AAA nomination itself; no separate `/desk/aaa` step.
+- [x] **ACC-140c** · Organisations matter. **Decided 22 Sep (Vipin):** the form
+      went to the BOA team first and will go to the other organisations too,
+      so the Organisation answer is kept and matched to a real org.
+- [x] **ACC-140d** · Passes are sent **by the app** to each person's own
+      WhatsApp number, once their details are complete. **Decided 22 Sep
+      (Vipin).** How the app sends is ACC-140f.
+- [ ] **ACC-140f** · WhatsApp sending method: (a) WhatsApp Business Cloud API —
+      fully automatic, needs Meta business verification, an approved message
+      template and a sending number, lead time outside our control; or (b) the
+      desk sends from the app with one tap per person (opens WhatsApp with the
+      pass pre-filled), works today. Recommended: build (b) now, add (a) if Meta
+      approves in time · **V** · *needed Wed 23 Sep*
+- [ ] **ACC-140g** · Quotas per organisation: enforce a cap per org on import,
+      or none? The importer enforces one today · **V/SN** · *needed Wed 23 Sep*
 - [x] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
       (ACC-026) has no screen — inviting anyone today means constructing a
       `curl` by hand. Added 12 Sep 2026 on Vipin's direct request after
@@ -110,7 +114,15 @@ Form; Salman decides each person's tier in the sheet's column I; the app takes
 over from the import. **This phase is the critical path to Milestone R.**
 Retired tasks below are marked `[-]` and no longer counted.
 
-Decisions this phase needs, in the blocked section above: ACC-140a–e.
+Decided 22 Sep: ACC-140a–d (above). Still open: ACC-140f (WhatsApp method),
+ACC-140g (quotas). Not blocking:
+
+- [ ] **ACC-140e** · The date the form closes. **TBD (Vipin, 22 Sep).** Not
+      blocking: the daily import (ACC-146) runs until it closes · **V/SN**
+- [ ] **ACC-026a** · Invite the team from `/desk/users`: Salman and Bhoopesh
+      (desk) and up to 10 issuers (ADR-020). **Not a blocker (Vipin, 22 Sep):**
+      Vipin is the admin and invites them himself as needed. Issuers must
+      have logged in once, with signal, before the rehearsal · **V**
 
 - [ ] **ACC-140** · Reconcile the docs with what is live: ROSTER-FORM.md still
       says the import migration is unapplied (commit `a663dc0` applied it); the
@@ -129,23 +141,27 @@ Decisions this phase needs, in the blocked section above: ACC-140a–e.
       approved person is reported, never silently applied. Acceptance: pgTAP
       covers approve, blank, re-run, changed-tier, non-lead refused;
       `privileges.test.sql` covers it; mutation of the approve guard fails a
-      test. **Blocked on ACC-140a, ACC-140b** · **C** · due Thu 24 Sep
+      test. AAA/Artist rows record their nomination as decided in the sheet
+      (ACC-140b); the RPC is run by a lead/admin · **C** · due Thu 24 Sep
 - [ ] **ACC-142** · Organisation column: free text in the live sheet
       ("Bangalore Open Air", "Banglore Open Air", "Bangalore open air").
-      Implement ACC-140c's answer — either an alias map to a short fixed org
-      list, reported not guessed, or a single BOA org with crew type as the
-      grouping. Quotas follow the same answer. **Blocked on ACC-140c** · **C** ·
+      Organisations are real (ACC-140c): Vipin adds each org before the form
+      reaches it, and the form's Organisation question becomes a dropdown of
+      that list (ACC-116) so new orgs cannot misspell. Existing free-text
+      answers are matched through a committed alias map; anything unmatched is
+      reported by row, never guessed. Quota per ACC-140g · **C** ·
       due Thu 24 Sep
 - [ ] **ACC-143** · Crew-type write-ins: normalise case/space for display
       ("Tech Production (stage)" = "(Stage)"); column I always wins; a row with
       no column I and no mapping stays `submitted` and is listed for Salman.
       Acceptance: unit tests on the live sheet's actual values · **C** ·
       due Fri 25 Sep
-- [ ] **ACC-144** · Pass delivery per person, per ACC-140d: `/desk/passes` lists
-      approved people, each with a WhatsApp link to their own number carrying
-      their `/p/<token>`, and a "sent" mark. Nothing fires on zero people.
-      Replaces ACC-137's org-scoped share · **Blocked on ACC-140d** · **C** ·
-      due Sat 26 Sep
+- [ ] **ACC-144** · The app sends each approved person their pass on
+      WhatsApp, to their own number (ACC-140d). `/desk/passes` lists who is
+      approved and not yet sent; sending records who sent it and when, so no
+      one is sent twice by accident and no one is missed. Method per ACC-140f.
+      Nothing fires on zero people. Replaces ACC-137's org-scoped share ·
+      **C** · due Sat 26 Sep
 - [ ] **ACC-145** · First real import from the live sheet: `--offline`, `--dry`,
       then load, with `db:state` before and after; approved/submitted counts
       reconcile with the sheet row for row; report file committed without
@@ -347,7 +363,7 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [x] **ACC-135** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
 - [ ] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
 - [ ] **ACC-131** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
-- [ ] **ACC-136** · Desk nav (rewritten 22 Sep, ADR-019): Control room · Master list · Passes · Queue; AAA/Orgs per ACC-140b/c; Devices/Users in account menu · **C** · due Thu 24
+- [ ] **ACC-136** · Desk nav (rewritten 22 Sep, ADR-019): Control room · Master list · Passes · Queue; Orgs & users; Devices/Users in account menu · **C** · due Thu 24
 - [ ] **ACC-132** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
 - [-] **ACC-137** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
       **Retired 22 Sep (ADR-019):** replaced by ACC-144 (per-person, not per-org, pass delivery); the band-colour half moves to ACC-133.
@@ -533,7 +549,7 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       Changed 21 Sep from a per-org workbook to a single form, at Salman's call.
       Acceptance: form run once, opened by a human, every dropdown and
       validation seen working, test submission lands in the sheet. **Org
-      dropdown follows ACC-140c** (free text until then; 16 real responses in
+      dropdown follows ACC-142** (free text until then; 16 real responses in
       the sheet by 22 Sep) · **C/V** · due Mon 22 Sep
 - [x] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
       the form's response sheet (exported CSV, columns per
