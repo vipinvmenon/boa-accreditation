@@ -1,6 +1,6 @@
 # Roadmap
 
-**Today: Fri 11 Sep 2026. Show day: Sat 10 Oct. 29 days.**
+**Replanned Tue 22 Sep 2026 — see ADR-019. Show day: Sat 10 Oct. 18 days.**
 
 Task IDs are `ACC-nnn`. Commit with the ID: `feat(ACC-024): submission quota`.
 One task at a time. **Do not decide what to build next — this file decides.**
@@ -13,7 +13,8 @@ Owner column: **V** = Vipin · **C** = the coding agent (Claude/Cursor/Codex) ·
 
 | | Date | Day | Meaning |
 |---|---|---|---|
-| **A** | **20 Sep** | Sun | 38 invite links go out. **Hard. No slack.** |
+| ~~A~~ | ~~20 Sep~~ | Sun | ~~38 invite links go out.~~ **Retired 22 Sep (ADR-019).** Collection is the Google Form, already live. |
+| **R** | **Mon 28 Sep** | Mon | First real import: the sheet's decided rows are approved people with passes in the DB. |
 | **B** | **4 Oct** | Sun | The gate works offline. First trucks ~5 Oct. |
 | Build | 5–9 Oct | Mon–Fri | Load-in. Gate in daily use. |
 | **Show** | **10 Oct** | Sat | Freeze from 4 Oct: hot fixes only. |
@@ -21,9 +22,14 @@ Owner column: **V** = Vipin · **C** = the coding agent (Claude/Cursor/Codex) ·
 ## Critical path
 
 ```
-Supabase keys ─▶ schema ─▶ boa_acc_submit (quota) ─▶ /s/[token] ─▶ 38 links ──▶ A
-                    └────▶ boa_acc_decide ─▶ roster RPC ─▶ offline scanner ───▶ B
+Google Form ─▶ response sheet ─▶ Salman sets "Accreditation Type" (column I)
+   ─▶ CSV ─▶ import-and-approve RPC (type + days + pass minted in the DB)   ──▶ R
+   ─▶ pass to each WhatsApp number ─▶ Bhoopesh's check-in desk (offline) ──▶ B
 ```
+
+Superseded 22 Sep: `boa_acc_submit ─▶ /s/[token] ─▶ 38 links ─▶ queue`. The
+form replaced collection; the sheet replaced the queue. The gate, the ledger
+and the passes are unchanged. ADR-019.
 
 Everything else is off the critical path and can be cut. See "Cut order".
 
@@ -58,8 +64,18 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       checkouts) and as GitHub Actions secrets. **No longer blocking (15 Sep):**
       ACC-090's harness measures all desk screens through API fixtures with no
       login; this only adds a real-session pass on top · **V** · *optional*
-- [ ] **ACC-030a** · The 38 organisations: name, kind, quota, contact name,
-      contact phone. **V/B** · *needed 17 Sep*
+- [-] **ACC-030a** · The 38 organisations: name, kind, quota, contact name,
+      contact phone. **Retired 22 Sep (ADR-019)** — replaced by ACC-140c.
+- [ ] **ACC-140a** · Is column I ("Accreditation Type") the approval itself, so
+      the import approves? Recommended: yes · **V/SN** · *needed Wed 23 Sep*
+- [ ] **ACC-140b** · AAA and Artist chosen in the sheet by Salman — accepted as
+      approval, replacing the `/desk/aaa` nomination? Today the importer
+      refuses them · **SN** · *needed Wed 23 Sep*
+- [ ] **ACC-140c** · Do organisations still matter (quota, grouping, a contact)?
+      Or one BOA org with crew type as the grouping? · **V/SN** · *needed Wed 23 Sep*
+- [ ] **ACC-140d** · How a pass reaches a person: WhatsApp to their own number
+      (by hand from the desk), or printed and collected · **V/B** · *needed Thu 24 Sep*
+- [ ] **ACC-140e** · The date the form closes · **V/SN** · *needed Fri 25 Sep*
 - [ ] **ACC-026a** · Email addresses for Bhoopesh, Salman, 2 approvers.
       `auth.users` is currently 0, so nobody can sign in to the desk at all.
       **Interim decision:** the four test identities use unique Gmail `+alias`
@@ -87,6 +103,60 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       Supabase org access. The project stays in `otlqwoxbrsshuoebbamj`.
 
 ---
+
+## Phase R — The sheet is the front door · Tue 22 – Mon 28 Sep
+
+**Added 22 Sep on Vipin's instruction (ADR-019).** Crew register on the Google
+Form; Salman decides each person's tier in the sheet's column I; the app takes
+over from the import. **This phase is the critical path to Milestone R.**
+Retired tasks below are marked `[-]` and no longer counted.
+
+Decisions this phase needs, in the blocked section above: ACC-140a–e.
+
+- [ ] **ACC-140** · Reconcile the docs with what is live: ROSTER-FORM.md still
+      says the import migration is unapplied (commit `a663dc0` applied it); the
+      live form carries crew types the committed `CREW_TYPES` does not
+      ("Artist Logistics", "Tech Production (Stage)" — write-ins or an editor
+      change, find out which). Acceptance: `db:state` shows
+      `boa_acc_import_roster`; the doc says what is true; no claim unverified ·
+      **C** · due Tue 22 Sep
+- [ ] **ACC-141** · **Import-and-approve.** A lead/admin RPC that, per row with a
+      filled column I, inserts or updates the person and approves them in one
+      transaction: `type_code` from column I, `day_validity` from Days on site,
+      `pass_token` minted in the database (non-negotiable #5 still holds —
+      approval first, same statement). Blank column I → imported as
+      `submitted`, never approved. Idempotent on phone: a re-run approves newly
+      decided rows and changes nothing else. A **changed** tier on an already
+      approved person is reported, never silently applied. Acceptance: pgTAP
+      covers approve, blank, re-run, changed-tier, non-lead refused;
+      `privileges.test.sql` covers it; mutation of the approve guard fails a
+      test. **Blocked on ACC-140a, ACC-140b** · **C** · due Thu 24 Sep
+- [ ] **ACC-142** · Organisation column: free text in the live sheet
+      ("Bangalore Open Air", "Banglore Open Air", "Bangalore open air").
+      Implement ACC-140c's answer — either an alias map to a short fixed org
+      list, reported not guessed, or a single BOA org with crew type as the
+      grouping. Quotas follow the same answer. **Blocked on ACC-140c** · **C** ·
+      due Thu 24 Sep
+- [ ] **ACC-143** · Crew-type write-ins: normalise case/space for display
+      ("Tech Production (stage)" = "(Stage)"); column I always wins; a row with
+      no column I and no mapping stays `submitted` and is listed for Salman.
+      Acceptance: unit tests on the live sheet's actual values · **C** ·
+      due Fri 25 Sep
+- [ ] **ACC-144** · Pass delivery per person, per ACC-140d: `/desk/passes` lists
+      approved people, each with a WhatsApp link to their own number carrying
+      their `/p/<token>`, and a "sent" mark. Nothing fires on zero people.
+      Replaces ACC-137's org-scoped share · **Blocked on ACC-140d** · **C** ·
+      due Sat 26 Sep
+- [ ] **ACC-145** · First real import from the live sheet: `--offline`, `--dry`,
+      then load, with `db:state` before and after; approved/submitted counts
+      reconcile with the sheet row for row; report file committed without
+      names or phones · **C/V** · due Mon 28 Sep
+- [ ] **ACC-146** · The daily loop, written into OPERATIONS.md: Salman decides
+      in the sheet → export → import → passes sent → Bhoopesh enters BMS. Runs
+      until the form closes (ACC-140e) · **C** · due Mon 28 Sep
+- [ ] **ACC-147** · Bhoopesh's check-in desk: find a person by name or phone
+      offline (ACC-131's search), scan the pass, type the serial. Mostly built;
+      acceptance is Bhoopesh doing it on his own phone · **C/B** · due Wed 30 Sep
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
@@ -202,8 +272,10 @@ before ACC-031 mints the 38 real invite tokens.
 
 ## Phase 2 — Ready to send · Fri 18 – Sat 19 Sep
 
-- [ ] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
-- [ ] **ACC-031** · Mint + label 38 invite tokens; export a WhatsApp-ready list · **C** · due Fri 18
+- [-] **ACC-030** · Load all 38 orgs — kinds, quotas, contacts · **C/B** · due Fri 18
+      **Retired 22 Sep (ADR-019):** organisations are no longer loaded ahead of collection; see ACC-142.
+- [-] **ACC-031** · Mint + label 38 invite tokens; export a WhatsApp-ready list · **C** · due Fri 18
+      **Retired 22 Sep (ADR-019):** no invite links; the form link is the only link sent.
 - [x] **ACC-032** · Confirmation copy, duplicate-phone path, closed-org path · **C** · due Sat 19
 - [x] **ACC-033** · `/desk` Control room on `boa_acc_desk_dashboard()` · **C** · due Sat 19
 
@@ -228,13 +300,17 @@ vehicle, and watches the seat count move.** Not a demo on my machine.
 
 ## Phase 2b — Production hardening · Mon 21 Sep – Sat 3 Oct
 
+> **After Phase R (ADR-019).** Only screens still in use matter: control room,
+> master list, passes, gate, vehicle, login. Queue work is retired.
+
 Inside the pixel contract: no font, palette or layout change. Every async
 screen gets explicit loading / empty / error / ready states that cannot be
 mistaken for each other. Plan: `polish/production-hardening` branch.
 `test:visual` must stay 7/7 PASS on every task.
 
 - [ ] **ACC-122** · `components/states/` — Skeleton, EmptyState, InlineError (`role="alert"`, Retry); one `lib/error-copy.ts` replacing 7 copies of `ERROR_COPY` · **C** · due Tue 22
-- [ ] **ACC-123** · Queue: a real loading state (first load no longer reads "No people / 0 approved"); "Org N of M pending" only on the Pending filter · **C** · due Wed 23
+- [-] **ACC-123** · Queue: a real loading state (first load no longer reads "No people / 0 approved"); "Org N of M pending" only on the Pending filter · **C** · due Wed 23
+      **Retired 22 Sep (ADR-019):** queue loading state — the queue is an exceptions tool now; ACC-122/124 cover it generically.
 - [ ] **ACC-124** · Other desk screens + status bar: skeletons, empty states with a next step, try/finally on every fetch, no swallowed errors · **C** · due Thu 24
 - [ ] **ACC-125** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
 - [ ] **ACC-126** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
@@ -244,10 +320,11 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [x] **ACC-135** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
 - [ ] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
 - [ ] **ACC-131** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
-- [ ] **ACC-136** · Desk nav: Control room · Queue · Orgs & links · Master list · Passes · AAA; Devices/Users in account menu · **C** · due Thu 24
+- [ ] **ACC-136** · Desk nav (rewritten 22 Sep, ADR-019): Control room · Master list · Passes · Queue; AAA/Orgs per ACC-140b/c; Devices/Users in account menu · **C** · due Thu 24
 - [ ] **ACC-132** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
-- [ ] **ACC-137** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
-- [ ] **ACC-133** · Sample data that looks real: plate placeholders; one shared outbox-status hook · **C** · due Fri 25
+- [-] **ACC-137** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
+      **Retired 22 Sep (ADR-019):** replaced by ACC-144 (per-person, not per-org, pass delivery); the band-colour half moves to ACC-133.
+- [ ] **ACC-133** · Sample data that looks real: plate placeholders; one shared outbox-status hook; master-list band colour per theme (from ACC-137) · **C** · due Fri 25
 - [ ] **ACC-134** · Operator copy instead of designer rationale (Vipin reviews factual copy) · **C** · due Mon 28
 
 ## Phase 3 — The desk · Mon 21 – Sat 26 Sep
@@ -260,7 +337,8 @@ Runs while submissions arrive.
 - [x] **ACC-043** · Passes — server-rendered QR SVG, A4 print CSS, WhatsApp share · **C** · due Thu 24
 - [x] **ACC-044** · `/desk/aaa` + nomination guard + `aaa.test.sql` · **C** · due Fri 25
 - [x] **ACC-045** · `/desk/devices` — mint/revoke, raw token shown once · **C** · due Fri 25
-- [ ] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
+- [-] **ACC-046** · **Each approver runs the queue once.** Not for the first time on the day · **B/SN** · due Sat 26
+      **Retired 22 Sep (ADR-019):** the approval decision is made in the sheet by Salman; the queue is for exceptions.
 - [x] **ACC-047** · Shared desk shell — sticky nav, live status bar, theme toggle · **C** · due Sat 26
 - [x] **ACC-048** · Forgot-password link on `/desk/login`, using
       `resetPasswordForEmail` + the existing `/auth/confirm` recovery path ·
@@ -302,7 +380,7 @@ provably absent before approval · AAA unstampable without a nomination ·
 - [x] **ACC-056** · `/api/gate/*`; SW precache incl. the `.wasm` · **C** · due Thu 1 Oct
 - [x] **ACC-057** · `aeroplane-mode.spec.ts` + the two failure-path tests · **C** · due Fri 2 Oct
 - [ ] **ACC-058** · **Rehearsal: two real phones, one an iPhone, real aeroplane mode** · **V/B** · due **Sat 3 Oct**
-- [ ] **ACC-059** · Print the paper fallback: approved list by org, blank issue sheets · **B** · due Sat 3 Oct
+- [ ] **ACC-059** · Print the paper fallback: approved list by name (and by crew type), blank issue sheets · **B** · due Sat 3 Oct
 - [x] **ACC-060** · Optimise `boa-logo.png` — 290 KB is heavy for a gate precache · **C** · due Fri 2 Oct
 - [ ] **ACC-061** · Mint device tokens for 4 phones · **B** · due Sat 3 Oct
 
@@ -312,6 +390,10 @@ real phones signed off in `CURRENT-STATE.md`** · paper fallback physically
 printed and at the desk.
 
 ## Phase 3b — the v2 redesign lane · Sun 20 Sep – Fri 3 Oct
+
+> **Frozen behind Phase R and the gate (ADR-019).** Pixel fidelity is first in
+> the cut order below. ACC-109's hard stop still stands: gate not green and
+> rehearsed on v2 by 2 Oct → ship the gate on v1.
 
 **Added 20 Sep on Vipin's instruction, not a reordering.** `design/proposals/
 boa_design_v2.html` is a complete v2 of the same seven screens and becomes the
@@ -345,14 +427,16 @@ org list wins: `task block` the redesign task with a reason and commit it.
       light/web, dark/mobile, light/mobile), so visual acceptance remains
       unmet; the earlier 0.74% result is preserved in CURRENT-STATE history.
       · **CU** · due Thu 24
-- [ ] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
+- [-] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
       native-`<select>` writeup first · **CU** · due Sat 26
+      **Retired 22 Sep (ADR-019):** the queue is an exceptions tool now; not worth pixel work.
 - [ ] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27
 - [ ] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
       selector must survive · **CU** · due Mon 28
-- [ ] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
+- [-] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
+      **Retired 22 Sep (ADR-019):** the `/s/[token]` submission surface is no longer the collection path.
 - [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
       aeroplane-mode green and the precache count recorded. Post-`6820e49`
       visual output is Gate **2.22/0.28/5.41/4.38%** and Vehicle
@@ -418,7 +502,8 @@ printed on the band the volunteer hands over. ACC-111 was parked for it.
       Changed 21 Sep from a per-org workbook to a single form, at Salman's call.
       Acceptance: form run once, opened by a human, every dropdown and
       validation seen working, test submission lands in the sheet. **Org
-      dropdown blocked on ACC-030a** (free text until then) · **C/V** · due Mon 22 Sep
+      dropdown follows ACC-140c** (free text until then; 16 real responses in
+      the sheet by 22 Sep) · **C/V** · due Mon 22 Sep
 - [x] **ACC-117** · `boa_acc_import_roster` + a validator and loader that read
       the form's response sheet (exported CSV, columns per
       `docs/ROSTER-FORM.md`). Acceptance: a 500-row fixture imports in one
@@ -452,6 +537,7 @@ Cut from the top. Each line says what happens instead.
 
 | Cut by | What | Fallback |
 |---|---|---|
+| any time | v2 pixel fidelity (ACC-104–111) | Ship the screens as they render now; the gate reverts to v1 per ACC-109. |
 | any time | Light theme | Ship dark only. The token block is already written — half a day to restore. |
 | 2 Oct | CSV export | Copy out of the master list. |
 | any time | WhatsApp share button | Copy the `/p/<token>` link by hand. |
@@ -459,11 +545,15 @@ Cut from the top. Each line says what happens instead.
 | 2 Oct | `/desk/passes` print sheet | Forward pass links; most crew will show a phone. |
 | **8 Oct** | **`/gate/vehicle`** | Security runs a printed plate→sticker list 5–7 Oct. **Must be live before the 8 Oct load-in peak.** |
 
-**Cannot be cut, at any price:** the submission surface · server-side quota ·
+**Cannot be cut, at any price:** the import-and-approve path · approval in the database ·
 pass-token-only-after-approval · the offline scanner and its outbox · ledger
 immutability · the `anon` lockdown.
 
-## If Milestone A is going to slip
+## If Milestone A is going to slip — historical
+
+> Milestone A was retired on 22 Sep: option 3 below is, in effect, what
+> happened. Kept for the record (ADR-019).
+
 
 Decide by **Thu 17 Sep**, not on the 20th. In order of preference:
 

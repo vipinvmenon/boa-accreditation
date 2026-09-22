@@ -667,3 +667,39 @@ crew, stage and aaa survive, and five functions take the enum as a parameter,
 so a rebuild would drop and recreate all five for no behavioural gain.
 `boa_acc_zone` **was** rebuilt; only the dropped `boa_acc_type.zones` column
 used it.
+
+## ADR-019 — The Google Form and sheet are the front door; the app is the gate
+
+**Accepted 22 Sep 2026, on Vipin's instruction.** Supersedes the collection and
+approval halves of the original plan (38 invite links → `/s/[token]` → desk
+queue). Does not touch ADR-017 or ADR-018.
+
+**What happened.** Collection moved to one Google Form (21 Sep, Salman and
+Vipin; `docs/ROSTER-FORM.md`). On 22 Sep Salman began deciding each person's
+tier by hand in the response sheet's column I, "Accreditation Type". By then
+the sheet held 16 real responses and Milestone A (20 Sep links) had passed
+unsent. The sheet now does collection and the decision; nothing in the app
+should compete with it.
+
+**What the app is for now.** Everything a sheet cannot do: approve in the
+database and mint the pass there (non-negotiables #3, #5), a pass per person,
+Bhoopesh's offline check-in desk, the append-only ledger, serials typed at
+handover, plate-bound vehicle stickers, the BMS worklist and the Control room
+counts.
+
+**Consequences.**
+
+- Retired: ACC-030, 030a, 031, 046, 105, 108, 123, 137 (marked `[-]` in the
+  roadmap, with the reason). `/s/[token]` and `boa_acc_submit` stay deployed but
+  are no longer the collection path; nothing new is built on them.
+- New: Phase R, ACC-140–147 — import-and-approve, org normalisation, write-in
+  crew types, per-person pass delivery, first real import, the daily loop,
+  Bhoopesh's desk.
+- The queue becomes an exceptions tool. v2 pixel work (ACC-104–111) is frozen
+  behind Phase R and the gate, and is first in the cut order.
+- **Not a redesign.** The design contract, the schema, the gate and the passes
+  are unchanged.
+
+**Open, and not decided by this ADR** (roadmap ACC-140a–e): whether column I
+*is* the approval; whether AAA/Artist may be decided in the sheet; whether
+organisations still matter; how a pass reaches a person; when the form closes.

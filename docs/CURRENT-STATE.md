@@ -3,7 +3,27 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 20 September 2026 (ACC-111 sign-off evidence)._
+_Last updated: 22 September 2026 (replan, ADR-019)._
+
+## Replan, 22 Sep 2026 — read this before the rest
+
+**The collection flow changed; the rest of this file predates it.** Crew now
+register on one Google Form; Salman decides each person's tier in the response
+sheet's column I ("Accreditation Type"). The 38 invite links (Milestone A,
+20 Sep) were never sent and are retired. The app's job is now everything the
+sheet cannot do: import-and-approve with the pass minted in the database,
+per-person pass delivery, Bhoopesh's offline check-in desk, the ledger, the
+vehicle stickers and the BMS/Control room counts. See ADR-019 and roadmap
+Phase R (ACC-140–147).
+
+- **Seen, not verified by an agent:** a screenshot of the live sheet on 22 Sep
+  showed 16 responses, 15 with column I filled (AAA, Crew, Stage), organisation
+  typed three ways, and crew types not in the committed `CREW_TYPES`. No export
+  has been read and nothing has been imported.
+- **Five decisions block Phase R:** ACC-140a–e in the roadmap.
+- Where this file below talks about invite links, `/s/[token]` as the
+  collection path, or the queue as the approval path, read it as history.
+
 
 ## In one line
 
