@@ -1,20 +1,25 @@
 /**
- * ACC-117 · Parse and validate the roster form's response sheet (exported CSV).
+ * ACC-117 / ACC-141–143 · Parse and validate the roster form's response sheet
+ * (exported CSV) for public.boa_acc_import_approve.
  *
- * Pure: no database, no filesystem. scripts/import-roster.mjs does the I/O and
- * calls public.boa_acc_import_roster; tests/unit/import-roster.test.ts proves
- * this file. The column contract is docs/ROSTER-FORM.md, "The response sheet
- * is a contract".
+ * Pure: no database, no filesystem. scripts/import-roster.mjs does the I/O;
+ * tests/unit/import-roster.test.ts proves this file. The column contract is
+ * docs/ROSTER-FORM.md, "The response sheet is a contract".
  *
  * Node runs this file directly (type stripping) from the .mjs loader, so it
  * imports nothing but zod and uses only erasable TypeScript: no enums, no
- * `@/` path alias. The two lists it has to agree with elsewhere —
- * REQUESTABLE_TIERS (lib/design.ts) and the form's crew types / day answers
+ * `@/` path alias. The lists it has to agree with elsewhere — the pack's tier
+ * labels (lib/design.ts) and the form's crew types / day answers
  * (scripts/roster-form/build-roster-form.gs) — are pinned by the unit test.
  *
- * What it collects is exactly what boa_acc_person holds: name, phone, role
- * text, optional plate (non-negotiable #9), plus two ADVISORY hints — a
- * requested tier from the crew-type mapping and the days-on-site answer.
+ * What it sends is exactly what boa_acc_person holds: name, phone, role text,
+ * optional plate (non-negotiable #9), the desk's column I decision and the
+ * days-on-site answer.
+ *
+ * ADR-019 / ACC-140a: column I, "Accreditation Type", IS the approval. This
+ * module only carries it; the database approves (and mints the pass) inside
+ * boa_acc_import_approve, run by a lead/admin. There is no crew-type → tier
+ * mapping: a blank column I is "not decided yet", never a guess.
  */
 import { z } from 'zod'
 
@@ -32,16 +37,16 @@ export const ROSTER_HEADER = [
 
 /**
  * The one column the desk may add to the right of the form's columns
- * (docs/ROSTER-FORM.md, "The desk's column"). Salman's per-person accreditation
- * decision. Optional: a sheet without it is still valid. No other extra column
- * is accepted, so non-negotiable #9's "refuse unknown columns" still holds.
+ * (docs/ROSTER-FORM.md, "The desk's column"): column I, Salman's per-person
+ * decision. Optional: a sheet without it is still valid, and every row in it
+ * is undecided. No other extra column is accepted, so non-negotiable #9's
+ * "refuse unknown columns" still holds.
  */
 export const DESK_HEADER = 'Accreditation type' as const
 
-/** The desk column's dropdown labels → tier codes: the pack's tier labels,
- *  pinned to lib/design.ts by the unit test. General Admission is not a choice.
- *  The column and its dropdown are added by hand in the sheet
- *  (docs/ROSTER-FORM.md, "The desk's column"). */
+/** Column I's dropdown labels → tier codes: the pack's tier labels, pinned to
+ *  lib/design.ts by the unit test. General Admission is not a choice. AAA and
+ *  Artist ARE (ACC-140b): choosing them in the sheet is their approval. */
 export const DESK_TIERS = {
   AAA: 'aaa',
   Artist: 'artist',
@@ -51,6 +56,17 @@ export const DESK_TIERS = {
   Photo: 'photo',
   "Eddie's Lounge": 'eddies_lounge',
 } as const
+
+export const DESK_TIER_CODES = [
+  'aaa',
+  'artist',
+  'stage',
+  'promoters_lounge',
+  'crew',
+  'photo',
+  'eddies_lounge',
+] as const
+export type DeskTier = (typeof DESK_TIER_CODES)[number]
 
 /** The form's fixed crew-type choices. Anything else is an "Other" write-in. */
 export const FORM_CREW_TYPES = [
@@ -78,28 +94,11 @@ export const DAYS_ANSWERS = {
 
 export type DayValidity = (typeof DAYS_ANSWERS)[keyof typeof DAYS_ANSWERS]
 
-/** Tiers a vendor may request (ADR-018). AAA and Artist are named lists; GA is ticketing. */
-export const REQUESTABLE_TIERS = ['stage', 'promoters_lounge', 'crew', 'photo', 'eddies_lounge'] as const
-export type RequestableTier = (typeof REQUESTABLE_TIERS)[number]
-
 // The database CHECKs on boa_acc_person, verbatim.
 export const PHONE_E164 = /^\+91[6-9][0-9]{9}$/
 export const PLATE = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/
 
-/**
- * The crew type → tier mapping file. EMPTY by default: the mapping is
- * Salman's call (docs/ROSTER-FORM.md, "Open"), and until he gives it no row
- * carries a tier hint. Keys are matched case-insensitively.
- */
-export const crewTypeMappingSchema = z
-  .object({
-    source: z.string().optional(),
-    mapping: z.record(z.string().trim().min(1), z.enum(REQUESTABLE_TIERS)),
-  })
-  .strict()
-export type CrewTypeMapping = z.infer<typeof crewTypeMappingSchema>
-
-/** What the RPC receives per row. Mirrors boa_acc_import_roster's jsonb shape. */
+/** What the RPC receives per row. Mirrors boa_acc_import_approve's jsonb shape. */
 export const importRowSchema = z
   .object({
     row_no: z.number().int().min(2),
@@ -107,18 +106,31 @@ export const importRowSchema = z
     phone: z.string().regex(PHONE_E164),
     role_text: z.string().min(2).max(60),
     vehicle_reg: z.string().regex(PLATE).nullable(),
-    requested_type_code: z.enum(REQUESTABLE_TIERS).nullable(),
-    requested_day_validity: z.enum(['build', 'show', 'build_show']),
+    /** Column I as a tier code; null when the cell is blank (undecided). */
+    type_code: z.enum(DESK_TIER_CODES).nullable(),
+    day_validity: z.enum(['build', 'show', 'build_show']),
     // Always an explicit +05:30 offset — the RPC refuses a bare timestamp.
     submitted_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+05:30$/),
   })
   .strict()
 export type ImportRow = z.infer<typeof importRowSchema>
 
-/** One row of boa_acc_import_roster's result, checked at the boundary. */
+export const IMPORT_OUTCOMES = [
+  'inserted',
+  'approved',
+  'unchanged',
+  'tier_changed',
+  'skipped',
+  'refused',
+  'duplicate_phone',
+  'invalid',
+] as const
+export type ImportOutcome = (typeof IMPORT_OUTCOMES)[number]
+
+/** One row of boa_acc_import_approve's result, checked at the boundary. */
 export const importResultSchema = z.object({
   row_no: z.number().int(),
-  outcome: z.enum(['inserted', 'duplicate_phone', 'quota_exceeded', 'invalid']),
+  outcome: z.enum(IMPORT_OUTCOMES),
   person_id: z.string().uuid().nullable(),
   detail: z.string().nullable(),
 })
@@ -126,11 +138,11 @@ export type ImportResult = z.infer<typeof importResultSchema>
 
 export type ValidRow = ImportRow & {
   organisation: string
+  /** The crew type as displayed: fixed choices in the form's own spelling,
+   *  write-ins with case and spacing normalised (normaliseCrewType). */
   crewType: string
   /** true when the crew type is not one of the form's fixed choices. */
   writeIn: boolean
-  /** The desk's Accreditation type, as a tier code, when the column is present and filled. */
-  deskTier: (typeof DESK_TIERS)[keyof typeof DESK_TIERS] | null
 }
 
 export type RowError = { row_no: number; organisation: string; errors: string[] }
@@ -140,6 +152,10 @@ export type Validation = {
   errors: RowError[]
   /** Not refusals: facts the desk should see before loading. */
   warnings: string[]
+  /** Valid rows with no column I decision: they import as submitted, for Salman. */
+  undecided: number[]
+  /** Write-in crew types, as normalised for display → the rows carrying them. */
+  writeIns: Map<string, number[]>
   /** A header problem stops everything; nothing else is reported. */
   fatal: string | null
 }
@@ -237,12 +253,79 @@ export function orgKey(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-IN')
 }
 
+/**
+ * ACC-143 · A crew type for DISPLAY and role text. Never affects the tier.
+ *
+ * Whitespace is trimmed and collapsed. A fixed choice, in any case, becomes
+ * the form's own spelling. A write-in keeps its letters as typed except that
+ * the first letter of each word — including one just inside a bracket — is
+ * upper-cased, so "Tech Production (stage)" and "Tech Production (Stage)"
+ * are one crew type. Nothing is lower-cased, so "DJ crew" → "DJ Crew", never
+ * "Dj Crew".
+ */
+export function normaliseCrewType(raw: string): string {
+  const v = raw.trim().replace(/\s+/g, ' ')
+  const fixed = FORM_CREW_TYPES.find((t) => t.toLowerCase() === v.toLowerCase())
+  if (fixed) return fixed
+  return v.replace(/(^|[\s(/&-])(\p{Ll})/gu, (_m, before: string, ch: string) => before + ch.toUpperCase())
+}
+
+// ---------------------------------------------------------------------------
+// Organisation aliases (ACC-142)
+// ---------------------------------------------------------------------------
+
+/**
+ * data/org-aliases.json: a misspelling seen in the sheet's free-text
+ * Organisation answers → the organisation's canonical name. Keys and values
+ * are compared by orgKey, so a key needs to be written only once in any case.
+ * The canonical name is then matched to boa_acc_org.name like any other
+ * answer. Anything neither an org nor an alias is reported, never guessed.
+ */
+export const orgAliasesSchema = z
+  .object({
+    source: z.string(),
+    aliases: z.record(z.string().trim().min(1), z.string().trim().min(2).max(120)),
+  })
+  .strict()
+export type OrgAliasFile = z.infer<typeof orgAliasesSchema>
+/** orgKey(misspelling) → canonical name. */
+export type OrgAliases = Map<string, string>
+
+/** Parse the alias file. Refuses chains (a canonical name that is itself an
+ *  alias for something else) and two spellings of one key that disagree. */
+export function parseOrgAliases(json: unknown): OrgAliases {
+  const file = orgAliasesSchema.parse(json)
+  const out: OrgAliases = new Map()
+  for (const [from, to] of Object.entries(file.aliases)) {
+    const k = orgKey(from)
+    const prior = out.get(k)
+    if (prior !== undefined && orgKey(prior) !== orgKey(to)) {
+      throw new Error(`org alias "${from}" maps to both "${prior}" and "${to}"`)
+    }
+    out.set(k, to.trim())
+  }
+  for (const to of out.values()) {
+    const again = out.get(orgKey(to))
+    if (again !== undefined && orgKey(again) !== orgKey(to)) {
+      throw new Error(`org alias chain: "${to}" is itself an alias for "${again}"`)
+    }
+  }
+  return out
+}
+
+/** An Organisation answer through the alias map. Unknown names pass through unchanged. */
+export function resolveOrganisation(name: string, aliases: OrgAliases): { name: string; aliased: boolean } {
+  const to = aliases.get(orgKey(name))
+  if (to === undefined || to === name.trim()) return { name: name.trim(), aliased: false }
+  return { name: to, aliased: true }
+}
+
 // ---------------------------------------------------------------------------
 // The whole file
 // ---------------------------------------------------------------------------
 
-export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping: {} }): Validation {
-  const out: Validation = { rows: [], errors: [], warnings: [], fatal: null }
+export function validateRoster(csv: string): Validation {
+  const out: Validation = { rows: [], errors: [], warnings: [], undecided: [], writeIns: new Map(), fatal: null }
 
   let table: string[][]
   try {
@@ -275,12 +358,12 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
     out.fatal = 'The response sheet has no data rows.'
     return out
   }
+  if (!hasDesk) {
+    out.warnings.push(`No "${DESK_HEADER}" column: every row imports as submitted, none is approved.`)
+  }
 
-  const tierFor = new Map(Object.entries(mapping.mapping).map(([k, v]) => [k.trim().toLowerCase(), v]))
-  const fixed = new Set(FORM_CREW_TYPES.map((t) => t.toLowerCase()))
-  const seen = new Map<string, number>() // orgKey|phone -> first row_no
-  const unmapped = new Set<string>()
-  const nominated: number[] = [] // rows the desk marked AAA or Artist
+  const seen = new Map<string, number>() // phone -> first row_no
+  const deskTiers = DESK_TIERS as Record<string, DeskTier>
 
   table.forEach((cells, index) => {
     const row_no = index + 2 // the sheet's own row number
@@ -310,12 +393,13 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
     const phone = normalisePhone(phoneRaw)
     if (!phone) errors.push('WhatsApp number must be 10 digits starting 6–9')
 
-    const crewType = crewRaw.trim()
+    const crewType = normaliseCrewType(crewRaw)
     if (crewType.length === 0) errors.push('Crew type is empty')
 
-    // Role text: the job title when given, otherwise the crew type. The
-    // database holds 2–60 characters; refuse outside that, never truncate.
-    const job = jobRaw.trim()
+    // Role text: the job title when given, otherwise the (normalised) crew
+    // type. The database holds 2–60 characters; refuse outside that, never
+    // truncate.
+    const job = jobRaw.trim().replace(/\s+/g, ' ')
     const role_text = job.length > 0 ? job : crewType
     if (role_text.length < 2 || role_text.length > 60) {
       errors.push(
@@ -331,11 +415,12 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
     const plate = normalisePlate(plateRaw)
     if (!plate.ok) errors.push(`Loading vehicle registration "${plateRaw.trim()}" is not an Indian registration`)
 
-    // The desk's decision. Blank means "not decided yet" — never a default tier.
+    // Column I, the desk's decision. Blank means "not decided yet" — never a
+    // default tier. Anything not exactly one of the labels refuses the row
+    // (a curly apostrophe in Eddie’s Lounge included).
     const deskRaw = hasDesk ? (cells[ROSTER_HEADER.length] ?? '').trim() : ''
-    const deskTier =
-      deskRaw === '' ? null : ((DESK_TIERS as Record<string, (typeof DESK_TIERS)[keyof typeof DESK_TIERS]>)[deskRaw] ?? null)
-    if (deskRaw !== '' && deskTier === null) {
+    const type_code = deskRaw === '' ? null : (deskTiers[deskRaw] ?? null)
+    if (deskRaw !== '' && type_code === null) {
       errors.push(`${DESK_HEADER} "${deskRaw}" is not one of the desk's choices`)
     }
 
@@ -344,39 +429,14 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
       return
     }
 
-    const writeIn = !fixed.has(crewType.toLowerCase())
-    let requested_type_code: RequestableTier | null
-    if (deskTier !== null) {
-      // A person decided. It wins over the crew-type mapping — but AAA and
-      // Artist are named lists behind a nomination, which the RPC refuses as
-      // a hint, so they travel as no hint and are reported for the desk.
-      if ((REQUESTABLE_TIERS as readonly string[]).includes(deskTier)) {
-        requested_type_code = deskTier as RequestableTier
-      } else {
-        requested_type_code = null
-        nominated.push(row_no)
-      }
-    } else {
-      requested_type_code = tierFor.get(crewType.toLowerCase()) ?? null
-      if (crewType && requested_type_code === null) unmapped.add(crewType)
-    }
-
-    const dupKey = `${orgKey(organisation)}|${phone}`
-    const first = seen.get(dupKey)
-    if (first !== undefined) {
-      out.warnings.push(`row ${row_no}: same organisation and phone as row ${first}; the database will refuse it as duplicate_phone`)
-    } else {
-      seen.set(dupKey, row_no)
-    }
-
     const candidate = {
       row_no,
       full_name,
       phone,
       role_text,
       vehicle_reg: plate.value,
-      requested_type_code,
-      requested_day_validity: days,
+      type_code,
+      day_validity: days,
       submitted_at,
     }
     const checked = importRowSchema.safeParse(candidate)
@@ -384,45 +444,63 @@ export function validateRoster(csv: string, mapping: CrewTypeMapping = { mapping
       out.errors.push({ row_no, organisation, errors: checked.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) })
       return
     }
-    out.rows.push({ ...checked.data, organisation, crewType, writeIn, deskTier })
+
+    const first = seen.get(phone)
+    if (first !== undefined) {
+      out.warnings.push(`row ${row_no}: same phone as row ${first}; the database will refuse one of them as duplicate_phone`)
+    } else {
+      seen.set(phone, row_no)
+    }
+
+    const writeIn = !(FORM_CREW_TYPES as readonly string[]).includes(crewType)
+    if (writeIn) {
+      const list = out.writeIns.get(crewType) ?? []
+      list.push(row_no)
+      out.writeIns.set(crewType, list)
+    }
+    if (type_code === null) out.undecided.push(row_no)
+    out.rows.push({ ...checked.data, organisation, crewType, writeIn })
   })
 
-  if (nominated.length > 0) {
+  if (out.undecided.length > 0 && hasDesk) {
     out.warnings.push(
-      `${nominated.length} row(s) marked AAA or Artist in "${DESK_HEADER}" (rows ${nominated.join(', ')}). ` +
-        'These are named lists behind a nomination: they import with no tier hint, and are approved ' +
-        'through the AAA nomination in the desk, not by the import.',
+      `${out.undecided.length} row(s) have no ${DESK_HEADER}: they import as submitted, for Salman to decide ` +
+        `(rows ${out.undecided.join(', ')}).`,
     )
   }
-
-  if (unmapped.size > 0) {
-    out.warnings.push(
-      `${unmapped.size} crew type(s) have no tier mapping, so those rows carry no tier hint: ${[...unmapped].sort().join(', ')}`,
-    )
+  if (out.writeIns.size > 0) {
+    const list = [...out.writeIns].sort(([a], [b]) => a.localeCompare(b)).map(([t, rows]) => `${t} (rows ${rows.join(', ')})`)
+    out.warnings.push(`Write-in crew types, for display only — they never set a tier: ${list.join('; ')}`)
   }
   return out
 }
 
 export type OrgRef = { id: string; name: string }
 
-/** Group valid rows by organisation, matched to boa_acc_org by name. */
-export function matchOrganisations(rows: ValidRow[], orgs: OrgRef[]) {
+/**
+ * Group valid rows by organisation: the answer, through the alias map, matched
+ * to boa_acc_org by orgKey. Unmatched answers are reported with their rows.
+ */
+export function matchOrganisations(rows: ValidRow[], orgs: OrgRef[], aliases: OrgAliases = new Map()) {
   const byKey = new Map(orgs.map((o) => [orgKey(o.name), o]))
   const groups = new Map<string, { org: OrgRef; rows: ValidRow[] }>()
   const unmatched = new Map<string, number[]>()
+  const aliased: { row_no: number; from: string; to: string }[] = []
   for (const r of rows) {
-    const org = byKey.get(orgKey(r.organisation))
+    const resolved = resolveOrganisation(r.organisation, aliases)
+    const org = byKey.get(orgKey(resolved.name))
     if (!org) {
       const list = unmatched.get(r.organisation) ?? []
       list.push(r.row_no)
       unmatched.set(r.organisation, list)
       continue
     }
+    if (resolved.aliased) aliased.push({ row_no: r.row_no, from: r.organisation, to: org.name })
     const g = groups.get(org.id) ?? { org, rows: [] }
     g.rows.push(r)
     groups.set(org.id, g)
   }
-  return { groups: [...groups.values()], unmatched }
+  return { groups: [...groups.values()], unmatched, aliased }
 }
 
 const sqlLiteral = (s: string) => `'${s.replace(/'/g, "''")}'`
@@ -430,10 +508,11 @@ const sqlLiteral = (s: string) => `'${s.replace(/'/g, "''")}'`
 /**
  * The one statement the loader sends per organisation: set the operator's
  * JWT claims for this transaction, then call the RPC as that session (the
- * same technique scripts/load-orgs.mjs uses). Exported so the rolled-back
- * database check can run exactly this text.
+ * same technique scripts/load-orgs.mjs uses). The database checks the
+ * operator is an active lead/admin. Exported so a rolled-back database check
+ * can run exactly this text.
  */
-export function importRosterSql(operatorUserId: string, orgId: string, payload: ImportRow[]): string {
+export function importApproveSql(operatorUserId: string, orgId: string, payload: ImportRow[]): string {
   z.string().uuid().parse(operatorUserId)
   z.string().uuid().parse(orgId)
   return `with jwt as materialized (
@@ -444,7 +523,7 @@ export function importRosterSql(operatorUserId: string, orgId: string, payload: 
   ) as claims
 )
 select r.row_no, r.outcome, r.person_id, r.detail
-  from jwt, lateral public.boa_acc_import_roster(${sqlLiteral(orgId)}::uuid, ${sqlLiteral(JSON.stringify(payload))}::jsonb) r
+  from jwt, lateral public.boa_acc_import_approve(${sqlLiteral(orgId)}::uuid, ${sqlLiteral(JSON.stringify(payload))}::jsonb) r
  order by r.row_no`
 }
 
@@ -457,8 +536,8 @@ export function toRpcPayload(rows: ValidRow[]): ImportRow[] {
       phone: r.phone,
       role_text: r.role_text,
       vehicle_reg: r.vehicle_reg,
-      requested_type_code: r.requested_type_code,
-      requested_day_validity: r.requested_day_validity,
+      type_code: r.type_code,
+      day_validity: r.day_validity,
       submitted_at: r.submitted_at,
     }),
   )
