@@ -987,6 +987,22 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-108 released 2026-09-19 (IST):** Login rebuilt + committed (715e631); 404/error/global-error still to do — parked behind ACC-109 gate safety
 
+## In flight — parallel agents, 22 Sep 2026 (evening)
+
+Six tasks are being built **in parallel, each in its own git worktree branch**,
+at Vipin's instruction. None is merged, none has touched production. Do not
+start these; the coordinator merges them, applies migrations in timestamp
+order, and ticks the roadmap.
+
+| Task | Migration reserved |
+|---|---|
+| ACC-141 (+ import side of 142, 143) import-and-approve | `202609221000_boa_acc_import_approve` |
+| ACC-144 WhatsApp pass sending | `202609221100_boa_acc_pass_send` |
+| ACC-150 issuer login, device tokens retired | `202609221200/1201_boa_acc_issuer_role` |
+| ACC-148 double-issue warning | `202609221300_boa_acc_double_issue` |
+| ACC-149 sync scheduler | none |
+| ACC-147 offline name/phone search | none |
+
 ## Session log
 
 ### 22 Sep 2026 — ACC-140: docs reconciled against the live database and form
