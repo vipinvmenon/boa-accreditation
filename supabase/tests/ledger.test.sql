@@ -44,9 +44,7 @@
 --
 -- ONE statement. The only rows this file creates permanently, for the
 -- duration of the statement, are one throwaway org/person (cleaned up via
--- private.boa_acc_wipe_org). The device is removed by the test-only
--- VOLATILE cleanup helper (202609121802), because a sibling DELETE CTE cannot
--- see a freshly inserted device row under the statement snapshot.
+-- private.boa_acc_wipe_org). Since ACC-150 no device row is needed at all.
 
 with
   wiped as materialized (
@@ -72,65 +70,63 @@ with
       (select token from tok), 'ACC041 Ledger Person', '+919821000301', 'Crew'
     ) as id from inv
   ),
-  device as (
-    insert into public.boa_acc_device (token_hash, token_hint, gate_label, volunteer_name)
-    select private.boa_acc_hash_token(private.boa_acc_new_token()), 'ACC041', 'ACC-041 Gate', 'ACC-041 Volunteer'
+  -- ACC-150: rows now carry operator_id (boa_acc_checkin_operator_required)
+  -- and device_id is NULL. A random operator id is enough: the column has no
+  -- FK on purpose (202609221201). Without it every insert below would be
+  -- refused by operator_required first, and these assertions would pass for
+  -- the wrong reason — hence each one now names the constraint it expects.
+  actor as materialized (
+    select gen_random_uuid() as operator_id
      where (select id from person) is not null
-    returning id
   ),
-
   results as materialized (
     select 0 as n, plan(3) as line
 
     union all select 1, throws_ok(
       format(
         'insert into public.boa_acc_checkin
-           (person_id, kind, idempotency_key, device_id, gate_label, volunteer_name, occurred_at, is_reissue, supervisor_note)
+           (person_id, kind, idempotency_key, operator_id, gate_label, volunteer_name, occurred_at, is_reissue, supervisor_note)
          values (%L, %L, %L, %L, %L, %L, %L, %L, %L)',
-        (select id from person), 'wristband', gen_random_uuid(), (select id from device),
+        (select id from person), 'wristband', gen_random_uuid(), (select operator_id from actor),
         'ACC-041 Gate', 'ACC-041 Volunteer', clock_timestamp(), true, null
       ),
       '23514',
-      null,
+      'new row for relation "boa_acc_checkin" violates check constraint "boa_acc_checkin_reissue_needs_note"',
       'a reissue with no supervisor_note is refused (boa_acc_checkin_reissue_needs_note)'
     )
 
     union all select 2, throws_ok(
       format(
         'insert into public.boa_acc_checkin
-           (person_id, kind, idempotency_key, device_id, gate_label, volunteer_name, occurred_at, voids_checkin_id)
+           (person_id, kind, idempotency_key, operator_id, gate_label, volunteer_name, occurred_at, voids_checkin_id)
          values (%L, %L, %L, %L, %L, %L, %L, %L)',
-        (select id from person), 'void', gen_random_uuid(), (select id from device),
+        (select id from person), 'void', gen_random_uuid(), (select operator_id from actor),
         'ACC-041 Gate', 'ACC-041 Volunteer', clock_timestamp(), null
       ),
       '23514',
-      null,
+      'new row for relation "boa_acc_checkin" violates check constraint "boa_acc_checkin_void_targets_a_row"',
       'a void row with no voids_checkin_id is refused (boa_acc_checkin_void_targets_a_row)'
     )
 
     union all select 3, throws_ok(
       format(
         'insert into public.boa_acc_checkin
-           (person_id, kind, idempotency_key, device_id, gate_label, volunteer_name, occurred_at, vehicle_reg)
+           (person_id, kind, idempotency_key, operator_id, gate_label, volunteer_name, occurred_at, vehicle_reg)
          values (%L, %L, %L, %L, %L, %L, %L, %L)',
-        (select id from person), 'vehicle_sticker', gen_random_uuid(), (select id from device),
+        (select id from person), 'vehicle_sticker', gen_random_uuid(), (select operator_id from actor),
         'ACC-041 Gate', 'ACC-041 Volunteer', clock_timestamp(), null
       ),
       '23514',
-      null,
+      'new row for relation "boa_acc_checkin" violates check constraint "boa_acc_checkin_sticker_needs_plate"',
       'a vehicle_sticker row with no plate is refused (boa_acc_checkin_sticker_needs_plate)'
     )
   ),
   kept as materialized (
     select n, line from results
   ),
-  device_cleaned as materialized (
-    select private.boa_acc_test_wipe_device((select id from device))
-     where (select count(*) from kept) >= 0
-  ),
   clean as materialized (
     select private.boa_acc_wipe_org('ACC-041 ledger')
-     where (select count(*) from device_cleaned) >= 0
+     where (select count(*) from kept) >= 0
   )
 select line from (
   select n, line from kept
