@@ -33,3 +33,14 @@ export function formatMasterBand(row: MasterRow): string {
   if (!row.bandSerial) return 'Not issued'
   return row.bandSerial.startsWith('#') ? row.bandSerial : `#${row.bandSerial}`
 }
+
+/** ACC-148: a ledger time on the desk's clock, e.g. "09 Oct, 10:00". */
+export function formatLedgerTime(iso: string): string {
+  return dateTimeFormatter.format(new Date(iso))
+}
+
+/** A typed band serial, or the fact that none was typed (non-negotiable #6). */
+export function formatBandSerial(serial: string | null): string {
+  if (!serial) return 'No serial typed'
+  return serial.startsWith('#') ? serial : `#${serial}`
+}

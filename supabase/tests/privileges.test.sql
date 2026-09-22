@@ -9,6 +9,7 @@
 -- @proves: HIGH     | authenticated CAN select the columns the desk actually needs
 -- @proves: HIGH     | authenticated gets EXECUTE on boa_acc_is_operator and boa_acc_mint_invite only
 -- @proves: HIGH     | boa_acc_import_roster: authenticated EXECUTE only (lead/admin checked inside); anon and service_role zero
+-- @proves: HIGH     | boa_acc_double_issues: authenticated EXECUTE only (lead/approver/admin checked inside); anon and service_role zero
 -- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
 -- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
 --
@@ -33,7 +34,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(86) as line
+  select 0 as n, plan(89) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -192,6 +193,12 @@ select line from (
     ),
     'boa_acc_checkin_immutable is ENABLE ALWAYS'
   )
+
+  -- ACC-148 · the double-issue list. A desk read, role-checked inside the
+  -- body (lead/approver/admin); anon and service_role get nothing.
+  union all select 480, function_privs_are('public', 'boa_acc_double_issues', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_double_issues')
+  union all select 481, function_privs_are('public', 'boa_acc_double_issues', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_double_issues')
+  union all select 482, function_privs_are('public', 'boa_acc_double_issues', array[]::text[], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_double_issues')
 
   union all select 999999, l from finish() l
 ) t

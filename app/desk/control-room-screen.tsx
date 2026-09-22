@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Dashboard } from '@/lib/schemas/dashboard'
+import { dashboardResponseSchema, type Dashboard, type DashboardResponse } from '@/lib/schemas/dashboard'
 import { tier, tierColour, type TierCode } from '@/lib/design'
 import { zoneChips } from '@/lib/desk-tiers'
 import { useDomTheme } from '@/lib/use-theme'
 import { ControlRoomSkeleton } from '@/components/loading-skeleton'
 import { Icon } from '@/components/icon'
+import { DoubleIssuePanel } from './double-issue-panel'
 
 /**
  * The v2 Control room (design/source/boa_design_v2.html, the dashboard
@@ -177,7 +178,7 @@ function bandsHeading(n: number): string {
   return count && next ? `${count} band${n === 1 ? '' : 's'}. No ${next}.` : `${n} bands.`
 }
 
-function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'light' }) {
+function ControlRoomV2({ dash, theme }: { dash: DashboardResponse; theme: 'dark' | 'light' }) {
   const rootRef = useRef<HTMLElement>(null)
   const milestone = nextMilestone(new Date())
   const headline = heroMetric(dash)
@@ -240,6 +241,9 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
         <V2Stat className="stat quad" label="Organisations" value={dash.submittedOrgs} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
       </div>
 
+        {/* ACC-148: absent unless the database reports a double issue. */}
+        <DoubleIssuePanel count={dash.doubleIssues} list={dash.doubleIssueList} />
+
         <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{bandsHeading(dash.types.length)}</h2></div>
         <div className={`bands3${dash.types.length > 3 ? ' bands8' : ''}`}>{dash.types.map((type, index) => <V2BandCard key={type.code} code={type.code} count={type.count} note={type.note ?? null} theme={theme} delay={index + 7} />)}</div>
 
@@ -264,7 +268,7 @@ function ControlRoomV2({ dash, theme }: { dash: Dashboard; theme: 'dark' | 'ligh
 
 export function ControlRoomScreen() {
   const theme = useDomTheme()
-  const [dash, setDash] = useState<Dashboard | null>(null)
+  const [dash, setDash] = useState<DashboardResponse | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -274,8 +278,12 @@ export function ControlRoomScreen() {
       if (cancelled) return
       if (response.status === 401) { router.replace('/desk/login'); return }
       if (!response.ok) { setLoadError(copyForError(await response.json().catch(() => null))); return }
-      const body = await response.json()
-      if (!cancelled) setDash(body as Dashboard)
+      // Zod at the boundary: a payload that drifts from the route's contract
+      // is an error state, never a half-rendered screen.
+      const parsed = dashboardResponseSchema.safeParse(await response.json())
+      if (cancelled) return
+      if (!parsed.success) { setLoadError(ERROR_COPY['internal']!); return }
+      setDash(parsed.data)
     }).catch(() => { if (!cancelled) setLoadError(ERROR_COPY['internal']!) })
     return () => { cancelled = true }
   }, [router])
