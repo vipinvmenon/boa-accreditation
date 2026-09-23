@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { supabaseServer } from '@/lib/supabase-server'
-import { orgCreateSchema, orgRowSchema } from '@/lib/schemas/org'
+import { ORG_QUOTA_NON_ENFORCING, orgCreateSchema, orgRowSchema, orgRowWithCountsSchema } from '@/lib/schemas/org'
 
 // ACC-027. Every write to boa_acc_org goes through boa_acc_create_org
 // (202609120009) — there is no insert RLS policy, deliberately (see that
@@ -31,6 +32,11 @@ function mapError(error: { code?: string; message?: string }): { status: number;
   return { status: 500, body: { error: 'internal' } }
 }
 
+const personOrgStatusSchema = z.object({
+  org_id: z.string(),
+  status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'voided']),
+})
+
 export async function GET() {
   const supabase = await supabaseServer()
   const {
@@ -43,21 +49,48 @@ export async function GET() {
   // RLS (boa_acc_org_read) restricts this to active operators already; a
   // signed-in non-operator gets an empty list rather than an error, which is
   // consistent with "the database enforces the same rule" (non-negotiable #3).
-  const { data, error } = await supabase
-    .from('boa_acc_org')
-    .select(ORG_COLUMNS)
-    .order('created_at', { ascending: false })
+  //
+  // ADR-019: this screen's job now is org names the importer matches
+  // (data/org-aliases.json, boa_acc_org.name) and how many people each has
+  // sent — so the org read is paired with a read of boa_acc_person (RLS
+  // boa_acc_person_read, same "any operator" rule — see the master list
+  // route for precedent) to compute per-org counts here, in the data layer,
+  // rather than adding a new RPC for a count two existing tables already
+  // answer with a group-by.
+  const [{ data, error }, { data: personRows, error: personError }] = await Promise.all([
+    supabase.from('boa_acc_org').select(ORG_COLUMNS).order('created_at', { ascending: false }),
+    supabase.from('boa_acc_person').select('org_id,status'),
+  ])
 
-  if (error) {
+  if (error || personError) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
   const rows = orgRowSchema.array().safeParse(data)
-  if (!rows.success) {
+  const people = personOrgStatusSchema.array().safeParse(personRows)
+  if (!rows.success || !people.success) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
-  return NextResponse.json({ orgs: rows.data })
+  const countsByOrg = new Map<string, { submittedCount: number; approvedCount: number }>()
+  for (const person of people.data) {
+    const counts = countsByOrg.get(person.org_id) ?? { submittedCount: 0, approvedCount: 0 }
+    counts.submittedCount += 1
+    if (person.status === 'approved') counts.approvedCount += 1
+    countsByOrg.set(person.org_id, counts)
+  }
+
+  const orgs = rows.data.map((org) => ({
+    ...org,
+    ...(countsByOrg.get(org.id) ?? { submittedCount: 0, approvedCount: 0 }),
+  }))
+
+  const parsedOrgs = orgRowWithCountsSchema.array().safeParse(orgs)
+  if (!parsedOrgs.success) {
+    return NextResponse.json({ error: 'internal' }, { status: 500 })
+  }
+
+  return NextResponse.json({ orgs: parsedOrgs.data })
 }
 
 export async function POST(request: Request) {
@@ -84,7 +117,10 @@ export async function POST(request: Request) {
   const { data: orgId, error } = await supabase.rpc('boa_acc_create_org', {
     p_name: parsed.data.name,
     p_kind: parsed.data.kind,
-    p_quota: parsed.data.quota,
+    // ADR-019 / ACC-140g: quota is no longer collected from the operator —
+    // the RPC's p_quota argument still exists (no migration to drop it, see
+    // lib/schemas/org.ts), so this passes the non-enforcing default.
+    p_quota: ORG_QUOTA_NON_ENFORCING,
     p_contact_name: parsed.data.contactName,
     p_contact_phone: parsed.data.contactPhone,
     p_default_type: parsed.data.defaultType ?? 'crew',
@@ -114,5 +150,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
-  return NextResponse.json({ org: parsedRow.data }, { status: 201 })
+  // A just-created org has sent nobody yet — no extra read needed for that.
+  return NextResponse.json(
+    { org: { ...parsedRow.data, submittedCount: 0, approvedCount: 0 } },
+    { status: 201 },
+  )
 }

@@ -26,10 +26,14 @@ export const ORG_TYPE_CODES = TIER_CODES
 /** What an operator may SET as an org's default: the requestable tiers. */
 export const requestableTierCodeSchema = z.enum(REQUESTABLE_TIER_CODES)
 
+// ADR-019 / ACC-140g (22 Sep 2026): quotas were dropped — nothing enforces
+// `boa_acc_org.quota` any more. It is no longer collected from the operator;
+// POST /api/desk/orgs passes ORG_QUOTA_NON_ENFORCING (below) to
+// `boa_acc_create_org`, whose `p_quota` argument the RPC still requires (no
+// migration to change its signature — out of scope here; see ROADMAP/ADR-019).
 export const orgCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   kind: z.enum(ORG_KINDS),
-  quota: z.coerce.number().int().min(0).max(500),
   contactName: z.string().trim().min(2).max(80),
   contactPhone: z
     .string()
@@ -39,6 +43,14 @@ export const orgCreateSchema = z.object({
 })
 
 export type OrgCreateInput = z.infer<typeof orgCreateSchema>
+
+/**
+ * The value POST /api/desk/orgs passes for `boa_acc_create_org`'s required
+ * `p_quota` argument now that nothing reads or enforces it (ADR-019,
+ * ACC-140g, 22 Sep 2026). The column's CHECK still requires 0-500; 500 (the
+ * ceiling) reads as "no real ceiling" rather than as a number anyone chose.
+ */
+export const ORG_QUOTA_NON_ENFORCING = 500
 
 /** Shape of one row from `boa_acc_org`, as selected by GET /api/desk/orgs. */
 export const orgRowSchema = z.object({
@@ -55,7 +67,19 @@ export const orgRowSchema = z.object({
   updated_at: z.string(),
 })
 
+/**
+ * The row above, plus the two counts ADR-019 makes the point of this screen:
+ * how many people the organisation has sent (any status their import/desk
+ * work landed them in) and how many of those are approved. Computed in
+ * GET /api/desk/orgs from `boa_acc_person`, not stored — never a fixture.
+ */
+export const orgRowWithCountsSchema = orgRowSchema.extend({
+  submittedCount: z.number().int().min(0),
+  approvedCount: z.number().int().min(0),
+})
+
 export type OrgRow = z.infer<typeof orgRowSchema>
+export type OrgRowWithCounts = z.infer<typeof orgRowWithCountsSchema>
 
 // Invite-link minting (mintInviteSchema / mintedInviteSchema / inviteRowSchema)
 // was removed with the invite-link UI and its API route (ADR-019, 22 Sep):

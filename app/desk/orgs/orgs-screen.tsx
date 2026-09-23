@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ORG_KINDS, type OrgRow } from '@/lib/schemas/org'
+import { ORG_KINDS, type OrgRowWithCounts } from '@/lib/schemas/org'
 import { REQUESTABLE_TIERS, type RequestableTierCode } from '@/lib/desk-tiers'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
@@ -21,9 +21,15 @@ import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
  * this redirects to /desk/login rather than rendering a broken screen.
  *
  * ADR-019 (22 Sep, Vipin): the invite-link list/mint/revoke UI that used to
- * live under each org row is retired with `/s/[token]`. This screen is kept —
- * it is how the admin creates real organisations, which ADR-019/ACC-140c
- * still needs — and the nav now calls it "Organisations" (lib/design.ts).
+ * live under each org row is retired with `/s/[token]`. Crew now register on
+ * a Google Form (docs/ROSTER-FORM.md) and the importer matches the sheet's
+ * free-text "Organisation" answer to `boa_acc_org.name`. So this screen's
+ * job is now: maintain the canonical org names the import matches and the
+ * form's dropdown (`ORGS` in scripts/roster-form/build-roster-form.gs)
+ * mirrors, show how many people each org has sent, and hold the contact to
+ * chase. Quotas were dropped 22 Sep (ACC-140g): `boa_acc_org.quota` stays in
+ * the schema but nothing enforces it, so it is neither collected here nor
+ * shown in the list line below.
  */
 const ERROR_COPY: Record<string, string> = {
   not_authenticated: 'Your session has expired. Sign in again.',
@@ -53,7 +59,6 @@ const labelStyle: React.CSSProperties = {
 type CreateFormState = {
   name: string
   kind: (typeof ORG_KINDS)[number]
-  quota: string
   contactName: string
   contactPhone: string
   defaultType: RequestableTierCode
@@ -62,7 +67,6 @@ type CreateFormState = {
 const EMPTY_FORM: CreateFormState = {
   name: '',
   kind: 'vendor',
-  quota: '',
   contactName: '',
   contactPhone: '+91',
   defaultType: 'crew',
@@ -70,8 +74,9 @@ const EMPTY_FORM: CreateFormState = {
 
 export function OrgsScreen() {
   const router = useRouter()
-  const [orgs, setOrgs] = useState<OrgRow[] | null>(null)
+  const [orgs, setOrgs] = useState<OrgRowWithCounts[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [copyStatus, setCopyStatus] = useState<string | null>(null)
 
   const [form, setForm] = useState<CreateFormState>(EMPTY_FORM)
   const [creating, setCreating] = useState(false)
@@ -96,7 +101,7 @@ export function OrgsScreen() {
         }
         return
       }
-      const body = (await res.json()) as { orgs: OrgRow[] }
+      const body = (await res.json()) as { orgs: OrgRowWithCounts[] }
       if (cancelled) return
       setOrgs(body.orgs)
       setLoadError(null)
@@ -119,7 +124,6 @@ export function OrgsScreen() {
       body: JSON.stringify({
         name: form.name,
         kind: form.kind,
-        quota: Number(form.quota),
         contactName: form.contactName,
         contactPhone: form.contactPhone,
         defaultType: form.defaultType,
@@ -137,10 +141,29 @@ export function OrgsScreen() {
       setAnnouncement(`Could not create organisation. ${message}`)
       return
     }
-    const body = (await res.json()) as { org: OrgRow }
+    const body = (await res.json()) as { org: OrgRowWithCounts }
     setOrgs((prev) => [body.org, ...(prev ?? [])])
     setForm(EMPTY_FORM)
     setAnnouncement(`Organisation ${body.org.name} created.`)
+  }
+
+  // ADR-019: `boa_acc_org.name` is what the Google Form's dropdown must
+  // mirror (the `ORGS` array in scripts/roster-form/build-roster-form.gs —
+  // see docs/ROSTER-FORM.md, "Keeping the form dropdown in step"). Copies
+  // both the plain one-per-line list and the exact array literal, so Vipin
+  // can paste whichever the script needs without retyping or reformatting.
+  async function handleCopyOrgNames() {
+    if (!orgs || orgs.length === 0) return
+    const names = orgs.map((org) => org.name).sort((a, b) => a.localeCompare(b))
+    const plain = names.join('\n')
+    const arrayLiteral = `var ORGS = [${names.map((n) => `'${n.replaceAll("'", "\\'")}'`).join(', ')}];`
+    const text = `${plain}\n\n${arrayLiteral}\n`
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyStatus(`Copied ${names.length} organisation name${names.length === 1 ? '' : 's'} to the clipboard.`)
+    } catch {
+      setCopyStatus('Could not copy — clipboard access was denied.')
+    }
   }
 
   return (
@@ -191,18 +214,6 @@ export function OrgsScreen() {
               </select>
             </label>
             <label className="utility-label">
-              <span>Quota</span>
-              <input
-                required
-                type="number"
-                min={0}
-                max={500}
-                value={form.quota}
-                onChange={(e) => setForm((f) => ({ ...f, quota: e.target.value }))}
-                className="utility-input"
-              />
-            </label>
-            <label className="utility-label">
               <span>Default pass type</span>
               <select
                 value={form.defaultType}
@@ -248,19 +259,44 @@ export function OrgsScreen() {
         </div></section>
 
         <section>
-          <h2
+          <div
             style={{
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.13em',
-              textTransform: 'uppercase',
-              color: 'var(--ink2,rgba(242,239,226,0.72))',
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
               margin: '0 0 16px',
             }}
           >
-            All orgs
-          </h2>
+            <h2
+              style={{
+                fontFamily: "'JetBrains Mono',monospace",
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.13em',
+                textTransform: 'uppercase',
+                color: 'var(--ink2,rgba(242,239,226,0.72))',
+                margin: 0,
+              }}
+            >
+              All orgs
+            </h2>
+            <button
+              type="button"
+              className="btn hov-invert-grn"
+              disabled={!orgs || orgs.length === 0}
+              onClick={() => void handleCopyOrgNames()}
+              style={{ opacity: !orgs || orgs.length === 0 ? 0.6 : 1 }}
+            >
+              Copy names for the form dropdown
+            </button>
+          </div>
+          {copyStatus && (
+            <p role="status" style={{ ...labelStyle, margin: '0 0 12px' }}>
+              {copyStatus}
+            </p>
+          )}
 
           {loadError && <p role="alert" className="utility-error">{loadError}</p>}
           {orgs === null && !loadError && (
@@ -279,7 +315,8 @@ export function OrgsScreen() {
                       {org.name}
                     </p>
                     <p style={{ ...labelStyle, marginTop: '4px' }}>
-                      {org.kind} · quota {org.quota} · {org.status} · {org.contact_name}
+                      {org.kind} · sent {org.submittedCount} · approved {org.approvedCount} · {org.status} ·{' '}
+                      {org.contact_name}
                     </p>
                   </div>
                 </div>

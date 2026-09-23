@@ -1,9 +1,66 @@
 # Organisation input and invite handoff
 
-ACC-030 and ACC-031 are not complete in this checkout. The live database has
-zero `boa_acc_org` rows, and no authoritative 38-organisation source file is
-committed. Do not populate it from mock design data, memory, WhatsApp
-messages, or inferred quotas.
+**Current flow (ADR-019, 22 Sep 2026 — read this section first).** Crew now
+register on one Google Form (`docs/ROSTER-FORM.md`); there is no per-org
+invite link any more, and nothing in the app mints one. `/desk/orgs`'s job is
+to hold the canonical organisation names `lib/roster-import.ts`'s importer
+matches the form's free-text "Organisation" answer against
+(`data/org-aliases.json` catches misspellings), show how many people each
+organisation has sent and how many are approved, and hold the contact to
+chase. Quotas were dropped the same day (ACC-140g): `boa_acc_org.quota`
+stays in the schema and in the create RPC's signature, but nothing reads or
+enforces it, it is not collected on the create form, and it is not shown in
+the org list.
+
+Everything below this point that talks about **minting an invite link**
+(ACC-031, "Human input and handling required for ACC-031") describes the
+**retired** collection path (`/s/[token]`) and is kept only as a historical
+record of ACC-030/031's original design — do not act on it. The "Human input
+required for ACC-030" section below is still accurate for how an organisation
+name, kind, contact and default tier get created; only the invite-minting
+step after it no longer applies.
+
+## Keeping the form's dropdown organisation list in step
+
+The form's Organisation question (`docs/ROSTER-FORM.md`) is free text until
+someone fills in `ORGS` in `scripts/roster-form/build-roster-form.gs`
+(ACC-116). Once `boa_acc_org` holds the real names, `/desk/orgs`' **"Copy
+names for the form dropdown"** button copies every organisation's exact name
+— one per line, and again as the `var ORGS = [...]` array literal the script
+needs — so pasting either into the script keeps the dropdown matching what
+the importer will actually accept. Re-copy and re-paste whenever an
+organisation is added, renamed or removed, then re-run the script (see
+"Building it" in `docs/ROSTER-FORM.md` — re-running updates the live form in
+place, it does not mint a new one).
+
+## Replacing the 38 placeholder organisations
+
+`scripts/replace-placeholder-orgs.mjs` (23 Sep 2026) does the two things
+needed to move off the 14-Sep rehearsal fixtures:
+
+1. deletes every `PLACEHOLDER — ` organisation that has **zero** dependent
+   rows (no people, no check-ins, no invites, no AAA nominations) — anything
+   with dependents is reported and skipped, never force-deleted;
+2. creates the real organisations listed in the committed `data/orgs.json`
+   through the same `boa_acc_create_org` RPC `/desk/orgs` itself calls,
+   skipping any name that already exists.
+
+It defaults to `--dry` (prints what it would do, writes nothing) and only
+writes with `--apply`:
+
+```bash
+corepack pnpm orgs:replace-placeholders           # --dry, the default
+corepack pnpm orgs:replace-placeholders -- --apply
+```
+
+**This script is destructive and is run by Vipin, not an agent** (CLAUDE.md:
+an agent may not write to production here). `data/orgs.json` currently holds
+one entry — Bangalore Open Air's own crew — with `contactName`/
+`contactPhone` left as the literal `"TODO"`; the script refuses to create an
+entry whose contact fields are still `"TODO"` rather than invent them. Add
+the real 38 to that same file, one at a time, as Bhoopesh's list arrives
+(the "Human input required for ACC-030" rules below still apply to what goes
+in it), and re-run with `--apply` — it is idempotent by name.
 
 ## Human input required for ACC-030
 
@@ -45,7 +102,10 @@ keeps the existing database authorization in force. The final count and
 source/as-of time should be recorded by the human operator; an agent must not
 invent or backfill missing values.
 
-## Human input and handling required for ACC-031
+## Human input and handling required for ACC-031 (retired — see top of this file)
+
+**Superseded 22 Sep 2026 by ADR-019.** `/s/[token]` and invite minting are no
+longer the collection path; kept below only as a historical record.
 
 Invite tokens are secret and are returned only once by
 `boa_acc_mint_invite`. The database stores only a hash and a short hint, so a

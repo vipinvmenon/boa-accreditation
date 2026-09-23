@@ -18,7 +18,7 @@ describe('desk tiers', () => {
 
   it('org defaults offer the requestable tiers only', () => {
     expect([...REQUESTABLE_TIER_CODES]).toEqual(['stage', 'promoters_lounge', 'crew', 'photo', 'eddies_lounge'])
-    const org = { name: 'Org', kind: 'vendor', quota: 1, contactName: 'Ab', contactPhone: '+919812345678' }
+    const org = { name: 'Org', kind: 'vendor', contactName: 'Ab', contactPhone: '+919812345678' }
     expect(orgCreateSchema.safeParse({ ...org, defaultType: 'artist' }).success).toBe(false)
     expect(orgCreateSchema.safeParse({ ...org, defaultType: 'photo' }).success).toBe(true)
   })

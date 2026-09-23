@@ -236,6 +236,16 @@ Rules for whoever edits the sheet by hand:
   dropdown (ACC-116); misspellings are matched through a committed alias map
   (below).
 
+**Keeping the dropdown in step (ACC-116/ADR-019, see `docs/ORG-IMPORT.md`
+"Keeping the form's dropdown organisation list in step" for the full flow):**
+once the Organisation question does become a dropdown, its `ORGS` list
+(`scripts/roster-form/build-roster-form.gs`) must match `boa_acc_org.name`
+exactly — a name the dropdown offers that the importer does not recognise, or
+vice versa, produces refused or unmatched rows. `/desk/orgs`'s **"Copy names
+for the form dropdown"** button copies the live organisation list in both the
+plain one-per-line form and as the `var ORGS = [...]` literal the script
+expects, so `ORGS` is a paste from the database, never retyped by hand.
+
 ## Importing
 
 > **Built (ACC-141–143) on a branch, not applied.** The loader now calls

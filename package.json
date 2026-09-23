@@ -34,6 +34,7 @@
     "wipe:dummy": "node scripts/wipe-dummy.mjs",
     "orgs:load": "node scripts/load-orgs.mjs",
     "orgs:wipe": "node scripts/wipe-orgs.mjs",
+    "orgs:replace-placeholders": "node scripts/replace-placeholder-orgs.mjs",
     "roster:import": "node scripts/import-roster.mjs"
   },
   "dependencies": {
