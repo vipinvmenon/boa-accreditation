@@ -334,20 +334,20 @@ with
          values (%L, ''wristband'', gen_random_uuid(), ''Check-in'', ''Nobody'', clock_timestamp())',
         (select id from person)
       ),
-      '23514', 'new row for relation "boa_acc_checkin" violates check constraint "boa_acc_checkin_operator_required"',
-      'a ledger row with no operator_id is refused by the database, even from the table owner'
+      '23514', 'new row for relation "boa_acc_checkin" violates check constraint "boa_acc_checkin_actor_required"',
+      'a ledger row naming neither an operator nor a device is refused, even from the table owner'
     )
     union all select 36, throws_ok(
       'insert into public.boa_acc_vehicle_event (idempotency_key, plate, outcome, reason, gate_label, officer_name, occurred_at)
        values (gen_random_uuid(), ''KA05MJ1500'', ''turned_away'', ''x'', ''Vehicle gate'', ''Nobody'', clock_timestamp())',
-      '23514', 'new row for relation "boa_acc_vehicle_event" violates check constraint "boa_acc_vehicle_event_operator_required"',
-      'a vehicle event with no operator_id is refused by the database'
+      '23514', 'new row for relation "boa_acc_vehicle_event" violates check constraint "boa_acc_vehicle_event_actor_required"',
+      'a vehicle event naming neither an operator nor a device is refused'
     )
     union all select 37, ok(
-      (select not c.convalidated
+      (select c.convalidated
          from pg_constraint c
-        where c.conname = 'boa_acc_checkin_operator_required'),
-      'boa_acc_checkin_operator_required is NOT VALID: device-era history is left exactly as it was'
+        where c.conname = 'boa_acc_checkin_actor_required'),
+      'boa_acc_checkin_actor_required is validated: every ledger row, old and new, names who acted'
     )
     union all select 38, throws_ok(
       'select public.boa_acc_gate_pull(''any-device-token'')',

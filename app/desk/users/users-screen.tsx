@@ -37,6 +37,9 @@ const ROLE_LABEL: Record<InviteOperatorInput['role'], string> = {
   lead: 'Lead',
   approver: 'Approver',
   admin: 'Admin',
+  // ACC-150 (ADR-020): the gate-only role. Wristbands and vehicle events,
+  // nothing else — and that is enforced in the database, not by this label.
+  issuer: 'Issuer (check-in only)',
 }
 
 const ERROR_COPY: Record<string, string> = {

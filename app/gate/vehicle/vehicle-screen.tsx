@@ -11,6 +11,7 @@ import { findActiveWristband, normalizePlate, queueVehicleEvent } from '@/gate/v
 import { Icon } from '@/components/icon'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { GateChrome } from '../gate-chrome'
+import { SyncStatus } from '../sync-status'
 
 /**
  * 'blocked' = "Log entry" was pressed but a system check failed. Nothing is
@@ -158,6 +159,7 @@ export function VehicleScreen() {
           <span className="mono">Enter registration</span>
           <input className="plate-in" id="vehicle-plate" aria-label="Vehicle registration" value={plate} onChange={(event) => { setPlate(event.target.value); setResult(null) }} placeholder="KA 05 MJ 8871" autoCapitalize="characters" autoComplete="off" style={{ margin: '14px 0 18px' }} />
           <div className="note" style={{ '--oc': 'var(--gold)' } as CSSProperties}><span className="mono" style={{ color: p.gold }}>Both or neither</span><br />A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</div>
+          <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
         </div></div>
         <div className="bz result rv" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': cleared ? p.grn : result ? p.bad : p.grn } as CSSProperties}><div className="pl" style={{ minHeight: 560 }}>
           <div className="flood" />

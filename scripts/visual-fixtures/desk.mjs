@@ -33,6 +33,7 @@ export const FIXTURE_SENTINELS = [
   'Nikita Banerjee',
   'BOA26-0412',
   'BOA26-2205',
+  'Meera Doubleday',
 ]
 
 /** Copies of lib/design.ts's QR_* (this .mjs cannot import TypeScript at
@@ -68,6 +69,10 @@ export const dashboard = {
   bmsPending: 14,
   aaaStamped: 14,
   aaaNominatedApproved: 18,
+  // ACC-148: the design has no double-issue state, so the reference capture
+  // carries none and the warning panel stays absent.
+  doubleIssues: 0,
+  doubleIssueList: [],
   // ACC-115: the RPC returns every boa_acc_type row in sort_order (ADR-018).
   // The design's three counts are kept on the codes that survived; the five
   // pack-only tiers have no design figure and read 0. Pixel sign-off against
@@ -83,6 +88,29 @@ export const dashboard = {
     { code: 'general_admission', count: 0 },
   ],
   orgs: DESIGN_ORGS.map((o, i) => ({ id: uuid(100 + i), ...o })),
+}
+
+// ── ACC-148 · a double issue, caught after sync ─────────────────────────────
+// Not in the design (the artboard predates ADR-020), so this state is not
+// captured against a reference. It exists so the warning panel has a
+// schema-checked payload to render through the real route contract. The
+// person, org and serials are invented; the names are sentinels below.
+export const dashboardDoubleIssue = {
+  ...dashboard,
+  doubleIssues: 1,
+  doubleIssueList: [
+    {
+      personId: uuid(700),
+      fullName: 'Meera Doubleday',
+      orgName: DESIGN_ORGS[1].name,
+      typeCode: 'crew',
+      liveBands: 2,
+      issues: [
+        { checkinId: uuid(701), bandSerial: '0771', issuerName: 'Kavya R', issuerKind: 'operator', operatorId: uuid(901), deviceId: null, gateLabel: 'Gate 1', occurredAt: IST('09', '10:00'), postedAt: IST('09', '10:20'), isReissue: false },
+        { checkinId: uuid(702), bandSerial: '0772', issuerName: 'Arjun P', issuerKind: 'device', operatorId: null, deviceId: uuid(800), gateLabel: 'Gate 2', occurredAt: IST('09', '10:05'), postedAt: IST('09', '10:31'), isReissue: false },
+      ],
+    },
+  ],
 }
 
 export const operators = {
@@ -213,7 +241,7 @@ export async function passesFor() {
  * issue list on the first mismatch — the run stops before capturing anything.
  */
 export async function validateDeskFixtures() {
-  const [{ dashboardSchema }, { queueResponseSchema }, { masterResponseSchema }, { passesResponseSchema }, { operatorRowSchema }] =
+  const [{ dashboardResponseSchema }, { queueResponseSchema }, { masterResponseSchema }, { passesResponseSchema }, { operatorRowSchema }] =
     await Promise.all([
       import('../../lib/schemas/dashboard.ts'),
       import('../../lib/schemas/queue.ts'),
@@ -225,7 +253,8 @@ export async function validateDeskFixtures() {
     const r = schema.safeParse(value)
     if (!r.success) throw new Error(`visual fixture "${label}" does not match its API schema:\n${JSON.stringify(r.error.issues, null, 2)}`)
   }
-  check('dashboard', dashboardSchema, dashboard)
+  check('dashboard', dashboardResponseSchema, dashboard)
+  check('dashboard/double-issue', dashboardResponseSchema, dashboardDoubleIssue)
   check('queue', queueResponseSchema, queue)
   check('master', masterResponseSchema, master)
   for (const op of operators.operators) check('operators', operatorRowSchema, op)

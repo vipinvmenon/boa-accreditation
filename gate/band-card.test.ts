@@ -12,6 +12,7 @@ const row = {
   status: 'approved' as const,
   updatedAt: '2026-10-09T12:00:00.000+05:30',
   fullName: 'Test Promoter',
+  phone: '+919876500002',
   roleText: 'Promoter',
   orgName: 'Test Org',
   typeCode: 'promoters_lounge',
@@ -21,10 +22,10 @@ const row = {
 describe('gate band card (ACC-115, ADR-018)', () => {
   it('a promoters_lounge roster row parses on the wire and in the Dexie cache', () => {
     const pulled = gatePullSchema.parse({
-      deviceId: '33333333-3333-4333-8333-333333333333',
-      gateLabel: 'Gate 1',
+      operatorId: '33333333-3333-4333-8333-333333333333',
+      operatorRole: 'issuer',
+      gateLabel: 'Check-in',
       volunteerName: 'Ravi',
-      scope: 'crew',
       roster: [{ ...row, vehicleReg: null }],
       ledger: [],
       rosterAsOf: null,

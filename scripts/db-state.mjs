@@ -28,6 +28,9 @@ const WITNESSES = [
   ['202609110006_boa_acc_wipe_org', 'function', 'private.boa_acc_wipe_org'],
   ['202609110007_boa_acc_revoke_invite', 'function', 'private.boa_acc_revoke_invite'],
   ['202609110008_boa_acc_wipe_email', 'function', 'private.boa_acc_wipe_email'],
+  ['202609221000_boa_acc_import_approve', 'function', 'public.boa_acc_import_approve'],
+  ['202609221300_boa_acc_double_issue', 'function', 'public.boa_acc_double_issues'],
+  ['202609221100_boa_acc_pass_send', 'table', 'public.boa_acc_pass_send'],
   // ACC-150: the label (its own migration — ADD VALUE cannot be used in the
   // transaction that adds it) and the gate predicate the second one creates.
   ['202609221200_boa_acc_issuer_role', 'enumlabel', 'public.boa_acc_operator_role.issuer'],

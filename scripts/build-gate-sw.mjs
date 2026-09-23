@@ -96,7 +96,10 @@ function emittedAppRoutes() {
 }
 
 const emitted = emittedAppRoutes()
-const routes = ['/gate', '/gate/vehicle', '/gate/setup']
+// ACC-150 retired /gate/setup (device-token pairing). The login page is
+// deliberately NOT precached: it is outside the worker's /gate scope and it
+// needs the network anyway.
+const routes = ['/gate', '/gate/vehicle']
 const missing = routes.filter((r) => !emitted.includes(r))
 if (missing.length) {
   console.error(

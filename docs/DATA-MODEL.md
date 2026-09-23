@@ -110,7 +110,18 @@ Four nominees have no person row yet. The types card shows *stamped*.
   This is the Master list and the amber line *"Issued 14:02 · Gate 1 · band #0412 by Ravi"*.
 - `boa_acc_sticker_current` — plate → active sticker. The barrier's lookup.
 - `boa_acc_desk_dashboard()` — every Control-room number in **one** round trip.
-  The Control room is one query, not eight.
+  The Control room is one query, not eight. Since ACC-148 it also carries
+  `doubleIssues`: a count of people holding two or more live wristbands.
+- `boa_acc_double_issues()` (ACC-148, `202609221300`) — the names behind that
+  count. One element per person holding **two or more live, non-reissue**
+  wristband rows ("live" = no void row targets it, ADR-012), listing every live
+  band they hold: serial, issuer, gate, `occurredAt` (phone clock, clamped) and
+  `postedAt` (sync time). The issuer is `coalesce(operator display_name,
+  volunteer_name)`: the operator is read by probing the row for an
+  `operator_id` key (ACC-150), so legacy device rows fall back to the
+  volunteer name the gate RPC wrote. A supervisor-noted reissue does not by
+  itself raise a warning. Read-only: the ledger keeps every row; the desk voids
+  the spare at the gate. Active lead/approver/admin only.
 
 Neither view is granted to `anon`.
 

@@ -8,6 +8,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { supabaseBrowser } from '@/lib/supabase-browser'
+import { loginHref } from '@/gate/session'
 
 export function GateChrome({
   children,
@@ -50,7 +51,9 @@ export function GateChrome({
     if (signingOut) return
     setSigningOut(true)
     await supabaseBrowser().auth.signOut()
-    router.replace('/desk/login')
+    // Back to the gate after the next sign-in: this is an issuer's whole app
+    // (ACC-150). Queued work stays in the outbox and syncs once they are in.
+    router.replace(loginHref())
   }
 
   useEffect(() => {

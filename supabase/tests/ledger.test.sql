@@ -70,10 +70,10 @@ with
       (select token from tok), 'ACC041 Ledger Person', '+919821000301', 'Crew'
     ) as id from inv
   ),
-  -- ACC-150: rows now carry operator_id (boa_acc_checkin_operator_required)
+  -- ACC-150: rows now carry operator_id (boa_acc_checkin_actor_required)
   -- and device_id is NULL. A random operator id is enough: the column has no
   -- FK on purpose (202609221201). Without it every insert below would be
-  -- refused by operator_required first, and these assertions would pass for
+  -- refused by actor_required first, and these assertions would pass for
   -- the wrong reason — hence each one now names the constraint it expects.
   actor as materialized (
     select gen_random_uuid() as operator_id

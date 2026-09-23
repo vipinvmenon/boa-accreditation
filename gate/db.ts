@@ -24,6 +24,10 @@ export const rosterRowSchema = z.object({
   vehicleReg: z.string().min(1).optional(),
   updatedAt: timestamp,
   fullName: z.string().min(1),
+  // Optional: rows cached by a pull older than ACC-150 carry no phone, and
+  // they must keep parsing. Search treats a missing phone as "no match by
+  // phone" (gate/search.ts) rather than failing.
+  phone: z.string().min(1).optional(),
   roleText: z.string().min(1),
   orgName: z.string().min(1),
   // Widened to the pack's eight tiers (ADR-018) with no Dexie version bump:
@@ -93,6 +97,10 @@ export const metaKeySchema = z.enum([
   'schemaVersion',
   'gateLabel',
   'volunteerName',
+  // ACC-149: epoch ms of this device's last successful roster pull and last
+  // full outbox drain, rendered as "Last synced". Not indexed; no version bump.
+  'lastPullAt',
+  'lastDrainAt',
 ])
 
 export const metaRowSchema = z.object({

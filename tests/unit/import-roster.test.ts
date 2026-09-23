@@ -1,14 +1,16 @@
 /**
- * ACC-117 · lib/roster-import.ts — the roster form's response sheet, parsed
- * and validated offline, before anything reaches boa_acc_import_roster.
+ * ACC-117 / ACC-141–143 · lib/roster-import.ts — the roster form's response
+ * sheet, parsed and validated offline, before anything reaches
+ * boa_acc_import_approve.
  *
- * It also pins the three lists this module must agree with — the form's
- * questions and answers (build-roster-form.gs), the requestable tiers
- * (lib/design.ts), and the jsonb fields the RPC reads (the migration) — so a
- * change in one place fails here instead of at import time.
+ * It also pins the lists this module must agree with — the form's questions
+ * and answers (build-roster-form.gs), the pack's tier labels (lib/design.ts),
+ * and the jsonb fields and outcomes of the RPC (the migration) — so a change
+ * in one place fails here instead of at import time.
  *
- * It cannot prove the database's decisions (quota, duplicates, no pass):
- * supabase/tests/import-roster.test.sql does that.
+ * It cannot prove the database's decisions (approval, the pass, the AAA
+ * guard, duplicates, changed tiers): supabase/tests/import-approve.test.sql
+ * does that.
  */
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -18,15 +20,19 @@ import {
   DAYS_ANSWERS,
   DESK_HEADER,
   DESK_TIERS,
+  DESK_TIER_CODES,
   FORM_CREW_TYPES,
-  REQUESTABLE_TIERS,
+  IMPORT_OUTCOMES,
   ROSTER_HEADER,
-  crewTypeMappingSchema,
+  importApproveSql,
   importRowSchema,
   matchOrganisations,
+  normaliseCrewType,
   normalisePhone,
   normalisePlate,
   parseFormTimestamp,
+  parseOrgAliases,
+  resolveOrganisation,
   toRpcPayload,
   validateRoster,
 } from '@/lib/roster-import'
@@ -52,6 +58,15 @@ function row(o: Partial<Record<(typeof ROSTER_HEADER)[number], string>> = {}) {
 }
 const sheet = (...rows: string[]) => [HEADER, ...rows].join('\r\n') + '\r\n'
 
+/** The same sheet with the desk's column on the right; `desk` fills it per row. */
+const deskSheet = (...rows: [string, string][]) =>
+  [`${HEADER},${DESK_HEADER}`, ...rows.map(([r, desk]) => `${r},${csvCell(desk)}`)].join('\r\n') + '\r\n'
+
+const migration = readFileSync(
+  new URL('../../supabase/migrations/202609221000_boa_acc_import_approve.sql', import.meta.url),
+  'utf8',
+)
+
 describe('the column contract', () => {
   it('accepts the exact header and refuses a renamed column', () => {
     expect(validateRoster(sheet(row())).fatal).toBeNull()
@@ -68,13 +83,16 @@ describe('the column contract', () => {
     const v = validateRoster(`${HEADER}\n${row()}\na,b,c\n`)
     expect(v.errors).toEqual([{ row_no: 3, organisation: 'b', errors: ['expected 8 columns, received 3'] }])
   })
+
+  it('a sheet with no desk column is valid, but nothing in it is decided', () => {
+    const v = validateRoster(sheet(row()))
+    expect(v.rows[0]?.type_code).toBeNull()
+    expect(v.undecided).toEqual([2])
+    expect(v.warnings.join('\n')).toMatch(/No "Accreditation type" column: every row imports as submitted/)
+  })
 })
 
-/** The same sheet with the desk's column on the right; `desk` fills it per row. */
-const deskSheet = (...rows: [string, string][]) =>
-  [`${HEADER},${DESK_HEADER}`, ...rows.map(([r, desk]) => `${r},${csvCell(desk)}`)].join('\r\n') + '\r\n'
-
-describe('the desk\'s Accreditation type column', () => {
+describe('column I, Accreditation Type, is the approval (ACC-141)', () => {
   it('is accepted as the one extra column, to the right of the form\'s', () => {
     const v = validateRoster(deskSheet([row(), 'Stage']))
     expect(v.fatal).toBeNull()
@@ -99,36 +117,51 @@ describe('the desk\'s Accreditation type column', () => {
     expect(validateRoster(between).fatal).toMatch(/Invalid header/)
   })
 
-  it('the desk\'s decision becomes the tier hint, winning over the crew-type mapping', () => {
-    const mapping = crewTypeMappingSchema.parse({ mapping: { Security: 'crew' } })
-    const v = validateRoster(deskSheet([row({ 'Crew type': 'Security' }), 'Stage']), mapping)
-    expect(v.rows[0]).toMatchObject({ requested_type_code: 'stage', deskTier: 'stage' })
+  it('a filled cell becomes the row\'s type_code, with the days answer as its day_validity', () => {
+    const v = validateRoster(deskSheet([row({ 'Days on site': 'Both build and show' }), 'Stage']))
+    expect(v.rows[0]).toMatchObject({ type_code: 'stage', day_validity: 'build_show' })
+    expect(v.undecided).toEqual([])
   })
 
-  it('a blank desk cell means undecided: it falls back to the mapping, never a default tier', () => {
-    const mapping = crewTypeMappingSchema.parse({ mapping: { Security: 'crew' } })
-    const v = validateRoster(deskSheet([row({ 'Crew type': 'Security' }), ''], [row({ 'Crew type': 'Bouncer', 'WhatsApp number': '9876543211' }), '']), mapping)
-    expect(v.rows.map((r) => [r.deskTier, r.requested_type_code])).toEqual([[null, 'crew'], [null, null]])
+  it('the crew type never sets the tier: same crew type, different column I, different tier', () => {
+    const v = validateRoster(
+      deskSheet(
+        [row({ 'Crew type': 'Bar Crew' }), 'Crew'],
+        [row({ 'Crew type': 'Bar Crew', 'WhatsApp number': '9876543211' }), 'Promoters Lounge'],
+        [row({ 'Crew type': 'Bar Crew', 'WhatsApp number': '9876543212' }), ''],
+      ),
+    )
+    expect(v.rows.map((r) => r.type_code)).toEqual(['crew', 'promoters_lounge', null])
   })
 
-  it('AAA and Artist import with no hint and are reported, because they need a nomination', () => {
+  it('a blank cell is undecided: no tier, imported as submitted, and listed for Salman', () => {
+    const v = validateRoster(
+      deskSheet([row(), ''], [row({ 'WhatsApp number': '9876543211' }), 'Crew'], [row({ 'WhatsApp number': '9876543212' }), '  ']),
+    )
+    expect(v.rows.map((r) => r.type_code)).toEqual([null, 'crew', null])
+    expect(v.undecided).toEqual([2, 4])
+    expect(v.warnings.join('\n')).toMatch(/2 row\(s\) have no Accreditation type: they import as submitted, for Salman to decide \(rows 2, 4\)/)
+  })
+
+  it('AAA and Artist are decisions too (ACC-140b): they travel as type_code, the database records the nomination', () => {
     const v = validateRoster(deskSheet([row(), 'AAA'], [row({ 'WhatsApp number': '9876543211' }), 'Artist']))
     expect(v.errors).toEqual([])
-    expect(v.rows.map((r) => [r.deskTier, r.requested_type_code])).toEqual([['aaa', null], ['artist', null]])
-    expect(v.warnings.join('\n')).toMatch(/2 row\(s\) marked AAA or Artist .*rows 2, 3.*nomination/)
-    // and each still becomes a payload row the RPC accepts (no AAA/Artist hint in it)
-    const fields = Object.keys(importRowSchema.shape) as (keyof typeof importRowSchema.shape)[]
-    for (const r of v.rows) {
-      const payload = Object.fromEntries(fields.map((k) => [k, r[k]]))
-      expect(importRowSchema.safeParse(payload).success).toBe(true)
-      expect(payload['requested_type_code']).toBeNull()
-    }
+    expect(v.rows.map((r) => r.type_code)).toEqual(['aaa', 'artist'])
+    for (const p of toRpcPayload(v.rows)) expect(importRowSchema.safeParse(p).success).toBe(true)
   })
 
-  it('refuses a desk value that is not one of its choices, by row', () => {
-    const v = validateRoster(deskSheet([row(), 'General Admission']))
-    expect(v.rows).toHaveLength(0)
+  it('refuses a value that is not exactly one of the labels, by row — General Admission and a curly apostrophe included', () => {
+    const v = validateRoster(
+      deskSheet(
+        [row(), 'General Admission'],
+        [row({ 'WhatsApp number': '9876543211' }), 'Eddie’s Lounge'],
+        [row({ 'WhatsApp number': '9876543212' }), 'stage'],
+        [row({ 'WhatsApp number': '9876543213' }), "Eddie's Lounge"],
+      ),
+    )
+    expect(v.errors.map((e) => e.row_no)).toEqual([2, 3, 4])
     expect(v.errors[0]!.errors.join()).toMatch(/Accreditation type "General Admission" is not one of the desk's choices/)
+    expect(v.rows.map((r) => r.type_code)).toEqual(['eddies_lounge'])
   })
 
   it('a desk-column sheet expects nine cells per row', () => {
@@ -187,7 +220,7 @@ describe('field rules', () => {
         row({ 'Days on site': 'Weekend', 'WhatsApp number': '9000000004' }),
       ),
     )
-    expect(v.rows.map((r) => r.requested_day_validity)).toEqual(['build', 'show', 'build_show'])
+    expect(v.rows.map((r) => r.day_validity)).toEqual(['build', 'show', 'build_show'])
     expect(v.errors[0]?.row_no).toBe(5)
   })
 
@@ -197,60 +230,120 @@ describe('field rules', () => {
   })
 })
 
-describe('crew type → tier hint', () => {
-  it('the committed mapping file is empty, so no row carries a hint', () => {
-    const committed = crewTypeMappingSchema.parse(
-      JSON.parse(readFileSync(new URL('../../data/crew-type-tiers.json', import.meta.url), 'utf8')),
-    )
-    expect(committed.mapping).toEqual({})
-    const v = validateRoster(sheet(row()), committed)
-    expect(v.rows[0]?.requested_type_code).toBeNull()
-    expect(v.warnings.join('\n')).toMatch(/no tier mapping.*Security/)
+describe('crew-type write-ins (ACC-143)', () => {
+  it('the live sheet\'s write-ins: "(stage)" and "(Stage)" are one crew type', () => {
+    expect(normaliseCrewType('Tech Production (stage)')).toBe('Tech Production (Stage)')
+    expect(normaliseCrewType('Tech Production (Stage)')).toBe('Tech Production (Stage)')
+    expect(normaliseCrewType('  Tech   Production (stage) ')).toBe('Tech Production (Stage)')
+    expect(normaliseCrewType('Artist Logistics')).toBe('Artist Logistics')
+    expect(normaliseCrewType('artist logistics')).toBe('Artist Logistics')
   })
 
-  it('a mapped crew type gets its hint; a write-in gets none and is flagged', () => {
-    const mapping = crewTypeMappingSchema.parse({ mapping: { security: 'crew' } })
+  it('a fixed choice in any case becomes the form\'s own spelling; letters are never lower-cased', () => {
+    expect(normaliseCrewType(' bar   crew ')).toBe('Bar Crew')
+    expect(normaliseCrewType('BOA internal crew')).toBe('BOA Internal Crew')
+    expect(normaliseCrewType('sound & lights')).toBe('Sound & Lights')
+    expect(normaliseCrewType('DJ crew')).toBe('DJ Crew')
+  })
+
+  it('write-ins are grouped by their normalised spelling, and the role text uses it', () => {
     const v = validateRoster(
-      sheet(row(), row({ 'Crew type': 'Drone operator', 'WhatsApp number': '9876543211' })),
-      mapping,
+      deskSheet(
+        [row({ 'Crew type': 'Tech Production (Stage)' }), 'Stage'],
+        [row({ 'Crew type': 'Tech Production (stage)', 'WhatsApp number': '9876543211' }), ''],
+        [row({ 'Crew type': 'Artist Logistics', 'WhatsApp number': '9876543212' }), 'Crew'],
+        [row({ 'Crew type': 'Security', 'WhatsApp number': '9876543213' }), 'Crew'],
+      ),
     )
-    expect(v.rows.map((r) => [r.requested_type_code, r.writeIn])).toEqual([
-      ['crew', false],
-      [null, true],
+    expect([...v.writeIns]).toEqual([
+      ['Tech Production (Stage)', [2, 3]],
+      ['Artist Logistics', [4]],
     ])
+    expect(v.rows.map((r) => [r.crewType, r.writeIn, r.role_text])).toEqual([
+      ['Tech Production (Stage)', true, 'Tech Production (Stage)'],
+      ['Tech Production (Stage)', true, 'Tech Production (Stage)'],
+      ['Artist Logistics', true, 'Artist Logistics'],
+      ['Security', false, 'Security'],
+    ])
+    expect(v.warnings.join('\n')).toMatch(/Write-in crew types, for display only — they never set a tier: Artist Logistics \(rows 4\); Tech Production \(Stage\) \(rows 2, 3\)/)
   })
 
-  it('the mapping may only name a tier a vendor can request', () => {
-    expect(crewTypeMappingSchema.safeParse({ mapping: { Security: 'aaa' } }).success).toBe(false)
-    expect(crewTypeMappingSchema.safeParse({ mapping: { Security: 'artist' } }).success).toBe(false)
-    expect(crewTypeMappingSchema.safeParse({ mapping: { Security: 'stage' } }).success).toBe(true)
+  it('a write-in never affects the tier: column I decides, blank stays undecided', () => {
+    const v = validateRoster(
+      deskSheet(
+        [row({ 'Crew type': 'Tech Production (stage)' }), ''],
+        [row({ 'Crew type': 'Tech Production (Stage)', 'WhatsApp number': '9876543211' }), 'Photo'],
+      ),
+    )
+    expect(v.rows.map((r) => r.type_code)).toEqual([null, 'photo'])
+    expect(v.undecided).toEqual([2])
   })
 })
 
-describe('organisations and duplicates', () => {
-  it('matches organisation names case- and space-insensitively and reports the unmatched', () => {
-    const v = validateRoster(
-      sheet(
-        row({ Organisation: '  f5   events ' }),
-        row({ Organisation: 'Nobody Ltd', 'WhatsApp number': '9876543211' }),
-      ),
-    )
-    const m = matchOrganisations(v.rows, [{ id: 'org-1', name: 'F5 Events' }])
-    expect(m.groups.map((g) => [g.org.id, g.rows.length])).toEqual([['org-1', 1]])
-    expect([...m.unmatched]).toEqual([['Nobody Ltd', [3]]])
+describe('organisations: aliases and matching (ACC-142)', () => {
+  const committed = parseOrgAliases(
+    JSON.parse(readFileSync(new URL('../../data/org-aliases.json', import.meta.url), 'utf8')),
+  )
+
+  it('the committed alias map sends the live sheet\'s variants to "Bangalore Open Air"', () => {
+    for (const typed of ['Banglore Open Air', 'Bangalore open air', '  banglore   open air ']) {
+      expect(resolveOrganisation(typed, committed).name, typed).toBe('Bangalore Open Air')
+    }
+    expect(resolveOrganisation('Bangalore Open Air', committed)).toEqual({ name: 'Bangalore Open Air', aliased: false })
+    expect(resolveOrganisation('Nobody Ltd', committed)).toEqual({ name: 'Nobody Ltd', aliased: false })
   })
 
-  it('flags a phone repeated within one organisation; the database refuses it', () => {
-    const v = validateRoster(sheet(row(), row({ 'Full name': 'Ravi K' })))
+  it('matches through the alias map, reports the aliased rows, and reports the unmatched by row — never guessed', () => {
+    const v = validateRoster(
+      sheet(
+        row({ Organisation: 'Bangalore Open Air' }),
+        row({ Organisation: 'Banglore Open Air', 'WhatsApp number': '9876543211' }),
+        row({ Organisation: 'Bangalore open air', 'WhatsApp number': '9876543212' }),
+        row({ Organisation: 'Bangalor Open Air', 'WhatsApp number': '9876543213' }),
+        row({ Organisation: '  f5   events ', 'WhatsApp number': '9876543214' }),
+      ),
+    )
+    const orgs = [
+      { id: 'boa', name: 'Bangalore Open Air' },
+      { id: 'f5', name: 'F5 Events' },
+    ]
+    const m = matchOrganisations(v.rows, orgs, committed)
+    expect(m.groups.map((g) => [g.org.id, g.rows.map((r) => r.row_no)])).toEqual([
+      ['boa', [2, 3, 4]],
+      ['f5', [6]],
+    ])
+    expect(m.aliased).toEqual([
+      { row_no: 3, from: 'Banglore Open Air', to: 'Bangalore Open Air' },
+      { row_no: 4, from: 'Bangalore open air', to: 'Bangalore Open Air' },
+    ])
+    expect([...m.unmatched]).toEqual([['Bangalor Open Air', [5]]])
+  })
+
+  it('an alias to an org that does not exist yet is reported as unmatched, not created', () => {
+    const v = validateRoster(sheet(row({ Organisation: 'Banglore Open Air' })))
+    const m = matchOrganisations(v.rows, [{ id: 'f5', name: 'F5 Events' }], committed)
+    expect(m.groups).toEqual([])
+    expect([...m.unmatched]).toEqual([['Banglore Open Air', [2]]])
+  })
+
+  it('the alias file refuses chains, conflicts and extra fields', () => {
+    expect(() => parseOrgAliases({ source: 'x', aliases: { A1: 'B Org', 'b org': 'C Org' } })).toThrow(/chain/)
+    expect(() => parseOrgAliases({ source: 'x', aliases: { 'Abc Org': 'X Org', 'abc  org': 'Y Org' } })).toThrow(/maps to both/)
+    expect(() => parseOrgAliases({ source: 'x', aliases: {}, extra: 1 })).toThrow()
+  })
+
+  it('flags a phone repeated anywhere in the sheet; the database refuses one of them', () => {
+    const v = validateRoster(sheet(row(), row({ 'Full name': 'Ravi K', Organisation: 'Other Org' })))
     expect(v.rows).toHaveLength(2)
-    expect(v.warnings[0]).toMatch(/row 3: same organisation and phone as row 2/)
+    expect(v.warnings.join('\n')).toMatch(/row 3: same phone as row 2/)
   })
 })
 
 describe('the 500-row fixture', () => {
   const crew = [...FORM_CREW_TYPES]
   const days = Object.keys(DAYS_ANSWERS)
-  const rows = Array.from({ length: 500 }, (_, i) =>
+  const labels = Object.keys(DESK_TIERS)
+  const rows: [string, string][] = Array.from({ length: 500 }, (_, i) => [
     row({
       Timestamp: `9/${(i % 9) + 21}/2026 ${i % 24}:${String(i % 60).padStart(2, '0')}:07`,
       Organisation: 'F5 Events',
@@ -261,14 +354,16 @@ describe('the 500-row fixture', () => {
       'Days on site': days[i % days.length]!,
       'Loading vehicle registration': i % 50 === 0 ? `ka 0${i % 9 + 1} ab ${1000 + i}` : '',
     }),
-  )
-  const v = validateRoster(sheet(...rows))
+    i % 4 === 0 ? '' : labels[i % labels.length]!,
+  ])
+  const v = validateRoster(deskSheet(...rows))
 
   it('validates all 500 with no refusals and no duplicate warnings', () => {
     expect(v.fatal).toBeNull()
     expect(v.errors).toEqual([])
     expect(v.rows).toHaveLength(500)
-    expect(v.warnings.filter((w) => /same organisation/.test(w))).toEqual([])
+    expect(v.undecided).toHaveLength(125)
+    expect(v.warnings.filter((w) => /same phone/.test(w))).toEqual([])
   })
 
   it('becomes ONE payload of 500 rows for one organisation, every row schema-valid', () => {
@@ -284,14 +379,23 @@ describe('the 500-row fixture', () => {
       phone: '+919000000000',
       role_text: 'Shift lead 0',
       vehicle_reg: 'KA01AB1000',
-      requested_type_code: null,
-      requested_day_validity: 'build',
+      type_code: null,
+      day_validity: 'build',
       submitted_at: '2026-09-21T00:00:07+05:30',
     })
+    expect(payload[1]?.type_code).toBe('artist')
     // Nothing beyond the RPC's fields leaves this module: no crew type, no org name.
     expect(Object.keys(payload[0]!).sort()).toEqual(
-      ['full_name', 'phone', 'requested_day_validity', 'requested_type_code', 'role_text', 'row_no', 'submitted_at', 'vehicle_reg'],
+      ['day_validity', 'full_name', 'phone', 'role_text', 'row_no', 'submitted_at', 'type_code', 'vehicle_reg'],
     )
+  })
+
+  it('the loader\'s SQL calls boa_acc_import_approve as the operator, with the payload as one literal', () => {
+    const payload = toRpcPayload(v.rows.slice(0, 2))
+    const sql = importApproveSql('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', payload)
+    expect(sql).toMatch(/public\.boa_acc_import_approve\('00000000-0000-4000-8000-000000000002'::uuid, '\[/)
+    expect(sql).toMatch(/'sub', '00000000-0000-4000-8000-000000000001'/)
+    expect(() => importApproveSql('not-a-uuid', '00000000-0000-4000-8000-000000000002', payload)).toThrow()
   })
 })
 
@@ -313,24 +417,21 @@ describe('pinned to the form, the pack and the migration', () => {
   })
 
   it('the desk column\'s choices are the pack\'s tier labels, minus General Admission', () => {
-    // every desk choice is a real tier, with the pack's label, and GA is not one
     for (const [label, code] of Object.entries(DESK_TIERS)) {
       expect(TIERS.find((t) => t.code === code)?.label, label).toBe(label)
     }
     expect(Object.values(DESK_TIERS)).not.toContain('general_admission')
     expect(Object.keys(DESK_TIERS)).toHaveLength(TIERS.length - 1)
+    expect([...DESK_TIER_CODES].sort()).toEqual(Object.values(DESK_TIERS).sort())
   })
 
-  it('requestable tiers are exactly lib/design.ts\'s requestable tiers', () => {
-    expect([...REQUESTABLE_TIERS].sort()).toEqual(TIERS.filter((t) => t.requestable).map((t) => t.code).sort())
-  })
-
-  it('the payload fields are exactly the fields boa_acc_import_roster reads', () => {
-    const sql = readFileSync(
-      new URL('../../supabase/migrations/202609211100_boa_acc_import_roster.sql', import.meta.url),
-      'utf8',
-    )
-    const read = [...new Set([...sql.matchAll(/v_row ->> '(\w+)'/g)].map((m) => m[1]))].sort()
+  it('the payload fields are exactly the fields boa_acc_import_approve reads', () => {
+    const read = [...new Set([...migration.matchAll(/v_row ->> '(\w+)'/g)].map((m) => m[1]))].sort()
     expect(read).toEqual(Object.keys(importRowSchema.shape).sort())
+  })
+
+  it('the result outcomes are exactly the outcomes boa_acc_import_approve returns', () => {
+    const returned = [...new Set([...migration.matchAll(/outcome\s*:=\s*'(\w+)'/g)].map((m) => m[1]))].sort()
+    expect(returned).toEqual([...IMPORT_OUTCOMES].sort())
   })
 })

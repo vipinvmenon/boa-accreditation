@@ -1,0 +1,7 @@
+{
+  "source": "ACC-142. Free-text Organisation answers seen in the live response sheet (22 Sep 2026) -> the organisation's canonical name. Keys and values are compared trimmed, whitespace-collapsed and case-insensitive (lib/roster-import.ts orgKey). Add a line only for a spelling actually seen in the sheet; anything neither an org nor an alias is reported by row, never guessed. The canonical name must match a boa_acc_org name created by the admin.",
+  "aliases": {
+    "Banglore Open Air": "Bangalore Open Air",
+    "Bangalore open air": "Bangalore Open Air"
+  }
+}

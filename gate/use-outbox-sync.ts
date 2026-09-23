@@ -1,17 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { drainOutbox, queuedCount } from './client'
-import { readDeviceToken } from './device-token'
+import { drainOutbox, needsLogin, queuedCount } from './client'
 
 const DRAIN_INTERVAL_MS = 30_000
 
 export type OutboxSync = {
   online: boolean
   queued: number
-  /** false when this device has no token — queued work cannot sync until /gate/setup runs again */
+  /** false when the server refused the last drain (401/403): queued work waits for a login */
   canSync: boolean
-  /** drain now if online and a token exists, then refresh the count */
+  /** drain now if online, then refresh the count */
   sync: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -34,17 +33,19 @@ export function useOutboxSync(onDrained?: () => void | Promise<void>): OutboxSyn
   }, [])
 
   const sync = useCallback(async () => {
-    const token = readDeviceToken()
-    setCanSync(token !== null)
-    if (token && navigator.onLine) {
+    if (navigator.onLine) {
       try {
-        await drainOutbox(token)
+        await drainOutbox()
         await onDrained?.()
       } catch {
         // drainOutbox records per-entry failures itself; a thrown error here
         // (e.g. fetch rejected mid-flight) just means "try again next tick".
       }
     }
+    // ACC-150: the credential is the session cookie, so "can this sync?" is
+    // answered by what the server said, not by what this device holds — a
+    // 401/403 leaves every entry queued (gate/outbox-policy.ts).
+    setCanSync(!(await needsLogin()))
     await refresh()
   }, [onDrained, refresh])
 

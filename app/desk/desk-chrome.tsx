@@ -17,6 +17,7 @@ const ROLE_LABEL: Record<OperatorRow['role'], string> = {
   lead: 'Lead',
   approver: 'Approver',
   admin: 'Admin',
+  issuer: 'Issuer',
 }
 
 /**
@@ -72,13 +73,20 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
       const parsed = operatorsResponseSchema.safeParse(await response.json())
       if (cancelled || !parsed.success) return
       const own = parsed.data.operators.find((o) => o.user_id === parsed.data.callerId)
-      if (own) setMe(own)
+      if (!own) return
+      // ACC-150 (ADR-020): an issuer has no desk. Every desk RPC refuses them
+      // in the database; this only saves them looking at empty screens.
+      if (own.role === 'issuer') {
+        router.replace('/gate')
+        return
+      }
+      setMe(own)
     }
     void loadMe()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     if (!menuOpen) return

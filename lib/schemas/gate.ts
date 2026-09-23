@@ -26,6 +26,8 @@ const gateRosterRowSchema = z.object({
   vehicleReg: z.string().nullable(),
   updatedAt: isoDateTime,
   fullName: z.string().min(1),
+  /** For the gate's offline search by phone; shown masked to four digits. */
+  phone: z.string().min(1),
   roleText: z.string().min(1),
   orgName: z.string().min(1),
   // The pack's eight tiers (ADR-018). Widened from v1's three; every v1 code

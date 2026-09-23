@@ -49,10 +49,61 @@ export const dashboardSchema = z.object({
   bmsPending: z.number(),
   aaaStamped: z.number(),
   aaaNominatedApproved: z.number(),
+  /**
+   * ACC-148 (202609221300): people holding two or more live, non-reissue
+   * wristbands. Defaults to 0 only so the Control room still renders if the
+   * app deploys before the migration is pushed; `db:state`'s WITNESS row is
+   * what says whether the function exists.
+   */
+  doubleIssues: z.number().int().nonnegative().default(0),
   types: z.array(dashboardTypeSchema),
   orgs: z.array(dashboardOrgSchema),
 })
 
+const isoDateTime = z.string().datetime({ offset: true })
+
+/**
+ * One live wristband row inside a double-issue warning. `issuerName` is the
+ * operator's display name when the ledger row names an operator (ACC-150),
+ * else the device volunteer_name the gate RPC wrote (`issuerKind` says which).
+ */
+export const doubleIssueBandSchema = z.object({
+  checkinId: z.string().uuid(),
+  bandSerial: z.string().nullable(),
+  issuerName: z.string(),
+  issuerKind: z.enum(['operator', 'device']),
+  operatorId: z.string().uuid().nullable(),
+  deviceId: z.string().uuid().nullable(),
+  gateLabel: z.string().nullable(),
+  occurredAt: isoDateTime,
+  postedAt: isoDateTime,
+  isReissue: z.boolean(),
+})
+
+/** One element of `public.boa_acc_double_issues()` (202609221300): one person. */
+export const doubleIssueSchema = z.object({
+  personId: z.string().uuid(),
+  fullName: z.string(),
+  orgName: z.string(),
+  typeCode: z.enum(ORG_TYPE_CODES).nullable(),
+  liveBands: z.number().int().min(2),
+  issues: z.array(doubleIssueBandSchema).min(2),
+})
+
+export const doubleIssueListSchema = z.array(doubleIssueSchema)
+
+/**
+ * What /api/desk/dashboard returns: the RPC's payload, plus the double-issue
+ * list, which the route fetches only when `doubleIssues` is non-zero. `null`
+ * means the count is known but the list read failed — the screen still warns.
+ */
+export const dashboardResponseSchema = dashboardSchema.extend({
+  doubleIssueList: doubleIssueListSchema.nullable().default([]),
+})
+
 export type Dashboard = z.infer<typeof dashboardSchema>
+export type DashboardResponse = z.infer<typeof dashboardResponseSchema>
+export type DoubleIssue = z.infer<typeof doubleIssueSchema>
+export type DoubleIssueBand = z.infer<typeof doubleIssueBandSchema>
 export type DashboardOrg = z.infer<typeof dashboardOrgSchema>
 export type DashboardType = z.infer<typeof dashboardTypeSchema>

@@ -17,8 +17,8 @@
 --  * each RPC resolves auth.uid() to an ACTIVE operator whose role is
 --    issuer, lead or admin, inside the database (non-negotiable #3). An
 --    approver is a desk role and is refused at the gate;
---  * every new ledger and vehicle-event row records operator_id, enforced
---    by a CHECK constraint, not by the RPC remembering to.
+--  * every new ledger and vehicle-event row records operator_id, because the
+--    session RPCs are the only write path that any role can reach.
 --
 -- THE SECOND DEFECT: "ANY OPERATOR" MUST NOT MEAN "ANY ROLE"
 --
@@ -40,8 +40,7 @@
 --  * Dropping the device-token RPCs and boa_acc_device. History stays: old
 --    ledger rows reference boa_acc_device(id), and dropping the functions
 --    buys nothing that revoking EXECUTE from every client role does not.
---    They remain callable only by the table owner (tests), and a device
---    write now fails the operator_id CHECK anyway.
+--    They remain callable only by the table owner (tests).
 --  * A foreign key from operator_id to auth.users. The ledger is append-only
 --    under an ENABLE ALWAYS trigger (non-negotiable #2), so the column can
 --    never be nulled; a FK would make an issuer's auth account impossible
@@ -55,13 +54,16 @@
 --    transaction as 202609221200 (a rolled-back verification run), where
 --    the new label is not yet usable.
 --
--- NOT VALID, ON PURPOSE
+-- THE ACTOR CONSTRAINT
 --
--- The two `*_operator_required` CHECKs are added NOT VALID: PostgreSQL then
--- enforces them on every NEW row but does not scan existing ones. Rows
--- written under device tokens before today have operator_id NULL and must
--- stay exactly as they are (non-negotiable #2). Never VALIDATE these
--- constraints; it would fail on history, which is the point.
+-- `*_actor_required` refuses any row that names neither an operator nor a
+-- device. It is deliberately not "operator_id is not null": device-era rows
+-- exist (and ACC-148's double-issue tests still build them as fixtures), and
+-- the ledger is append-only — history cannot be back-filled (non-negotiable
+-- #2). What makes "every new row names the operator" true is that the RPCs
+-- below are the ONLY write path left: no table INSERT policy exists anywhere,
+-- and the device-token RPCs hold EXECUTE for no client role (section 5).
+-- Every row they write sets operator_id from auth.uid().
 
 begin;
 
@@ -74,10 +76,10 @@ alter table public.boa_acc_checkin
 alter table public.boa_acc_checkin
   alter column device_id drop not null;
 alter table public.boa_acc_checkin
-  add constraint boa_acc_checkin_operator_required
-  check (operator_id is not null) not valid;
+  add constraint boa_acc_checkin_actor_required
+  check (device_id is not null or operator_id is not null);
 comment on column public.boa_acc_checkin.operator_id is
-  'auth.users id of the logged-in operator (issuer/lead/admin) who recorded this row, from auth.uid() inside boa_acc_gate_issue. NULL only on rows written under a device token before ACC-150; boa_acc_checkin_operator_required (NOT VALID) refuses NULL on every new row. No FK: the row is immutable and must outlive the account.';
+  'auth.users id of the logged-in operator (issuer/lead/admin) who recorded this row, from auth.uid() inside boa_acc_gate_issue. NULL only on rows written under a device token before ACC-150; boa_acc_checkin_actor_required refuses a row that names neither, and the session RPCs are the only write path left. No FK: the row is immutable and must outlive the account.';
 comment on column public.boa_acc_checkin.device_id is
   'Device-token era only (ACC-056, retired by ACC-150). NULL on every row written since; kept for history.';
 
@@ -86,10 +88,10 @@ alter table public.boa_acc_vehicle_event
 alter table public.boa_acc_vehicle_event
   alter column device_id drop not null;
 alter table public.boa_acc_vehicle_event
-  add constraint boa_acc_vehicle_event_operator_required
-  check (operator_id is not null) not valid;
+  add constraint boa_acc_vehicle_event_actor_required
+  check (device_id is not null or operator_id is not null);
 comment on column public.boa_acc_vehicle_event.operator_id is
-  'auth.users id of the logged-in operator who recorded this barrier event, from auth.uid() inside boa_acc_gate_vehicle. NULL only on device-token-era rows; boa_acc_vehicle_event_operator_required (NOT VALID) refuses NULL on every new row.';
+  'auth.users id of the logged-in operator who recorded this barrier event, from auth.uid() inside boa_acc_gate_vehicle. NULL only on device-token-era rows; boa_acc_vehicle_event_actor_required refuses a row that names neither.';
 
 -- The desk reads these tables through column grants (202609110002). A new
 -- column is not covered by an existing column grant, so name it.
@@ -210,6 +212,11 @@ begin
           'vehicleReg', p.vehicle_reg,
           'updatedAt', p.updated_at,
           'fullName', p.full_name,
+          -- ACC-147's offline search matches a phone by its trailing digits
+          -- and the gate only ever shows the last four (gate/search.ts).
+          -- Name, phone, role and vehicle are exactly what this project
+          -- collects (non-negotiable #9); nothing further is added here.
+          'phone', p.phone,
           'roleText', p.role_text,
           'orgName', o.name,
           'typeCode', p.type_code,
@@ -275,7 +282,7 @@ end;
 $$;
 
 comment on function public.boa_acc_gate_pull() is
-  'Approved roster (incl. name, role, org, pass type) and the latest active non-voided ledger projection, for the calling operator''s own session. issuer/lead/admin only, checked in the database (private.boa_acc_gate_operator).';
+  'Approved roster (incl. name, phone, role, org, pass type) and the latest active non-voided ledger projection, for the calling operator''s own session. issuer/lead/admin only, checked in the database (private.boa_acc_gate_operator).';
 
 revoke all on function public.boa_acc_gate_pull()
   from public, anon, authenticated, service_role;
@@ -570,9 +577,9 @@ revoke all on function private.boa_acc_gate_device(text)
 comment on function public.boa_acc_gate_pull(text) is
   'RETIRED by ACC-150 (ADR-020): device-token pull. No client role holds EXECUTE. Kept, not dropped, so history and the migration record stay intact; see boa_acc_gate_pull().';
 comment on function public.boa_acc_gate_issue(text, uuid, text, public.boa_acc_checkin_kind, text, text, text, timestamptz, boolean, text, uuid) is
-  'RETIRED by ACC-150 (ADR-020): device-token issue. No client role holds EXECUTE, and a row it tried to write would now fail boa_acc_checkin_operator_required.';
+  'RETIRED by ACC-150 (ADR-020): device-token issue. No client role holds EXECUTE; only the table owner could reach it at all.';
 comment on function public.boa_acc_gate_vehicle(text, uuid, text, public.boa_acc_vehicle_outcome, uuid, uuid, jsonb, text, timestamptz) is
-  'RETIRED by ACC-150 (ADR-020): device-token vehicle event. No client role holds EXECUTE, and a row it tried to write would now fail boa_acc_vehicle_event_operator_required.';
+  'RETIRED by ACC-150 (ADR-020): device-token vehicle event. No client role holds EXECUTE; only the table owner could reach it at all.';
 comment on function public.boa_acc_mint_device(text, text, text, timestamptz) is
   'RETIRED by ACC-150 (ADR-020): issuers log in as people. No client role holds EXECUTE.';
 comment on function public.boa_acc_revoke_device(uuid) is

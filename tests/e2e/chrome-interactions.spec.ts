@@ -59,13 +59,19 @@ async function installDeskFixtures(page: Page) {
 }
 
 async function installGateFixture(page: Page) {
+  // ACC-150: a logged-in issuer, mocked like every other gate API here.
+  await page.route('**/api/gate/session', async (route: Route) => {
+    await route.fulfill({
+      json: { operatorId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', displayName: 'Chrome Tester', role: 'issuer' },
+    })
+  })
   await page.route('**/api/gate/pull', async (route: Route) => {
     await route.fulfill({
       json: {
-        deviceId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        gateLabel: 'Main gate',
+        operatorId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        operatorRole: 'issuer',
+        gateLabel: 'Check-in',
         volunteerName: 'Chrome Tester',
-        scope: 'crew',
         roster: [{
           passToken: 'chrome-pass',
           personId: '11111111-1111-4111-8111-111111111111',
@@ -74,6 +80,7 @@ async function installGateFixture(page: Page) {
           vehicleReg: null,
           updatedAt: '2026-09-20T08:00:00.000Z',
           fullName: 'Chrome Person',
+          phone: '+919821000001',
           roleText: 'Working crew',
           orgName: 'Chrome Org',
           typeCode: 'crew',
@@ -141,10 +148,8 @@ test.describe('shared chrome interactions', () => {
   test('gate drawer is hidden and inert until opened, then restores focus', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await installGateFixture(page)
-    await page.goto('/gate/setup')
-    await page.getByLabel('Device token').fill('local-e2e-device-token')
-    await page.getByRole('button', { name: 'Pull approved list' }).click()
-    await expect(page).toHaveURL(/\/gate$/)
+    await page.goto('/gate')
+    await expect(page.getByRole('button', { name: "Can't scan? Search by name" })).toBeVisible()
 
     // exact: true — the profile-menu button's accessible name is "Operator
     // Menu", so a substring match resolves to both buttons (strict-mode
