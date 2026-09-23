@@ -179,7 +179,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       then load, with `db:state` before and after; approved/submitted counts
       reconcile with the sheet row for row; report file committed without
       names or phones · **C/V** · due Mon 28 Sep
-- [ ] **ACC-146** · The daily loop, written into OPERATIONS.md: Salman decides
+- [x] **ACC-146** · The daily loop, written into OPERATIONS.md: Salman decides
       in the sheet → export → import → passes sent → Bhoopesh enters BMS. Runs
       until the form closes (ACC-140e) · **C** · due Mon 28 Sep
 - [x] **ACC-150** · **Issuers log in; no device tokens (ADR-020).** Add an
@@ -364,11 +364,11 @@ screen gets explicit loading / empty / error / ready states that cannot be
 mistaken for each other. Plan: `polish/production-hardening` branch.
 `test:visual` must stay 7/7 PASS on every task.
 
-- [ ] **ACC-122** · `components/states/` — Skeleton, EmptyState, InlineError (`role="alert"`, Retry); one `lib/error-copy.ts` replacing 7 copies of `ERROR_COPY` · **C** · due Tue 22
+- [x] **ACC-122** · `components/states/` — Skeleton, EmptyState, InlineError (`role="alert"`, Retry); one `lib/error-copy.ts` replacing 7 copies of `ERROR_COPY` · **C** · due Tue 22
 - [-] **ACC-123** · Queue: a real loading state (first load no longer reads "No people / 0 approved"); "Org N of M pending" only on the Pending filter · **C** · due Wed 23
       **Retired 22 Sep (ADR-019):** queue loading state — the queue is an exceptions tool now; ACC-122/124 cover it generically.
-- [ ] **ACC-124** · Other desk screens + status bar: skeletons, empty states with a next step, try/finally on every fetch, no swallowed errors · **C** · due Thu 24
-- [ ] **ACC-125** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
+- [x] **ACC-124** · Other desk screens + status bar: skeletons, empty states with a next step, try/finally on every fetch, no swallowed errors · **C** · due Thu 24
+- [x] **ACC-125** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
 - [ ] **ACC-126** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
 - [ ] **ACC-127** · Per-route titles (`%s · BOA Accreditation`), one button-label casing rule · **C** · due Wed 30
 - [ ] **ACC-128** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
