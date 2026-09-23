@@ -987,21 +987,56 @@ Verified by attempting the thing, not by reading a grant table:
 
 > **ACC-108 released 2026-09-19 (IST):** Login rebuilt + committed (715e631); 404/error/global-error still to do — parked behind ACC-109 gate safety
 
-## In flight — parallel agents, 22 Sep 2026 (evening)
+## Phase R shipped, 23 Sep 2026 — verified against production
 
-Six tasks are being built **in parallel, each in its own git worktree branch**,
-at Vipin's instruction. None is merged, none has touched production. Do not
-start these; the coordinator merges them, applies migrations in timestamp
-order, and ticks the roadmap.
+Eight tasks were built in parallel worktrees on 22–23 Sep and merged to `main`.
+**All six migrations are applied to production** and `corepack pnpm test:db`
+passes: 18 files, every guarantee held, `anon` still holds zero grants.
 
-| Task | Migration reserved |
+| Migration | Witness exists |
 |---|---|
-| ACC-141 (+ import side of 142, 143) import-and-approve | `202609221000_boa_acc_import_approve` |
-| ACC-144 WhatsApp pass sending | `202609221100_boa_acc_pass_send` |
-| ACC-150 issuer login, device tokens retired | `202609221200/1201_boa_acc_issuer_role` |
-| ACC-148 double-issue warning | `202609221300_boa_acc_double_issue` |
-| ACC-149 sync scheduler | none |
-| ACC-147 offline name/phone search | none |
+| `202609221000_boa_acc_import_approve` | YES |
+| `202609221100_boa_acc_pass_send` | YES |
+| `202609221200_boa_acc_issuer_role` | YES |
+| `202609221201_boa_acc_gate_session` | YES |
+| `202609221300_boa_acc_double_issue` | YES |
+| `202609221400_boa_acc_pass_view` | YES |
+
+Verified on 23 Sep by running the commands, not asserted: `db:state` (37 local
+migration files, all applied, every witness YES, anon 0/0, `boa_acc_person` 0
+rows, `auth.users` 1); `test:db` OK; typecheck, lint, 208 unit tests,
+`check:sql` 37 migrations. `test:visual` was NOT re-run after the screen
+removals and is expected to need its reference set rebuilt.
+
+**Migration-history drift, found and repaired 23 Sep.** Two September
+migrations had been applied through the Supabase CLI under generated version
+ids (`20260915035616`, `20260915050526`) instead of their filenames, so
+`db:push` believed they were pending and failed re-running the first, blocking
+everything behind it. `scripts/repair-migration-history.mjs` recorded the
+filename versions after proving each migration's object exists; Vipin ran it
+and `db:push`.
+
+**One accidental production write, caught and reversed.** While verifying the
+pass-view migration inside a transaction meant to roll back, an agent left the
+migration file's own `commit;` in place, which ended the outer transaction and
+created `boa_acc_pass_view` for real. The agent noticed, dropped it, and
+reported it. Independently re-checked afterwards from this session: no stray
+functions, no `issuer` label at that time, 0 people, 0 check-ins, history
+unchanged. The lesson is in `scripts/db-push.mjs`'s pattern — strip a
+migration's own `begin;`/`commit;` before wrapping it.
+
+**Screens removed (ADR-019):** `/s/[token]`, `/desk/queue`, `/desk/aaa`,
+`/desk/operators`, org invite-link UI, `/gate/setup`, `/desk/devices`.
+Confirmed 404 on a local dev server for the first four. Desk nav is now
+Control room · Master list · Passes · Organisations · Gate · Vehicle. The
+database objects behind the removed screens (`boa_acc_submit`,
+`boa_acc_org_view`, `boa_acc_mint_invite`, `boa_acc_org_invite`) are still
+present and now unused by the app.
+
+**Not done, and not claimed:** no roster has been imported (`boa_acc_person` is
+0); no WhatsApp message has ever been sent; no real issuer has logged in; the
+38 organisations are still `PLACEHOLDER — …` fixtures; nothing is deployed —
+production still runs the pre-Phase-R build.
 
 ## Session log
 

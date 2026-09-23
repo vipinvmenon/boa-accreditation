@@ -138,7 +138,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       change, find out which). Acceptance: `db:state` shows
       `boa_acc_import_roster`; the doc says what is true; no claim unverified ·
       **C** · due Tue 22 Sep
-- [ ] **ACC-141** · **Import-and-approve.** A lead/admin RPC that, per row with a
+- [x] **ACC-141** · **Import-and-approve.** A lead/admin RPC that, per row with a
       filled column I, inserts or updates the person and approves them in one
       transaction: `type_code` from column I, `day_validity` from Days on site,
       `pass_token` minted in the database (non-negotiable #5 still holds —
@@ -150,7 +150,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       `privileges.test.sql` covers it; mutation of the approve guard fails a
       test. AAA/Artist rows record their nomination as decided in the sheet
       (ACC-140b); the RPC is run by a lead/admin · **C** · due Thu 24 Sep
-- [ ] **ACC-142** · Organisation column: free text in the live sheet
+- [x] **ACC-142** · Organisation column: free text in the live sheet
       ("Bangalore Open Air", "Banglore Open Air", "Bangalore open air").
       Organisations are real (ACC-140c): Vipin adds each org before the form
       reaches it, and the form's Organisation question becomes a dropdown of
@@ -158,7 +158,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       answers are matched through a committed alias map; anything unmatched is
       reported by row, never guessed. No quota check (ACC-140g) · **C** ·
       due Thu 24 Sep
-- [ ] **ACC-143** · Crew-type write-ins: normalise case/space for display
+- [x] **ACC-143** · Crew-type write-ins: normalise case/space for display
       ("Tech Production (stage)" = "(Stage)"); column I always wins; a row with
       no column I and no mapping stays `submitted` and is listed for Salman.
       Acceptance: unit tests on the live sheet's actual values · **C** ·
@@ -182,7 +182,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
 - [ ] **ACC-146** · The daily loop, written into OPERATIONS.md: Salman decides
       in the sheet → export → import → passes sent → Bhoopesh enters BMS. Runs
       until the form closes (ACC-140e) · **C** · due Mon 28 Sep
-- [ ] **ACC-150** · **Issuers log in; no device tokens (ADR-020).** Add an
+- [x] **ACC-150** · **Issuers log in; no device tokens (ADR-020).** Add an
       `issuer` operator role (check in and issue only: no approve, no import,
       no user admin), invitable from `/desk/users`. `/api/gate/*` authorise the
       logged-in operator's session, with the role checked **in the database**
@@ -199,7 +199,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       name or phone offline (ACC-131's search), scan the pass, type the band
       serial. Mostly built; acceptance is two issuers doing it on their own
       phones, logged in as themselves · **C/B** · due Wed 30 Sep
-- [ ] **ACC-148** · **Double-issue warning.** Offline, two issuers can each hand
+- [x] **ACC-148** · **Double-issue warning.** Offline, two issuers can each hand
       a band to the same person; no app can stop that without signal. When the
       phones sync, the server spots two live bands for one person and the
       Control room lists it: person, both serials, both issuers, both times.
@@ -207,7 +207,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       (non-negotiable #2). Acceptance: pgTAP with two offline issues synced
       in either order; the Control room renders it from the data layer ·
       **C** · due Mon 28 Sep
-- [ ] **ACC-149** · **Sync as soon as there is signal.** The outbox drains on
+- [x] **ACC-149** · **Sync as soon as there is signal.** The outbox drains on
       reconnect and on a short timer; the roster re-pulls on a timer while
       online, so a second phone shows amber "already issued" within about a
       minute when the desk has signal. The last-synced time is visible on the
