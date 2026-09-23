@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { ORG_KINDS, type OrgRowWithCounts } from '@/lib/schemas/org'
 import { REQUESTABLE_TIERS, type RequestableTierCode } from '@/lib/desk-tiers'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
+import { EmptyState, InlineError } from '@/components/states'
+import { copyForError } from '@/lib/error-copy'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -31,21 +33,11 @@ import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
  * the schema but nothing enforces it, so it is neither collected here nor
  * shown in the list line below.
  */
-const ERROR_COPY: Record<string, string> = {
-  not_authenticated: 'Your session has expired. Sign in again.',
+// ACC-122: shared with every other desk screen via lib/error-copy.ts; this
+// screen's `not_authorized` and `not_found` wording differ from the default.
+const ORGS_ERROR_OVERRIDES = {
   not_authorized: 'Only a lead or admin operator can do this.',
-  duplicate_name: 'An org with that name already exists.',
-  invalid_body: 'Check the form — something did not match the required shape.',
   not_found: 'That org no longer exists.',
-  internal: "That didn't go through. Try again.",
-}
-
-function copyForError(body: unknown): string {
-  if (body && typeof body === 'object' && 'error' in body) {
-    const code = String((body as { error: unknown }).error)
-    return ERROR_COPY[code] ?? ERROR_COPY['internal']!
-  }
-  return ERROR_COPY['internal']!
 }
 
 const labelStyle: React.CSSProperties = {
@@ -83,68 +75,87 @@ export function OrgsScreen() {
   const [createError, setCreateError] = useState<string | null>(null)
 
   const [announcement, setAnnouncement] = useState('Loading organisations.')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     async function loadOrgs() {
-      const res = await fetch('/api/desk/orgs')
-      if (cancelled) return
-      if (res.status === 401) {
-        router.replace('/desk/login')
-        return
-      }
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        if (!cancelled) {
-          setLoadError(copyForError(body))
-          setAnnouncement(`Could not load organisations. ${copyForError(body)}`)
+      try {
+        const res = await fetch('/api/desk/orgs')
+        if (cancelled) return
+        if (res.status === 401) {
+          router.replace('/desk/login')
+          return
         }
-        return
+        if (!res.ok) {
+          const body = await res.json().catch(() => null)
+          const message = copyForError(body, ORGS_ERROR_OVERRIDES)
+          if (!cancelled) {
+            setLoadError(message)
+            setAnnouncement(`Could not load organisations. ${message}`)
+          }
+          return
+        }
+        const body = (await res.json()) as { orgs: OrgRowWithCounts[] }
+        if (cancelled) return
+        setOrgs(body.orgs)
+        setLoadError(null)
+        setAnnouncement('Organisations loaded.')
+      } catch {
+        // A thrown fetch (network down) is still an error state, not an
+        // indefinite skeleton.
+        if (!cancelled) {
+          const message = copyForError(null, ORGS_ERROR_OVERRIDES)
+          setLoadError(message)
+          setAnnouncement(`Could not load organisations. ${message}`)
+        }
       }
-      const body = (await res.json()) as { orgs: OrgRowWithCounts[] }
-      if (cancelled) return
-      setOrgs(body.orgs)
-      setLoadError(null)
-      setAnnouncement('Organisations loaded.')
     }
     void loadOrgs()
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [reloadKey])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setCreateError(null)
     setCreating(true)
-    const res = await fetch('/api/desk/orgs', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        name: form.name,
-        kind: form.kind,
-        contactName: form.contactName,
-        contactPhone: form.contactPhone,
-        defaultType: form.defaultType,
-      }),
-    })
-    setCreating(false)
-    if (res.status === 401) {
-      router.replace('/desk/login')
-      return
-    }
-    if (!res.ok) {
-      const body = await res.json().catch(() => null)
-      const message = copyForError(body)
+    try {
+      const res = await fetch('/api/desk/orgs', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          kind: form.kind,
+          contactName: form.contactName,
+          contactPhone: form.contactPhone,
+          defaultType: form.defaultType,
+        }),
+      })
+      if (res.status === 401) {
+        router.replace('/desk/login')
+        return
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        const message = copyForError(body, ORGS_ERROR_OVERRIDES)
+        setCreateError(message)
+        setAnnouncement(`Could not create organisation. ${message}`)
+        return
+      }
+      const body = (await res.json()) as { org: OrgRowWithCounts }
+      setOrgs((prev) => [body.org, ...(prev ?? [])])
+      setForm(EMPTY_FORM)
+      setAnnouncement(`Organisation ${body.org.name} created.`)
+    } catch {
+      const message = copyForError(null, ORGS_ERROR_OVERRIDES)
       setCreateError(message)
       setAnnouncement(`Could not create organisation. ${message}`)
-      return
+    } finally {
+      setCreating(false)
     }
-    const body = (await res.json()) as { org: OrgRowWithCounts }
-    setOrgs((prev) => [body.org, ...(prev ?? [])])
-    setForm(EMPTY_FORM)
-    setAnnouncement(`Organisation ${body.org.name} created.`)
   }
 
   // ADR-019: `boa_acc_org.name` is what the Google Form's dropdown must
@@ -298,12 +309,18 @@ export function OrgsScreen() {
             </p>
           )}
 
-          {loadError && <p role="alert" className="utility-error">{loadError}</p>}
+          {loadError && (
+            <InlineError
+              className="utility-error"
+              message={loadError}
+              onRetry={() => { setLoadError(null); setOrgs(null); setReloadKey((k) => k + 1) }}
+            />
+          )}
           {orgs === null && !loadError && (
-            <div role="status"><UtilityScreenSkeleton kind="orgs" /></div>
+            <div role="status" aria-label="Loading organisations"><UtilityScreenSkeleton kind="orgs" /></div>
           )}
           {orgs !== null && orgs.length === 0 && (
-            <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No orgs yet.</p>
+            <EmptyState message="No orgs yet. Create the first one above." />
           )}
 
           <div className="utility-list">

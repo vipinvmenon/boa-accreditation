@@ -12,6 +12,7 @@ import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { z } from 'zod'
+import { ERROR_COPY } from '@/lib/error-copy'
 
 const ROLE_LABEL: Record<OperatorRow['role'], string> = {
   lead: 'Lead',
@@ -38,7 +39,10 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const theme = useDomTheme()
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
+  const [dashboardError, setDashboardError] = useState(false)
   const [me, setMe] = useState<OperatorRow | null>(null)
+  const [meError, setMeError] = useState(false)
+  const [statusReloadKey, setStatusReloadKey] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -49,44 +53,74 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false
     async function loadStatus() {
-      const response = await fetch('/api/desk/dashboard')
-      if (cancelled) return
-      if (response.status === 401) {
-        router.replace('/desk/login')
-        return
+      try {
+        const response = await fetch('/api/desk/dashboard')
+        if (cancelled) return
+        if (response.status === 401) {
+          router.replace('/desk/login')
+          return
+        }
+        if (!response.ok) {
+          setDashboardError(true)
+          return
+        }
+        const parsed = dashboardSchema.safeParse(await response.json())
+        if (cancelled) return
+        if (!parsed.success) {
+          setDashboardError(true)
+          return
+        }
+        setDashboard(parsed.data)
+        setDashboardError(false)
+      } catch {
+        // A thrown fetch must not leave the status bar's skeleton spinning
+        // forever with nothing telling the operator it failed.
+        if (!cancelled) setDashboardError(true)
       }
-      if (!response.ok) return
-      const parsed = dashboardSchema.safeParse(await response.json())
-      if (!cancelled && parsed.success) setDashboard(parsed.data)
     }
     void loadStatus()
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, statusReloadKey])
 
   useEffect(() => {
     let cancelled = false
     async function loadMe() {
-      const response = await fetch('/api/desk/operators')
-      if (cancelled || !response.ok) return
-      const parsed = operatorsResponseSchema.safeParse(await response.json())
-      if (cancelled || !parsed.success) return
-      const own = parsed.data.operators.find((o) => o.user_id === parsed.data.callerId)
-      if (!own) return
-      // ACC-150 (ADR-020): an issuer has no desk. Every desk RPC refuses them
-      // in the database; this only saves them looking at empty screens.
-      if (own.role === 'issuer') {
-        router.replace('/gate')
-        return
+      try {
+        const response = await fetch('/api/desk/operators')
+        if (cancelled) return
+        if (!response.ok) {
+          setMeError(true)
+          return
+        }
+        const parsed = operatorsResponseSchema.safeParse(await response.json())
+        if (cancelled || !parsed.success) {
+          if (!cancelled) setMeError(true)
+          return
+        }
+        const own = parsed.data.operators.find((o) => o.user_id === parsed.data.callerId)
+        if (!own) {
+          setMeError(true)
+          return
+        }
+        // ACC-150 (ADR-020): an issuer has no desk. Every desk RPC refuses them
+        // in the database; this only saves them looking at empty screens.
+        if (own.role === 'issuer') {
+          router.replace('/gate')
+          return
+        }
+        setMe(own)
+        setMeError(false)
+      } catch {
+        if (!cancelled) setMeError(true)
       }
-      setMe(own)
     }
     void loadMe()
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, statusReloadKey])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -232,7 +266,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   {me?.display_name?.slice(0, 2).toUpperCase() ?? 'VI'}
                 </button>
                 <div id="desk-profile-menu" aria-label="Operator menu" className="profile-menu" hidden={!menuOpen}>
-                    <div className="profile-head"><strong>{me ? me.display_name : <LoadingSkeleton width="86px" />}</strong><span>{me ? ROLE_LABEL[me.role] : <LoadingSkeleton width="52px" />}</span></div>
+                    <div className="profile-head"><strong>{me ? me.display_name : meError ? 'Operator' : <LoadingSkeleton width="86px" />}</strong><span>{me ? ROLE_LABEL[me.role] : meError ? '—' : <LoadingSkeleton width="52px" />}</span></div>
                     <button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}>
                       <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                     </button>
@@ -253,8 +287,21 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           <div className="status">
             <span className="live"><b />Live</span>
             <span className="hide-s">Build 05-09 Oct, show 10 Oct</span>
-            <span>{dashboard ? `${dashboard.bandsIssued} / ${dashboard.approvedTotal} bands issued` : <LoadingSkeleton className="status-skeleton" width="132px" />}</span>
-            <Link href="/desk/master?in_bms=false" className="warn">{dashboard ? `${dashboard.bmsPending} not in BMS` : <LoadingSkeleton className="status-skeleton" width="96px" />}</Link>
+            {dashboardError ? (
+              <span role="alert" className="status-error">
+                <span>{ERROR_COPY.internal}</span>
+                <button type="button" className="status-error-retry" onClick={() => setStatusReloadKey((k) => k + 1)}>Retry</button>
+              </span>
+            ) : dashboard ? (
+              <>
+                <span>{dashboard.bandsIssued} / {dashboard.approvedTotal} bands issued</span>
+                <Link href="/desk/master?in_bms=false" className="warn">{dashboard.bmsPending} not in BMS</Link>
+              </>
+            ) : (
+              <span role="status" aria-label="Loading status">
+                <LoadingSkeleton className="status-skeleton" width="132px" />
+              </span>
+            )}
           </div>
         </header>
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>

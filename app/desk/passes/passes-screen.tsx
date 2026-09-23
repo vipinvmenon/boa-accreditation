@@ -8,6 +8,8 @@ import { zoneChips } from '@/lib/desk-tiers'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { PassesSkeleton } from '@/components/loading-skeleton'
+import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
+import { copyForError } from '@/lib/error-copy'
 import {
   passSendsResponseSchema,
   sendResponseSchema,
@@ -45,8 +47,10 @@ const OUTCOME_COPY: Record<SendResult['outcome'], string> = {
   error: 'error',
 }
 
-const SEND_ERROR_COPY: Record<string, string> = {
-  whatsapp_not_configured: 'WhatsApp is not configured yet. Use the one-tap links.',
+// ACC-122: shared with every other desk screen via lib/error-copy.ts; this
+// screen's `not_authorized` and `not_authenticated` wording differ from the
+// default ("send passes" instead of "do this" / "ended" instead of "expired").
+const SEND_ERROR_OVERRIDES = {
   not_authorized: 'Only a lead or admin can send passes.',
   not_authenticated: 'Your session has ended. Log in again.',
 }
@@ -65,6 +69,12 @@ export function PassesScreen() {
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [lastResults, setLastResults] = useState<SendResult[]>([])
+  // ACC-125: a resend/send-all is not destructive in the ledger sense (it
+  // never voids anything), but it does re-message someone, so it gets the
+  // same inline confirm — never a browser confirm() — as Deactivate.
+  const [confirmAll, setConfirmAll] = useState(false)
+  const [confirmResendId, setConfirmResendId] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const rootRef = useRef<HTMLElement>(null)
 
   const loadSends = useCallback(async () => {
@@ -104,8 +114,7 @@ export function PassesScreen() {
         })
         if (!response.ok) {
           const body: unknown = await response.json().catch(() => null)
-          const code = body && typeof body === 'object' && 'error' in body ? String(body.error) : ''
-          setNotice(SEND_ERROR_COPY[code] ?? 'Sending failed. Try again, or use the one-tap links.')
+          setNotice(copyForError(body, { ...SEND_ERROR_OVERRIDES, internal: 'Sending failed. Try again, or use the one-tap links.' }))
           break
         }
         const parsed = sendResponseSchema.safeParse(await response.json())
@@ -129,20 +138,33 @@ export function PassesScreen() {
     }
   }
 
-  function sendOne(personId: string, live: boolean) {
-    if (live && !window.confirm('This person already has a pass on WhatsApp. Send it again?')) return
-    void send({ mode: 'one', personId, resend: live }, personId)
+  function requestSendOne(personId: string, live: boolean) {
+    if (live) {
+      setConfirmResendId(personId)
+      return
+    }
+    void send({ mode: 'one', personId, resend: false }, personId)
   }
 
-  function sendAll() {
+  function confirmSendOne(personId: string) {
+    setConfirmResendId(null)
+    void send({ mode: 'one', personId, resend: true }, personId)
+  }
+
+  function requestSendAll() {
     if (unsentCount === 0) return
-    if (!window.confirm(`Send ${unsentCount} ${unsentCount === 1 ? 'pass' : 'passes'} on WhatsApp now?`)) return
+    setConfirmAll(true)
+  }
+
+  function confirmSendAll() {
+    setConfirmAll(false)
     void send({ mode: 'all' }, 'all')
   }
 
   useEffect(() => {
     let cancelled = false
     async function load() {
+      setLoading(true)
       try {
         const response = await fetch('/api/desk/passes')
         if (response.status === 401) {
@@ -155,20 +177,18 @@ export function PassesScreen() {
         if (!cancelled) {
           setPasses(parsed.data.passes)
           setError(false)
-          setLoading(false)
         }
       } catch {
-        if (!cancelled) {
-          setError(true)
-          setLoading(false)
-        }
+        if (!cancelled) setError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
     void load()
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, reloadKey])
 
   useEffect(() => {
     const root = rootRef.current
@@ -204,12 +224,24 @@ export function PassesScreen() {
           {notice && <p role="status" className="mono send-note">{notice}</p>}
         </div>
         <div className="row passes-actions">
-          {/* Always drawn — the design has a WhatsApp action here — but it only
-              works for a lead/admin with WhatsApp configured and N > 0. */}
-          <button type="button" onClick={sendAll} className="btn" disabled={!canSend || unsentCount === 0 || busy !== null}
-            title={sends && !sends.canSend ? 'Only a lead or admin can send passes' : undefined}>
-            {busy === 'all' ? 'Sending…' : 'Send all unsent'}{sends && <span className="n">{unsentCount}</span>}<span className="ic"><Icon name="paper-plane-tilt" /></span>
-          </button>
+          {confirmAll ? (
+            <InlineConfirm
+              prompt={`Send ${unsentCount} ${unsentCount === 1 ? 'pass' : 'passes'} on WhatsApp now?`}
+              confirmLabel="Send"
+              tone="grn"
+              busy={busy === 'all'}
+              busyLabel="Sending…"
+              onConfirm={confirmSendAll}
+              onCancel={() => setConfirmAll(false)}
+            />
+          ) : (
+            /* Always drawn — the design has a WhatsApp action here — but it only
+               works for a lead/admin with WhatsApp configured and N > 0. */
+            <button type="button" onClick={requestSendAll} className="btn" disabled={!canSend || unsentCount === 0 || busy !== null}
+              title={sends && !sends.canSend ? 'Only a lead or admin can send passes' : undefined}>
+              {busy === 'all' ? 'Sending…' : 'Send all unsent'}{sends && <span className="n">{unsentCount}</span>}<span className="ic"><Icon name="paper-plane-tilt" /></span>
+            </button>
+          )}
           {passes.length > 0 && <button type="button" onClick={() => window.print()} className="btn go">
             Print {passes.length} passes<span className="ic"><Icon name="printer" /></span>
           </button>}
@@ -230,8 +262,16 @@ export function PassesScreen() {
         {loading && (
           <PassesSkeleton />
         )}
-        {!loading && error && <p role="alert" className="passes-state passes-state-error">Unable to load passes.</p>}
-        {!loading && !error && passes.length === 0 && <p className="passes-state">No approved passes yet — approve in the queue →</p>}
+        {!loading && error && (
+          <InlineError
+            className="passes-state passes-state-error"
+            message="Unable to load passes."
+            onRetry={() => { setError(false); setReloadKey((k) => k + 1) }}
+          />
+        )}
+        {!loading && !error && passes.length === 0 && (
+          <EmptyState className="passes-state" message="No approved passes yet — approve in the queue →" />
+        )}
         {passes.map((pass, i) => {
           const type = tier(pass.typeCode)
           const zones = zoneChips(pass.typeCode)
@@ -262,9 +302,21 @@ export function PassesScreen() {
                 </div>}
                 <p className="fine">Bring this and a valid photo ID. Non-transferable. One person, one pass, one check-in, one wristband.</p>
               </div>
-              {send && <div className="send-row">
+              {send && confirmResendId === pass.id ? (
+                <div className="send-row">
+                  <InlineConfirm
+                    prompt="Already sent — send again?"
+                    confirmLabel="Resend"
+                    tone="grn"
+                    busy={busy === pass.id}
+                    busyLabel="Sending…"
+                    onConfirm={() => confirmSendOne(pass.id)}
+                    onCancel={() => setConfirmResendId(null)}
+                  />
+                </div>
+              ) : send && <div className="send-row">
                 <span className={`st ${status.tone}`} title={send.last?.failureReason ?? undefined}>{status.label}</span>
-                {sends?.canSend && <button type="button" className="btn solo" disabled={!canSend || busy !== null} onClick={() => sendOne(pass.id, send.live)}>
+                {sends?.canSend && <button type="button" className="btn solo" disabled={!canSend || busy !== null} onClick={() => requestSendOne(pass.id, send.live)}>
                   {busy === pass.id ? 'Sending…' : send.live ? 'Resend' : 'Send'}
                 </button>}
                 <a className="btn solo" href={waMeLink(send.phone, pass.fullName, pass.passToken)} target="_blank" rel="noopener noreferrer">

@@ -1,17 +1,8 @@
-type LoadingSkeletonProps = {
-  className?: string
-  width?: string
-}
-
-export function LoadingSkeleton({ className = '', width }: LoadingSkeletonProps) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`skeleton ${className}`.trim()}
-      style={width ? { width } : undefined}
-    />
-  )
-}
+// ACC-122: the primitive itself now lives in components/states/skeleton.tsx
+// (the shared loading/empty/error module); re-exported here under its old
+// name so every per-screen composition below did not need to change.
+export { Skeleton as LoadingSkeleton } from './states/skeleton'
+import { Skeleton as LoadingSkeleton } from './states/skeleton'
 
 export function ScreenSkeleton({ rows = 3 }: { rows?: number }) {
   return (

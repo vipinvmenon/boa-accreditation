@@ -9,6 +9,8 @@ import { zoneChips } from '@/lib/desk-tiers'
 import { useDomTheme } from '@/lib/use-theme'
 import { ControlRoomSkeleton } from '@/components/loading-skeleton'
 import { Icon } from '@/components/icon'
+import { InlineError } from '@/components/states'
+import { copyForError, ERROR_COPY } from '@/lib/error-copy'
 import { DoubleIssuePanel } from './double-issue-panel'
 
 /**
@@ -28,18 +30,11 @@ import { DoubleIssuePanel } from './double-issue-panel'
  * database actually contains, not what the design's mock implies.
  */
 
-const ERROR_COPY: Record<string, string> = {
-  not_authenticated: 'Your session has expired. Sign in again.',
+// ACC-122: shared with every other desk screen via lib/error-copy.ts; only
+// this screen's `not_authorized` wording differs from the default, because
+// it gates viewing the Control room rather than an action inside it.
+const CONTROL_ROOM_ERROR_OVERRIDES = {
   not_authorized: 'Only an active operator can view the Control room.',
-  internal: "That didn't go through. Try again.",
-}
-
-function copyForError(body: unknown): string {
-  if (body && typeof body === 'object' && 'error' in body) {
-    const code = String((body as { error: unknown }).error)
-    return ERROR_COPY[code] ?? ERROR_COPY['internal']!
-  }
-  return ERROR_COPY['internal']!
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -268,25 +263,46 @@ export function ControlRoomScreen() {
   const theme = useDomTheme()
   const [dash, setDash] = useState<DashboardResponse | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
     let cancelled = false
-    void fetch('/api/desk/dashboard').then(async (response) => {
-      if (cancelled) return
-      if (response.status === 401) { router.replace('/desk/login'); return }
-      if (!response.ok) { setLoadError(copyForError(await response.json().catch(() => null))); return }
-      // Zod at the boundary: a payload that drifts from the route's contract
-      // is an error state, never a half-rendered screen.
-      const parsed = dashboardResponseSchema.safeParse(await response.json())
-      if (cancelled) return
-      if (!parsed.success) { setLoadError(ERROR_COPY['internal']!); return }
-      setDash(parsed.data)
-    }).catch(() => { if (!cancelled) setLoadError(ERROR_COPY['internal']!) })
+    async function load() {
+      try {
+        const response = await fetch('/api/desk/dashboard')
+        if (cancelled) return
+        if (response.status === 401) { router.replace('/desk/login'); return }
+        if (!response.ok) {
+          setLoadError(copyForError(await response.json().catch(() => null), CONTROL_ROOM_ERROR_OVERRIDES))
+          return
+        }
+        // Zod at the boundary: a payload that drifts from the route's contract
+        // is an error state, never a half-rendered screen.
+        const parsed = dashboardResponseSchema.safeParse(await response.json())
+        if (cancelled) return
+        if (!parsed.success) { setLoadError(ERROR_COPY.internal); return }
+        setDash(parsed.data)
+        setLoadError(null)
+      } catch {
+        // A thrown fetch (network down, aborted) must land here too — never
+        // leave `dash` null with nothing telling the operator why.
+        if (!cancelled) setLoadError(ERROR_COPY.internal)
+      }
+    }
+    void load()
     return () => { cancelled = true }
-  }, [router])
+  }, [router, reloadKey])
 
-  if (loadError) return <main><p role="alert" className="pad" style={{ color: 'var(--bad)' }}>{loadError}</p></main>
-  if (!dash) return <main><div role="status"><ControlRoomSkeleton /></div></main>
+  if (loadError) {
+    return (
+      <main>
+        <div className="pad">
+          <InlineError message={loadError} onRetry={() => { setLoadError(null); setReloadKey((k) => k + 1) }} />
+        </div>
+      </main>
+    )
+  }
+  if (!dash) return <main><div role="status" aria-label="Loading control room"><ControlRoomSkeleton /></div></main>
   return <ControlRoomV2 dash={dash} theme={theme} />
 }
