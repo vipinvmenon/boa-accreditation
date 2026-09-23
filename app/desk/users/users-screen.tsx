@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { operatorRoleSchema, type InviteOperatorInput, type OperatorRow } from '@/lib/schemas/operator'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
+import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
+import { copyForError } from '@/lib/error-copy'
 
 /**
  * Not part of the approved design — design/source/boa_design_body.html has no
@@ -42,25 +44,15 @@ const ROLE_LABEL: Record<InviteOperatorInput['role'], string> = {
   issuer: 'Issuer (check-in only)',
 }
 
-const ERROR_COPY: Record<string, string> = {
-  not_authenticated: 'Your session has expired. Sign in again.',
+// ACC-122: shared with every other desk screen via lib/error-copy.ts; this
+// screen's `not_authorized`, `forbidden`, `rate_limited` and `not_found`
+// wording differ from the default because they name this screen's own
+// actions ("invite", "operator").
+const USERS_ERROR_OVERRIDES = {
   not_authorized: 'Only a lead or admin operator can do this.',
   forbidden: 'Only a lead or admin operator can invite.',
   rate_limited: 'Too many invites sent recently. Try again shortly.',
-  invalid_body: 'Check the form — something did not match the required shape.',
-  invite_failed: 'Could not send the invitation.',
-  cannot_deactivate_self: 'You cannot deactivate your own account.',
-  cannot_deactivate_last_admin: 'At least one active admin must remain.',
   not_found: 'That operator no longer exists.',
-  internal: "That didn't go through. Try again.",
-}
-
-function copyForError(body: unknown): string {
-  if (body && typeof body === 'object' && 'error' in body) {
-    const code = String((body as { error: unknown }).error)
-    return ERROR_COPY[code] ?? ERROR_COPY['internal']!
-  }
-  return ERROR_COPY['internal']!
 }
 
 const labelStyle: React.CSSProperties = {
@@ -91,58 +83,72 @@ export function UsersScreen() {
 
   const [busyId, setBusyId] = useState<string | null>(null)
   const [rowError, setRowError] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('Loading operators.')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     async function loadOperators() {
-      const res = await fetch('/api/desk/operators')
-      if (cancelled) return
-      if (res.status === 401) {
-        router.replace('/desk/login')
-        return
-      }
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
+      try {
+        const res = await fetch('/api/desk/operators')
+        if (cancelled) return
+        if (res.status === 401) {
+          router.replace('/desk/login')
+          return
+        }
+        if (!res.ok) {
+          const body = await res.json().catch(() => null)
+          const message = copyForError(body, USERS_ERROR_OVERRIDES)
+          if (!cancelled) {
+            setLoadError(message)
+            setAnnouncement(`Could not load operators. ${message}`)
+          }
+          return
+        }
+        const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
+        if (cancelled) return
+        setOperators(body.operators)
+        setCallerId(body.callerId)
+        setLoadError(null)
+        setAnnouncement('Operators loaded.')
+      } catch {
         if (!cancelled) {
-          const message = copyForError(body)
+          const message = copyForError(null, USERS_ERROR_OVERRIDES)
           setLoadError(message)
           setAnnouncement(`Could not load operators. ${message}`)
         }
-        return
       }
-      const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
-      if (cancelled) return
-      setOperators(body.operators)
-      setCallerId(body.callerId)
-      setLoadError(null)
-      setAnnouncement('Operators loaded.')
     }
     void loadOperators()
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [reloadKey])
 
   // Reused after a mutation (invite/activate/deactivate) to refresh the
   // list from the server rather than hand-shaping a row client-side — same
   // reasoning as devices-screen.tsx's post-mint refetch. Not called from a
   // useEffect body, so it is a plain event-driven refetch, not an effect.
   async function refetchOperators() {
-    const res = await fetch('/api/desk/operators')
-    if (res.status === 401) {
-      router.replace('/desk/login')
-      return
+    try {
+      const res = await fetch('/api/desk/operators')
+      if (res.status === 401) {
+        router.replace('/desk/login')
+        return
+      }
+      if (!res.ok) {
+        const message = copyForError(await res.json().catch(() => null), USERS_ERROR_OVERRIDES)
+        setAnnouncement(`Could not refresh operators. ${message}`)
+        return
+      }
+      const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
+      setOperators(body.operators)
+      setCallerId(body.callerId)
+    } catch {
+      setAnnouncement(`Could not refresh operators. ${copyForError(null, USERS_ERROR_OVERRIDES)}`)
     }
-    if (!res.ok) {
-      const message = copyForError(await res.json().catch(() => null))
-      setAnnouncement(`Could not refresh operators. ${message}`)
-      return
-    }
-    const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
-    setOperators(body.operators)
-    setCallerId(body.callerId)
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -161,7 +167,7 @@ export function UsersScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        const message = copyForError(body)
+        const message = copyForError(body, USERS_ERROR_OVERRIDES)
         setInviteMessage({ kind: 'error', text: message })
         setAnnouncement(`Could not send invitation. ${message}`)
         return
@@ -170,14 +176,32 @@ export function UsersScreen() {
       setAnnouncement(`Invitation sent to ${form.email}.`)
       setForm(EMPTY_FORM)
       await refetchOperators()
+    } catch {
+      const message = copyForError(null, USERS_ERROR_OVERRIDES)
+      setInviteMessage({ kind: 'error', text: message })
+      setAnnouncement(`Could not send invitation. ${message}`)
     } finally {
       setInviting(false)
     }
   }
 
+  // ACC-125: Deactivate is destructive (it locks the operator out immediately
+  // — boa_acc_set_operator_active is the real guard, this is only the
+  // confirmation step) and Activate is not, so only Deactivate goes through
+  // the inline confirm; Activate fires straight away like the rest of the
+  // desk's non-destructive actions.
+  function requestSetActive(userId: string, active: boolean) {
+    if (!active) {
+      setConfirmingId(userId)
+      return
+    }
+    void handleSetActive(userId, active)
+  }
+
   async function handleSetActive(userId: string, active: boolean) {
     setRowError(null)
     setBusyId(userId)
+    setConfirmingId(null)
     try {
       const res = await fetch(`/api/desk/operators/${userId}`, {
         method: 'PATCH',
@@ -190,7 +214,7 @@ export function UsersScreen() {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        const message = copyForError(body)
+        const message = copyForError(body, USERS_ERROR_OVERRIDES)
         setRowError(message)
         setAnnouncement(`Could not ${active ? 'activate' : 'deactivate'} operator. ${message}`)
         return
@@ -200,6 +224,10 @@ export function UsersScreen() {
         (prev ?? []).map((o) => (o.user_id === userId ? { ...o, active: body.operator.active } : o)),
       )
       setAnnouncement(`Operator ${active ? 'activated' : 'deactivated'}.`)
+    } catch {
+      const message = copyForError(null, USERS_ERROR_OVERRIDES)
+      setRowError(message)
+      setAnnouncement(`Could not ${active ? 'activate' : 'deactivate'} operator. ${message}`)
     } finally {
       setBusyId(null)
     }
@@ -306,13 +334,19 @@ export function UsersScreen() {
             All operators
           </h2>
 
-          {loadError && <p role="alert" className="utility-error">{loadError}</p>}
+          {loadError && (
+            <InlineError
+              className="utility-error"
+              message={loadError}
+              onRetry={() => { setLoadError(null); setOperators(null); setReloadKey((k) => k + 1) }}
+            />
+          )}
           {rowError && <p role="alert" className="utility-error">{rowError}</p>}
           {operators === null && !loadError && (
-            <div role="status"><UtilityScreenSkeleton kind="users" /></div>
+            <div role="status" aria-label="Loading operators"><UtilityScreenSkeleton kind="users" /></div>
           )}
           {operators !== null && operators.length === 0 && (
-            <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px' }}>No operators visible to you.</p>
+            <EmptyState message="No operators visible to you. Invite one above." />
           )}
 
           <div className="utility-list">
@@ -331,11 +365,20 @@ export function UsersScreen() {
                     </div>
                     {isSelf ? (
                       <span style={{ ...labelStyle }}>Cannot change your own status</span>
+                    ) : confirmingId === o.user_id ? (
+                      <InlineConfirm
+                        prompt={`Deactivate ${o.display_name}?`}
+                        confirmLabel="Deactivate"
+                        busy={busyId === o.user_id}
+                        busyLabel="Working…"
+                        onConfirm={() => void handleSetActive(o.user_id, false)}
+                        onCancel={() => setConfirmingId(null)}
+                      />
                     ) : (
                       <button
                         type="button"
                         disabled={busyId === o.user_id}
-                        onClick={() => void handleSetActive(o.user_id, !o.active)}
+                        onClick={() => requestSetActive(o.user_id, !o.active)}
                         className={`btn solo ${o.active ? 'bad hov-fill-bad' : 'hov-fill-grn'}`}
                         style={{ opacity: busyId === o.user_id ? 0.6 : 1 }}
                       >

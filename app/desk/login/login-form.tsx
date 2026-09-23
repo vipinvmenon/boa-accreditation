@@ -89,22 +89,32 @@ function DeskLoginForm() {
     const isInviteOrRecovery = flow === 'invite' || flow === 'recovery'
 
     async function checkSession() {
-      // `getSession()` only trusts the JWT in storage. A deleted or otherwise
-      // invalid user can therefore look signed in forever and bounce between
-      // `/desk/login` and `/desk` (the desk API correctly rejects that token).
-      // Ask Auth to validate the session before redirecting.
-      const { data } = await supabase.auth.getUser()
-      if (cancelled) return
-      const user = data.user
-      if (!user) {
-        setMode('sign-in')
-        return
-      }
-      if (isInviteOrRecovery) {
-        setMode('set-password')
-      } else {
-        setMode('redirecting')
-        router.replace(await destination(user.id))
+      try {
+        // `getSession()` only trusts the JWT in storage. A deleted or
+        // otherwise invalid user can therefore look signed in forever and
+        // bounce between `/desk/login` and `/desk` (the desk API correctly
+        // rejects that token). Ask Auth to validate the session before
+        // redirecting.
+        const { data } = await supabase.auth.getUser()
+        if (cancelled) return
+        const user = data.user
+        if (!user) {
+          setMode('sign-in')
+          return
+        }
+        if (isInviteOrRecovery) {
+          setMode('set-password')
+        } else {
+          setMode('redirecting')
+          router.replace(await destination(user.id))
+        }
+      } catch {
+        // Never leave `checking` forever: a thrown session check is a
+        // sign-in form with an error, not an indefinite spinner.
+        if (!cancelled) {
+          setMode('sign-in')
+          setError('Could not check your session. Sign in below.')
+        }
       }
     }
     void checkSession()
@@ -118,13 +128,18 @@ function DeskLoginForm() {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    setBusy(false)
-    if (signInError || !data.user) {
-      setError('Wrong email or password.')
-      return
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError || !data.user) {
+        setError('Wrong email or password.')
+        return
+      }
+      router.replace(await destination(data.user.id))
+    } catch {
+      setError('Could not reach the sign-in server. Try again.')
+    } finally {
+      setBusy(false)
     }
-    router.replace(await destination(data.user.id))
   }
 
   async function handleSetPassword(e: React.FormEvent) {
@@ -139,32 +154,42 @@ function DeskLoginForm() {
       return
     }
     setBusy(true)
-    const { data, error: updateError } = await supabase.auth.updateUser({ password })
-    setBusy(false)
-    if (updateError || !data.user) {
-      setError('Could not set password. Ask for a new invite link.')
-      return
+    try {
+      const { data, error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError || !data.user) {
+        setError('Could not set password. Ask for a new invite link.')
+        return
+      }
+      router.replace(await destination(data.user.id))
+    } catch {
+      setError('Could not reach the server. Try again.')
+    } finally {
+      setBusy(false)
     }
-    router.replace(await destination(data.user.id))
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    // Deliberately does not distinguish "no such account" from "sent" — the
-    // same reasoning as docs/SECURITY.md's "404, never 403": telling an
-    // unknown caller whether an email has desk access would let them
-    // enumerate who has it.
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/desk/login${next ? `?next=${encodeURIComponent(next)}` : ''}`,
-    })
-    setBusy(false)
-    if (resetError) {
-      setError('Could not send a reset link. Try again shortly.')
-      return
+    try {
+      // Deliberately does not distinguish "no such account" from "sent" — the
+      // same reasoning as docs/SECURITY.md's "404, never 403": telling an
+      // unknown caller whether an email has desk access would let them
+      // enumerate who has it.
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/desk/login${next ? `?next=${encodeURIComponent(next)}` : ''}`,
+      })
+      if (resetError) {
+        setError('Could not send a reset link. Try again shortly.')
+        return
+      }
+      setResetSent(true)
+    } catch {
+      setError('Could not reach the server. Try again.')
+    } finally {
+      setBusy(false)
     }
-    setResetSent(true)
   }
 
   return (
@@ -208,7 +233,7 @@ function DeskLoginForm() {
             </label>
             {error && <p role="alert" className="utility-error">{error}</p>}
             <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
-              Sign in
+              {busy ? 'Signing in…' : 'Sign in'}
             </button>
             <button
               type="button"
@@ -249,7 +274,7 @@ function DeskLoginForm() {
                 </label>
                 {error && <p role="alert" className="utility-error">{error}</p>}
                 <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
-                  Send reset link
+                  {busy ? 'Sending…' : 'Send reset link'}
                 </button>
               </>
             )}
@@ -296,7 +321,7 @@ function DeskLoginForm() {
             </label>
             {error && <p role="alert" className="utility-error">{error}</p>}
             <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
-              Set password and continue
+              {busy ? 'Setting password…' : 'Set password and continue'}
             </button>
           </form>
         )}

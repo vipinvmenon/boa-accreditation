@@ -114,6 +114,9 @@ body.mob .frame { max-width: 390px; margin: 24px auto 120px; border-radius: 40px
 .status .live b { width: 6px; height: 6px; border-radius: 50%; background: var(--grn); animation: ping 2.4s var(--ease) infinite; }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--grn) 60%, transparent) } 100% { box-shadow: 0 0 0 9px transparent } }
 .status .warn { color: var(--gold); }
+.status-error { display: inline-flex; align-items: center; gap: 10px; color: var(--bad); }
+.status-error-retry { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--bad); text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 0; min-height: 30px; }
+.status-error-retry:hover, .status-error-retry:focus-visible { color: var(--ink); }
 
 .menu { position: fixed; inset: 0; z-index: var(--z-menu); display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 100px 28px 40px; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); opacity: 0; pointer-events: none; transition: opacity .5s var(--ease); }
 .menu-open .menu { opacity: 1; pointer-events: auto; }
@@ -361,6 +364,12 @@ main { position: relative; padding: 0 32px 64px; }
 .utility-copy { color: var(--ink3); font-size: 13px; }
 .utility-error { color: var(--bad); font-size: 13px; }
 .utility-ok { color: var(--grn); font-size: 13px; }
+
+/* ACC-122/124/125: components/states — shared loading/empty/error/confirm */
+.inline-error { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--bad); font-size: 13px; margin: 0; }
+.inline-error-retry { font-size: 13px; }
+.inline-confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inline-confirm-prompt { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--ink2,rgba(242,239,226,0.72)); }
 .utility-input { width: 100%; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--r-sm); background: var(--bg); box-shadow: inset 0 0 0 1px var(--rule); color: var(--ink); outline: none; }
 .utility-input:focus { box-shadow: inset 0 0 0 2px var(--grn); }
 .utility-label { display: grid; gap: 7px; color: var(--ink); font-size: 13px; font-weight: 600; }

@@ -8,6 +8,7 @@ import { useDomTheme } from '@/lib/use-theme'
 import { formatMasterBand, formatMasterCollected } from '@/lib/format'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
+import { EmptyState, InlineError } from '@/components/states'
 
 export function MasterScreen() {
   const router = useRouter()
@@ -24,28 +25,33 @@ export function MasterScreen() {
 
   async function load(nextQuery: string, nextBmsFilter: 'all' | 'true' | 'false') {
     setLoading(true)
-    const params = new URLSearchParams()
-    if (nextQuery) params.set('q', nextQuery)
-    if (nextBmsFilter !== 'all') params.set('in_bms', nextBmsFilter)
-    const response = await fetch(`/api/desk/master?${params.toString()}`)
-    if (response.status === 401) {
-      router.replace('/desk/login')
-      return
-    }
-    if (!response.ok) {
+    try {
+      const params = new URLSearchParams()
+      if (nextQuery) params.set('q', nextQuery)
+      if (nextBmsFilter !== 'all') params.set('in_bms', nextBmsFilter)
+      const response = await fetch(`/api/desk/master?${params.toString()}`)
+      if (response.status === 401) {
+        router.replace('/desk/login')
+        return
+      }
+      if (!response.ok) {
+        setError('Unable to load the master list.')
+        return
+      }
+      const parsed = masterResponseSchema.safeParse(await response.json())
+      if (!parsed.success) {
+        setError('Unable to load the master list.')
+        return
+      }
+      setRows(parsed.data.rows)
+      setError(null)
+    } catch {
+      // A thrown fetch (network down) must still clear the spinner and tell
+      // the operator, not leave the skeleton spinning forever.
       setError('Unable to load the master list.')
+    } finally {
       setLoading(false)
-      return
     }
-    const parsed = masterResponseSchema.safeParse(await response.json())
-    if (!parsed.success) {
-      setError('Unable to load the master list.')
-      setLoading(false)
-      return
-    }
-    setRows(parsed.data.rows)
-    setError(null)
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -105,7 +111,11 @@ export function MasterScreen() {
       </div>
       <div className="bz rv section" style={{ ['--d' as string]: 2 }}>
         <div className="pl">
-          {error && <div role="alert" className="mrow">Unable to load the master list.</div>}
+          {error && (
+            <div className="mrow">
+              <InlineError message={error} onRetry={() => void load(query, bmsFilter)} />
+            </div>
+          )}
           {loading && !error && (
             <div className="table-skeleton" role="status" aria-label="Loading master list">
               {Array.from({ length: 5 }, (_, index) => (
@@ -120,7 +130,9 @@ export function MasterScreen() {
               ))}
             </div>
           )}
-          {!loading && !error && rows.length === 0 && <div className="empty">Nobody matches that. Try a phone number or a band serial.</div>}
+          {!loading && !error && rows.length === 0 && (
+            <EmptyState message={query || bmsFilter !== 'all' ? 'Nobody matches that. Try a phone number or a band serial.' : 'Nobody accredited yet. Approvals will appear here once the queue clears one.'} />
+          )}
           {!loading && !error && rows.map((row) => {
             const type = row.typeCode ? tier(row.typeCode) : null
             const typeColor = type ? tierColour(type.code, theme) : 'var(--ink3)'
