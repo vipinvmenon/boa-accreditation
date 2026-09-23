@@ -132,18 +132,27 @@ async function main() {
     const [{ n: nominations }] = await q(
       `select count(*)::int as n from public.boa_acc_aaa_nomination where org_hint = ${lit(org.name)}`,
     )
-    const dependents = people + invites + nominations
+    // Invites are NOT a blocker (amended 23 Sep). Every placeholder carries one
+    // invite row from the 14 Sep rehearsal seeding, and invite links are retired
+    // under ADR-019 — treating them as dependents made this script a no-op.
+    // `private.boa_acc_wipe_org` deletes an org's invites and throttle rows with
+    // it, which is exactly what a fixture org needs.
+    //
+    // PEOPLE and AAA nominations remain hard blockers: a placeholder holding a
+    // real person is not a fixture any more, and this script must never be the
+    // thing that deletes someone's accreditation.
+    const dependents = people + nominations
 
     if (dependents > 0) {
       skippedDependent++
       console.log(
-        `  [skip] ${org.name} — has dependent rows (${people} people, ${invites} invite(s), ${nominations} AAA nomination(s)); not deleted`,
+        `  [skip] ${org.name} — has ${people} person/people and ${nominations} AAA nomination(s); not deleted`,
       )
       continue
     }
 
     if (mode === 'dry') {
-      console.log(`  [would delete] ${org.name} — 0 dependents`)
+      console.log(`  [would delete] ${org.name} — 0 people, ${invites} invite(s) go with it`)
       continue
     }
 
