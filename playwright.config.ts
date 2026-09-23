@@ -37,5 +37,16 @@ export default defineConfig({
     url: `${baseURL}/gate/setup`,
     reuseExistingServer: false,
     timeout: 180_000,
+    env: {
+      // tests/e2e/pass-page.spec.ts's own beforeAll binds a fixture-only
+      // PostgREST-shaped HTTP stub on this fixed port before it navigates —
+      // see that file's header for why /p/[passToken] (a server component
+      // calling boa_acc_pass_view in-process, never a browser fetch) cannot
+      // be mocked with page.route() the way every other e2e spec here mocks
+      // /api/desk/* and /api/gate/*. No other spec calls supabaseAdmin()
+      // server-side, so nothing else in this suite reaches these values.
+      SUPABASE_URL: 'http://127.0.0.1:4312',
+      SUPABASE_SERVICE_ROLE_KEY: 'e2e-fixture-service-role-key',
+    },
   },
 })
