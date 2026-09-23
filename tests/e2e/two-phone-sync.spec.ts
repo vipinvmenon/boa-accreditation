@@ -14,9 +14,12 @@ import { gateIssueResultSchema, gateIssueSchema, type GateIssueResult } from '..
  *
  * Phone B's clock is Playwright's fake clock so the ~45 s pull interval is
  * jumped rather than waited out; the pull that turns B amber is the timer's.
+ *
+ * ACC-150: each phone is a logged-in issuer, mocked at /api/gate/session the
+ * same way the rest of the gate API is mocked here. The two issuers have
+ * different names, which is the point of ADR-020's double-issue warning.
  */
 
-const DEVICE_TOKEN = 'local-e2e-device-token'
 const PULL_INTERVAL_MS = 45_000
 const PEOPLE = [
   { passToken: 'pass-alpha', personId: '11111111-1111-4111-8111-111111111111' },
@@ -25,12 +28,18 @@ const PEOPLE = [
 
 type FixtureServer = { issued: GateIssueResult[] }
 
+function operatorId(volunteerName: string) {
+  return volunteerName === 'Phone A'
+    ? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    : 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+}
+
 function pullBody(server: FixtureServer, volunteerName: string) {
   return {
-    deviceId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    gateLabel: 'Main gate',
+    operatorId: operatorId(volunteerName),
+    operatorRole: 'issuer' as const,
+    gateLabel: 'Check-in',
     volunteerName,
-    scope: 'crew' as const,
     roster: PEOPLE.map(({ passToken, personId }, index) => ({
       passToken,
       personId,
@@ -39,6 +48,7 @@ function pullBody(server: FixtureServer, volunteerName: string) {
       vehicleReg: null,
       updatedAt: '2026-09-12T12:00:00.000Z',
       fullName: `E2E Person ${index + 1}`,
+      phone: `+91982100000${index + 1}`,
       roleText: 'Working crew',
       orgName: 'E2E Org',
       typeCode: 'crew' as const,
@@ -68,6 +78,13 @@ async function phone(browser: Browser, server: FixtureServer, volunteerName: str
   const pulls = { count: 0 }
   if (fakeClock) await page.clock.install()
 
+  await page.route('**/api/gate/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      json: { operatorId: operatorId(volunteerName), displayName: volunteerName, role: 'issuer' },
+    })
+  })
   await page.route('**/api/gate/pull', async (route) => {
     pulls.count += 1
     await route.fulfill({ status: 200, contentType: 'application/json', json: pullBody(server, volunteerName) })
@@ -84,8 +101,8 @@ async function phone(browser: Browser, server: FixtureServer, volunteerName: str
         bandSerial: action.bandSerial ?? null,
         stickerNo: action.stickerNo ?? null,
         vehicleReg: action.vehicleReg ?? null,
-        deviceId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        gateLabel: 'Main gate',
+        operatorId: operatorId(volunteerName),
+        gateLabel: 'Check-in',
         volunteerName,
         occurredAt: action.occurredAt ?? '2026-09-12T12:01:00.000Z',
         postedAt: '2026-09-12T12:01:00.000Z',
@@ -98,10 +115,7 @@ async function phone(browser: Browser, server: FixtureServer, volunteerName: str
     await route.fulfill({ status: 201, contentType: 'application/json', json: result })
   })
 
-  await page.goto('/gate/setup')
-  await page.getByLabel('Device token').fill(DEVICE_TOKEN)
-  await page.getByRole('button', { name: 'Pull approved list' }).click()
-  await expect(page).toHaveURL(/\/gate$/)
+  await page.goto('/gate')
   await expect(page.locator('[data-sync-status]')).toHaveText(/^Last synced \d\d:\d\d · 0 pending$/)
   return { context, page, pulls }
 }

@@ -35,7 +35,7 @@ bug in one cannot exceed what the RPC allows.
 | Token | Shape | At rest | Why |
 |---|---|---|---|
 | `invite_token` | 22 chars base64url | sha256 + 6-char hint | the org contact always has it; the server never needs to recover it |
-| `device_token` | 22 chars base64url | sha256 + hint | pasted once into localStorage; re-minted, never recovered |
+| ~~`device_token`~~ | 22 chars base64url | sha256 + hint | **RETIRED by ACC-150 (ADR-020).** Issuers log in as people. `boa_acc_device` and its rows are kept for history; `boa_acc_mint_device`, `boa_acc_revoke_device` and every device-token gate RPC hold EXECUTE for no client role — proven in `privileges.test.sql` |
 | `pass_token` | 22 chars base64url | **plaintext, zero column grants** | ADR-002 — the QR must resolve offline, and the desk must reprint on any day |
 
 > ⚠ **`gen_random_bytes()` is pgcrypto and lives in the `extensions` schema on
@@ -53,6 +53,49 @@ a *rotate*.
 **QR payload:** `BOA26:<pass_token>`. The scheme prefix lets the scanner reject a
 foreign QR in one `startsWith` before touching the roster index, and stops a stray
 camera app opening anything.
+
+## Who may use the gate (ACC-150, ADR-020)
+
+Wristbands are handed out by up to ten people, and every ledger row has to say
+which one. There is no shared phone secret any more: an issuer is invited from
+`/desk/users`, sets a password, and logs in exactly as the desk does.
+
+| Operator role | Desk (queue, master, passes, import, invites, users) | Gate (`/api/gate/*`) |
+|---|---|---|
+| `lead`, `admin` | yes | yes |
+| `approver` | yes | **no** |
+| `issuer` | **no** | yes |
+
+- **Roles are enforced in the database**, not in a route (non-negotiable #3).
+  `private.boa_acc_gate_operator()` resolves `auth.uid()` to an *active*
+  operator whose role is issuer, lead or admin, and raises `42501` otherwise;
+  every gate RPC calls it first.
+- **`private.boa_acc_is_operator()` with no argument now means "an active DESK
+  operator" — lead, approver or admin, as an allowlist.** It is the predicate
+  behind every desk read policy and every desk RPC, so an issuer reads nothing
+  from `boa_acc_person`, `boa_acc_org`, `boa_acc_checkin` or any other desk
+  table, and cannot approve, import, invite or manage users. A role added
+  later is refused by default rather than admitted by default.
+- **`/api/gate/*` hold no service-role key.** They call the RPCs with the
+  operator's own cookie session (`lib/gate-auth.ts` → `lib/supabase-server.ts`),
+  so the database sees a real `auth.uid()`. The session gate RPCs grant EXECUTE
+  to `authenticated` only; `anon` and `service_role` hold nothing.
+- **Every new ledger and vehicle row records `operator_id`** (plus the
+  display name at the moment the band was handed over). `*_actor_required`
+  refuses a row that names neither an operator nor a device, and the session
+  RPCs are the only write path any role can reach.
+- `GET /api/gate/session` and the `/gate` screen's redirect to
+  `/desk/login?next=/gate` are **usability affordances**. A person who blocks
+  them reaches nothing: the RPCs refuse them.
+- `?next=` is an allowlist of in-app paths (`lib/safe-next.ts`), never "starts
+  with `/`" — `//host`, `/\host` and absolute URLs all leave the origin.
+
+Proof: `supabase/tests/issuer.test.sql` (37 assertions: issuer allowed on each
+gate RPC and attributed; refused by decide, approve/reject org, import, invite,
+create org, user admin, AAA, dashboard, queue, passes; approver, deactivated
+issuer and no session refused at the gate; lead and admin allowed) and
+`privileges.test.sql` (anon still holds nothing anywhere; no role may execute a
+device-token RPC).
 
 ## Policy authoring rules
 
@@ -145,3 +188,15 @@ Retention is decided and dated — see OPERATIONS.md.
 - Two offline gates can both issue to the same person. Structurally unpreventable;
   both rows land, the next scan anywhere shows amber, the desk gets a duplicate
   report. The ledger records the truth rather than pretending.
+- **A phone that changes hands mid-shift attributes the queue to whoever is
+  signed in when it syncs.** Work queued offline by issuer A and drained after
+  issuer B has logged in on the same phone is recorded against B: the server
+  can only see the session that posted it. Mitigation is procedural — an
+  issuer signs in on their own phone and stays signed in (ADR-020). Nothing
+  is lost either way; the ledger is still append-only and still names a real
+  person.
+- **A cached roster stays on the phone after sign-out.** It holds name, phone,
+  role, org, tier and plate for approved people (non-negotiable #9 — nothing
+  further), which is the same list that must survive with the radio off. A
+  lost phone is handled by deactivating the operator (their session can no
+  longer sync or pull), not by trusting the cache to disappear.

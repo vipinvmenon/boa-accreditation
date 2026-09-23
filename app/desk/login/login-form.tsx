@@ -1,8 +1,10 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
+import { destinationAfterLogin } from '@/lib/safe-next'
+import { operatorRoleSchema } from '@/lib/schemas/operator'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -35,6 +37,8 @@ function DeskLoginForm() {
   const searchParams = useSearchParams()
   const supabase = supabaseBrowser()
   const flow = searchParams.get('flow')
+  // ACC-150: the gate sends an unauthenticated issuer here with ?next=/gate.
+  const next = searchParams.get('next')
   const linkError = searchParams.get('error') === 'invalid_link'
 
   const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in' | 'forgot-password'>('checking')
@@ -57,10 +61,28 @@ function DeskLoginForm() {
       : mode === 'checking'
         ? 'Checking your session.'
         : mode === 'redirecting'
-          ? 'Session confirmed. Redirecting to the desk.'
+          ? 'Session confirmed. Redirecting.'
           : resetSent
             ? 'If the email has desk access, a reset link is on its way.'
             : ''
+
+  /**
+   * Where this person belongs after signing in: back where they were sent
+   * from (`?next=`, allowlisted in lib/safe-next.ts), else the gate for an
+   * issuer and the desk for everyone else. The role is read from the
+   * caller's own boa_acc_operator row, which RLS always shows them
+   * (boa_acc_operator_read). A failed read just means "the desk".
+   */
+  const destination = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('boa_acc_operator')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const role = operatorRoleSchema.safeParse(data?.role)
+    return destinationAfterLogin(next, role.success ? role.data : null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [next])
 
   useEffect(() => {
     let cancelled = false
@@ -82,7 +104,7 @@ function DeskLoginForm() {
         setMode('set-password')
       } else {
         setMode('redirecting')
-        router.replace('/desk')
+        router.replace(await destination(user.id))
       }
     }
     void checkSession()
@@ -96,13 +118,13 @@ function DeskLoginForm() {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     setBusy(false)
-    if (signInError) {
+    if (signInError || !data.user) {
       setError('Wrong email or password.')
       return
     }
-    router.replace('/desk')
+    router.replace(await destination(data.user.id))
   }
 
   async function handleSetPassword(e: React.FormEvent) {
@@ -117,13 +139,13 @@ function DeskLoginForm() {
       return
     }
     setBusy(true)
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const { data, error: updateError } = await supabase.auth.updateUser({ password })
     setBusy(false)
-    if (updateError) {
+    if (updateError || !data.user) {
       setError('Could not set password. Ask for a new invite link.')
       return
     }
-    router.replace('/desk')
+    router.replace(await destination(data.user.id))
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
@@ -135,7 +157,7 @@ function DeskLoginForm() {
     // unknown caller whether an email has desk access would let them
     // enumerate who has it.
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/desk/login`,
+      redirectTo: `${window.location.origin}/desk/login${next ? `?next=${encodeURIComponent(next)}` : ''}`,
     })
     setBusy(false)
     if (resetError) {
@@ -157,7 +179,7 @@ function DeskLoginForm() {
         </div>
         <div className="tag">BOA accreditation</div>
         <h1 className="h1">
-          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : 'Desk sign in'}
+          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : next?.startsWith('/gate') ? 'Check-in sign in' : 'Desk sign in'}
         </h1>
 
         {mode === 'sign-in' && (

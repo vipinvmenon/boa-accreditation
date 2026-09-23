@@ -26,6 +26,8 @@ const gateRosterRowSchema = z.object({
   vehicleReg: z.string().nullable(),
   updatedAt: isoDateTime,
   fullName: z.string().min(1),
+  /** For the gate's offline search by phone; shown masked to four digits. */
+  phone: z.string().min(1),
   roleText: z.string().min(1),
   orgName: z.string().min(1),
   // The pack's eight tiers (ADR-018). Widened from v1's three; every v1 code
@@ -46,11 +48,16 @@ const gateLedgerRowSchema = z.object({
   isReissue: z.boolean(),
 })
 
+/**
+ * boa_acc_gate_pull() (202609221201, ACC-150): answered for the calling
+ * operator's own session. `volunteerName` is the signed-in operator's display
+ * name; there is no device and no device scope any more.
+ */
 export const gatePullSchema = z.object({
-  deviceId: z.string().uuid(),
+  operatorId: z.string().uuid(),
+  operatorRole: z.enum(['issuer', 'lead', 'admin']),
   gateLabel: z.string(),
   volunteerName: z.string(),
-  scope: z.enum(['crew', 'vehicle', 'both']),
   roster: gateRosterRowSchema.array(),
   ledger: gateLedgerRowSchema.array(),
   rosterAsOf: isoDateTime.nullable(),
@@ -65,7 +72,8 @@ export const gateIssueResultSchema = z.object({
   bandSerial: z.string().nullable(),
   stickerNo: z.string().nullable(),
   vehicleReg: z.string().nullable(),
-  deviceId: z.string().uuid(),
+  /** The operator who recorded the row — every ledger row names one (ACC-150). */
+  operatorId: z.string().uuid(),
   gateLabel: z.string(),
   volunteerName: z.string(),
   occurredAt: isoDateTime,

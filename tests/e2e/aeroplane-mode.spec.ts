@@ -2,7 +2,18 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import QRCode from 'qrcode'
 import { gateIssueResultSchema, gateIssueSchema, type GateIssue } from '../../lib/schemas/gate'
 
-const DEVICE_TOKEN = 'local-e2e-device-token'
+/**
+ * ACC-150 (ADR-020): the gate is for logged-in issuers. There is no device
+ * token to paste any more, so this suite mocks the session the same way it
+ * has always mocked the gate APIs — `GET /api/gate/session` answers as a
+ * signed-in issuer, and `/api/gate/pull` fills the cache on first load. No
+ * real Supabase session, no auth user, nothing to seed.
+ */
+const SESSION = {
+  operatorId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  displayName: 'Local fixture',
+  role: 'issuer' as const,
+}
 const PEOPLE = [
   { passToken: 'pass-alpha', personId: '11111111-1111-4111-8111-111111111111' },
   { passToken: 'pass-bravo', personId: '22222222-2222-4222-8222-222222222222' },
@@ -10,10 +21,10 @@ const PEOPLE = [
   { passToken: 'pass-delta', personId: '44444444-4444-4444-8444-444444444444' },
 ] as const
 const PULL = {
-  deviceId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-  gateLabel: 'Main gate',
-  volunteerName: 'Local fixture',
-  scope: 'crew' as const,
+  operatorId: SESSION.operatorId,
+  operatorRole: SESSION.role,
+  gateLabel: 'Check-in',
+  volunteerName: SESSION.displayName,
   roster: PEOPLE.map(({ passToken, personId }, index) => ({
     passToken,
     personId,
@@ -22,6 +33,7 @@ const PULL = {
     vehicleReg: null,
     updatedAt: '2026-09-12T12:00:00.000Z',
     fullName: `E2E Person ${index + 1}`,
+    phone: `+91982100000${index + 1}`,
     roleText: 'Working crew',
     orgName: 'E2E Org',
     // PEOPLE[3] carries a pack tier the v1 enum did not have (ADR-018).
@@ -44,7 +56,7 @@ function issueResult(action: GateIssue) {
     bandSerial: action.bandSerial ?? null,
     stickerNo: action.stickerNo ?? null,
     vehicleReg: action.vehicleReg ?? null,
-    deviceId: PULL.deviceId,
+    operatorId: PULL.operatorId,
     gateLabel: PULL.gateLabel,
     volunteerName: PULL.volunteerName,
     occurredAt: action.occurredAt ?? '2026-09-12T12:01:00.000Z',
@@ -65,6 +77,9 @@ async function installFixture(
   const vehiclePosts: VehiclePost[] = []
   let requestNumber = 0
 
+  await page.route('**/api/gate/session', async (route: Route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', json: SESSION })
+  })
   await page.route('**/api/gate/pull', async (route: Route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', json: PULL })
   })
@@ -103,7 +118,7 @@ async function installFixture(
         outcome: body.outcome,
         reason: body.reason,
         checks: body.checks,
-        deviceId: PULL.deviceId,
+        operatorId: PULL.operatorId,
         gateLabel: PULL.gateLabel,
         officerName: PULL.volunteerName,
         occurredAt: body.occurredAt,
@@ -112,10 +127,9 @@ async function installFixture(
     })
   })
 
-  await page.goto('/gate/setup')
-  await page.getByLabel('Device token').fill(DEVICE_TOKEN)
-  await page.getByRole('button', { name: 'Pull approved list' }).click()
-  await expect(page).toHaveURL(/\/gate$/)
+  // An empty cache pulls itself on first load now — no pairing screen.
+  await page.goto('/gate')
+  await expect(page.getByRole('button', { name: "Can't scan? Search by name" })).toBeVisible()
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready
@@ -230,7 +244,7 @@ test.describe('gate aeroplane mode', () => {
       }
     }, qrDataUrl)
 
-    const firstResponse = await page.request.get('/gate/setup')
+    const firstResponse = await page.request.get('/gate')
     const firstCsp = firstResponse.headers()['content-security-policy']
     expect(firstCsp).toContain("script-src 'self' 'nonce-")
     expect(firstCsp).toContain("'strict-dynamic'")
@@ -238,7 +252,7 @@ test.describe('gate aeroplane mode', () => {
     expect(firstCsp).toContain("style-src 'self' 'unsafe-inline'")
     expect(firstCsp).toContain("font-src 'self'")
 
-    const secondResponse = await page.request.get('/gate/setup')
+    const secondResponse = await page.request.get('/gate')
     expect(secondResponse.headers()['content-security-policy']).not.toBe(firstCsp)
 
     const gate = (await installFixture(page, ['success'])).page
@@ -404,9 +418,25 @@ test.describe('gate aeroplane mode', () => {
     await expect.poll(() => outboxStatuses(gate)).toEqual(['pending'])
   })
 
-  test('an unconfigured device is sent to setup instead of showing a scanner', async ({ page }) => {
+  test('a phone with nobody signed in is sent to the login page, and comes back to /gate', async ({ page }) => {
+    await page.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({ status: 401, contentType: 'application/json', json: { error: 'not_authenticated' } })
+    })
     await page.goto('/gate')
-    await expect(page).toHaveURL(/\/gate\/setup$/)
+    await expect(page).toHaveURL(/\/desk\/login\?next=%2Fgate$/)
+  })
+
+  test('an empty pull leaves no scanner on screen, and says why', async ({ page }) => {
+    await page.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', json: SESSION })
+    })
+    await page.route('**/api/gate/pull', async (route: Route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', json: { ...PULL, roster: [] } })
+    })
+    await page.goto('/gate')
+    await expect(page.getByText('No list on this phone')).toBeVisible()
+    await expect(page.getByText('scanner stays locked', { exact: false })).toBeVisible()
+    await expect(page.getByLabel('Manual scanner input')).toHaveCount(0)
   })
 })
 

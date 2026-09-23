@@ -11,7 +11,7 @@ Three surfaces, one database, one deployment.
 |---|---|---|---|
 | Pass | `/p/[passToken]` | crew member | pass token in the URL, no account |
 | Allocation desk | `/desk/*` | Bhoopesh, Salman, 2 approvers | Supabase email + password |
-| Gate | `/gate`, `/gate/vehicle`, `/gate/setup` | volunteers on phones | device token, pasted once |
+| Gate | `/gate`, `/gate/vehicle` | up to 10 issuers on their own phones | Supabase email + password, same as the desk (ADR-020) |
 
 **Retired (ADR-019, 22 Sep):** the vendor Submission surface, `/s/[token]` —
 collection moved to one Google Form and approval to the response sheet's

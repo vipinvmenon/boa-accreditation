@@ -1,36 +1,29 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { gateSession, notAuthorized } from '@/lib/gate-auth'
 import { gateIssueResultSchema, gateIssueSchema } from '@/lib/schemas/gate'
 
 export const dynamic = 'force-dynamic'
 
-function deviceToken(request: Request): string | null {
-  const token = request.headers.get('x-boa-device-token')?.trim()
-  return token ? token : null
-}
-
-function mapError(error: { code?: string; message?: string }): { status: number; error: string } {
+function mapError(error: { code?: string; message?: string }): NextResponse {
   const message = error.message ?? ''
-  if (error.code === '42501' || message.includes('invalid device')) {
-    return { status: 401, error: 'invalid_device' }
-  }
+  if (error.code === '42501') return notAuthorized()
   if (error.code === 'P0002' || message.includes('not found')) {
-    return { status: 404, error: 'not_found' }
+    return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
   if (error.code === '23514' || error.code === '22023') {
-    return { status: 422, error: 'invalid_action' }
+    return NextResponse.json({ error: 'invalid_action' }, { status: 422 })
   }
   if (error.code === '23505') {
-    return { status: 409, error: 'duplicate' }
+    return NextResponse.json({ error: 'duplicate' }, { status: 409 })
   }
-  return { status: 500, error: 'internal' }
+  return NextResponse.json({ error: 'internal' }, { status: 500 })
 }
 
+// ACC-150: the operator's own session (lib/gate-auth.ts), never the service
+// role. boa_acc_gate_issue checks the role and records operator_id.
 export async function POST(request: Request) {
-  const token = deviceToken(request)
-  if (token === null) {
-    return NextResponse.json({ error: 'invalid_device' }, { status: 401 })
-  }
+  const session = await gateSession()
+  if (session.response) return session.response
 
   let body: unknown
   try {
@@ -45,8 +38,7 @@ export async function POST(request: Request) {
   }
 
   const action = parsed.data
-  const { data, error } = await supabaseAdmin().rpc('boa_acc_gate_issue', {
-    p_device_token: token,
+  const { data, error } = await session.supabase.rpc('boa_acc_gate_issue', {
     p_idempotency_key: action.idempotencyKey,
     p_pass_token: action.passToken,
     p_kind: action.kind,
@@ -58,10 +50,7 @@ export async function POST(request: Request) {
     p_supervisor_note: action.supervisorNote ?? null,
     p_voids_checkin_id: action.voidsCheckinId ?? null,
   })
-  if (error) {
-    const mapped = mapError(error)
-    return NextResponse.json({ error: mapped.error }, { status: mapped.status })
-  }
+  if (error) return mapError(error)
 
   const result = gateIssueResultSchema.safeParse(data)
   if (!result.success) {

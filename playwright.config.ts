@@ -34,7 +34,7 @@ export default defineConfig({
   },
   webServer: {
     command: `corepack pnpm build && corepack pnpm exec next start -p ${port}`,
-    url: `${baseURL}/gate/setup`,
+    url: `${baseURL}/gate`,
     reuseExistingServer: false,
     timeout: 180_000,
   },

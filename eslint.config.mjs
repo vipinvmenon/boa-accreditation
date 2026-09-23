@@ -48,16 +48,19 @@ const config = [
     // The gate is the one surface that must work with the radio off. Nothing
     // there may reach for the network directly: every read comes from the Dexie
     // cache and every write goes through the outbox. gate/roster.ts and
-    // gate/outbox.ts are the two sanctioned exceptions.
+    // gate/outbox.ts are the sanctioned exceptions, plus gate/session.ts —
+    // ACC-150's "who is signed in?" probe, which asks the server only while
+    // online and never on the scan path (it replaced the pasted device
+    // token, which needed no network at all).
     files: ['gate/**/*.ts', 'app/gate/**/*.tsx'],
-    ignores: ['gate/roster.ts', 'gate/outbox.ts'],
+    ignores: ['gate/roster.ts', 'gate/outbox.ts', 'gate/session.ts'],
     rules: {
       'no-restricted-globals': [
         'error',
         {
           name: 'fetch',
           message:
-            'The gate reads from Dexie and writes to the outbox. Only gate/roster.ts and gate/outbox.ts may talk to the network.',
+            'The gate reads from Dexie and writes to the outbox. Only gate/roster.ts, gate/outbox.ts and gate/session.ts may talk to the network.',
         },
       ],
     },

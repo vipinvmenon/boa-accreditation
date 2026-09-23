@@ -14,6 +14,8 @@
 -- @proves: HIGH     | boa_acc_pass_send: zero table grants for anyone; desk RPCs authenticated-only, the webhook's status write service_role-only
 -- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
 -- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
+-- @proves: CRITICAL | ACC-150: no role (anon, authenticated, service_role) may execute a device-token RPC
+-- @proves: HIGH     | ACC-150: the session gate RPCs are authenticated-only; anon and service_role hold nothing
 --
 -- NOT YET COVERED: "through the views" (ACC-022's own title says so). There
 -- are no views yet — boa_acc_person_state and boa_acc_sticker_current land in
@@ -36,7 +38,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(113) as line
+  select 0 as n, plan(133) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -153,13 +155,12 @@ select line from (
   union all select 58, function_privs_are('private', 'boa_acc_test_wipe_device', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_test_wipe_device')
   union all select 59, function_privs_are('private', 'boa_acc_test_wipe_device', array['uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_test_wipe_device')
 
-  -- ACC-045: mint/revoke_device are public, lead/admin-checked internally,
-  -- same shape as boa_acc_create_org — anon gets nothing, authenticated gets
-  -- EXECUTE (the operator-role check happens inside the function body).
+  -- ACC-045: mint/revoke_device. Retired by ACC-150 (ADR-020): no client
+  -- role may execute either any more; the functions are kept for history.
   union all select 54, function_privs_are('public', 'boa_acc_mint_device', array['text','text','text','timestamptz'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_mint_device')
-  union all select 55, function_privs_are('public', 'boa_acc_mint_device', array['text','text','text','timestamptz'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_mint_device')
+  union all select 55, function_privs_are('public', 'boa_acc_mint_device', array['text','text','text','timestamptz'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_mint_device (retired, ACC-150)')
   union all select 56, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_device')
-  union all select 57, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_revoke_device')
+  union all select 57, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_revoke_device (retired, ACC-150)')
   union all select 66, function_privs_are('public', 'boa_acc_approval_queue', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_approval_queue')
   union all select 67, function_privs_are('public', 'boa_acc_approval_queue', array['text'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_approval_queue')
   union all select 79, function_privs_are('public', 'boa_acc_reject_org', array['uuid','text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_reject_org')
@@ -174,16 +175,16 @@ select line from (
   union all select 77, function_privs_are('public', 'boa_acc_set_operator_active', array['uuid','boolean'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_set_operator_active')
   union all select 78, function_privs_are('public', 'boa_acc_set_operator_active', array['uuid','boolean'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_set_operator_active')
 
-  -- ACC-056: gate RPCs are service-role-only route boundaries. The browser
-  -- never receives EXECUTE, and anon remains completely unable to call them.
+  -- ACC-056: the DEVICE-TOKEN gate RPCs (retired by ACC-150, see 93+). The
+  -- browser never receives EXECUTE, and anon remains completely unable to
+  -- call them.
   union all select 70, function_privs_are('public', 'boa_acc_gate_pull', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_pull')
   union all select 71, function_privs_are('public', 'boa_acc_gate_pull', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_pull')
   union all select 72, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_issue')
   union all select 73, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_issue')
 
-  -- ACC-055: vehicle events are written only through the service-role route.
-  -- The device token is checked inside the SECURITY DEFINER function; neither
-  -- browser role receives EXECUTE.
+  -- ACC-055: the device-token vehicle RPC (retired by ACC-150). No client
+  -- role receives EXECUTE, service_role included.
   union all select 74, function_privs_are('public', 'boa_acc_gate_vehicle',
     array['text','uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'],
     'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_vehicle')
@@ -192,7 +193,33 @@ select line from (
     'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_vehicle')
   union all select 76, function_privs_are('public', 'boa_acc_gate_vehicle',
     array['text','uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'],
-    'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_gate_vehicle')
+    'service_role', array[]::text[], 'service_role: zero EXECUTE on the retired device-token boa_acc_gate_vehicle (ACC-150)')
+
+  -- ACC-150 (ADR-020): issuers log in; device tokens are retired. The
+  -- device-token overloads above (70-76) plus the ones below hold no EXECUTE
+  -- for ANY client role — service_role included, since /api/gate/* no longer
+  -- holds it. The session overloads are authenticated-only: the role check
+  -- (issuer/lead/admin) happens inside each body (issuer.test.sql).
+  union all select 93, function_privs_are('public', 'boa_acc_gate_pull', array['text'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on the retired device-token boa_acc_gate_pull')
+  union all select 94, function_privs_are('public', 'boa_acc_gate_issue', array['text', 'uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on the retired device-token boa_acc_gate_issue')
+  union all select 95, function_privs_are('public', 'boa_acc_mint_device', array['text','text','text','timestamptz'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_mint_device (retired)')
+  union all select 96, function_privs_are('public', 'boa_acc_revoke_device', array['uuid'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_revoke_device (retired)')
+  union all select 97, function_privs_are('private', 'boa_acc_gate_device', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_device')
+  union all select 98, function_privs_are('private', 'boa_acc_gate_device', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_device')
+  union all select 99, function_privs_are('public', 'boa_acc_gate_pull', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_pull()')
+  union all select 100, function_privs_are('public', 'boa_acc_gate_pull', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_gate_pull()')
+  union all select 101, function_privs_are('public', 'boa_acc_gate_pull', array[]::text[], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_gate_pull()')
+  union all select 102, function_privs_are('public', 'boa_acc_gate_issue', array['uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on session boa_acc_gate_issue')
+  union all select 103, function_privs_are('public', 'boa_acc_gate_issue', array['uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on session boa_acc_gate_issue')
+  union all select 104, function_privs_are('public', 'boa_acc_gate_issue', array['uuid', 'text', 'public.boa_acc_checkin_kind', 'text', 'text', 'text', 'timestamptz', 'boolean', 'text', 'uuid'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on session boa_acc_gate_issue')
+  union all select 105, function_privs_are('public', 'boa_acc_gate_vehicle', array['uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'], 'anon', array[]::text[], 'anon: zero EXECUTE on session boa_acc_gate_vehicle')
+  union all select 106, function_privs_are('public', 'boa_acc_gate_vehicle', array['uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on session boa_acc_gate_vehicle')
+  union all select 107, function_privs_are('public', 'boa_acc_gate_vehicle', array['uuid','text','public.boa_acc_vehicle_outcome','uuid','uuid','jsonb','text','timestamptz'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on session boa_acc_gate_vehicle')
+  union all select 108, function_privs_are('private', 'boa_acc_gate_operator', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_operator')
+  union all select 109, function_privs_are('private', 'boa_acc_gate_operator', array[]::text[], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_gate_operator (called only inside the gate RPCs)')
+  union all select 110, column_privs_are('public', 'boa_acc_checkin', 'operator_id', 'anon', array[]::text[], 'anon: zero on boa_acc_checkin.operator_id')
+  union all select 111, column_privs_are('public', 'boa_acc_checkin', 'operator_id', 'authenticated', array['SELECT'], 'authenticated: SELECT on boa_acc_checkin.operator_id (desk read, RLS-gated)')
+  union all select 112, column_privs_are('public', 'boa_acc_vehicle_event', 'operator_id', 'authenticated', array['SELECT'], 'authenticated: SELECT on boa_acc_vehicle_event.operator_id (desk read, RLS-gated)')
 
   -- The one column that must never be readable by a logged-in session —
   -- ADR-002's compensating control, checked at the column, not the table.

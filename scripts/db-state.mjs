@@ -31,6 +31,10 @@ const WITNESSES = [
   ['202609221000_boa_acc_import_approve', 'function', 'public.boa_acc_import_approve'],
   ['202609221300_boa_acc_double_issue', 'function', 'public.boa_acc_double_issues'],
   ['202609221100_boa_acc_pass_send', 'table', 'public.boa_acc_pass_send'],
+  // ACC-150: the label (its own migration — ADD VALUE cannot be used in the
+  // transaction that adds it) and the gate predicate the second one creates.
+  ['202609221200_boa_acc_issuer_role', 'enumlabel', 'public.boa_acc_operator_role.issuer'],
+  ['202609221201_boa_acc_gate_session', 'function', 'private.boa_acc_gate_operator'],
 ]
 
 const t = describeTransport(root)
@@ -72,9 +76,13 @@ for (const f of local) console.log(`    ${f}`)
 console.log('\n  WITNESS — does the object each migration creates actually exist?')
 const rows = []
 for (const [mig, kind, obj] of WITNESSES) {
-  const [schema, name] = obj.split('.')
+  const [schema, name, label] = obj.split('.')
   const sql =
-    kind === 'table'
+    kind === 'enumlabel'
+      ? `select count(*)::int as n from pg_enum e join pg_type t on t.oid = e.enumtypid
+         join pg_namespace ns on ns.oid = t.typnamespace
+         where ns.nspname='${schema}' and t.typname='${name}' and e.enumlabel='${label}'`
+      : kind === 'table'
       ? `select count(*)::int as n from pg_tables where schemaname='${schema}' and tablename='${name}'`
       : kind === 'extension'
         ? `select count(*)::int as n from pg_extension e join pg_namespace ns on ns.oid = e.extnamespace

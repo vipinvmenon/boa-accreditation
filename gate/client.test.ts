@@ -32,10 +32,10 @@ describe('gate pull boundary', () => {
     await gateDb.roster.put(existing)
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
-        deviceId: '33333333-3333-4333-8333-333333333333',
-        gateLabel: 'Gate 1',
+        operatorId: '33333333-3333-4333-8333-333333333333',
+        operatorRole: 'issuer',
+        gateLabel: 'Check-in',
         volunteerName: 'Ravi',
-        scope: 'crew',
         roster: [],
         ledger: [],
         rosterAsOf: occurredAt,
@@ -43,25 +43,25 @@ describe('gate pull boundary', () => {
       }), { status: 200, headers: { 'content-type': 'application/json' } }),
     ))
 
-    await expect(pullGate('device-token')).rejects.toThrow('empty_roster')
+    await expect(pullGate()).rejects.toThrow('empty_roster')
     await expect(gateDb.roster.get('existing')).resolves.toEqual(existing)
   })
 
   it('validates and caches a non-empty pull, including blank serials', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
-        deviceId: '33333333-3333-4333-8333-333333333333',
-        gateLabel: 'Gate 1',
+        operatorId: '33333333-3333-4333-8333-333333333333',
+        operatorRole: 'issuer',
+        gateLabel: 'Check-in',
         volunteerName: 'Ravi',
-        scope: 'crew',
-        roster: [{ passToken: 'pass-1', personId, orgId, status: 'approved', vehicleReg: null, updatedAt: occurredAt, fullName: 'Test Person', roleText: 'Working crew', orgName: 'Test Org', typeCode: 'crew', dayValidity: 'build_show' }],
+        roster: [{ passToken: 'pass-1', personId, orgId, status: 'approved', vehicleReg: null, updatedAt: occurredAt, fullName: 'Test Person', phone: '+919876500001', roleText: 'Working crew', orgName: 'Test Org', typeCode: 'crew', dayValidity: 'build_show' }],
         ledger: [{ id: '44444444-4444-4444-8444-444444444444', personId, kind: 'wristband', occurredAt, bandSerial: '', stickerNo: null, gateLabel: 'Gate 1', volunteerName: 'Ravi', isReissue: false }],
         rosterAsOf: occurredAt,
         ledgerAsOf: occurredAt,
       }), { status: 200, headers: { 'content-type': 'application/json' } }),
     ))
 
-    const result = await pullGate('device-token')
+    const result = await pullGate()
     expect(result.roster).toHaveLength(1)
     await expect(gateDb.ledger.toArray()).resolves.toHaveLength(1)
     await expect(gateDb.meta.get('rosterAsOf')).resolves.toEqual({ key: 'rosterAsOf', value: occurredAt })

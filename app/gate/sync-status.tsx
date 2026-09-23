@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { drainOutbox, pullGate } from '@/gate/client'
-import { readDeviceToken } from '@/gate/device-token'
 import {
   createGateSyncDeps,
   createSyncScheduler,
@@ -14,8 +13,13 @@ import {
 /**
  * ACC-149 — mounts the sync scheduler and renders "Last synced HH:MM · N
  * pending". One scheduler per page, shared by every mounted instance; it stops
- * when the last one unmounts. Credentials are read here (device token today,
- * the operator session after ACC-150) so that switch touches only this file.
+ * when the last one unmounts.
+ *
+ * ACC-150: the credential is the operator's session cookie, which rides every
+ * same-origin request on its own. There is nothing to read and nothing the
+ * page can check offline, so `hasCredentials` is always true and "needs
+ * login" comes only from the server actually refusing a drain or a pull with
+ * 401/403 — the queue is kept either way (docs/OFFLINE-SYNC.md).
  */
 let shared: { scheduler: SyncScheduler; mounts: number } | null = null
 const syncedListeners = new Set<() => void | Promise<void>>()
@@ -24,16 +28,9 @@ function acquire(): SyncScheduler {
   if (!shared) {
     const scheduler = createSyncScheduler(
       createGateSyncDeps({
-        drain: async () => {
-          const token = readDeviceToken()
-          if (token) await drainOutbox(token)
-        },
-        pull: async () => {
-          const token = readDeviceToken()
-          if (!token) throw new Error('invalid_device')
-          await pullGate(token)
-        },
-        hasCredentials: () => readDeviceToken() !== null,
+        drain: () => drainOutbox(),
+        pull: () => pullGate(),
+        hasCredentials: () => true,
         onSynced: async () => {
           await Promise.all([...syncedListeners].map((listener) => listener()))
         },

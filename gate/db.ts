@@ -24,6 +24,10 @@ export const rosterRowSchema = z.object({
   vehicleReg: z.string().min(1).optional(),
   updatedAt: timestamp,
   fullName: z.string().min(1),
+  // Optional: rows cached by a pull older than ACC-150 carry no phone, and
+  // they must keep parsing. Search treats a missing phone as "no match by
+  // phone" (gate/search.ts) rather than failing.
+  phone: z.string().min(1).optional(),
   roleText: z.string().min(1),
   orgName: z.string().min(1),
   // Widened to the pack's eight tiers (ADR-018) with no Dexie version bump:
@@ -84,7 +88,10 @@ export const stickerRowSchema = z.object({
 export type StickerRow = z.infer<typeof stickerRowSchema>
 
 export const metaKeySchema = z.enum([
+  // Written by device-token pulls before ACC-150; kept so a cache written
+  // then still parses. No longer written.
   'deviceTokenHint',
+  'operatorId',
   'rosterAsOf',
   'ledgerAsOf',
   'schemaVersion',

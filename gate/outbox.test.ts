@@ -48,7 +48,7 @@ describe('outbox drain routing (ACC-109)', () => {
           outcome: 'turned_away',
           reason: 'No sticker',
           checks: { sticker: false, wristband: true, plateVisual: false },
-          deviceId: '33333333-3333-4333-8333-333333333333',
+          operatorId: '33333333-3333-4333-8333-333333333333',
           gateLabel: 'Vehicle gate',
           officerName: 'Ravi',
           occurredAt,
@@ -63,8 +63,8 @@ describe('outbox drain routing (ACC-109)', () => {
         bandSerial: null,
         stickerNo: null,
         vehicleReg: null,
-        deviceId: '33333333-3333-4333-8333-333333333333',
-        gateLabel: 'Gate 1',
+        operatorId: '33333333-3333-4333-8333-333333333333',
+        gateLabel: 'Check-in',
         volunteerName: 'Ravi',
         occurredAt,
         postedAt: occurredAt,
@@ -75,7 +75,7 @@ describe('outbox drain routing (ACC-109)', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    await drainOutbox('device-token')
+    await drainOutbox()
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/gate/vehicle', '/api/gate/issue'])
     const statuses = (await gateDb.outbox.orderBy('createdAt').toArray()).map((row) => [row.kind, row.status])
@@ -84,15 +84,15 @@ describe('outbox drain routing (ACC-109)', () => {
     expect((await gateDb.ledger.toArray()).map((row) => row.kind)).toEqual(['wristband'])
   })
 
-  it('a 401 keeps the whole queue, consumes no attempt and sends nothing behind the head (ACC-149)', async () => {
+  it('a 401 (lapsed session) keeps the whole queue, consumes no attempt and sends nothing behind the head (ACC-149/ACC-150)', async () => {
     for (const [index, key] of ['88888888-8888-4888-8888-888888888881', '88888888-8888-4888-8888-888888888882'].entries()) {
       await enqueueIssue({ idempotencyKey: key, passToken: `pass-${index}`, kind: 'wristband', bandSerial: '', vehicleReg: null, isReissue: false })
       await gateDb.outbox.where('idempotencyKey').equals(key).modify({ createdAt: index + 1 })
     }
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: 'invalid_device' }), { status: 401, headers: { 'content-type': 'application/json' } }))
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: 'not_authenticated' }), { status: 401, headers: { 'content-type': 'application/json' } }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await drainOutbox('revoked-token')
+    await drainOutbox()
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const rows = await gateDb.outbox.orderBy('createdAt').toArray()

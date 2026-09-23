@@ -205,15 +205,24 @@ const RECENT_ISSUES = [
  * code or adding fixture defaults to a production route.
  */
 async function seedGateDexie(page, { vehicle = false } = {}) {
+  // ACC-150: the gate asks who is signed in when it loads and sends anyone
+  // else to the login page. The capture is a signed-in issuer's phone.
+  await page.route(/\/api\/gate\/session(\?|$)/, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({
+          json: {
+            operatorId: '11111111-1111-4111-8111-1111111111aa',
+            displayName: 'Bhoopesh',
+            role: 'issuer',
+          },
+        })
+      : route.fallback(),
+  )
   await page.evaluate(({ vehicle, person, plate, time, recentIssues }) => new Promise((resolve, reject) => {
     const request = indexedDB.open('boa-accreditation-gate')
     request.onerror = () => reject(request.error)
     request.onsuccess = () => {
       const database = request.result
-      // A configured gate device holds its token (gate/device-token.ts).
-      // Without one the status line adds "not syncing — run setup", which
-      // is right for a real unconfigured phone but not the approved state.
-      localStorage.setItem('boa-gate-device-token', 'visual-fixture-token')
       const transaction = database.transaction(['roster', 'ledger', 'outbox', 'sticker', 'meta'], 'readwrite')
       for (const store of ['roster', 'ledger', 'outbox', 'sticker', 'meta']) transaction.objectStore(store).clear()
 
@@ -593,8 +602,8 @@ try {
         await page.goto(base + route, { waitUntil: 'networkidle' })
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
-          // goto, not reload: an unseeded /gate redirects to /gate/setup, so the
-          // first load may have left the page there.
+          // goto, not reload: an unseeded /gate renders the "no list on this
+          // phone" screen, so the first load may have left the page there.
           await page.goto(base + route, { waitUntil: 'networkidle' })
           await page.context().setOffline(true)
           const captureState = GATE_CAPTURE_STATE[screen.slug]

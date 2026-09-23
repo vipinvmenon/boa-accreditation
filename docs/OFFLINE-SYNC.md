@@ -3,6 +3,19 @@
 > **Status: specification.** Nothing below is built — `gate/` is empty. This is
 > Phase 4 (ACC-050…059). See CURRENT-STATE.md.
 
+## Who is at the gate (ACC-150, ADR-020)
+
+An issuer logs in with an email and a password, like the desk, and the session
+cookie authorises every `/api/gate/*` call; there is no device token. The
+offline cost is stated and accepted: **log in once, with signal, before a
+shift.** After that the gate renders and resolves entirely from Dexie with the
+radio off — the service worker serves `/gate` from its precache and the page
+never asks the server anything on the scan path. A session that lapses while
+offline loses nothing: the outbox keeps every queued write until someone logs
+in again (see *`classifyFailure`* below). The signed-in check
+(`GET /api/gate/session`) runs only on load, only while online, and only to
+send a stranger to `/desk/login?next=/gate` — the control is in the database.
+
 ## Why this is the hardest part
 
 BITS Club, four thousand people, one cell tower. The gate has to answer one
@@ -36,10 +49,15 @@ roster:  'passToken, personId, orgId, status, updatedAt'  // O(1) scan lookup
 ledger:  'id, personId, kind, occurredAt, [personId+kind]'
 outbox:  'id, kind, idempotencyKey, status, nextAttemptAt, createdAt'
 sticker: 'plate, stickerNo, personId, issuedAt'
-meta:    'key'   // device token hint, rosterAsOf, ledgerAsOf, schemaVersion
+meta:    'key'   // operatorId, rosterAsOf, ledgerAsOf, schemaVersion,
+                 // lastPullAt, lastDrainAt (deviceTokenHint: pre-ACC-150 caches)
 ```
 
-A roster row is ~180 bytes. 612 people ≈ 110 KB JSON, ~28 KB gzipped — the spec's
+A roster row carries name, **phone**, role, org, tier, day validity and plate —
+name, phone, role and vehicle are the whole of what this project collects
+(non-negotiable #9), the phone so the desk can find someone by their number
+with the radio off (ACC-147), and it is only ever shown masked to its last four
+digits. A roster row is ~180 bytes. 612 people ≈ 110 KB JSON, ~28 KB gzipped — the spec's
 "low tens of KB" holds. **Zones come from the 3 cached type rows, never
 denormalised per person.**
 
@@ -49,8 +67,11 @@ occurredAt, bandSerial, stickerNo, gateLabel, volunteerName, isReissue` — exac
 
 ## Pull and refresh
 
-- **Cold pull** at `/gate/setup`, after the device token is pasted. It **blocks**
-  and never renders a scanner over an empty cache.
+- **Cold pull on the first load of `/gate`**, by the signed-in issuer
+  (ACC-150 — there is no `/gate/setup` and no token to paste). It **blocks**
+  and never renders a scanner over an empty cache: a phone with no list shows
+  *"No list on this phone"* and a way to sign in, never a scanner that would
+  answer "Refuse" to every real pass.
 - **Re-pull** every 45s when online, on `online`, on `visibilitychange` to
   visible, and immediately after every drain that landed work — see *The sync
   scheduler* below. It is a full snapshot today (`pullGate` replaces roster
@@ -90,9 +111,10 @@ message table. Keep the structure and keep its header comment.
 - **`classifyFailure`**, four kinds:
   - `duplicate` (23505, key already present) → **success**. The normal outcome of
     a reply lost on a festival network.
-  - `auth` (28000/42501, or the gate routes' own HTTP 401/403 — revoked
-    device, lapsed operator session) → **stop the drain, do not consume an
-    attempt.** Otherwise a revoked device burns 8 attempts × every queued row
+  - `auth` (28000/42501, or the gate routes' own HTTP 401 *not_authenticated* /
+    403 *not_authorized* — a lapsed operator session, or a signed-in person
+    who is not a gate role) → **stop the drain, do not consume an
+    attempt.** Otherwise one lapsed session burns 8 attempts × every queued row
     and marks a whole shift's work failed. The head entry stays `pending` with
     `lastError: 'authentication required'` and is held for one backoff step so
     a trigger does not re-post it in a tight loop. (Until ACC-149 a 401's JSON
@@ -136,12 +158,14 @@ outbox (non-negotiable #7).
   retries after `nextAttemptDelayMs(failures)` — 2 s, 4 s, 8 s … capped at
   60 s. Per-entry retry stays inside the outbox (`selectDrainBatch`).
 - **401 is "needs login", never "drop".** When the queue holds an auth-stopped
-  entry (`hasAuthStoppedEntry`), a pull answers 401 (`invalid_device`), or the
-  device has no credentials, the timer stops draining and pulling and the queue
-  is left exactly as it is — no attempt consumed, nothing marked failed. Only
-  an explicit trigger (`online`, visible, a remount after re-login) tries again,
-  once. Credentials are read in `app/gate/sync-status.tsx`, so the switch from
-  device tokens to an operator session (ACC-150) changes only that call site.
+  entry (`hasAuthStoppedEntry`) or a pull answers 401/403, the timer stops
+  draining and pulling and the queue is left exactly as it is — no attempt
+  consumed, nothing marked failed. Only an explicit trigger (`online`,
+  visible, a remount after re-login) tries again, once. Since ACC-150 the
+  credential is the operator's session cookie, which rides every same-origin
+  request on its own: there is nothing for the page to read and nothing it
+  could check offline, so `hasCredentials()` is always true and "needs login"
+  comes only from the server actually refusing.
 - **The pull/drain race.** `pullGate` replaces the ledger wholesale. If a drain
   (the scheduler's, `useOutboxSync`'s, or an issue's) lands while a pull is in
   flight, the pull's answer can predate the issue while the entry is already
@@ -217,13 +241,17 @@ Not a PWA (ADR-007): no manifest, no install prompt, no update UI.
 ## The aeroplane-mode test (automated mocked-Chromium evidence, not full acceptance)
 
 `tests/e2e/aeroplane-mode.spec.ts`, against Chromium with both gate API routes
-mocked by fixture responses (not against a seeded Supabase roster). A passing
+mocked by fixture responses (not against a seeded Supabase roster) — since
+ACC-150 that includes `GET /api/gate/session`, mocked as a logged-in issuer
+exactly like the other gate APIs, so no real auth user or Supabase session is
+created by the suite. A passing
 run proves the deterministic browser-flow and same-context IndexedDB assertions
 only; it does not prove authenticated desk acceptance, a full seeded roster, or
 the required physical/two-phone radio-off rehearsal:
 
 ```
-fixture four approved → paste device token → assert the fixture roster loads
+fixture four approved + a mocked signed-in issuer session → first /gate load
+pulls itself → assert the fixture roster loads
 setOffline(true) → RELOAD          ← cold start offline; the SW is why this renders
 scan A → GREEN → issue serial 0412 → outbox 1, chip "1 queued"
 scan A again → AMBER               ← proves the pendingByPerson case

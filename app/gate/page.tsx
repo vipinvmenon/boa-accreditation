@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { useRouter } from 'next/navigation'
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
-import { enqueueIssue, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { enqueueIssue, pullGate, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { checkGateSession, loginHref } from '@/gate/session'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
-import { readDeviceToken } from '@/gate/device-token'
 import { scanFrame } from '@/gate/scanner'
 import { DAY_VALIDITY, tierColour } from '@/lib/design'
 import { gateBandCard } from '@/gate/band-card'
@@ -19,7 +18,6 @@ import { PersonSearch } from './person-search'
 import { SyncStatus } from './sync-status'
 
 export default function GatePage() {
-  const router = useRouter()
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
   const [resolution, setResolution] = useState<GateResolution | null>(null)
   const [serial, setSerial] = useState('')
@@ -28,21 +26,70 @@ export default function GatePage() {
   const [issuedTo, setIssuedTo] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
+  const [bootError, setBootError] = useState<string | null>(null)
   const [cameraActive, setCameraActive] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const loadCache = useCallback(async () => {
-    const current = await readGateSnapshot()
-    // A device that has never pulled has no roster and no rosterAsOf. It
-    // must not show a scanner that answers "Refuse" to every real pass —
-    // /gate/setup's own copy promises exactly that.
-    if (current.roster.length === 0 && current.meta.rosterAsOf === null) {
-      router.replace('/gate/setup')
-      return
+    setSnapshot(await readGateSnapshot())
+  }, [])
+
+  /**
+   * ACC-150 (ADR-020): the gate is for logged-in issuers. On load, while
+   * online, ask the server who is signed in and send an unknown or desk-only
+   * session to the login page, which returns here. Offline this never runs:
+   * a phone that has already pulled must keep resolving scans with the radio
+   * off (non-negotiable #7), and the server checks the session again on
+   * every write — until then the outbox simply holds the work.
+   *
+   * The empty cache is the other half: a gate that has never pulled must not
+   * show a scanner that answers "Refuse" to every real pass, so it pulls
+   * once here (what /gate/setup used to do with a pasted token) and, failing
+   * that, says so instead of scanning.
+   */
+  useEffect(() => {
+    let cancelled = false
+    async function boot() {
+      const current = await readGateSnapshot()
+      if (cancelled) return
+      setSnapshot(current)
+      const empty = current.roster.length === 0 && current.meta.rosterAsOf === null
+      if (!navigator.onLine) {
+        if (empty) setBootError('This phone has no approved list yet. Find signal, sign in, and it loads itself.')
+        return
+      }
+      const check = await checkGateSession()
+      if (cancelled) return
+      if (check.state === 'not_signed_in' || check.state === 'not_authorized') {
+        // A real navigation, not a router.replace: the service worker serves
+        // /gate from cache, and the login page is outside its scope.
+        window.location.assign(loginHref())
+        return
+      }
+      if (!empty) return
+      try {
+        await pullGate()
+        if (!cancelled) await loadCache()
+      } catch (cause: unknown) {
+        if (cancelled) return
+        const reason = cause instanceof Error ? cause.message : ''
+        if (reason === 'not_signed_in' || reason === 'not_authorized') {
+          window.location.assign(loginHref())
+          return
+        }
+        setBootError(
+          reason === 'empty_roster'
+            ? 'The approved list came back empty, so the scanner stays locked.'
+            : 'Could not load the approved list. Check signal and try again.',
+        )
+      }
     }
-    setSnapshot(current)
-  }, [router])
+    void boot()
+    return () => {
+      cancelled = true
+    }
+  }, [loadCache])
 
   const { online, queued, canSync, sync, refresh } = useOutboxSync(loadCache)
 
@@ -142,8 +189,8 @@ export default function GatePage() {
     }
     await enqueueIssue(action)
     setMessage(
-      readDeviceToken() === null
-        ? 'Wristband recorded on this device. It cannot sync until gate setup is run again.'
+      !canSync
+        ? 'Wristband recorded on this device. It cannot sync until you sign in again.'
         : online
           ? 'Wristband recorded. Syncing now.'
           : 'Wristband recorded on this device. It syncs when signal returns.',
@@ -185,6 +232,30 @@ export default function GatePage() {
 
   if (!snapshot) return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
+  // No approved list on this phone: never a scanner, which would answer
+  // "Refuse" to every real pass. The list loads itself once, with signal,
+  // for a signed-in issuer (ACC-150 — this is what /gate/setup used to do).
+  if (snapshot.roster.length === 0) {
+    return (
+      <main className="utility-gate">
+        <section className="utility-inner">
+          <header className="utility-head">
+            <div>
+              <div className="tag">Crew check-in</div>
+              <h1 className="h1">No list on this phone</h1>
+            </div>
+          </header>
+          <p className="lede">{bootError ?? 'Loading the approved list…'}</p>
+          {bootError && (
+            <a href={loginHref()} className="btn go big wide hov-invert-grn" style={{ marginTop: 26 }}>
+              Sign in and load the list
+            </a>
+          )}
+        </section>
+      </main>
+    )
+  }
+
   return (
     <GateChrome bandsIssued={snapshot.ledger.filter((row) => row.kind === 'wristband').length} approved={snapshot.roster.length} bmsPending={14}>
       <section className="head rv">
@@ -192,7 +263,7 @@ export default function GatePage() {
       </section>
       <div className="split">
           <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
-            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued{canSync ? '' : ' | not syncing, run setup'}</span></div>
+            <div className="meta"><span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span><span className="q">{online ? 'Online' : 'Offline'} | {queued} queued{canSync ? '' : ' | not syncing, sign in again'}</span></div>
             <div className="vf">
               <i className="c" /><i className="c" /><i className="c" /><i className="c" />
               <div className="sweep"><i /></div>

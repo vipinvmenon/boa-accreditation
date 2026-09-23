@@ -11,16 +11,16 @@
  * memory on the gate screen, and a prepared in-memory index is a linear scan
  * of short strings per keystroke (search.test.ts bounds 2,000 rows).
  *
- * Phone: the cached roster row does not carry a phone today (the gate pull
- * returns name, role, org, tier and plate only). `SearchableRow.phone` is
- * optional so phone search starts working the moment the pull and cache carry
- * it; until then a digits-only query matches nothing by phone. It never
- * matches a phone by anything but its trailing digits, and a phone is only
- * ever displayed masked to its last four (non-negotiable #9).
+ * Phone: since ACC-150 the pull and the cached roster row carry the person's
+ * phone, so a digits-only query matches by phone. It stays optional on the
+ * row — a cache written by an older pull has none, and that must keep
+ * parsing (gate/db.ts) — and a missing phone simply never matches. A phone
+ * is only ever matched on its trailing digits and only ever displayed masked
+ * to its last four (non-negotiable #9).
  */
 import type { RosterRow } from './db'
 
-export type SearchableRow = RosterRow & { phone?: string }
+export type SearchableRow = RosterRow
 
 export const DEFAULT_RESULT_LIMIT = 8
 export const MIN_NAME_QUERY = 2

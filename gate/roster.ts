@@ -16,14 +16,21 @@ function localLedger(row: z.infer<typeof gatePullSchema>['ledger'][number]): Led
   return ledgerRowSchema.parse({ ...row, bandSerial: row.bandSerial ?? undefined, stickerNo: row.stickerNo ?? undefined })
 }
 
-export async function pullGate(deviceToken: string): Promise<GateSnapshot> {
+/**
+ * One pull of the approved roster, authorised by the signed-in operator's
+ * session cookie (ACC-150; same-origin fetch sends it). `not_signed_in` on a
+ * 401 and `not_authorized` on a 403 let the gate send the person to log in.
+ */
+export async function pullGate(): Promise<GateSnapshot> {
   const response = await fetch('/api/gate/pull', {
     method: 'POST',
-    headers: { 'x-boa-device-token': deviceToken },
+    credentials: 'same-origin',
     cache: 'no-store',
   })
   const body: unknown = await response.json().catch(() => null)
-  if (!response.ok) throw new Error(response.status === 401 ? 'invalid_device' : 'pull_failed')
+  if (!response.ok) {
+    throw new Error(response.status === 401 ? 'not_signed_in' : response.status === 403 ? 'not_authorized' : 'pull_failed')
+  }
   const parsed = gatePullSchema.safeParse(body)
   if (!parsed.success || parsed.data.roster.length === 0) throw new Error('empty_roster')
 
@@ -43,7 +50,7 @@ export async function pullGate(deviceToken: string): Promise<GateSnapshot> {
     await gateDb.roster.bulkPut(snapshot.roster)
     await gateDb.ledger.bulkPut(snapshot.ledger)
     const rows = [
-      { key: 'deviceTokenHint' as const, value: deviceToken.slice(-6) },
+      { key: 'operatorId' as const, value: parsed.data.operatorId },
       { key: 'schemaVersion' as const, value: 1 },
       { key: 'gateLabel' as const, value: snapshot.meta.gateLabel },
       { key: 'volunteerName' as const, value: snapshot.meta.volunteerName },
