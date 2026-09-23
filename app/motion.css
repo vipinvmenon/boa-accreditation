@@ -1,12 +1,13 @@
 /**
- * Additive motion, imported globally (app/layout.tsx). Originated on
- * app/s/[token]/submission-screen.tsx and now reused on app/desk/queue —
- * these are Operate surfaces (a task, not a pitch), so one material idea
- * (fade + gentle rise, the screen's already-visible default) carries through
- * the moments that actually change state: a row joining "Your list" or the
- * queue, a row leaving after a decision, the vehicle field appearing, and
- * the confirmation/error acknowledgment. No page-load choreography, no
- * decorative scroll effects on sections that don't change.
+ * Additive motion, imported globally (app/layout.tsx). Originated on the
+ * vendor submission screen and the desk queue — both retired by ADR-019,
+ * 22 Sep — and now reused across the desk screens that remain. These are
+ * Operate surfaces (a task, not a pitch), so one material idea (fade + gentle
+ * rise, the screen's already-visible default) carries through the moments
+ * that actually change state: a row joining a list, a row leaving after a
+ * decision, the vehicle field appearing, and the confirmation/error
+ * acknowledgment. No page-load choreography, no decorative scroll effects on
+ * sections that don't change.
  *
  * Reduced motion is handled globally already (globals.css zeroes every
  * animation/transition duration under prefers-reduced-motion), so nothing

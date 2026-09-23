@@ -18,9 +18,9 @@
 //
 // 4. DATA ARRIVES THROUGH THE DATA LAYER. The design is a static artboard. Its
 //    numbers reach the real screens through /api/desk/* (desk screens, via
-//    scripts/visual-fixtures/desk.mjs), IndexedDB (gate), or real RPCs
-//    (submission) — never through defaults in shipped code. A screen that
-//    hardcodes a fixture value fails check-bundle-content.mjs.
+//    scripts/visual-fixtures/desk.mjs) or IndexedDB (gate) — never through
+//    defaults in shipped code. A screen that hardcodes a fixture value fails
+//    check-bundle-content.mjs.
 //
 // 5. EXCEPTIONS ARE NAMED REGIONS, NOT PERCENTAGES. Where the design cannot be
 //    matched by any real data (a fake QR pattern, a mock that contradicts
@@ -42,7 +42,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
-import { loadEnvLocal, runSql } from './lib/db.mjs'
+import { loadEnvLocal } from './lib/db.mjs'
 import { FONT_STABLE_ARGS } from './lib/browser.mjs'
 import * as desk from './visual-fixtures/desk.mjs'
 
@@ -73,15 +73,10 @@ const MASKS = {
       reason: 'the design lists 7 organisations under a "38 companies" heading; real data cannot be both',
     },
   ],
-  queue: [OPERATOR_MENU],
   master: [OPERATOR_MENU],
   passes: [
     OPERATOR_MENU,
     { locator: '.qr-wrap svg', reason: 'the design draws a fake 13×13 pattern; a real pass carries a real QR code' },
-  ],
-  submission: [
-    { locator: '.s-seat-count', reason: 'the design mock says 14 used but the real roster contains four fixture people' },
-    { locator: '.s-seat-bar', reason: 'the design mock says 14/22 but the real roster count is data-driven' },
   ],
 }
 
@@ -89,15 +84,16 @@ const MASKS = {
  * Design screen -> the route that must reproduce it.
  *
  * `data` says how the design's numbers reach the screen:
- *   'desk'         — /api/desk/* fulfilled from scripts/visual-fixtures/desk.mjs
- *   'invite-token' — a real invite minted and filled through real RPCs
- *   'dexie'        — the gate's IndexedDB stores seeded
+ *   'desk'  — /api/desk/* fulfilled from scripts/visual-fixtures/desk.mjs
+ *   'dexie' — the gate's IndexedDB stores seeded
+ *
+ * The Queue and vendor Submission screens (and their 'invite-token' data
+ * path, boa_acc_submit-minted) were retired by ADR-019 (22 Sep) and removed
+ * from this list with them.
  */
 const SCREENS = [
   { slug: 'control-room', route: '/desk', data: 'desk' },
-  { slug: 'queue', route: '/desk/queue', data: 'desk' },
   { slug: 'master', route: '/desk/master', data: 'desk' },
-  { slug: 'submission', route: '/s/__VISUAL_TOKEN__', data: 'invite-token' },
   { slug: 'passes', route: '/desk/passes', data: 'desk' },
   { slug: 'gate', route: '/gate', data: 'dexie' },
   { slug: 'vehicle', route: '/gate/vehicle', data: 'dexie' },
@@ -156,109 +152,6 @@ if (!existsSync(BUILD_ID)) {
   }
 }
 
-// Same name and quota the design's own mock uses (renderVals(), the org header
-// literals) so the header and quota bar match the approved reference.
-const VISUAL_ORG = 'Chakra Sound & Light'
-
-/**
- * Mint the same way the pgTAP fixtures do (org + invite inserted directly, as
- * quota.test.sql does) and fill four people through the real boa_acc_submit RPC.
- * The design's seat summary says 14/22 while its visible roster contains four
- * rows; the summary is a named mask, while these four rows remain real data.
- * Wiped in the `finally` below either way — this must never leave rows in a
- * real database.
- */
-async function mintVisualInvite() {
-  const sql = `
-    with wiped as materialized (
-      select private.boa_acc_wipe_org('${VISUAL_ORG}')
-    ),
-    org as (
-      insert into public.boa_acc_org (name, kind, quota, contact_name, contact_phone)
-      select '${VISUAL_ORG}', 'vendor', 22, 'Visual Check', '+919800000000'
-       where (select count(*) from wiped) >= 0
-      returning *
-    ),
-    tok as materialized (
-      select private.boa_acc_new_token() as token from org
-    ),
-    inv as (
-      insert into public.boa_acc_org_invite (org_id, token_hash, token_hint)
-      select (select id from org), private.boa_acc_hash_token(tok.token), left(tok.token, 6)
-        from tok
-      returning id
-    ),
-    fill as materialized (
-      select public.boa_acc_submit(
-               (select token from tok), p.full_name, p.phone, p.role_text
-             ) as person_id
-        from (values
-          ('Ranjith Kumar', '+919886104422', 'Stage tech'),
-          ('Vinay Shetty', '+919008421771', 'Rigger'),
-          ('Suhas Bhat', '+919740055381', 'Truck driver'),
-          ('Imran Sheikh', '+919632090014', 'Backline')
-        ) as p(full_name, phone, role_text)
-       where (select id from inv) is not null
-    )
-    select tok.token from tok, inv
-     where (select count(*) from fill) = 4;
-  `
-  const rows = await runSql(sql, root)
-  const token = rows[0]?.token ?? null
-  if (!token) return null
-  await runSql(`
-    update public.boa_acc_person person
-       set status = case person.full_name
-         when 'Ranjith Kumar' then 'approved'::public.boa_acc_person_status
-         when 'Vinay Shetty' then 'approved'::public.boa_acc_person_status
-         when 'Imran Sheikh' then 'rejected'::public.boa_acc_person_status
-         else person.status
-       end,
-       type_code = case person.full_name
-         when 'Ranjith Kumar' then 'stage'::public.boa_acc_type_code
-         when 'Vinay Shetty' then 'stage'::public.boa_acc_type_code
-         else person.type_code
-       end,
-       day_validity = case person.full_name
-         when 'Ranjith Kumar' then 'build_show'::public.boa_acc_day_validity
-         when 'Vinay Shetty' then 'build_show'::public.boa_acc_day_validity
-         else person.day_validity
-       end,
-       pass_ref = case person.full_name
-         when 'Ranjith Kumar' then 'BOA26-0412'
-         when 'Vinay Shetty' then 'BOA26-0418'
-         else person.pass_ref
-       end,
-       pass_token = case person.full_name
-         when 'Ranjith Kumar' then 'visual-ranjith-pass'
-         when 'Vinay Shetty' then 'visual-vinay-pass'
-         else person.pass_token
-       end,
-       approved_at = case person.full_name
-         when 'Ranjith Kumar' then now()
-         when 'Vinay Shetty' then now()
-         else person.approved_at
-       end,
-       created_at = case person.full_name
-         when 'Ranjith Kumar' then '2026-09-01T10:00:00+05:30'::timestamptz
-         when 'Vinay Shetty' then '2026-09-01T10:01:00+05:30'::timestamptz
-         when 'Suhas Bhat' then '2026-09-01T10:02:00+05:30'::timestamptz
-         when 'Imran Sheikh' then '2026-09-01T10:03:00+05:30'::timestamptz
-         else person.created_at
-       end,
-       decision_reason = case person.full_name
-         when 'Imran Sheikh' then 'Visual fixture rejection'
-         else person.decision_reason
-       end
-     where person.org_id = (select id from public.boa_acc_org where name = '${VISUAL_ORG}')
-  `, root)
-  return token
-}
-
-async function wipeVisualInvite() {
-  await runSql(`select private.boa_acc_wipe_org('${VISUAL_ORG}')`, root)
-}
-
 /**
  * Fulfil every desk read with the design's data. Only GETs are answered: a
  * write the screen attempts during capture falls through to the real server,
@@ -270,7 +163,6 @@ async function installDeskFixtures(page, viewport) {
     route.request().method() === 'GET' ? route.fulfill({ json: body }) : route.fallback()
   await page.route(/\/api\/desk\/dashboard(\?|$)/, json(desk.dashboard))
   await page.route(/\/api\/desk\/operators(\?|$)/, json(desk.operators))
-  await page.route(/\/api\/desk\/queue(\?|$)/, json(desk.queue))
   await page.route(/\/api\/desk\/master(\?|$)/, json(desk.master))
   await page.route(/\/api\/desk\/passes(\?|$)/, json(passes))
 }
@@ -654,7 +546,6 @@ const base = `http://127.0.0.1:${port}`
 let failures = 0
 const rows = []
 const shots = []
-let mintedInvite = false
 let browser
 let operatorContext
 const env = { ...loadEnvLocal(root), ...process.env }
@@ -674,19 +565,7 @@ try {
   for (const screen of SCREENS) {
     if (only && screen.slug !== only) continue
 
-    let route = screen.route
-
-    if (screen.data === 'invite-token') {
-      try {
-        const token = await mintVisualInvite()
-        mintedInvite = true
-        if (!token) throw new Error('mint returned no token')
-        route = route.replace('__VISUAL_TOKEN__', token)
-      } catch (err) {
-        rows.push({ screen: screen.slug, status: 'BLOCKED', detail: `could not mint invite-token: ${err.message}` })
-        continue
-      }
-    }
+    const route = screen.route
 
     // Does the route exist in this build?
     const probe = await fetch(base + route, { redirect: 'manual' })
@@ -712,40 +591,6 @@ try {
         await installCaptureClock(page)
         if (screen.data === 'desk') await installDeskFixtures(page, view.slug)
         await page.goto(base + route, { waitUntil: 'networkidle' })
-        if (screen.slug === 'queue') {
-          // The artboard shows an operator mid-review with the pending rows
-          // selected. Since ACC-115 nothing is pre-selected on load (the old
-          // pre-selection ticked already-approved rows), so select them the
-          // way an operator does rather than faking the state.
-          await page.getByRole('checkbox', { name: 'Select all pending people' }).click()
-        }
-        if (screen.slug === 'submission') {
-          // The approved artboard leaves the name, phone, and role at their
-          // placeholder state. It captures the illustrative vehicle example
-          // switched on, so exercise only that real interaction here. Use DOM
-          // actions instead of locator actions: the source capture never
-          // scrolls to the off-screen form on mobile, and scrolling it would
-          // trigger the app's viewport reveal observer.
-          await page.evaluate(() => {
-            const reveal = document.querySelector('.reveal')
-            if (!reveal) throw new Error('submission vehicle reveal is missing')
-            window.__visualRevealSettled = new Promise((resolve) => {
-              reveal.addEventListener('transitionend', (event) => {
-                if (event.propertyName === 'grid-template-rows') resolve()
-              }, { once: true })
-            })
-            const toggle = document.querySelector('[role="switch"]')
-            if (!toggle) throw new Error('submission vehicle toggle is missing')
-            toggle.click()
-          })
-          await page.evaluate(() => window.__visualRevealSettled)
-          await page.evaluate(() => {
-            const input = document.querySelector('#submission-vehicle')
-            if (!input) throw new Error('submission vehicle field is missing')
-            input.value = 'KA 05 MJ 8871'
-            input.dispatchEvent(new Event('input', { bubbles: true }))
-          })
-        }
         if (screen.slug === 'gate' || screen.slug === 'vehicle') {
           await seedGateDexie(page, { vehicle: screen.slug === 'vehicle' })
           // goto, not reload: an unseeded /gate redirects to /gate/setup, so the
@@ -834,7 +679,6 @@ try {
   await operatorContext?.close()
   await browser?.close()
   server.kill('SIGTERM')
-  if (mintedInvite) await wipeVisualInvite()
 }
 
 // ── Review page ───────────────────────────────────────────────────────────

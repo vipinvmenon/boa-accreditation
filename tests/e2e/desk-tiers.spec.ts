@@ -3,7 +3,6 @@ import { TIERS } from '../../lib/design'
 import { dashboardSchema } from '../../lib/schemas/dashboard'
 import { masterResponseSchema } from '../../lib/schemas/master'
 import { passesResponseSchema } from '../../lib/schemas/pass'
-import { queueActionSchema, queueResponseSchema } from '../../lib/schemas/queue'
 
 /**
  * ACC-115 · the desk renders the pack's eight tiers and six zones (ADR-018)
@@ -57,47 +56,6 @@ test.describe('desk tiers (ACC-115)', () => {
     ])
     await expect(promoters.locator('.zones span.off')).toHaveCount(3)
     await expect(page.locator('.li .band')).toHaveText('Photo')
-  })
-
-  test('queue: one person gets any tier but General Admission; an org only a requestable one', async ({ page }) => {
-    await installChrome(page)
-    const posted: unknown[] = []
-    const queue = queueResponseSchema.parse({
-      rows: [{
-        id: PERSON_ID, org_id: ORG_ID, org_name: 'Tier Test Org', org_kind: 'media', full_name: 'Pending Person',
-        phone: '+91 90000 00000', role_text: 'Photographer', vehicle_reg: null, status: 'submitted', type_code: null,
-        day_validity: null, decision_reason: null, created_at: '2026-09-20T08:00:00.000Z', submitted_at: '2026-09-20T08:00:00.000Z',
-      }],
-      selectedLabel: '0 of 1 selected',
-      approvedCount: 0,
-      orgs: dashboard.orgs,
-      nextOrg: null,
-      counts: { pending: 1, approved: 0, rejected: 0, aaa: 0 },
-    })
-    await page.route('**/api/desk/queue**', async (route: Route) => {
-      if (route.request().method() === 'POST') {
-        posted.push(queueActionSchema.parse(route.request().postDataJSON()))
-        await route.fulfill({ json: { ok: true } })
-        return
-      }
-      await route.fulfill({ json: queue })
-    })
-    await page.goto('/desk/queue')
-
-    const picker = page.getByLabel('Band type for Pending Person')
-    await expect(picker.locator('option')).toHaveText(TIERS.filter((t) => t.code !== 'general_admission').map((t) => t.label))
-
-    // The org call stamps one tier and takes requestable tiers only (ADR-018).
-    // A non-requestable tier falls back to one decision per person, so the
-    // person still gets exactly the tier on screen.
-    const approveAll = page.getByRole('button', { name: 'Approve all' })
-    await picker.selectOption('artist')
-    await approveAll.click()
-    await expect.poll(() => posted).toEqual([{ action: 'decide', personId: PERSON_ID, approve: true, typeCode: 'artist', dayValidity: 'build_show', reason: null }])
-    posted.length = 0
-    await picker.selectOption('photo')
-    await approveAll.click()
-    await expect.poll(() => posted).toEqual([{ action: 'approve_org', orgId: ORG_ID, typeCode: 'photo', dayValidity: 'build_show' }])
   })
 
   test('master list names the tier from the row', async ({ page }) => {

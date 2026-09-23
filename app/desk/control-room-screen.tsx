@@ -18,8 +18,8 @@ import { DoubleIssuePanel } from './double-issue-panel'
  * this was unreferenced and has been removed.
  *
  * The shared desk NAV / BMS status bar is supplied by DeskChrome, which wraps
- * every authenticated desk route. The public submission screen remains
- * intentionally outside that shell.
+ * every authenticated desk route. (The public vendor submission screen this
+ * comment used to except was retired by ADR-019 — see DECISIONS.md.)
  *
  * The org list's `status` column is boa_acc_org.status itself (open/
  * submitted/approved/closed), not a derived label — nothing sets it past
@@ -222,8 +222,7 @@ function ControlRoomV2({ dash, theme }: { dash: DashboardResponse; theme: 'dark'
             <h1 className="h1"><span>{headline.value === null ? headline.label : <><V2Count value={headline.value} /> {headline.label}</>}</span></h1>
             {milestone && <p className="when"><b>{milestone.days} day{milestone.days === 1 ? '' : 's'}</b> to {milestone.label}</p>}
             <div className="row">
-              <Link href="/desk/queue" className="btn go">Clear the queue <span className="n">{dash.pendingTotal}</span><span className="ic"><Icon name="arrow-up-right" /></span></Link>
-              <Link href="/gate" className="btn">Open the gate scanner<span className="ic"><Icon name="scan" /></span></Link>
+              <Link href="/gate" className="btn go">Open the gate scanner<span className="ic"><Icon name="scan" /></span></Link>
             </div>
           </div>
         </div></div>
@@ -236,7 +235,6 @@ function ControlRoomV2({ dash, theme }: { dash: DashboardResponse; theme: 'dark'
           <span className="mono" style={{ color: 'var(--gold)' }}>AAA override</span>
           <div className="v"><V2Count value={dash.aaaStamped} suffix={`/ ${dash.aaaNominatedApproved}`} /></div>
           <p>{Math.max(dash.aaaNominatedApproved - dash.aaaStamped, 0)} still to stamp from the named list</p>
-          <div className="row" style={{ marginTop: 'auto' }}><Link href="/desk/aaa" className="btn gold">Manage list<span className="ic"><Icon name="arrow-right" /></span></Link></div>
         </div></div>
         <V2Stat className="stat quad" label="Organisations" value={dash.submittedOrgs} detail={`${dash.submittedOrgs - dash.orgs.length} not yet listed`} width={orgRatio} delay={6} />
       </div>

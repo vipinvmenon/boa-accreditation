@@ -4,12 +4,11 @@
  * This is an in-memory Map on a single serverless instance — not a distributed
  * rate limiter. Under load, Vercel may run many instances and each keeps its
  * own Map. That is fine here too: it is a first line of defence against a
- * single client hammering one warm instance (mostly token-guessing on
- * `/api/s/[token]`), never the control. The control is the database: quota is
- * enforced under a row lock and the per-token hourly throttle lives in
- * `boa_acc_submit_throttle` (see boa_acc_submit). This file cannot be the
- * reason the 23rd or 61st request is refused — it only reduces noise before
- * a request reaches the database at all.
+ * single client hammering one warm instance, never the control. The control
+ * is the database (e.g. the per-token hourly throttle that lived in
+ * `boa_acc_submit_throttle` for the now-retired `/api/s/[token]`, ADR-019).
+ * This file cannot be the reason the 23rd or 61st request is refused — it
+ * only reduces noise before a request reaches the database at all.
  */
 
 type Bucket = { count: number; resetAt: number };

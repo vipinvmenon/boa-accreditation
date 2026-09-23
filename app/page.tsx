@@ -11,9 +11,10 @@ import { redirect } from 'next/navigation'
  * gets Vipin, Bhoopesh, and Salman straight to what they actually need
  * without a detour through marketing copy.
  *
- * A vendor's /s/[token] link and crew's /p/[passToken] link never route
- * through here regardless — this only changes what a bare, tokenless visit
- * to the domain shows.
+ * Crew's /p/[passToken] link never routes through here regardless — this
+ * only changes what a bare, tokenless visit to the domain shows. (The
+ * vendor /s/[token] link this comment used to mention alongside it was
+ * retired by ADR-019, 22 Sep.)
  */
 export default function Home() {
   redirect('/desk/login')

@@ -35,27 +35,6 @@ async function installDeskFixtures(page: Page) {
       },
     })
   })
-  await page.route(/\/api\/desk\/queue(?:\?.*)?$/, async (route: Route) => {
-    const request = route.request()
-    const url = new URL(request.url())
-    const expected = request.method() === 'GET'
-      && url.pathname === '/api/desk/queue'
-      && url.search === '?filter=pending'
-    if (!expected) {
-      await route.abort()
-      throw new Error(`Unexpected queue fixture request: ${request.method()} ${url.pathname}${url.search}`)
-    }
-    await route.fulfill({
-      json: {
-        rows: [],
-        selectedLabel: '0 of 0 selected',
-        approvedCount: 1,
-        orgs: [],
-        nextOrg: null,
-        counts: { pending: 0, approved: 1, rejected: 0, aaa: 0 },
-      },
-    })
-  })
 }
 
 async function installGateFixture(page: Page) {
@@ -90,7 +69,7 @@ async function installGateFixture(page: Page) {
 test.describe('shared chrome interactions', () => {
   test('desk profile disclosure exposes controls and restores focus', async ({ page }) => {
     await installDeskFixtures(page)
-    await page.goto('/desk/queue')
+    await page.goto('/desk')
 
     const profileButton = page.getByRole('button', { name: 'Operator menu' })
     const profileMenu = page.locator('#desk-profile-menu')
@@ -112,7 +91,7 @@ test.describe('shared chrome interactions', () => {
   test('desk overlays are mutually exclusive and drawer restores focus', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await installDeskFixtures(page)
-    await page.goto('/desk/queue')
+    await page.goto('/desk')
 
     const profileButton = page.getByRole('button', { name: 'Operator menu' })
     const burger = page.getByRole('button', { name: 'Menu', exact: true })

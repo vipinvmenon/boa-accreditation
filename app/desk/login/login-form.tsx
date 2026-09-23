@@ -130,11 +130,10 @@ function DeskLoginForm() {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    // Deliberately does not distinguish "no such account" from "sent" —
-    // the same reason app/api/s/[token] answers a bad token with 404 rather
-    // than a 403 (docs/SECURITY.md, "404, never 403"): telling an unknown
-    // caller whether an email has desk access would let them enumerate who
-    // has it.
+    // Deliberately does not distinguish "no such account" from "sent" — the
+    // same reasoning as docs/SECURITY.md's "404, never 403": telling an
+    // unknown caller whether an email has desk access would let them
+    // enumerate who has it.
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/desk/login`,
     })

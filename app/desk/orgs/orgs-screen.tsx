@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ORG_KINDS, type OrgRow, type InviteRow, type MintedInvite } from '@/lib/schemas/org'
+import { ORG_KINDS, type OrgRow } from '@/lib/schemas/org'
 import { REQUESTABLE_TIERS, type RequestableTierCode } from '@/lib/desk-tiers'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 
@@ -19,6 +19,11 @@ import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
  * service-role client, lib/supabase-admin.ts, is never involved here at all).
  * A 401 from any call means the session cookie is gone or never existed, so
  * this redirects to /desk/login rather than rendering a broken screen.
+ *
+ * ADR-019 (22 Sep, Vipin): the invite-link list/mint/revoke UI that used to
+ * live under each org row is retired with `/s/[token]`. This screen is kept —
+ * it is how the admin creates real organisations, which ADR-019/ACC-140c
+ * still needs — and the nav now calls it "Organisations" (lib/design.ts).
  */
 const ERROR_COPY: Record<string, string> = {
   not_authenticated: 'Your session has expired. Sign in again.',
@@ -72,13 +77,6 @@ export function OrgsScreen() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
-  const [openOrgId, setOpenOrgId] = useState<string | null>(null)
-  const [invitesByOrg, setInvitesByOrg] = useState<Record<string, InviteRow[]>>({})
-  const [mintLabel, setMintLabel] = useState('')
-  const [minting, setMinting] = useState(false)
-  const [mintError, setMintError] = useState<string | null>(null)
-  const [justMinted, setJustMinted] = useState<{ orgId: string; invite: MintedInvite } | null>(null)
-  const [copied, setCopied] = useState(false)
   const [announcement, setAnnouncement] = useState('Loading organisations.')
 
   useEffect(() => {
@@ -145,80 +143,10 @@ export function OrgsScreen() {
     setAnnouncement(`Organisation ${body.org.name} created.`)
   }
 
-  async function loadInvites(orgId: string) {
-    const res = await fetch(`/api/desk/orgs/${orgId}/invites`)
-    if (res.status === 401) {
-      router.replace('/desk/login')
-      return
-    }
-    if (!res.ok) {
-      const message = copyForError(await res.json().catch(() => null))
-      setAnnouncement(`Could not load invite links. ${message}`)
-      return
-    }
-    const body = (await res.json()) as { invites: InviteRow[] }
-    setInvitesByOrg((prev) => ({ ...prev, [orgId]: body.invites }))
-    setAnnouncement('Invite links loaded.')
-  }
-
-  async function toggleOrg(orgId: string) {
-    setJustMinted(null)
-    setMintError(null)
-    setMintLabel('')
-    if (openOrgId === orgId) {
-      setOpenOrgId(null)
-      return
-    }
-    setOpenOrgId(orgId)
-    await loadInvites(orgId)
-  }
-
-  async function handleMint(orgId: string) {
-    setMintError(null)
-    setMinting(true)
-    const res = await fetch(`/api/desk/orgs/${orgId}/invites`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ label: mintLabel || undefined }),
-    })
-    setMinting(false)
-    if (res.status === 401) {
-      router.replace('/desk/login')
-      return
-    }
-    if (!res.ok) {
-      const body = await res.json().catch(() => null)
-      const message = copyForError(body)
-      setMintError(message)
-      setAnnouncement(`Could not mint invite link. ${message}`)
-      return
-    }
-    const body = (await res.json()) as { invite: MintedInvite }
-    setJustMinted({ orgId, invite: body.invite })
-    setMintLabel('')
-    setCopied(false)
-    await loadInvites(orgId)
-    setAnnouncement('Invite link minted.')
-  }
-
-  function linkFor(token: string): string {
-    if (typeof window === 'undefined') return `/s/${token}`
-    return `${window.location.origin}/s/${token}`
-  }
-
-  async function copyLink(token: string) {
-    try {
-      await navigator.clipboard.writeText(linkFor(token))
-      setCopied(true)
-    } catch {
-      setCopied(false)
-    }
-  }
-
   return (
     <main className="utility-screen">
       <div className="utility-inner">
-        {!createError && !loadError && !mintError && (
+        {!createError && !loadError && (
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
         )}
         <header className="utility-head"><div><div className="tag">Allocation desk</div><h1 className="h1">Orgs</h1></div></header>
@@ -343,110 +271,20 @@ export function OrgsScreen() {
           )}
 
           <div className="utility-list">
-            {orgs?.map((org) => {
-              const isOpen = openOrgId === org.id
-              const invites = invitesByOrg[org.id] ?? []
-              return (
-                <div key={org.id} className="bz"><div className="pl pad">
-                  <div className="utility-row">
-                    <div>
-                      <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
-                        {org.name}
-                      </p>
-                      <p style={{ ...labelStyle, marginTop: '4px' }}>
-                        {org.kind} · quota {org.quota} · {org.status} · {org.contact_name}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleOrg(org.id)}
-                      className="btn solo hov-fill-grn"
-                      aria-expanded={isOpen}
-                      aria-controls={`org-invites-${org.id}`}
-                    >
-                      {isOpen ? 'Close' : 'Invite links'}
-                    </button>
+            {orgs?.map((org) => (
+              <div key={org.id} className="bz"><div className="pl pad">
+                <div className="utility-row">
+                  <div>
+                    <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
+                      {org.name}
+                    </p>
+                    <p style={{ ...labelStyle, marginTop: '4px' }}>
+                      {org.kind} · quota {org.quota} · {org.status} · {org.contact_name}
+                    </p>
                   </div>
-
-                  <div
-                      id={`org-invites-${org.id}`}
-                      hidden={!isOpen}
-                      style={{ marginTop: '16px', borderTop: '1px solid var(--rule,rgba(242,239,226,0.16))', paddingTop: '16px' }}
-                    >
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-                        <input
-                          value={mintLabel}
-                          onChange={(e) => setMintLabel(e.target.value)}
-                          placeholder="Label (optional)"
-                          className="utility-input"
-                          style={{ maxWidth: '260px' }}
-                          maxLength={80}
-                        />
-                        <button
-                          type="button"
-                          disabled={minting}
-                          onClick={() => handleMint(org.id)}
-                          className="btn go hov-invert-grn"
-                          style={{ opacity: minting ? 0.6 : 1 }}
-                        >
-                          {minting ? 'Minting…' : 'Mint invite link'}
-                        </button>
-                      </div>
-                      {mintError && <p role="alert" style={{ color: 'var(--bad,#FF6B5A)', fontSize: '13px' }}>{mintError}</p>}
-
-                      {justMinted && justMinted.orgId === org.id && (
-                        <div
-                          style={{
-                            border: '1px solid var(--grn,#00F5A5)',
-                            background: 'var(--grnbg,rgba(0,245,165,0.10))',
-                            padding: '12px 14px',
-                            marginBottom: '14px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px',
-                          }}
-                        >
-                          <p style={{ ...labelStyle, color: 'var(--grn,#00F5A5)' }}>
-                            Shown once — copy it now
-                          </p>
-                          <code
-                            style={{
-                              fontFamily: "'JetBrains Mono',monospace",
-                              fontSize: '12.5px',
-                              color: 'var(--ink,#F2EFE2)',
-                              wordBreak: 'break-all',
-                            }}
-                          >
-                            {linkFor(justMinted.invite.token)}
-                          </code>
-                          <button
-                            type="button"
-                            onClick={() => copyLink(justMinted.invite.token)}
-                            className="btn solo hov-fill-grn"
-                          >
-                            {copied ? 'Copied' : 'Copy link'}
-                          </button>
-                        </div>
-                      )}
-
-                      {invites.length === 0 ? (
-                        <p style={{ color: 'var(--ink3,rgba(242,239,226,0.52))', fontSize: '13px', margin: 0 }}>
-                          No live links yet.
-                        </p>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {invites.map((inv) => (
-                            <div key={inv.id} style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11.5px', color: 'var(--ink3,rgba(242,239,226,0.52))' }}>
-                              {inv.token_hint}… {inv.label ? `· ${inv.label}` : ''} · used {inv.use_count}×
-                              {inv.revoked_at ? ' · revoked' : ''}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                  </div>
-                </div></div>
-              )
-            })}
+                </div>
+              </div></div>
+            ))}
           </div>
         </section>
       </div>

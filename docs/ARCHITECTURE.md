@@ -9,9 +9,15 @@ Three surfaces, one database, one deployment.
 
 | Surface | Routes | Who | Credential |
 |---|---|---|---|
-| Submission | `/s/[token]`, `/p/[passToken]` | vendor contact | invite token in the URL, no account |
+| Pass | `/p/[passToken]` | crew member | pass token in the URL, no account |
 | Allocation desk | `/desk/*` | Bhoopesh, Salman, 2 approvers | Supabase email + password |
 | Gate | `/gate`, `/gate/vehicle`, `/gate/setup` | volunteers on phones | device token, pasted once |
+
+**Retired (ADR-019, 22 Sep):** the vendor Submission surface, `/s/[token]` —
+collection moved to one Google Form and approval to the response sheet's
+column I. `boa_acc_submit` and `boa_acc_org_view` stay in the database; the
+app no longer calls them. `/desk/queue`, `/desk/aaa`, and the invite-link
+UI on `/desk/orgs` were retired with it (Vipin, 22 Sep) — see DECISIONS.md.
 
 ## Layering
 
@@ -36,7 +42,6 @@ Rules:
 | Route | Rendering | Why |
 |---|---|---|
 | `/` | static | a deliberate dead end. Nothing to discover |
-| `/s/[token]` ▢ | `force-dynamic` | quota and status must be current |
 | `/p/[passToken]` ▢ | `force-dynamic` | **404, never 403** — a 403 confirms a token exists |
 | `/desk/*` ▢ | **all `force-dynamic`** | a cached Control room on 9 Oct showing yesterday's "428 not collected" is worse than a slow one |
 | `/gate/*` ▢ | **`force-dynamic`, client** | zero server data; the per-request CSP nonce must reach the App Router bootstrap. The service worker precaches the emitted route responses |
@@ -44,8 +49,8 @@ Rules:
 ## Route handlers vs server actions
 
 **Route handlers** for anything the outbox drains, anything public, anything
-needing an explicit status code — `/api/gate/*`, `/api/s/[token]`, `/api/pass/*`,
-CSV export, operator invite.
+needing an explicit status code — `/api/gate/*`, `/api/pass/*`, CSV export,
+operator invite.
 
 **Server actions** only for desk mutations that are form-shaped and never queued:
 approve, reject, set type, set days, toggle BMS, mint or revoke a token.

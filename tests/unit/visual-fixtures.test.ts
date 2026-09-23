@@ -19,7 +19,7 @@ describe('visual desk fixtures', () => {
   })
 
   it('every hardcoding sentinel really is fixture data', async () => {
-    const all = JSON.stringify([desk.dashboard, desk.dashboardDoubleIssue, desk.queue, desk.master, await desk.passesFor('web')])
+    const all = JSON.stringify([desk.dashboard, desk.dashboardDoubleIssue, desk.master, await desk.passesFor('web')])
     for (const sentinel of desk.FIXTURE_SENTINELS as string[]) expect(all).toContain(sentinel)
   })
 

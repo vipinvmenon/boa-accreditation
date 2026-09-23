@@ -27,12 +27,19 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(root, 'design/reference')
 const BUNDLE = pathToFileURL(resolve(root, 'design/source/boa_design_v2.html')).href
 
-/** The design's own nav labels -> the slug we file the screenshot under. */
+/**
+ * The design's own nav labels -> the slug we file the screenshot under.
+ *
+ * The design source (design/source/boa_design_v2.html) is frozen and still
+ * shows Queue and Submission in its own nav (non-negotiable #1) — this list
+ * is deliberately narrower than that nav, not a drift from it: Queue and the
+ * vendor Submission screen were retired app-side by ADR-019 (22 Sep) and are
+ * no longer reproduced, so there is nothing for their reference shots to be
+ * compared against (scripts/visual-check.mjs's SCREENS dropped them too).
+ */
 const SCREENS = [
   { label: 'Control room', slug: 'control-room' },
-  { label: 'Queue', slug: 'queue' },
   { label: 'Master list', slug: 'master' },
-  { label: 'Submission', slug: 'submission' },
   { label: 'Passes', slug: 'passes' },
   { label: 'Gate', slug: 'gate' },
   { label: 'Vehicle', slug: 'vehicle' },
@@ -66,8 +73,12 @@ const HERO_DRIFT_PHASE_MS = 1000
  * that do not exist for them (boa_acc_desk_dashboard() is desk-only). Decided
  * 12 Sep 2026; see docs/CURRENT-STATE.md, ACC-025. The reference for these
  * screens is captured with that shell hidden so it matches what actually ships.
+ *
+ * Empty now: the one public screen this covered, vendor Submission, was
+ * retired by ADR-019 (22 Sep) and removed from SCREENS above. Kept as a hook
+ * for any future public screen rather than deleted outright.
  */
-const PUBLIC_SCREENS = new Set(['submission'])
+const PUBLIC_SCREENS = new Set()
 
 /** Click a button by its exact trimmed text. The design has no test ids. */
 async function clickByText(page, text) {

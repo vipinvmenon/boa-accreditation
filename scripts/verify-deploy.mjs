@@ -102,8 +102,10 @@ for (const [h, want] of Object.entries(wantHeaders)) {
 check('x-powered-by suppressed', root.headers.get('x-powered-by') === null, root.headers.get('x-powered-by') ?? 'absent')
 
 // ── 3. Nothing indexable. A crawled /p/<pass_token> publishes a credential ──
+// (/s/probe used to be checked alongside /p/probe here; the vendor
+// submission route it probed was retired by ADR-019, 22 Sep.)
 check('/desk/login <meta robots> noindex', /name="robots"[^>]*noindex/.test(html), 'in <head>')
-for (const p of ['/s/probe', '/p/probe']) {
+for (const p of ['/p/probe']) {
   const r = await get(p)
   check(`${p} X-Robots-Tag noindex`, /noindex/.test(r.headers.get('x-robots-tag') ?? ''), r.headers.get('x-robots-tag') ?? '(absent)')
   // 404 and not 403: a 403 on a real token and a 404 on a fake one lets anyone

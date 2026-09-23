@@ -120,43 +120,9 @@ export const operators = {
   ],
 }
 
-// ── Queue (lines 181-183, 671-697) ──────────────────────────────────────────
-// The design's artboard shows one org mid-review, so decided and pending rows
-// sit together under the Pending tab. Transcribed as drawn.
-const CHAKRA_ID = dashboard.orgs[0].id
-const QUEUE_PEOPLE = [
-  { name: 'Ranjith Kumar', phone: '+91 98861 04422', role: 'Stage tech', type: 'stage', status: 'approved' },
-  { name: 'Vinay Shetty', phone: '+91 90084 21771', role: 'Rigger', type: 'stage', status: 'approved' },
-  { name: 'Meera Joseph', phone: '+91 99450 66123', role: 'FOH engineer', type: 'stage', status: 'approved' },
-  { name: 'Arjun Nayar', phone: '+91 88670 12904', role: 'Lighting op', type: 'crew', status: 'approved' },
-  { name: 'Suhas Bhat', phone: '+91 97400 55381', role: 'Truck driver', type: null, status: 'submitted' },
-  { name: 'Ganesh Rao', phone: '+91 91084 77260', role: 'Loader', type: null, status: 'submitted' },
-  { name: 'Imran Sheikh', phone: '+91 96320 90014', role: 'Backline', type: null, status: 'rejected' },
-]
-
-export const queue = {
-  rows: QUEUE_PEOPLE.map((p, i) => ({
-    id: uuid(200 + i),
-    org_id: CHAKRA_ID,
-    org_name: 'Chakra Sound & Light',
-    org_kind: 'vendor',
-    full_name: p.name,
-    phone: p.phone,
-    role_text: p.role,
-    vehicle_reg: null,
-    status: p.status,
-    type_code: p.type,
-    day_validity: p.type ? 'build_show' : null,
-    decision_reason: null,
-    created_at: IST('04', '10:00'),
-    submitted_at: IST('04', '10:00'),
-  })),
-  selectedLabel: '14 of 14 selected',
-  approvedCount: 4,
-  orgs: dashboard.orgs.slice(0, 4),
-  nextOrg: { id: dashboard.orgs[3].id, name: dashboard.orgs[3].name },
-  counts: { pending: 29, approved: 610, rejected: 4, aaa: 18 },
-}
+// Queue (design lines 181-183, 671-697) was retired app-side by ADR-019
+// (22 Sep) — the fixture that used to sit here (org_id CHAKRA_ID, seven
+// QUEUE_PEOPLE) is gone with it; nothing else in this module referenced it.
 
 // ── Master list (lines 703-725) ─────────────────────────────────────────────
 const MASTER = [
@@ -241,10 +207,9 @@ export async function passesFor() {
  * issue list on the first mismatch — the run stops before capturing anything.
  */
 export async function validateDeskFixtures() {
-  const [{ dashboardResponseSchema }, { queueResponseSchema }, { masterResponseSchema }, { passesResponseSchema }, { operatorRowSchema }] =
+  const [{ dashboardResponseSchema }, { masterResponseSchema }, { passesResponseSchema }, { operatorRowSchema }] =
     await Promise.all([
       import('../../lib/schemas/dashboard.ts'),
-      import('../../lib/schemas/queue.ts'),
       import('../../lib/schemas/master.ts'),
       import('../../lib/schemas/pass.ts'),
       import('../../lib/schemas/operator.ts'),
@@ -255,7 +220,6 @@ export async function validateDeskFixtures() {
   }
   check('dashboard', dashboardResponseSchema, dashboard)
   check('dashboard/double-issue', dashboardResponseSchema, dashboardDoubleIssue)
-  check('queue', queueResponseSchema, queue)
   check('master', masterResponseSchema, master)
   for (const op of operators.operators) check('operators', operatorRowSchema, op)
   for (const vp of ['web', 'mob']) {

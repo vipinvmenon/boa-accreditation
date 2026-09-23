@@ -147,13 +147,19 @@ export function passType(code: PassTypeCode) {
   return TYPES.find((x) => x.code === code) ?? TYPES[0]
 }
 
-/** The design's nav (lines 572-580), mapped onto real routes. */
+/**
+ * The design's nav (lines 572-580), mapped onto real routes.
+ *
+ * ADR-019 retired the vendor-link/queue screens (22 Sep, Vipin): Queue is
+ * gone, and the org screen — kept because it is how the admin creates real
+ * organisations, no longer how invite links are minted — is relabelled
+ * "Organisations".
+ */
 export const NAV = [
   { id: 'dashboard', label: 'Control room', href: '/desk' },
-  { id: 'queue', label: 'Queue', href: '/desk/queue' },
   { id: 'master', label: 'Master list', href: '/desk/master' },
-  { id: 'submit', label: 'Submission', href: '/desk/orgs' },
   { id: 'pass', label: 'Passes', href: '/desk/passes' },
+  { id: 'orgs', label: 'Organisations', href: '/desk/orgs' },
   { id: 'gate', label: 'Gate', href: '/gate' },
   { id: 'vehicle', label: 'Vehicle', href: '/gate/vehicle' },
 ] as const

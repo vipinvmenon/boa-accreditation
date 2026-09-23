@@ -57,37 +57,9 @@ export const orgRowSchema = z.object({
 
 export type OrgRow = z.infer<typeof orgRowSchema>
 
-/** Body of POST /api/desk/orgs/[id]/invites — a label is optional. */
-export const mintInviteSchema = z.object({
-  label: z
-    .string()
-    .trim()
-    .max(80)
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
-})
-
-/** Shape of boa_acc_mint_invite's row — the raw token is returned once. */
-export const mintedInviteSchema = z.object({
-  invite_id: z.string(),
-  token: z.string(),
-  token_hint: z.string(),
-  expires_at: z.string(),
-})
-
-export type MintedInvite = z.infer<typeof mintedInviteSchema>
-
-/** Shape of one row from `boa_acc_org_invite`, as selected by GET .../invites. */
-export const inviteRowSchema = z.object({
-  id: z.string(),
-  org_id: z.string(),
-  token_hint: z.string(),
-  label: z.string().nullable(),
-  created_at: z.string(),
-  last_used_at: z.string().nullable(),
-  use_count: z.number(),
-  revoked_at: z.string().nullable(),
-  expires_at: z.string(),
-})
-
-export type InviteRow = z.infer<typeof inviteRowSchema>
+// Invite-link minting (mintInviteSchema / mintedInviteSchema / inviteRowSchema)
+// was removed with the invite-link UI and its API route (ADR-019, 22 Sep):
+// organisations are now real records the admin creates on this screen, not a
+// list of vendor-link generators. boa_acc_mint_invite and boa_acc_org_invite
+// stay in the database (no migration in this change) but nothing in the app
+// calls them any more.
