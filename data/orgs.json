@@ -1,0 +1,12 @@
+{
+  "source": "ADR-019 org-replacement task, 23 Sep 2026. The real 38-organisation list (ROADMAP ACC-030a) is still owed by Bhoopesh — see docs/ORG-IMPORT.md. This file holds only the one organisation known for certain so far: BOA's own crew, who need a real boa_acc_org row to be matched by the roster importer like any other organisation. contactName/contactPhone are TODO on purpose — scripts/replace-placeholder-orgs.mjs refuses to create an entry whose contact fields are still 'TODO' (an agent must not invent contact details; non-negotiable #9 and docs/ORG-IMPORT.md's 'an agent must not invent or backfill missing values'). Vipin fills these in, then re-runs the script with --apply. Add further real organisations to this same array as Bhoopesh's list arrives; the script is idempotent by name.",
+  "organisations": [
+    {
+      "name": "Bangalore Open Air",
+      "kind": "crew",
+      "contactName": "TODO",
+      "contactPhone": "TODO",
+      "defaultType": "crew"
+    }
+  ]
+}
