@@ -35,6 +35,7 @@ const WITNESSES = [
   // transaction that adds it) and the gate predicate the second one creates.
   ['202609221200_boa_acc_issuer_role', 'enumlabel', 'public.boa_acc_operator_role.issuer'],
   ['202609221201_boa_acc_gate_session', 'function', 'private.boa_acc_gate_operator'],
+  ['202609221400_boa_acc_pass_view', 'function', 'public.boa_acc_pass_view'],
 ]
 
 const t = describeTransport(root)

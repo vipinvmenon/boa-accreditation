@@ -12,6 +12,7 @@
 -- @proves: HIGH     | boa_acc_import_approve: authenticated EXECUTE only (lead/admin checked inside); anon and service_role zero
 -- @proves: HIGH     | boa_acc_double_issues: authenticated EXECUTE only (lead/approver/admin checked inside); anon and service_role zero
 -- @proves: HIGH     | boa_acc_pass_send: zero table grants for anyone; desk RPCs authenticated-only, the webhook's status write service_role-only
+-- @proves: HIGH     | boa_acc_pass_view: service_role EXECUTE only, same shape as boa_acc_org_view — /p/[passToken]'s route holds the credential, not the browser
 -- @proves: HIGH     | boa_acc_submit_throttle is unreadable by anyone but postgres
 -- @proves: MEDIUM   | RLS is enabled on every boa_acc_ table
 -- @proves: CRITICAL | ACC-150: no role (anon, authenticated, service_role) may execute a device-token RPC
@@ -38,7 +39,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(133) as line
+  select 0 as n, plan(136) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -131,6 +132,12 @@ select line from (
   union all select 1459, function_privs_are('public', 'boa_acc_pass_send_status', array['text','text','timestamp with time zone','text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_pass_send_status')
   union all select 1460, function_privs_are('private', 'boa_acc_pass_send_is_live', array['public.boa_acc_pass_send_status','text','timestamp with time zone'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_is_live')
   union all select 1461, function_privs_are('private', 'boa_acc_pass_send_is_live', array['public.boa_acc_pass_send_status','text','timestamp with time zone'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_pass_send_is_live')
+  -- ACC-144 · boa_acc_pass_view, the token-first read behind /p/[passToken].
+  -- Same shape as boa_acc_org_view: service_role only, called from the route
+  -- handler with the raw pass_token, never exposed to a browser session.
+  union all select 1462, function_privs_are('public', 'boa_acc_pass_view', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_view')
+  union all select 1463, function_privs_are('public', 'boa_acc_pass_view', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_pass_view')
+  union all select 1464, function_privs_are('public', 'boa_acc_pass_view', array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_pass_view')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')
