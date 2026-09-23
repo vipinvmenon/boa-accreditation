@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { gateSession, notAuthorized } from '@/lib/gate-auth'
 import {
   vehicleEventRequestSchema,
   vehicleEventResponseSchema,
@@ -11,9 +11,7 @@ type SupabaseError = { code?: string; message?: string }
 
 function errorResponse(error: SupabaseError) {
   const message = error.message ?? ''
-  if (error.code === '42501' || message.includes('device scope')) {
-    return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
-  }
+  if (error.code === '42501') return notAuthorized()
   if (error.code === '22023' || message.includes('required') || message.includes('mismatch')) {
     return NextResponse.json({ error: 'invalid_vehicle_event' }, { status: 400 })
   }
@@ -23,18 +21,13 @@ function errorResponse(error: SupabaseError) {
   return NextResponse.json({ error: 'internal' }, { status: 500 })
 }
 
-function deviceToken(request: Request): string | null {
-  const value = request.headers.get('authorization')
-  if (!value?.startsWith('Bearer ')) return null
-  const token = value.slice('Bearer '.length).trim()
-  return token.length > 0 ? token : null
-}
-
+// ACC-150: the operator's own session (lib/gate-auth.ts), never the service
+// role. Until ACC-150 this route read `Authorization: Bearer` while the
+// outbox sent `x-boa-device-token`, so a queued vehicle event could never be
+// accepted; the session cookie is now the only credential on both sides.
 export async function POST(request: Request) {
-  const token = deviceToken(request)
-  if (token === null) {
-    return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
-  }
+  const session = await gateSession()
+  if (session.response) return session.response
 
   let body: unknown
   try {
@@ -49,8 +42,7 @@ export async function POST(request: Request) {
   }
 
   const event = parsed.data
-  const { data, error } = await supabaseAdmin().rpc('boa_acc_gate_vehicle', {
-    p_device_token: token,
+  const { data, error } = await session.supabase.rpc('boa_acc_gate_vehicle', {
     p_idempotency_key: event.idempotencyKey,
     p_plate: event.plate,
     p_outcome: event.outcome,

@@ -57,7 +57,9 @@ export function classifyFailure(error: unknown): FailureKind {
     return 'duplicate'
   }
 
-  if (code === '28000' || code === '42501') return 'auth'
+  // 401: no or expired session; 403: signed in, but not a gate role. Both
+  // leave the entry queued until someone logs in (ACC-150, ADR-020).
+  if (code === '28000' || code === '42501' || code === '401' || code === '403') return 'auth'
   if (
     /not authorised|not authorized|authentication required|permission denied|jwt|unauthor|(?:^|\s)401(?:\s|$)|(?:^|\s)403(?:\s|$)/.test(
       message,

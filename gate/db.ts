@@ -84,7 +84,10 @@ export const stickerRowSchema = z.object({
 export type StickerRow = z.infer<typeof stickerRowSchema>
 
 export const metaKeySchema = z.enum([
+  // Written by device-token pulls before ACC-150; kept so a cache written
+  // then still parses. No longer written.
   'deviceTokenHint',
+  'operatorId',
   'rosterAsOf',
   'ledgerAsOf',
   'schemaVersion',

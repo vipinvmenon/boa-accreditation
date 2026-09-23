@@ -34,7 +34,8 @@ export const vehicleEventResponseSchema = z.object({
   outcome: vehicleOutcomeSchema,
   reason: z.string().nullable(),
   checks: vehicleChecksSchema,
-  deviceId: z.string().uuid(),
+  /** The operator who recorded the event (ACC-150). */
+  operatorId: z.string().uuid(),
   gateLabel: z.string().min(1),
   officerName: z.string().min(1),
   occurredAt: z.string().datetime({ offset: true }),

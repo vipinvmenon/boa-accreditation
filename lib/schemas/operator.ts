@@ -1,7 +1,24 @@
 import { z } from 'zod'
 
-/** boa_acc_operator_role, from 202609110001_boa_acc_core.sql. */
-export const operatorRoleSchema = z.enum(['lead', 'approver', 'admin'])
+/**
+ * boa_acc_operator_role: 'lead' | 'approver' | 'admin' from
+ * 202609110001_boa_acc_core.sql, plus 'issuer' from
+ * 202609221200_boa_acc_issuer_role.sql (ACC-150, ADR-020) — a gate-only role:
+ * pull the roster, issue bands, log vehicle events. The database enforces
+ * what each role may do; this list only validates the shape.
+ */
+export const operatorRoleSchema = z.enum(['lead', 'approver', 'admin', 'issuer'])
+
+/**
+ * Roles the gate RPCs accept (private.boa_acc_gate_operator in
+ * 202609221201). A usability affordance for routing a signed-in person to
+ * the right screen — never the control; the database refuses everyone else.
+ */
+export const GATE_ROLES = ['issuer', 'lead', 'admin'] as const satisfies readonly z.infer<typeof operatorRoleSchema>[]
+
+export function canUseGate(role: z.infer<typeof operatorRoleSchema>): boolean {
+  return (GATE_ROLES as readonly string[]).includes(role)
+}
 
 export const inviteOperatorSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -38,3 +55,12 @@ export const setOperatorActiveResultSchema = z.object({
   display_name: z.string(),
   active: z.boolean(),
 })
+
+/** GET /api/gate/session — the signed-in gate operator (ACC-150). */
+export const gateSessionSchema = z.object({
+  operatorId: z.string().uuid(),
+  displayName: z.string(),
+  role: z.enum(GATE_ROLES),
+})
+
+export type GateSession = z.infer<typeof gateSessionSchema>

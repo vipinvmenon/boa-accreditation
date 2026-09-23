@@ -12,14 +12,19 @@ import { classifyFailure, nextAttemptDelayMs, selectDrainBatch } from './outbox-
  */
 let inFlight: Promise<void> | null = null
 
-export function drainOutbox(deviceToken: string): Promise<void> {
-  inFlight ??= drainOnce(deviceToken).finally(() => {
+/**
+ * Posts queued work with the signed-in operator's session cookie (ACC-150:
+ * no device token). A 401 (session lapsed) or 403 (not a gate role) stops
+ * the drain and leaves every entry queued until someone logs in.
+ */
+export function drainOutbox(): Promise<void> {
+  inFlight ??= drainOnce().finally(() => {
     inFlight = null
   })
   return inFlight
 }
 
-async function drainOnce(deviceToken: string): Promise<void> {
+async function drainOnce(): Promise<void> {
   const entries = await gateDb.outbox.toArray()
   const batch = selectDrainBatch(entries, Date.now())
   for (const selected of batch) {
@@ -34,7 +39,8 @@ async function drainOnce(deviceToken: string): Promise<void> {
       if (entry.kind === 'vehicle_event') {
         const response = await fetch('/api/gate/vehicle', {
           method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-boa-device-token': deviceToken },
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify(entry.payload),
         })
         const body: unknown = await response.json().catch(() => null)
@@ -47,7 +53,8 @@ async function drainOnce(deviceToken: string): Promise<void> {
       }
       const response = await fetch('/api/gate/issue', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-boa-device-token': deviceToken },
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify(entry.payload),
       })
       const body: unknown = await response.json().catch(() => null)

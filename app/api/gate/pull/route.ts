@@ -1,38 +1,24 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { gateSession, notAuthorized } from '@/lib/gate-auth'
 import { gatePullSchema } from '@/lib/schemas/gate'
 
 export const dynamic = 'force-dynamic'
 
-function deviceToken(request: Request): string | null {
-  const token = request.headers.get('x-boa-device-token')?.trim()
-  return token ? token : null
-}
+// ACC-150: the operator's own session (lib/gate-auth.ts), never the service
+// role. boa_acc_gate_pull() checks the role in the database.
+export async function POST() {
+  const session = await gateSession()
+  if (session.response) return session.response
 
-function mapError(error: { code?: string; message?: string }): { status: number; error: string } {
-  if (error.code === '42501' || (error.message ?? '').includes('invalid device')) {
-    return { status: 401, error: 'invalid_device' }
-  }
-  return { status: 500, error: 'internal' }
-}
-
-export async function POST(request: Request) {
-  const token = deviceToken(request)
-  if (token === null) {
-    return NextResponse.json({ error: 'invalid_device' }, { status: 401 })
-  }
-
-  const { data, error } = await supabaseAdmin().rpc('boa_acc_gate_pull', {
-    p_device_token: token,
-  })
+  const { data, error } = await session.supabase.rpc('boa_acc_gate_pull')
   if (error) {
-    const mapped = mapError(error)
-    return NextResponse.json({ error: mapped.error }, { status: mapped.status })
+    if (error.code === '42501') return notAuthorized()
+    return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
   const parsed = gatePullSchema.safeParse(data)
   if (!parsed.success) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
-  return NextResponse.json(parsed.data)
+  return NextResponse.json(parsed.data, { headers: { 'cache-control': 'no-store' } })
 }
