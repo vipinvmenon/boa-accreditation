@@ -30,9 +30,11 @@ type Props = {
   /** Receives the scanner payload for the chosen person. */
   onPick: (payload: string) => void
   onOpen?: () => void
+  /** Fires on every way this panel closes: Escape, "Back to scanning", or a pick. */
+  onClose?: () => void
 }
 
-export function PersonSearch({ roster, onPick, onOpen }: Props) {
+export function PersonSearch({ roster, onPick, onOpen, onClose }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
@@ -55,6 +57,7 @@ export function PersonSearch({ roster, onPick, onOpen }: Props) {
     setOpen(false)
     setQuery('')
     setActive(0)
+    onClose?.()
   }
 
   const pick = (row: SearchableRow) => {

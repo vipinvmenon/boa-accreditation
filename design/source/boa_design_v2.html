@@ -462,8 +462,10 @@ footer span:last-child { color: var(--gold); }
       <div class="links" id="links"><span class="pip" id="pip"></span></div>
       <div class="nav-end"><div class="av" title="Bhoopesh, accreditation lead">BS</div><button class="burger" id="burger" aria-label="Menu" aria-expanded="false"><i></i><i></i></button></div>
     </nav>
+    <!-- ACC-130 (sanctioned edit, see CLAUDE.md non-negotiable #1): the "Live" pip
+         was always on in the mock, with nothing behind it — never wired to any real
+         connectivity or freshness signal. Removed here and in the app. -->
     <div class="status">
-      <span class="live"><b></b>Live</span>
       <span class="hide-s">Build 05-09 Oct, show 10 Oct</span>
       <span class="num" style="color:var(--ink2)">184 / 612 bands issued</span>
       <span class="warn num">14 not in BMS</span>
@@ -519,7 +521,11 @@ footer span:last-child { color: var(--gold); }
     <div class="bz rv section" style="--d:3"><div class="pl">
       <div class="org-h"><div><span class="mono">Org 1 of 4 pending</span><h2 class="h2">Chakra Sound &amp; Light</h2><div class="sub">Vendor, quota 22, submitted 04 Oct by Ranjith K</div></div><div class="row"><button class="btn bad solo">Reject</button><button class="btn go">Approve all<span class="ic"><i class="ph-light ph-arrow-right"></i></span></button></div></div>
       <div id="qrows"></div>
-      <div class="q-foot"><div class="sums" id="qsums"></div><button class="linkbtn">Next org: Thunderjaw Merch <i class="ph-light ph-arrow-right"></i></button></div>
+      <!-- ACC-130 (sanctioned edit, see CLAUDE.md non-negotiable #1): "Next org: Thunderjaw
+           Merch" was a hardcoded label with no handler in this mock, not a real "advance to
+           the next pending org" action. Removed here and in the app (Queue itself is retired,
+           ADR-019, so there is no app-side counterpart to also edit). -->
+      <div class="q-foot"><div class="sums" id="qsums"></div></div>
     </div></div>
   </section>
 
@@ -582,9 +588,12 @@ footer span:last-child { color: var(--gold); }
         <div style="margin-top:26px"><span class="mono">Last issued at this gate</span><div class="last" id="last" style="margin-top:8px"></div>
         <div class="foot-meta mono"><span><span id="issued">184</span> issued today</span><span>Ledger append-only</span></div></div>
       </div></div>
+      <!-- ACC-130 (sanctioned edit, see CLAUDE.md non-negotiable #1): the
+           Scanning/Approved/Collected/Refuse tabs were only ever a readout of
+           the outcome the verdict heading below already states in words —
+           removed here and in the app, which never gave them a real handler. -->
       <div class="bz result rv" id="gres" style="--d:2"><div class="pl">
         <div class="flood"></div>
-        <div class="r-top"><div class="seg" data-seg id="gseg"><span class="thumb"></span><button aria-pressed="true" data-o="idle">Scanning</button><button aria-pressed="false" data-o="ok">Approved</button><button aria-pressed="false" data-o="col">Collected</button><button aria-pressed="false" data-o="bad">Refuse</button></div></div>
         <div class="r-body" id="gbody"></div>
       </div></div>
     </div>
@@ -599,9 +608,12 @@ footer span:last-child { color: var(--gold); }
         <input class="plate-in" id="plate" value="KA 05 MJ 8871" aria-label="Vehicle registration" style="margin:14px 0 18px">
         <div class="note" style="--oc:var(--gold)"><span class="mono" style="color:var(--gold);font-weight:700">Both or neither</span><br>A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</div>
       </div></div>
+      <!-- ACC-130 (sanctioned edit, see CLAUDE.md non-negotiable #1): the
+           Cleared/Band missing/Not registered tabs were only ever a readout
+           of the outcome the verdict heading below already states in words —
+           removed here and in the app, which never gave them a real handler. -->
       <div class="bz result rv" id="vres" style="--d:2"><div class="pl" style="min-height:560px">
         <div class="flood"></div>
-        <div class="r-top"><div class="seg" data-seg id="vseg"><span class="thumb"></span><button aria-pressed="true" data-o="ok">Cleared</button><button aria-pressed="false" data-o="half">Band missing</button><button aria-pressed="false" data-o="bad">Not registered</button></div></div>
         <div class="r-body" id="vbody"></div>
       </div></div>
     </div>
@@ -611,8 +623,12 @@ footer span:last-child { color: var(--gold); }
   <footer><span>Not registered, not approved, not verified. Not inside.</span><span>Artists handled at the hotel</span></footer>
 </div>
 
+<!-- ACC-130 (sanctioned edit, see CLAUDE.md non-negotiable #1): the Web/Mob viewport
+     toggle was this preview tool's own review furniture (DESIGN-SYSTEM.md,
+     "Responsive") — it is not clicked or shipped by the real app, which reaches
+     mobile/desktop layout through real container queries instead. Removed here
+     and the dead app-side CSS/comments that described it as if it shipped. -->
 <div class="tools" role="toolbar" aria-label="Preview">
-  <div class="seg" data-seg id="vp"><span class="thumb"></span><button aria-pressed="true" data-vp="web">Web</button><button aria-pressed="false" data-vp="mob">Mob</button></div>
   <button class="thm" id="thm"><i class="ph-light ph-sun"></i><span>Light</span></button>
 </div>
 
@@ -820,9 +836,12 @@ $('#passes').innerHTML = PS.map((p, i) => `
   </div></article>`).join('');
 
 /* ── Gate ── */
+/* ACC-130 (sanctioned edit, see CLAUDE.md non-negotiable #1): the row's "Void"
+   button had no handler in this mock — voiding is a real desk action, not
+   furniture to fake at the gate. Removed here and in the app. */
 const LAST = [['Meera Joseph','crew','0418','14:02'],['Vinay Shetty','stage','0417','13:58'],['Ganesh Rao','crew','0416','13:51']];
 function renderLast(fresh) {
-  $('#last').innerHTML = LAST.map((l, i) => `<div class="li ${fresh && i === 0 ? 'new' : ''}"><span class="bar" style="--c:${T[l[1]].c}"></span><div><div class="nm">${l[0]}</div><div class="sub">${T[l[1]].name}, ${l[2] ? 'band ' + l[2] : 'no serial'}, ${l[3]}</div></div><button class="void">Void</button></div>`).join('');
+  $('#last').innerHTML = LAST.map((l, i) => `<div class="li ${fresh && i === 0 ? 'new' : ''}"><span class="bar" style="--c:${T[l[1]].c}"></span><div><div class="nm">${l[0]}</div><div class="sub">${T[l[1]].name}, ${l[2] ? 'band ' + l[2] : 'no serial'}, ${l[3]}</div></div></div>`).join('');
 }
 renderLast();
 const GATE = {
@@ -856,9 +875,7 @@ function gate(o) {
   $('#gbody').innerHTML = GATE[o].h();
   $('#vf').classList.toggle('lock', o !== 'idle'); $('#vf').style.setProperty('--oc', GATE[o].c);
   void r.offsetWidth; if (o !== 'idle') r.dataset.o = o;
-  $$('#gseg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.o === o)); syncSeg($('#gseg'));
 }
-$('#gseg').addEventListener('click', e => { const b = e.target.closest('[data-o]'); if (b) gate(b.dataset.o); });
 $('#gbody').addEventListener('click', e => {
   if (e.target.closest('[data-next]')) gate('idle');
   if (e.target.closest('#issue')) {
@@ -894,16 +911,9 @@ const VEH = {
 function veh(o) {
   const r = $('#vres'); r.removeAttribute('data-o'); r.style.setProperty('--oc', VEH[o].c);
   $('#vbody').innerHTML = VEH[o].h(); void r.offsetWidth; r.dataset.o = o;
-  $$('#vseg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.o === o)); syncSeg($('#vseg'));
 }
-$('#vseg').addEventListener('click', e => { const b = e.target.closest('[data-o]'); if (b) veh(b.dataset.o); });
 
 /* ── Preview tools ── */
-$('#vp').addEventListener('click', e => {
-  const b = e.target.closest('[data-vp]'); if (!b) return;
-  document.body.classList.toggle('mob', b.dataset.vp === 'mob');
-  setTimeout(() => { movePip(); $$('.screen.on .seg[data-seg]').forEach(syncSeg); }, 720);
-});
 $('#thm').onclick = () => {
   const h = document.documentElement, dark = h.dataset.theme === 'dark';
   h.dataset.theme = dark ? 'light' : 'dark';

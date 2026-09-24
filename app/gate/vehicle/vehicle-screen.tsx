@@ -47,19 +47,6 @@ export function VehicleScreen() {
     void readGateSnapshot().then(setSnapshot)
   }, [])
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const segment = document.querySelector<HTMLElement>('#vres [data-seg]')
-      const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
-      const thumb = segment?.querySelector<HTMLElement>('.thumb')
-      if (active && thumb) {
-        thumb.style.width = `${active.offsetWidth}px`
-        thumb.style.transform = `translateX(${active.offsetLeft}px)`
-      }
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [snapshot, result])
-
   const normalized = useMemo(() => {
     try {
       return normalizePlate(plate)
@@ -157,13 +144,16 @@ export function VehicleScreen() {
       <div className="split">
         <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
           <span className="mono">Enter registration</span>
-          <input className="plate-in" id="vehicle-plate" aria-label="Vehicle registration" value={plate} onChange={(event) => { setPlate(event.target.value); setResult(null) }} placeholder="KA 05 MJ 8871" autoCapitalize="characters" autoComplete="off" style={{ margin: '14px 0 18px' }} />
+          <input className="plate-in" id="vehicle-plate" aria-label="Vehicle registration" value={plate} onChange={(event) => { setPlate(event.target.value); setResult(null) }} placeholder="KA01AB1234" autoCapitalize="characters" autoComplete="off" style={{ margin: '14px 0 18px' }} />
           <div className="note" style={{ '--oc': 'var(--gold)' } as CSSProperties}><span className="mono" style={{ color: p.gold }}>Both or neither</span><br />A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</div>
           <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
         </div></div>
+        {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
+            buttons with no click handler — they only ever reflected the recorded outcome,
+            which the verdict heading right below already states in words. Removed rather
+            than kept as fake tabs; the `.r-body` verdict + aria-live on this card carry it. */}
         <div className="bz result rv" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': cleared ? p.grn : result ? p.bad : p.grn } as CSSProperties}><div className="pl" style={{ minHeight: 560 }}>
           <div className="flood" />
-          <div className="r-top"><div className="seg" data-seg><span className="thumb" /><button type="button" data-o="ok" aria-pressed={cleared}>Cleared</button><button type="button" data-o="half" aria-pressed={false}>Band missing</button><button type="button" data-o="bad" aria-pressed={result?.outcome === 'turned_away'}>Not registered</button></div></div>
           <div className="r-body">
             {result && <>
             <h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{cleared ? 'Cleared' : result.outcome === 'blocked' ? 'Not cleared' : 'Turned away'}</h2>
@@ -176,7 +166,11 @@ export function VehicleScreen() {
             {askReason && <div className="field"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
             </>}
             {!result && askReason && <div className="field"><label htmlFor="vehicle-reason-first" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason-first" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
-            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry and open gate'}<span className="ic"><Icon name="arrow-right" /></span></button><button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} className="btn bad wide hov-fill-bad">Turn away and log reason</button></div>
+            {/* ACC-131: a disabled button with no explanation just looks broken to the
+                officer at the barrier — title covers pointer users, the note text
+                below covers everyone else (title has no touch/keyboard equivalent). */}
+            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry and open gate'}<span className="ic"><Icon name="arrow-right" /></span></button><button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn bad wide hov-fill-bad">Turn away and log reason</button></div>
+            {normalized === null && plate.trim().length > 0 && <p role="status" className="mono" style={{ color: p.bad }}>Not a valid registration format.</p>}
           </div>
         </div>
         </div>

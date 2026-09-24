@@ -258,7 +258,10 @@ test.describe('gate aeroplane mode', () => {
     const gate = (await installFixture(page, ['success'])).page
     await reloadColdOffline(gate)
     await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
-    await expect(gate.getByText('Approved', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+    // ACC-130 removed the gate result card's always-on Scanning/Approved/Collected/
+    // Refuse tabs (dead buttons with no handler); the search panel's own input is
+    // what proves the page rendered past a cold reload under the nonce CSP now.
+    await expect(gate.getByRole('combobox', { name: 'Search approved list' })).toBeVisible({ timeout: 15_000 })
   })
 
   test('cold reload resolves green, amber, red and drains blank-serial work idempotently', async ({ page }) => {
