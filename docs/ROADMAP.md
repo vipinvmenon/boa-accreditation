@@ -482,7 +482,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
-- [~] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
+- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
       24 Sep at `1371ef9`: 13.17/13.43/25.82/25.81%** (dark/web, light/web,
       dark/mobile, light/mobile) — and the render is much taller than the
       reference (web 2726 vs 2389; mobile 6072 vs 4665), so this is a layout
@@ -490,6 +490,14 @@ org list wins: `task block` the redesign task with a reason and commit it.
       ACC-111 figures of 3.01/2.97/1.05/0.77% preserved in CURRENT-STATE
       history; the screen changed under it since. Visual acceptance unmet
       · **CU** · due Thu 24
+      **Diagnosed 24 Sep — blocked on a decision, not on code.** The whole
+      height delta is `.bands3`: the frozen artboard draws three band cards,
+      the app draws the pack's eight (`88c8bd7`/ACC-115 + `b790111`). Forcing
+      the fixture back to three only reaches 4.52/4.80/7.50/7.49% because
+      ADR-018 also replaced every string, zone and colour inside the card. No
+      honest change closes this — it needs ADR-018-vs-ADR-017 resolved by
+      Vipin. **Do not re-baseline `design/reference/`.** Full measurement in
+      the 24 Sep CURRENT-STATE entry.
 - [-] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
       native-`<select>` writeup first · **CU** · due Sat 26
       **Retired 22 Sep (ADR-019):** the queue is an exceptions tool now; not worth pixel work.

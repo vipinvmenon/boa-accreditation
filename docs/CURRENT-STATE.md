@@ -1051,7 +1051,88 @@ on 24 Sep; see the session-log entry below for what was verified and what was
 not. Deployed is not the same as exercised — the four "not done" items above
 all still stand.
 
+
+> **ACC-104 released 2026-09-24 (IST):** Not a drift: the frozen v2 artboard is a three-band document and ADR-018 made the domain eight-band. Measured at 69405d9 (fixture unchanged): 13.17/13.43/25.82/25.81%, ref 1360x2389 got 1360x2726, ref 390x4665 got 390x6072. Proved by DOM measurement: .bands3 accounts for +395px of the +337px web delta and +1441px of the +1407px mobile delta; every other section is within 80px. Cause is 88c8bd7 (ACC-115) + b790111, which made the Control room render one card per boa_acc_type row and moved the visual fixture from 3 tiers to 8. Forcing the fixture back to 3 tiers as a diagnostic only reaches 4.52/4.80/7.50/7.49% (and the page then runs SHORT: 2302 vs 2389, 4445 vs 4665), because ADR-018 also replaced every string and colour in the card: the artboard draws THE STANDARD/WORKING CREW/POISON GREEN BAND over seven v1 zones, the app draws 500 PRINTED/CREW/PURPLE BAND over the pack's six zones. No honest change closes this. It needs a decision from Vipin: amend the v2 contract's band section to the pack (a change to a frozen file, then one sanctioned re-capture), or restate ACC-104's acceptance. Do NOT re-baseline design/reference to make it pass.
+
 ## Session log
+
+### 24 Sep 2026 — ACC-104 diagnosed: the Control room's height regression is ADR-018, not drift
+
+**Reproduced first, at `69405d9` (a clean tree, nothing but the ACC-104
+claim on top of `1371ef9`), after a fresh `corepack pnpm build`:**
+
+| | dark/web | light/web | dark/mob | light/mob |
+|---|---|---|---|---|
+| control-room | 13.17% | 13.43% | 25.82% | 25.81% |
+
+Dimensions: **web ref 1360x2389, got 1360x2726** (+337); **mobile ref
+390x4665, got 390x6072** (+1407). 2 masked regions, 1/1 screens compared,
+0 blocked. These are byte-for-byte the 24 Sep figures, so the regression is
+deterministic and reproducible, not environmental.
+
+`design/reference/` is gitignored and generated, so it does not exist in a
+fresh worktree. **It was copied from the main checkout, not re-captured** —
+`design:reference` was never run, and `control-room-dark-web.png` hashes
+identical on both sides (`4eaf1308…`).
+
+**The cause, measured rather than inferred.** A diagnostic script drove the
+frozen `design/source/boa_design_v2.html` and the built app side by side and
+read the bounding boxes of every section:
+
+| section | ref web | app web | ref mob | app mob |
+|---|---|---|---|---|
+| `.bento` | 835 | 785 | 1865 | 1787 |
+| **`.bands3`** | **351** | **746** | **1185** | **2626** |
+| org list panel | 579 | 570 | 961 | 1005 |
+| document | 2389 | 2726 | 4665 | 6072 |
+
+**The band grid accounts for the entire delta** — +395px against a +337px
+web delta, +1441px against a +1407px mobile delta. Every other section is
+within 80px. The artboard draws **three** band cards; the app draws
+**eight**, tiling 4x2 on web (one extra row) and 8x1 on a phone (five extra
+cards).
+
+**Which commits did it.** `88c8bd7` (ACC-115, 21 Sep) made the Control room
+render one card per `boa_acc_type` row in sort order and moved
+`scripts/visual-fixtures/desk.mjs`'s `dashboard.types` from three entries to
+the pack's eight; `b790111` added `.bands3.bands8` to tile them evenly. That
+commit's own fixture comment says "Pixel sign-off against the three-band
+artboard is re-run under ACC-111" — the conflict was seen and deferred, not
+missed. Before it (`b9deb55`) the card read `TYPES` / `ALL_ZONES` from the
+frozen v1 domain record, which is what the artboard draws, and control-room
+measured 3.01/2.97/1.05/0.77%.
+
+**A three-card fixture does not fix it, and that is the important finding.**
+As a diagnostic only, `dashboard.types` was forced back to the old three
+entries and the gate re-run: **4.52/4.80/7.50/7.49%**, with the page now
+*shorter* than the reference (2302 vs 2389; 4445 vs 4665). The fixture was
+restored byte-for-byte afterwards and the diagnostic script deleted; `git
+status` is clean. The residual is the card's own content, because ADR-018
+replaced every string and colour in it:
+
+| | the artboard (frozen v2) | the app (ADR-018) |
+|---|---|---|
+| eyebrow | `THE STANDARD` | `500 PRINTED` |
+| title / band | `WORKING CREW` · `POISON GREEN BAND` | `CREW` · `PURPLE BAND` |
+| note | one sentence per band | `boa_acc_type.note` (absent for these) |
+| zones | 7 v1 zones (SITE … ARTIST AREA) | 6 pack zones (FESTIVAL AREA … MAIN STAGE) |
+
+**So ACC-104's ≤0.8% is not reachable by any honest change.** The frozen v2
+artboard is a three-band document — its own heading is "Three bands. No
+fourth.", which the app correctly renders from the data as "Eight bands. No
+ninth." ADR-018 says the pack wins on tier and zone vocabulary, and the bands
+are already manufactured, so the app cannot go back. The two contracts
+disagree about a load-bearing fact and only Vipin can resolve it:
+
+1. amend the band section of `design/source/boa_design_v2.html` to the pack's
+   eight tiers, six zones and real band colours, write it up as an ADR, and
+   take **one** sanctioned re-capture (the ACC-100 precedent) — or
+2. restate ACC-104's acceptance so the band section is out of pixel scope.
+
+**What was not done, deliberately:** no reference was re-captured, no mask
+added, no threshold touched, no other screen changed. ACC-104 is left
+unchecked. `passes` (ACC-107) and `gate`/`vehicle` (ACC-109) were not
+touched and are unaffected.
 
 ### 24 Sep 2026 — Phase R pushed and deployed; the visual gate's real numbers
 
