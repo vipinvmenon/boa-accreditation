@@ -482,7 +482,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
-- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
+- [~] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
       24 Sep at `1371ef9`: 13.17/13.43/25.82/25.81%** (dark/web, light/web,
       dark/mobile, light/mobile) — and the render is much taller than the
       reference (web 2726 vs 2389; mobile 6072 vs 4665), so this is a layout
