@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ORG_KINDS, type OrgRowWithCounts } from '@/lib/schemas/org'
-import { REQUESTABLE_TIERS, type RequestableTierCode } from '@/lib/desk-tiers'
+import { type OrgRowWithCounts } from '@/lib/schemas/org'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineError } from '@/components/states'
 import { copyForError } from '@/lib/error-copy'
@@ -26,12 +25,26 @@ import { copyForError } from '@/lib/error-copy'
  * live under each org row is retired with `/s/[token]`. Crew now register on
  * a Google Form (docs/ROSTER-FORM.md) and the importer matches the sheet's
  * free-text "Organisation" answer to `boa_acc_org.name`. So this screen's
- * job is now: maintain the canonical org names the import matches and the
- * form's dropdown (`ORGS` in scripts/roster-form/build-roster-form.gs)
- * mirrors, show how many people each org has sent, and hold the contact to
- * chase. Quotas were dropped 22 Sep (ACC-140g): `boa_acc_org.quota` stays in
- * the schema but nothing enforces it, so it is neither collected here nor
- * shown in the list line below.
+ * job is now: show the canonical org names the import matches and the form's
+ * dropdown (`ORGS` in scripts/roster-form/build-roster-form.gs) mirrors, show
+ * how many people each org has sent, and hold the contact to chase. Quotas
+ * were dropped 22 Sep (ACC-140g): `boa_acc_org.quota` stays in the schema but
+ * nothing enforces it, so it is neither collected here nor shown below.
+ *
+ * Read-only, on Vipin's instruction (24 Sep), and the reason is worth keeping:
+ * this screen used to open with a one-at-a-time "Create an org" form under an
+ * "Allocation desk" heading — a name left over from when it allocated quotas.
+ * Bhoopesh sends ~38 organisations at once, and the committed path for that is
+ * data/orgs.json + scripts/replace-placeholder-orgs.mjs, which calls the same
+ * `public.boa_acc_create_org` RPC and refuses to invent a missing contact
+ * (docs/ORG-IMPORT.md). Two front doors for the same job, and the form was the
+ * worse one — its own empty state pointed operators at it. Creation now lives
+ * with the bulk list; this screen reads.
+ *
+ * `POST /api/desk/orgs` is deliberately left in place: it is the same RPC, it
+ * is still authorised in the database, and nothing in the app calls it now.
+ * Editing an org's contact from here would need a new RPC and a migration, so
+ * it is not quietly bolted on — it is written up as the follow-up instead.
  */
 // ACC-122: shared with every other desk screen via lib/error-copy.ts; this
 // screen's `not_authorized` and `not_found` wording differ from the default.
@@ -48,31 +61,11 @@ const labelStyle: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--ink3,rgba(242,239,226,0.52))',
 }
-type CreateFormState = {
-  name: string
-  kind: (typeof ORG_KINDS)[number]
-  contactName: string
-  contactPhone: string
-  defaultType: RequestableTierCode
-}
-
-const EMPTY_FORM: CreateFormState = {
-  name: '',
-  kind: 'vendor',
-  contactName: '',
-  contactPhone: '+91',
-  defaultType: 'crew',
-}
-
 export function OrgsScreen() {
   const router = useRouter()
   const [orgs, setOrgs] = useState<OrgRowWithCounts[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
-
-  const [form, setForm] = useState<CreateFormState>(EMPTY_FORM)
-  const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
 
   const [announcement, setAnnouncement] = useState('Loading organisations.')
   const [reloadKey, setReloadKey] = useState(0)
@@ -118,46 +111,6 @@ export function OrgsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey])
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    setCreateError(null)
-    setCreating(true)
-    try {
-      const res = await fetch('/api/desk/orgs', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          kind: form.kind,
-          contactName: form.contactName,
-          contactPhone: form.contactPhone,
-          defaultType: form.defaultType,
-        }),
-      })
-      if (res.status === 401) {
-        router.replace('/desk/login')
-        return
-      }
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        const message = copyForError(body, ORGS_ERROR_OVERRIDES)
-        setCreateError(message)
-        setAnnouncement(`Could not create organisation. ${message}`)
-        return
-      }
-      const body = (await res.json()) as { org: OrgRowWithCounts }
-      setOrgs((prev) => [body.org, ...(prev ?? [])])
-      setForm(EMPTY_FORM)
-      setAnnouncement(`Organisation ${body.org.name} created.`)
-    } catch {
-      const message = copyForError(null, ORGS_ERROR_OVERRIDES)
-      setCreateError(message)
-      setAnnouncement(`Could not create organisation. ${message}`)
-    } finally {
-      setCreating(false)
-    }
-  }
-
   // ADR-019: `boa_acc_org.name` is what the Google Form's dropdown must
   // mirror (the `ORGS` array in scripts/roster-form/build-roster-form.gs —
   // see docs/ROSTER-FORM.md, "Keeping the form dropdown in step"). Copies
@@ -180,97 +133,10 @@ export function OrgsScreen() {
   return (
     <main id="main-content" tabIndex={-1} className="utility-screen">
       <div className="utility-inner">
-        {!createError && !loadError && (
+        {!loadError && (
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
         )}
-        <header className="utility-head"><div><div className="tag">Allocation desk</div><h1 className="h1">Orgs</h1></div></header>
-
-        <section className="utility-section bz"><div className="pl pad">
-          <h2
-            style={{
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.13em',
-              textTransform: 'uppercase',
-              color: 'var(--ink2,rgba(242,239,226,0.72))',
-              margin: '0 0 16px',
-            }}
-          >
-            Create an org
-          </h2>
-          <form onSubmit={handleCreate} className="utility-form cols">
-            <label className="utility-label">
-              <span>Name</span>
-              <input
-                required
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="utility-input"
-                maxLength={120}
-              />
-            </label>
-            <label className="utility-label">
-              <span>Kind</span>
-              <select
-                value={form.kind}
-                onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as CreateFormState['kind'] }))}
-                className="utility-input"
-              >
-                {ORG_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="utility-label">
-              <span>Default pass type</span>
-              <select
-                value={form.defaultType}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, defaultType: e.target.value as CreateFormState['defaultType'] }))
-                }
-                className="utility-input"
-              >
-                {REQUESTABLE_TIERS.map((t) => (
-                  <option key={t.code} value={t.code}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="utility-label">
-              <span>Contact name</span>
-              <input
-                required
-                value={form.contactName}
-                onChange={(e) => setForm((f) => ({ ...f, contactName: e.target.value }))}
-                className="utility-input"
-                maxLength={80}
-              />
-            </label>
-            <label className="utility-label">
-              <span>Contact phone</span>
-              <input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                required
-                value={form.contactPhone}
-                onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}
-                className="utility-input"
-                placeholder="+91XXXXXXXXXX"
-              />
-            </label>
-            <div className="utility-actions full">
-              <button type="submit" disabled={creating} className="btn go hov-invert-grn" style={{ opacity: creating ? 0.6 : 1 }}>
-                {creating ? 'Creating…' : 'Create org'}
-              </button>
-              {createError && <p role="alert" className="utility-error">{createError}</p>}
-            </div>
-          </form>
-        </div></section>
+        <header className="utility-head"><div><div className="tag">Import matching</div><h1 className="h1">Organisations</h1></div></header>
 
         <section>
           <div
@@ -323,7 +189,7 @@ export function OrgsScreen() {
             <div role="status" aria-label="Loading organisations"><UtilityScreenSkeleton kind="orgs" /></div>
           )}
           {orgs !== null && orgs.length === 0 && (
-            <EmptyState message="No orgs yet. Create the first one above." />
+            <EmptyState message="No organisations yet. They are loaded in bulk from the list Bhoopesh sends, not typed in one at a time — an admin runs the import." />
           )}
 
           <div className="utility-list">
