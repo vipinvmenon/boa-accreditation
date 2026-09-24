@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 22 September 2026 (replan, ADR-019)._
+_Last updated: 24 September 2026 (Phase R pushed and deployed)._
 
 ## Replan, 22 Sep 2026 — read this before the rest
 
@@ -54,12 +54,14 @@ open** — Bhoopesh/Salman/2 approvers' real email addresses are still needed
 — but there is no longer a placeholder account to confuse with a real one
 once those addresses arrive; inviting them is now a clean first-time action,
 not a swap.
-`test:visual` now compares all seven screens through the fixture-backed
-harness. The two dated ACC-111 runs below must not be conflated: the earlier
+`test:visual` compares the surviving **five** screens through the
+fixture-backed harness (Queue and Submission were retired by ADR-019).
+The two dated ACC-111 runs below must not be conflated: the earlier
 run failed 25 of 28 variants, while the later clean run at HEAD `b9deb55`
-failed 23 and passed 5. The current working tree is dirty, including
-uncommitted app, fixture and visual-harness changes, so neither clean-run
-summary is evidence for the current tree. `/gate/*` now has
+failed 23 and passed 5. **Superseded 24 Sep:** the working tree is now clean
+at `1371ef9` and a fresh full run exists — 16 failed, 4 passed (`master`, all
+four variants, under the 0.8% bar). The per-screen numbers are in the 24 Sep
+session-log entry; use those, not the two older runs. `/gate/*` now has
 `force-dynamic` client screens, and the deterministic Chromium aeroplane-mode
 suite passes, including true cold service-worker navigation. That suite mocks
 the gate pull/issue APIs and uses a four-person fixture roster; it is not a
@@ -156,11 +158,17 @@ Verified on 10 Sep by running the commands, not by assertion:
   not prove browser-restart, OS-suspension, storage-eviction, or real-device
   durability.
 - **`test:visual`** is no longer blocked on operator authentication or missing
-  references in the recorded clean runs: both compared all seven screens with
-  0 blocked, 0 not built and 0 known gaps. The earlier 20 Sep run failed 25
-  comparisons; the later run at HEAD `b9deb55` failed 23 and passed 5. The
-  current working tree has uncommitted app, fixture and visual-harness changes,
-  so current-tree visual evidence is not established; no pixel pass is claimed.
+  references: runs report 0 blocked, 0 not built and 0 known gaps. **Current,
+  24 Sep at `1371ef9`: 5/5 screens compared, 16 of 20 comparisons failed, 4
+  passed.** The four passes are `master`, at 0.64/0.65/0.15/0.14% — under the
+  0.8% bar, and therefore ACC-106's acceptance criterion, though ACC-106 is
+  deliberately left unticked (see the 24 Sep session-log entry). The remaining
+  failures are control-room (ACC-104), passes (ACC-107), gate and vehicle
+  (ACC-109) — the Phase 3b lane ADR-019 froze behind Phase R. The harness now
+  compares **five** screens, not seven: Queue and the vendor Submission screen
+  were retired app-side by ADR-019, and both `capture-design-reference.mjs` and
+  `visual-check.mjs` dropped them. The frozen v2 source still shows them in its
+  own nav, which is non-negotiable #1 holding, not drift.
 - **Cursor MCP is nearly connected.** Vipin reports that Supabase, Vercel and
   Playwright are authenticated; GitHub remains outstanding. The Vercel
   *plugin* authenticated in this session (`plugin-vercel-vercel` tools loaded),
@@ -1035,10 +1043,88 @@ present and now unused by the app.
 
 **Not done, and not claimed:** no roster has been imported (`boa_acc_person` is
 0); no WhatsApp message has ever been sent; no real issuer has logged in; the
-38 organisations are still `PLACEHOLDER — …` fixtures; nothing is deployed —
-production still runs the pre-Phase-R build.
+38 organisations are still `PLACEHOLDER — …` fixtures.
+
+**Superseded 24 Sep:** the line above used to end "nothing is deployed —
+production still runs the pre-Phase-R build". Phase R was pushed and deployed
+on 24 Sep; see the session-log entry below for what was verified and what was
+not. Deployed is not the same as exercised — the four "not done" items above
+all still stand.
 
 ## Session log
+
+### 24 Sep 2026 — Phase R pushed and deployed; the visual gate's real numbers
+
+`main` had been **44 commits ahead of `origin/main`** — all of Phase R,
+committed locally and never pushed, while production served the pre-Phase-R
+build. Pushed on Vipin's instruction. `origin/main` is now `1371ef9`; `git
+rev-list origin/main..main --count` is 0.
+
+**The pre-push gate refused the first attempt.** `.githooks/pre-push` runs
+`build`, `test:visual` and `check:sql`. Build and `check:sql` passed (37
+migrations); `test:visual` failed 16 of 20 comparisons, so the push was
+rejected. Pushed with the hook's own documented escape hatch,
+`SKIP_VISUAL=1`, after putting the choice to Vipin and getting it. **The
+references were not re-captured.** They are rendered from the frozen
+`design/source/boa_design_v2.html`, so a FAIL means the app has not reached
+the contract — re-baselining is the `boa-bar-control` failure mode that
+`scripts/capture-design-reference.mjs`'s own header warns about.
+`--no-verify` was never used; every push ran the real hook.
+
+**The visual gate's current numbers** (full `test:visual` run at `1371ef9`,
+5/5 screens compared, 0 blocked, 0 not built, 0 known gaps):
+
+| Screen | dark/web | light/web | dark/mob | light/mob | Task |
+|---|---|---|---|---|---|
+| control-room | 13.17% | 13.43% | 25.82% | 25.81% | ACC-104 |
+| master | **0.64%** | **0.65%** | **0.15%** | **0.14%** | ACC-106 |
+| passes | 7.00% | 5.25% | 5.96% | 5.28% | ACC-107 |
+| gate | 1.51% | 1.50% | 6.20% | 6.64% | ACC-109 |
+| vehicle | 10.88% | 11.42% | 14.58% | 15.10% | ACC-109 |
+
+Two things a later agent should not have to rediscover:
+
+- **`master` passes all four variants under the 0.8% bar**, which is exactly
+  ACC-106's stated acceptance criterion. **ACC-106 is deliberately left
+  unticked here** — this was a measurement taken in passing, not a claimed
+  task; whoever claims it should run `corepack pnpm task done ACC-106` so the
+  typecheck/lint/test gate runs with it. The numbers above are the evidence,
+  not the tick.
+- **`gate`'s web and mobile failures are different problems.** Web fails at
+  ~1.5% with *matching* dimensions (1360x1530 both sides); mobile fails at
+  ~6.4% and is 46px short (ref 390x1661, got 390x1615). A single fix is
+  unlikely to close both.
+
+This lane is not a regression from these 44 commits: it is Phase 3b, which
+ADR-019 froze behind Phase R and the roadmap marks off the critical path. It
+is also improving — 23 failures at `b9deb55`, 16 now.
+
+**GitHub 500'd on the large pack, twice.** The full 44-commit push was
+rejected with `remote: Internal Server Error` on two consecutive attempts
+while `githubstatus.com` reported all systems operational and `git ls-remote`
+worked. A single-commit push succeeded, so the write path was fine; pushing in
+chunks of ten got it through (one chunk also 500'd; the final `git push origin
+main` carried the remainder). Worth remembering if a future large push fails
+the same way — it is not a repo or credential problem.
+
+**Deploy verified against the live site, not assumed.** After the Vercel
+build, the five ADR-019 removals return **404** on production —
+`/desk/queue`, `/desk/aaa`, `/desk/devices`, `/desk/operators`, `/gate/setup`
+— and `/desk/login`, `/desk/passes`, `/desk/users`, `/gate`, `/gate/vehicle`
+return 200, with `/` at 307. Production and the database are on the same
+generation for the first time since Phase R was built.
+
+**What that check does and does not prove.** It proves the routes are served
+and the removals are really gone. It does **not** prove the screens render
+from the data layer: `/desk/passes` and `/desk/users` sit behind auth, so an
+unauthenticated 200 is most likely the login gate, not the screen. `/s/[token]`
+was not probed — it takes a token parameter, so a bare probe would mean
+nothing. No authenticated production screen has been rendered this session.
+
+**Still true after the deploy:** `boa_acc_person` is 0, no WhatsApp message has
+ever been sent, no real issuer has logged in, the 38 organisations are
+`PLACEHOLDER — …` fixtures, and **ACC-151 (Vipin's Meta setup) was due today
+and is not done** — ACC-144 is due Sat 26 Sep and cannot start without it.
 
 ### 22 Sep 2026 — ACC-140: docs reconciled against the live database and form
 

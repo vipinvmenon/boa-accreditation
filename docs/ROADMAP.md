@@ -482,17 +482,30 @@ org list wins: `task block` the redesign task with a reason and commit it.
       profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
-- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. Latest ACC-111
-      evidence measured **3.01%, 2.97%, 1.05%, 0.77%** (dark/web,
-      light/web, dark/mobile, light/mobile), so visual acceptance remains
-      unmet; the earlier 0.74% result is preserved in CURRENT-STATE history.
+- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
+      24 Sep at `1371ef9`: 13.17/13.43/25.82/25.81%** (dark/web, light/web,
+      dark/mobile, light/mobile) — and the render is much taller than the
+      reference (web 2726 vs 2389; mobile 6072 vs 4665), so this is a layout
+      difference, not a colour or spacing tweak. That is **worse** than the
+      ACC-111 figures of 3.01/2.97/1.05/0.77% preserved in CURRENT-STATE
+      history; the screen changed under it since. Visual acceptance unmet
       · **CU** · due Thu 24
 - [-] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
       native-`<select>` writeup first · **CU** · due Sat 26
       **Retired 22 Sep (ADR-019):** the queue is an exceptions tool now; not worth pixel work.
 - [ ] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27
+      **Measured 24 Sep at `1371ef9`: 0.64/0.65/0.15/0.14%** (dark/web,
+      light/web, dark/mobile, light/mobile) — all four under the bar, which is
+      this task's acceptance criterion. Left unticked on purpose: that was a
+      measurement taken in passing during the Phase R push, not a claimed task.
+      Whoever claims it should run `corepack pnpm task done ACC-106` so the
+      typecheck/lint/test gate runs with the tick.
 - [ ] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
       selector must survive · **CU** · due Mon 28
+      **Current, 24 Sep at `1371ef9`: 7.00/5.25/5.96/5.28%** (dark/web,
+      light/web, dark/mobile, light/mobile), 7 regions masked, with the render
+      taller than the reference (web 2055 vs 1987; mobile 4714 vs 4511).
+      Visual acceptance unmet.
 - [-] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
@@ -505,7 +518,14 @@ org list wins: `task block` the redesign task with a reason and commit it.
       records typecheck, lint, test, build, and `test:e2e` **4/4** as passing,
       with **59 precached assets**. Earlier Gate **6.31/6.16/70.85/71.05%**
       and Vehicle **10.45/10.60/63.81/64.48%** values are stale pre-fix
-      measurements retained in `CURRENT-STATE.md`. Presentation only — no diff
+      measurements retained in `CURRENT-STATE.md`.
+      **Current, 24 Sep at `1371ef9`: Gate 1.51/1.50/6.20/6.64%** and
+      **Vehicle 10.88/11.42/14.58/15.10%** (dark/web, light/web, dark/mobile,
+      light/mobile). Two distinct problems, unlikely to share a fix: Gate's
+      **web** variants miss by ~1.5% with *matching* dimensions
+      (1360x1530 both sides), while Gate **mobile** is 46px short (ref
+      390x1661, got 390x1615) and Vehicle is short on every variant (web 1230
+      vs 1294; mobile 1519 vs 1581). Presentation only — no diff
       in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not green
       and rehearsed by 2 Oct → revert and ship gate on v1** · **CU** · due Thu
       2 Oct
