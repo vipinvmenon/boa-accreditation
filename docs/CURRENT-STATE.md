@@ -1053,6 +1053,70 @@ all still stand.
 
 ## Session log
 
+### 24 Sep 2026 — ACC-132: gate chrome no longer shows desk nav
+
+**Verified before changing anything:** `GateChrome` (`app/gate/gate-chrome.tsx`)
+and `DeskChrome` (`app/desk/desk-chrome.tsx`) both imported and mapped over
+the same `NAV` constant in `lib/design.ts` — all six items (Control room,
+Master list, Passes, Organisations, Gate, Vehicle) in both the desk header and
+a volunteer's gate header, in the primary island nav and the mobile drawer.
+The brand mark also read "Accred desk" on `/gate`. This was not partially
+done; it was not done at all. `DESIGN-SYSTEM.md`'s "Active nav item" section
+already claimed "`GateChrome` and `DeskChrome` render `NAV` independently
+(gate/desk have different routes visible)" — that sentence was aspirational,
+not a description of the code.
+
+**Fix:** split `NAV` into `DESK_NAV` (Control room · Master list · Passes ·
+Organisations) and `GATE_NAV` (Gate · Vehicle) in `lib/design.ts`. `DeskChrome`
+now renders only `DESK_NAV`; `GateChrome` now renders only `GATE_NAV`, in both
+the desktop nav and the mobile drawer, and its brand text now reads "Accred
+gate". The design source's own `.island` nav (`design/source/boa_design_v2.html`)
+lists all seven screens in one bar because it is a single preview tool a
+reviewer clicks between screens with (`SCREENS`, line 652) — the same
+"furniture, not a literal transcription target" reasoning ACC-130 already
+applied to the Web/Mob toggle and the always-on "Live" pip. The profile-menu
+"Manage users" link on the gate header was left as-is: the acceptance
+criterion is the primary nav (Gate · Vehicle, no desk items), not the account
+menu, and authorization for that link is enforced in the database regardless
+(non-negotiable #3) — an `issuer` gets refused by the RPC either way.
+
+**Visual gate, measured on this machine, not assumed.** `design/reference/`
+does not exist in a fresh worktree (it is gitignored, built by `corepack pnpm
+design:reference` from the frozen source) — copied the already-committed-
+elsewhere reference PNGs in from the main checkout rather than regenerating
+them, so the comparison is against the same frozen contract, not a new
+capture. Full `test:visual` before and after this change, same machine,
+same references:
+
+| Screen | dark/web | light/web | dark/mob | light/mob |
+|---|---|---|---|---|
+| gate, before | 1.46% | 1.46% | 4.66% | 4.65% |
+| gate, after | 1.44% | 1.44% | 4.66% | 4.65% |
+| vehicle, before | 10.87% | 11.40% | 14.54% | 15.06% |
+| vehicle, after | 10.86% | 11.38% | 14.54% | 15.06% |
+
+Neither screen got worse; gate's web numbers moved fractionally better
+(narrower nav bar, closer to the reference's own dimensions — `gate` is the
+one screen in this run whose captured and reference dimensions already
+matched pre-change). These numbers do not match the 1.51/1.50/6.20/6.64%
+recorded in the entry below for the same screen at `1371ef9` — same frozen
+reference, different run, and `docs/DESIGN-SYSTEM.md`'s "CI-vs-local text
+rendering" note already explains why a local macOS number and a prior run's
+number are not expected to match
+exactly — same reasoning, different axis (that note is about CI-vs-local;
+this is local-vs-local on two different runs, but the underlying point that
+sub-pixel-level rendering is not perfectly reproducible run to run stands).
+16 of 20 comparisons still fail overall, same count as the 24 Sep
+entry below — this is the pre-existing frozen lane (ACC-104/107/109), not a
+regression from this task. Full run output and diffs are not committed
+(`test-results/` and `design/reference/` are both gitignored).
+
+`corepack pnpm typecheck && lint && test` all pass (214/214 unit tests).
+`test:e2e` (Playwright) was not run this session — the MCP Playwright server
+in this environment failed to connect; `corepack pnpm test:e2e` itself was
+not attempted from the CLI either, so its current pass/fail state for this
+change is unverified, not claimed.
+
 ### 24 Sep 2026 — Phase R pushed and deployed; the visual gate's real numbers
 
 `main` had been **44 commits ahead of `origin/main`** — all of Phase R,

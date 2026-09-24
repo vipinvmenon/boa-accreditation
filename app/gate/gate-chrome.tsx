@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { NAV } from '@/lib/design'
+import { GATE_NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
@@ -31,7 +31,7 @@ export function GateChrome({
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLElement>(null)
   const theme = useDomTheme()
-  const active = NAV.find((item) => item.href === pathname)?.id
+  const active = GATE_NAV.find((item) => item.href === pathname)?.id
 
   function closeMobileMenu() {
     setMobileOpen(false)
@@ -172,8 +172,8 @@ export function GateChrome({
       <div className="frame">
         <header className="nav-wrap">
           <nav className="island" aria-label="Gate navigation">
-            <Link href="/gate" className="brand" aria-label="Bangalore Open Air"><img src="/assets/boa-logo.png" alt="Bangalore Open Air" /><span>Accred<br />desk</span></Link>
-            <div className="links"><span className="pip" aria-hidden="true" />{NAV.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>)}</div>
+            <Link href="/gate" className="brand" aria-label="Bangalore Open Air"><img src="/assets/boa-logo.png" alt="Bangalore Open Air" /><span>Accred<br />gate</span></Link>
+            <div className="links"><span className="pip" aria-hidden="true" />{GATE_NAV.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>)}</div>
             <div className="nav-end"><div ref={profileMenuRef} className="profile-wrap"><button ref={profileButtonRef} type="button" className="av" onClick={() => { if (profileOpen) closeProfileMenu(); else { setMobileOpen(false); setProfileOpen(true) } }} aria-controls="gate-profile-menu" aria-expanded={profileOpen} aria-label="Operator menu">VI</button><div id="gate-profile-menu" className="profile-menu" hidden={!profileOpen} aria-label="Operator menu"><div className="profile-head"><strong>Vipin</strong><span>Administrator</span></div><button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme</button><Link href="/desk/users" onClick={closeProfileMenu}>Manage users</Link><button type="button" disabled={signingOut} onClick={() => { closeProfileMenu(); void signOut() }}>{signingOut ? 'Signing out…' : 'Sign out'}</button></div></div><button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
               if (mobileOpen) {
                 closeMobileMenu()
@@ -188,7 +188,7 @@ export function GateChrome({
               gate/vehicle screen's own card, driven by useOutboxSync. */}
           <div className="status"><span className="hide-s">Build 05-09 Oct, show 10 Oct</span><span>{bandsIssued} / {approved} bands issued</span><span className="warn">{bmsPending} not in BMS</span></div>
         </header>
-        <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
+        <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{GATE_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
           closeMobileMenu()
         }}>{item.label}</Link>)}</div>
         <main id="main-content" tabIndex={-1} ref={mainRef}>{children}</main>

@@ -154,11 +154,13 @@ automated visual harness captures only 1360px and 390px.
 `renderVals()` computes the active nav item's colours once (lines 624-632),
 shared by every screen: `background: grnbg` (an 8-10% green tint, not a solid
 fill) and `color: dark ? grn : ink` — light theme uses near-black `ink` for
-the label, not green, for contrast against the pale tint. Both `GateChrome`
-and `DeskChrome` render `NAV` independently (gate/desk have different routes
-visible), so this logic is duplicated rather than shared — keep both in sync
-by hand if it changes; `DeskChrome` previously rendered a **solid** green
-background with `on`-coloured text instead (fixed 12 Sep 2026).
+the label, not green, for contrast against the pale tint. `GateChrome` and
+`DeskChrome` each render their own nav constant (`GATE_NAV` and `DESK_NAV`
+respectively, `lib/design.ts` — split from one shared `NAV` in ACC-132 so a
+volunteer's gate device shows Gate · Vehicle only, never the desk screens),
+so this logic is duplicated rather than shared — keep both in sync by hand if
+it changes; `DeskChrome` previously rendered a **solid** green background
+with `on`-coloured text instead (fixed 12 Sep 2026).
 
 ## Hover states
 

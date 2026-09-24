@@ -154,12 +154,25 @@ export function passType(code: PassTypeCode) {
  * gone, and the org screen — kept because it is how the admin creates real
  * organisations, no longer how invite links are minted — is relabelled
  * "Organisations".
+ *
+ * ACC-132: the design source's own `.island` nav is one preview tool's
+ * furniture that lists every screen at once (SCREENS, all 7 entries) so a
+ * reviewer can jump between them — it is not a literal transcription target,
+ * the same way the Web/Mob toggle and the "Live" pip were not (ACC-130).
+ * A volunteer's gate device is not a desk operator's device: `DeskChrome`
+ * renders `DESK_NAV` (the desk screens; Gate/Vehicle reachable but not as
+ * primary nav) and `GateChrome` renders `GATE_NAV` only (Gate · Vehicle) —
+ * no Control room / Master list / Passes / Organisations link ships on a
+ * volunteer's screen.
  */
-export const NAV = [
+export const DESK_NAV = [
   { id: 'dashboard', label: 'Control room', href: '/desk' },
   { id: 'master', label: 'Master list', href: '/desk/master' },
   { id: 'pass', label: 'Passes', href: '/desk/passes' },
   { id: 'orgs', label: 'Organisations', href: '/desk/orgs' },
+] as const
+
+export const GATE_NAV = [
   { id: 'gate', label: 'Gate', href: '/gate' },
   { id: 'vehicle', label: 'Vehicle', href: '/gate/vehicle' },
 ] as const
