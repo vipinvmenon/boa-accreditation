@@ -1053,6 +1053,35 @@ all still stand.
 
 ## Session log
 
+### 24 Sep 2026 — ACC-136: desk nav verified already correct; stale ROADMAP wording reconciled to ADR-019
+
+ACC-136's ROADMAP entry still read "Control room · Master list · Passes ·
+Queue; Orgs & users; Devices/Users in account menu" — wording written before
+ADR-019 (22 Sep) retired Queue and Devices. Read `app/desk/desk-chrome.tsx`
+and `lib/design.ts`'s `NAV` constant directly rather than trusting either
+document: `NAV` is `[dashboard→/desk "Control room", master→/desk/master
+"Master list", pass→/desk/passes "Passes", orgs→/desk/orgs "Organisations",
+gate→/gate "Gate", vehicle→/gate/vehicle "Vehicle"]`, and the profile menu in
+the same file has exactly one link, `Manage users` → `/desk/users` — no
+Devices link anywhere. Confirmed `app/desk/` on disk has only `passes/`,
+`orgs/`, `master/`, `users/`, `login/` — no `queue/`, `devices/`, `aaa/`, or
+`operators/` directories, so `/desk/queue` and `/desk/devices` cannot render
+even before hitting a route. Grepped the whole app/lib/components tree for
+`desk/queue`, `desk/devices`, `desk/operators`: the only hits are `/desk/users`
+history comments and `/api/desk/operators` (a live, unrelated API route), no
+dangling references to the retired screens. This matches, and does not
+contradict, CURRENT-STATE's "Phase R shipped" section above and the 24 Sep
+production 404 check already recorded there — this entry adds direct
+code/filesystem verification of the same claim, not a new one.
+
+**No code change was needed for the nav itself.** ACC-136's implementation
+work was already done by the Phase R merge; what was undone was the ROADMAP
+entry describing it. Reconciled that entry (line 379) to state the ADR-019
+nav plainly and to say why the old wording was wrong, rather than deleting the
+history. `test:visual`'s control-room numbers were not touched by this task
+(no chrome files were edited) — they stand as recorded just below, 13.17% /
+13.43% / 25.82% / 25.81%, unchanged.
+
 ### 24 Sep 2026 — Phase R pushed and deployed; the visual gate's real numbers
 
 `main` had been **44 commits ahead of `origin/main`** — all of Phase R,
