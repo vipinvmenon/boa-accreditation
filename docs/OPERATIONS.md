@@ -53,6 +53,115 @@ intact.
 by organisation, and blank issue sheets. If every phone fails, the ledger is
 reconstructed from paper afterwards.
 
+## ACC-147 rehearsal — two issuers, two phones, own accounts
+
+**This is the acceptance criterion for ACC-147.** Everything else — the search,
+the scan, the outbox, the sync — has been verified by an agent (`typecheck`,
+`lint`, `test`, `test:db`, `test:e2e` including the aeroplane-mode and
+two-phone-sync suites, `build`, all green as of this writing). None of that
+substitutes for two real people on two real phones. No agent can perform this;
+it must be run by Vipin and one other person before **Wed 30 Sep**, and the
+result recorded in `CURRENT-STATE.md` with a date and both names — not just
+this checklist ticked.
+
+**Before you start**
+
+1. At `/desk/users`, invite two `issuer` operators if they don't already exist
+   — real email addresses, one per person. Each sets their own password from
+   the invite email.
+2. A roster must exist in the database (ACC-145's first real import, or, if
+   that has not run yet, at least a handful of test people approved through
+   `/desk/queue` so the two phones have something to scan). **Zero people
+   approved means zero rows on either phone — do this rehearsal after there
+   is real data, or seed a few test people first and remove them after.**
+3. Two phones, on the same WhatsApp/mobile network initially, each able to
+   turn its own radio (aeroplane mode) on and off independently of the other.
+   A QR code on paper or a second screen to scan is useful but not required —
+   *Search by name* (ACC-131) is a first-class path and this rehearsal
+   exercises it deliberately.
+4. Know how to reach `/desk/master?in_bms=false` or the Control room from a
+   laptop, to watch the ledger fill in from both phones.
+
+**Steps — Issuer A and Issuer B, on their own phones**
+
+1. **Both issuers, with signal:** open a browser, go to `/gate`. Not signed
+   in yet → redirected to `/desk/login?next=%2Fgate`. Log in with your own
+   issuer email and password.
+2. **You SHOULD SEE:** back on `/gate`, the header **"Point at the pass
+   code"** and, under it, **"N approved passes held on this device"** with a
+   sync line under that reading **"Last synced HH:MM · 0 queued"**. If the
+   roster is empty, you instead see **"No list on this phone"** — stop and
+   fix step 2 of "Before you start" before continuing.
+3. **Both issuers:** turn on aeroplane mode (radio fully off, not just
+   Wi-Fi). Confirm the phone shows no bars/no Wi-Fi icon.
+4. **You SHOULD SEE:** the status line changes to **"Offline | 0 queued"**.
+   The scanner still shows **"Ready"** / *"Hold the pass code inside the
+   frame. Works with the radio off."* — nothing about being offline blocks
+   the screen.
+5. **Issuer A:** tap **"Can't scan? Search by name"**, type two or more
+   letters of a real approved person's name (or, if the roster has a phone
+   number, the last four digits). **You SHOULD SEE** a ranked list of
+   matches appear as you type, each row showing name, org, role and band
+   colour. Tap one.
+6. **You SHOULD SEE:** the right-hand panel turns **green**, headed
+   **"Approved"**, with the person's name, org, role, band colour and the
+   six-zone strip. Type a band serial (or leave it blank — both are valid;
+   nothing is pre-printed or pre-assigned). Tap **"Issue wristband"**.
+7. **You SHOULD SEE:** the button changes to **"Wristband issued"** (now
+   disabled) and a status line reads **"Wristband recorded on this device.
+   It syncs when signal returns."** The "Offline | n queued" chip now reads
+   **"Offline | 1 queued"**.
+8. **Issuer A, same phone, same person, still offline:** tap **"Next
+   person"**, then find the *same* person again (scan or search) and check
+   in. **You SHOULD SEE amber**, headed **"Collected"**, with the exact line
+   *"Issued HH:MM · [gate label] by [Issuer A's name]"* — this is the local
+   double-tap guard and the pending-outbox amber case, both working with the
+   radio still off.
+9. **Issuer B, on the second phone, also offline, at the same time as step
+   5–7:** find and check in a **different** approved person the same way.
+   Confirm B also sees green → issue → **"Offline | 1 queued"**.
+10. **The double-issue case (ACC-148):** with both phones still offline,
+    **Issuer B finds the same person Issuer A checked in at step 6** (search
+    by name — this is the realistic case: no signal, no way for B's phone to
+    know A already did it) and issues a *second* band to them, with a
+    *different* serial than A used. **You SHOULD SEE green on B's phone**,
+    not amber — this is the accepted gap ADR-020 names explicitly: two
+    offline phones cannot stop each other. Confirm it does **not** error or
+    block.
+11. **Both issuers:** turn the radio back on.
+12. **You SHOULD SEE, within about a minute (per OFFLINE-SYNC.md's
+    convergence bound — issue posts immediately, the other phone re-pulls
+    within 45s + a 5s tick):** the "Offline | n queued" chip changes to
+    **"Online | 0 queued"** and **"Last synced HH:MM"** updates on both
+    phones.
+13. **On a laptop, open the Control room (`/desk`).** **You SHOULD SEE** a
+    section headed **"1 person holds two live bands"** (or more, if you
+    staged more than one double issue), listing the double-issued person's
+    name and org, both band serials, both issuers' real names, both gate
+    labels and both issue times, under the caption *"Caught after sync · Both
+    bands are on record. Void the spare next time this person is at the
+    gate."* **Neither ledger row is missing or overwritten** — this is the
+    point of non-negotiable #2; if a serial or an issuer name is blank or
+    wrong, that is a defect, not an acceptable gap.
+14. **On the same laptop**, confirm `/desk/master` shows both people (A's
+    first pick and B's pick) as checked in, and the person from step 10 shows
+    two check-in events if you open their row detail.
+15. **Sign-off:** once 1–14 all match what they SHOULD SEE, record in
+    `CURRENT-STATE.md`: the date, both issuers' real names, both phone
+    models/browsers used, and any deviation from the steps above (however
+    small — a wrong verdict colour, a chip that didn't update, a delay past a
+    minute). **Do not tick ACC-147 in `docs/ROADMAP.md` from this rehearsal
+    alone if step 3 was skipped because a phone could not reach aeroplane
+    mode, or if the roster used was test data rather than real approved
+    people** — say so plainly instead.
+
+**What this rehearsal does not cover:** iOS Safari's `zxing-wasm` fallback
+path (ACC-053b — still unverified on a real iPhone as of this writing; if
+neither phone is an iPhone, the camera-scan path is only proven on
+`BarcodeDetector`-capable Android/Chromium, and *Search by name* is the only
+proven path on iOS until ACC-053b is separately closed), and the vehicle
+barrier (ACC-109/ACC-058, a separate rehearsal).
+
 ## Vehicle barrier
 
 Sticker **and** wristband. Both, or neither.
