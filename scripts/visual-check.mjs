@@ -218,6 +218,30 @@ async function seedGateDexie(page, { vehicle = false } = {}) {
         })
       : route.fallback(),
   )
+  // ACC-109: the gate's uplink, mocked the way /api/desk/* is mocked.
+  //
+  // Until this existed, `/api/gate/pull` and `/api/gate/issue` were the only
+  // reads in this harness that reached the real server. With no operator
+  // session they answer 401, which `gate/outbox-policy.ts` classifies as
+  // 'auth' — so `needsLogin` went true and `app/gate/page.tsx` appended
+  // "| not syncing, sign in again" to the `.meta` row. At 390px that wraps to
+  // a second line and the gate rendered 16px taller than the frozen source.
+  // The number therefore depended on whether a gitignored `.env.local`
+  // happened to be present: 1615px with it, 1599px without. A fidelity gate
+  // that measures a different screen on two machines is not a gate, and the
+  // 24 Sep ACC-132 session log records a whole session lost to exactly that.
+  //
+  // 503 is the right answer, not 200-with-a-payload: the approved reference
+  // draws an OFFLINE gate ("Offline, 3 queued"), the capture puts the context
+  // offline a moment later, and non-negotiable #7 says every read comes from
+  // Dexie anyway. `classifyFailure` treats 503 as 'transient', so the three
+  // queued entries stay pending and the counter still reads 3 — whereas a
+  // 200 would make `pullGate` clear and replace the seeded roster, measuring
+  // the mock instead of the cache. Nothing here relaxes a comparison; it
+  // removes a network dependency the screen is specified not to have.
+  const uplinkDown = (route) => route.fulfill({ status: 503, json: { error: 'offline' } })
+  await page.route(/\/api\/gate\/pull(\?|$)/, uplinkDown)
+  await page.route(/\/api\/gate\/issue(\?|$)/, uplinkDown)
   await page.evaluate(({ vehicle, person, plate, time, recentIssues }) => new Promise((resolve, reject) => {
     const request = indexedDB.open('boa-accreditation-gate')
     request.onerror = () => reject(request.error)
@@ -632,6 +656,15 @@ try {
         // once as a blank gap where it scrolled from, once frozen mid-page.
         // Resetting scroll before the shot is the fix, not a settle delay.
         await page.evaluate(() => window.scrollTo(0, 0))
+        // ACC-109: and park the cursor off-canvas for the same reason.
+        // Playwright leaves the mouse where it last clicked, so the vehicle
+        // capture held `:hover` on "Log entry and open gate" through the
+        // screenshot. `app/hover.css`'s `.hov-invert-grn` inverts that button
+        // to transparent-with-green-text, against a frozen source that draws
+        // it filled green — 2.45% of vehicle/web's diff was one hover state
+        // the reference never had. The hover rules are correct and stay
+        // untouched; the capture simply must not sit on top of a control.
+        await page.mouse.move(0, 0)
         await page.waitForTimeout(250)
 
         const landedOn = new URL(page.url()).pathname

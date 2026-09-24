@@ -539,6 +539,25 @@ org list wins: `task block` the redesign task with a reason and commit it.
       The 59-asset count is historical evidence from that earlier build; the
       later inspected generated worker contains 60 entries (see
       `CURRENT-STATE.md`).
+      **Diagnosed 24 Sep — the app is not what is failing.** `design/reference/`
+      was captured 20 Sep from `2d4d6e0`; the frozen source moved at `418b416`
+      (21 Sep) and `052bf93` (24 Sep, ACC-130 deleted both result-panel tab
+      rows) and was never re-captured, so the PNGs are two commits behind the
+      contract they render. Against a reference regenerated from the **current**
+      frozen source, Gate measures **0.31/0.32/0.38/0.37%** and Vehicle
+      **0.40/0.40/0.25/0.26%** — all eight variants under the bar, dimensions
+      exact, **with no application-code change**. The two residuals were both
+      harness artefacts and are fixed in `scripts/visual-check.mjs`:
+      `/api/gate/pull` and `/api/gate/issue` were unmocked (401 → `needsLogin`
+      → the `.meta` row wraps → +16px; the `.env.local` trap the 24 Sep ACC-132
+      entry chased), and Playwright left `:hover` parked on the vehicle CTA
+      (2.45 of Vehicle/web's 2.86%). `test:e2e` **26/26**; build emits **55**
+      precached assets (2 routes, 25 scripts, 1 css, 24 fonts, 1 wasm).
+      **Blocked on one sanctioned regeneration of `design/reference/` from the
+      current frozen source** (the ACC-100 precedent — not a re-baseline; the
+      contract does not move), which is Vipin's call because it also rebases
+      ACC-104/106/107. Full measurement in the 24 Sep CURRENT-STATE entry.
+      **On the 2 Oct hard stop: v2 is reachable — do not revert to v1.**
       Latest targeted evidence after `ffb03c1` (20 Sep 2026) measured Gate
       **2.21/0.19/2.78/0.49%** and Vehicle **6.72/0.54/10.92/1.35%**
       (dark/web, light/web, dark/mobile, light/mobile), with exact dimensions

@@ -1129,6 +1129,119 @@ generic 48px.
 any of these four routes (`docs/COPY.md` confirms none has a
 `design/source/boa_design_body.html` counterpart) — not run against this
 change for that reason, per the task brief.
+> **ACC-109 released 2026-09-24 (IST):** design/reference is stale, not the app: captured 20 Sep from 2d4d6e0, but boa_design_v2.html moved at 418b416 (21 Sep) and 052bf93 (24 Sep, ACC-130 removed both result-panel tab rows). Against a reference regenerated from the CURRENT frozen source, gate measures 0.31/0.32/0.38/0.37% and vehicle 0.40/0.40/0.25/0.26% - all eight variants under 0.8%, dimensions exact, with ZERO app-code change. The two residuals were harness artefacts, both now fixed in scripts/visual-check.mjs: /api/gate/pull+issue were unmocked (401 -> needsLogin -> the .meta row wraps -> +16px, the .env.local trap) and Playwright left :hover parked on the vehicle CTA (2.45 of vehicle/web's 2.86%). test:e2e 26/26 green; build emits 55 precached assets. BLOCKED ON: one sanctioned regeneration of design/reference from the current frozen source (ACC-100 precedent) - NOT a re-baseline, the contract does not move - which is Vipin's call because it also rebases ACC-104/106/107. 2 Oct hard stop: v2 IS reachable, do not revert the gate to v1.
+
+## Session log
+
+### 24 Sep 2026 — ACC-109: `design/reference/` is two commits behind its own source; the app already reproduces v2
+
+**The headline, because it changes what every pixel task is measured against:
+`design/reference/` was captured on 20 Sep from `2d4d6e0` and the frozen
+`design/source/boa_design_v2.html` has been edited twice since** — `418b416`
+(21 Sep, local Phosphor icon font) and `052bf93` (24 Sep, ACC-130/131/133,
+which removed the gate's Scanning/Approved/Collected/Refuse tab row and the
+vehicle's Cleared/Band-missing/Not-registered tab row as sanctioned edits
+under non-negotiable #1). Neither commit re-captured the reference.
+`manifest.json` says `capturedAt: 2026-09-20T15:41:50.646Z`; `git log
+-- design/source/boa_design_v2.html` says the source moved on 21 and 24 Sep.
+**So the PNGs in `design/reference/` no longer render the contract they claim
+to render**, and the gate/vehicle numbers recorded on 24 Sep were measured
+against a stale artefact.
+
+**Reproduced first, exactly, before touching anything.** `.env.local` and
+`design/reference/` were copied in from the main checkout (both gitignored,
+absent in a fresh worktree); `shasum -a 256` on all eight `gate-*`/`vehicle-*`
+PNGs is byte-identical to the main checkout, before and after this session —
+re-verified at the end, nothing was re-captured into `design/reference/`.
+With `.env.local` present the recorded figures reproduced: gate
+**1.49/1.48/6.20/6.64%** (390x1615 on mobile) and vehicle
+**10.87/11.39/14.58/15.10%**, matching the 24 Sep ACC-132 entry.
+
+**How the staleness was proved, rather than inferred.** A throwaway script
+drove the frozen `boa_design_v2.html` and the built app side by side and read
+every section's bounding box, the ACC-104 method. On gate/web and vehicle/web
+**every box matches to the pixel** — `.head`, `.split`, both `.bz` columns,
+`.vf`, `.last`, `.plate-in`, `.note`, `.checks`, `.dock`, `footer` — and the
+document heights agree (1530 and 1230). The *reference PNGs* are 1294 for
+vehicle/web against both sides' 1230: exactly the 64px tab row ACC-130
+deleted. Cropping the reference at y 458-618 shows the
+`SCANNING · APPROVED · COLLECTED · REFUSE` segment control still drawn in it
+and absent from both the current source and the app.
+
+**Measured against a reference regenerated from the current frozen source**
+(captured into `test-results/probe/`, never into `design/reference/`):
+
+| | dark/web | light/web | dark/mob | light/mob |
+|---|---|---|---|---|
+| gate, before the harness fix | 0.36% | 0.36% | 4.31% | 4.77% |
+| vehicle, before the harness fix | 2.86% | 2.85% | 0.29% | 0.30% |
+| **gate, after** | **0.31%** | **0.32%** | **0.38%** | **0.37%** |
+| **vehicle, after** | **0.40%** | **0.40%** | **0.25%** | **0.26%** |
+
+All eight under the 0.8% bar, with dimensions matching exactly on all eight.
+**No application code was changed to get there** — `git diff` for this task
+touches `scripts/visual-check.mjs` and these docs and nothing else. No diff in
+`gate/db.ts`, `gate/roster.ts` or the outbox (ROADMAP's presentation-only
+constraint), and none in `app/gate/`.
+
+**The two residuals were both harness artefacts, and both are now fixed in
+`scripts/visual-check.mjs`.** Neither fix relaxes a comparison.
+
+1. **The unmocked gate uplink — the `.env.local` trap, now closed.** The
+   harness mocked `/api/desk/*` and `/api/gate/session` but not
+   `/api/gate/pull` or `/api/gate/issue`, so those were the only reads that
+   reached a real server. With no operator session they answer 401,
+   `gate/outbox-policy.ts` classifies 401 as `'auth'`, `needsLogin` goes true,
+   and `app/gate/page.tsx` appends `| not syncing, sign in again` to the
+   `.meta` row. At 390px that wraps to a second line: **+16px, and the whole
+   screen below it shifted** — the 1615-vs-1599 discrepancy the 24 Sep ACC-132
+   entry ran down and left open. Both routes now answer **503**, not 200:
+   the approved reference draws an offline gate ("Offline, 3 queued"), the
+   capture goes offline a moment later, `classifyFailure` treats 503 as
+   `'transient'` so the three queued entries stay pending and the counter
+   still reads 3 — whereas a 200 would make `pullGate` clear and replace the
+   seeded roster and we would be measuring the mock instead of the cache.
+2. **A hover state the reference never had.** Playwright leaves the cursor
+   where it last clicked, so the vehicle capture held `:hover` on "Log entry
+   and open gate" through the screenshot; `app/hover.css`'s `.hov-invert-grn`
+   inverts that button to transparent-with-green-text against a source that
+   draws it filled green. That one hover was **2.45 of vehicle/web's 2.86%**.
+   The capture now parks the mouse at (0,0) before the shot, beside the
+   existing `scrollTo(0, 0)` reset and for the same reason. The hover rules
+   themselves are correct and untouched.
+
+**What this does not touch.** `control-room` (13.17/13.43/25.82/25.81%),
+`master` (0.64/0.65/0.15/0.14%) and `passes` (7.00/5.25/5.96/5.28%)
+re-measured byte-identical to their 24 Sep figures after the harness change,
+so the fix is confined to the gate screens. Against the regenerated probe
+reference ACC-104 still measures 13.17/13.38/25.78/25.78% and ACC-107 still
+measures 6.94/5.19/5.92/5.25% — **the stale reference is not what is wrong
+with those two**, and ACC-104's `.bands3` diagnosis stands unchanged.
+
+**`corepack pnpm test:e2e` passes 26/26**, including all ten gate
+aeroplane-mode tests and the three `vehicle gate (ACC-109)` tests. The build
+emits **55 precached assets (2 routes, 25 scripts, 1 css, 24 fonts, 1 wasm)**
+— lower than the 59/60 in the ROADMAP's history because ADR-019 removed
+routes, not because precaching regressed. `typecheck`, `lint` (0 errors,
+5 pre-existing `no-img-element` warnings), `test` (214/214) and `check:sql`
+(37 migrations) all pass.
+
+**ACC-109 is blocked, not ticked, and the reason is deliberately narrow.**
+The acceptance criterion is ≤0.8% on four variants of both screens, and that
+is met against the frozen source — but `corepack pnpm test:visual` reads
+`design/reference/`, which is stale, so the gate does not go green and a tick
+would be a claim the gate does not support (non-negotiable #10). **What is
+needed is one sanctioned regeneration of `design/reference/` from the current
+frozen source** — the ACC-100 precedent. That is not re-baselining: the
+contract is `design/source/boa_design_v2.html` and it does not move one pixel;
+`capture-design-reference.mjs` only re-derives the generated PNGs from it.
+It was deliberately **not** done here, because it changes what ACC-104, ACC-106
+and ACC-107 are measured against and that is Vipin's call, not an agent's.
+
+**Read on the 2 Oct hard stop: v2 is reachable, and the gate should not be
+reverted to v1.** The remaining work is one command plus a re-run, not a
+redesign. The gate and vehicle screens already reproduce the v2 contract on
+all four variants each, with no application change outstanding.
 
 ### 24 Sep 2026 — ACC-136: desk nav verified already correct; stale ROADMAP wording reconciled to ADR-019
 
