@@ -101,6 +101,17 @@ export const metaKeySchema = z.enum([
   // full outbox drain, rendered as "Last synced". Not indexed; no version bump.
   'lastPullAt',
   'lastDrainAt',
+  /**
+   * Who is signed in on this phone, cached so the gate can render the right
+   * chrome with the radio off (non-negotiable #7). The role only ever arrives
+   * from `/api/gate/session`, which is online-only, so without this a phone
+   * that boots offline knows its operator's id but not whether they are an
+   * issuer or an admin. Display only: every authorisation decision is still
+   * the database's (non-negotiable #3), and a stale role here can at worst
+   * show the wrong nav, never grant anything. Not indexed; no version bump.
+   */
+  'operatorRole',
+  'operatorName',
 ])
 
 export const metaRowSchema = z.object({

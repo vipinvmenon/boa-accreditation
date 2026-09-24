@@ -51,6 +51,12 @@ export async function pullGate(): Promise<GateSnapshot> {
     await gateDb.ledger.bulkPut(snapshot.ledger)
     const rows = [
       { key: 'operatorId' as const, value: parsed.data.operatorId },
+      // The pull has always carried the role and thrown it away. Caching it
+      // is what lets the gate draw a lead's chrome rather than a volunteer's
+      // after an offline boot (gate/use-operator.ts). Display only — every
+      // authorisation decision is still the database's.
+      { key: 'operatorRole' as const, value: parsed.data.operatorRole },
+      { key: 'operatorName' as const, value: parsed.data.volunteerName },
       { key: 'schemaVersion' as const, value: 1 },
       { key: 'gateLabel' as const, value: snapshot.meta.gateLabel },
       { key: 'volunteerName' as const, value: snapshot.meta.volunteerName },

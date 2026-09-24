@@ -3,12 +3,23 @@
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { GATE_NAV } from '@/lib/design'
+import { DESK_NAV, GATE_NAV } from '@/lib/design'
+import { useGateOperator, initialsOf, type GateOperator } from '@/gate/use-operator'
 import { SiteFooter } from '@/components/site-footer'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { loginHref } from '@/gate/session'
+
+/**
+ * Only the three roles that can stand at a gate reach this chrome; the desk's
+ * own ROLE_LABEL covers approvers too, which cannot be one of these.
+ */
+const GATE_ROLE_LABEL: Record<GateOperator['role'], string> = {
+  issuer: 'Issuer',
+  lead: 'Lead',
+  admin: 'Admin',
+}
 
 export function GateChrome({
   children,
@@ -31,7 +42,18 @@ export function GateChrome({
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLElement>(null)
   const theme = useDomTheme()
-  const active = GATE_NAV.find((item) => item.href === pathname)?.id
+  /**
+   * ACC-132 drew a volunteer's chrome for anyone on /gate, so a lead or admin
+   * who tapped Vehicle from the desk was stranded with no way back (Vipin,
+   * 24 Sep). The chrome follows the PERSON now: a desk operator keeps the desk
+   * navigation wherever they stand, and only an issuer gets the two-tab gate.
+   * `null` while unknown draws the issuer view — the narrowest, so a
+   * volunteer never sees desk links flash past on a slow boot.
+   */
+  const operator = useGateOperator()
+  const isDeskOperator = operator !== null && operator.role !== 'issuer'
+  const nav = isDeskOperator ? DESK_NAV : GATE_NAV
+  const active = nav.find((item) => item.href === pathname)?.id
 
   function closeMobileMenu() {
     setMobileOpen(false)
@@ -173,8 +195,8 @@ export function GateChrome({
         <header className="nav-wrap">
           <nav className="island" aria-label="Gate navigation">
             <Link href="/gate" className="brand" aria-label="Bangalore Open Air"><img src="/assets/boa-logo.png" alt="Bangalore Open Air" /><span>Accred<br />gate</span></Link>
-            <div className="links"><span className="pip" aria-hidden="true" />{GATE_NAV.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>)}</div>
-            <div className="nav-end"><div ref={profileMenuRef} className="profile-wrap"><button ref={profileButtonRef} type="button" className="av" onClick={() => { if (profileOpen) closeProfileMenu(); else { setMobileOpen(false); setProfileOpen(true) } }} aria-controls="gate-profile-menu" aria-expanded={profileOpen} aria-label="Operator menu">VI</button><div id="gate-profile-menu" className="profile-menu" hidden={!profileOpen} aria-label="Operator menu"><div className="profile-head"><strong>Vipin</strong><span>Administrator</span></div><button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme</button><Link href="/desk/users" onClick={closeProfileMenu}>Manage users</Link><button type="button" disabled={signingOut} onClick={() => { closeProfileMenu(); void signOut() }}>{signingOut ? 'Signing out…' : 'Sign out'}</button></div></div><button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
+            <div className="links"><span className="pip" aria-hidden="true" />{nav.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>)}</div>
+            <div className="nav-end"><div ref={profileMenuRef} className="profile-wrap"><button ref={profileButtonRef} type="button" className="av" onClick={() => { if (profileOpen) closeProfileMenu(); else { setMobileOpen(false); setProfileOpen(true) } }} aria-controls="gate-profile-menu" aria-expanded={profileOpen} aria-label="Operator menu">{operator ? initialsOf(operator.displayName) : '··'}</button><div id="gate-profile-menu" className="profile-menu" hidden={!profileOpen} aria-label="Operator menu"><div className="profile-head"><strong>{operator ? operator.displayName : 'Signed in'}</strong><span>{operator ? GATE_ROLE_LABEL[operator.role] : '—'}</span></div><button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme</button>{isDeskOperator && <Link href="/desk/users" onClick={closeProfileMenu}>Manage users</Link>}<button type="button" disabled={signingOut} onClick={() => { closeProfileMenu(); void signOut() }}>{signingOut ? 'Signing out…' : 'Sign out'}</button></div></div><button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
               if (mobileOpen) {
                 closeMobileMenu()
               } else {
@@ -188,7 +210,7 @@ export function GateChrome({
               gate/vehicle screen's own card, driven by useOutboxSync. */}
           <div className="status"><span className="hide-s">Build 05-09 Oct, show 10 Oct</span><span>{bandsIssued} / {approved} bands issued</span><span className="warn">{bmsPending} not in BMS</span></div>
         </header>
-        <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{GATE_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
+        <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{nav.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
           closeMobileMenu()
         }}>{item.label}</Link>)}</div>
         <main id="main-content" tabIndex={-1} ref={mainRef}>{children}</main>

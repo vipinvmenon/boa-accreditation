@@ -448,6 +448,59 @@ test.describe('gate aeroplane mode', () => {
     await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
   })
 
+  test('a lead or admin keeps the desk navigation on the gate; an issuer does not', async ({ page }) => {
+    // ACC-132 drew a volunteer's chrome for anyone standing on /gate, so an
+    // admin who tapped Vehicle from the desk was stranded there. The chrome
+    // follows the person now, not the path.
+    await page.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        json: { ...SESSION, displayName: 'Vipin Menon', role: 'admin' },
+      })
+    })
+    await page.route('**/api/gate/pull', async (route: Route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', json: PULL })
+    })
+    await page.goto('/gate')
+
+    const nav = page.getByRole('navigation', { name: 'Gate navigation' })
+    await expect(nav.getByRole('link', { name: 'Control room' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Master list' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Organisations' })).toBeVisible()
+
+    // And the identity is the person signed in, not the hardcoded "VI/Vipin/
+    // Administrator" every issuer's phone used to show.
+    await page.getByRole('button', { name: 'Operator menu' }).click()
+    await expect(page.getByText('Vipin Menon')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Manage users' })).toBeVisible()
+  })
+
+  test('an issuer gets the two-tab gate chrome and no desk links at all', async ({ page }) => {
+    await page.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        json: { ...SESSION, displayName: 'Meera Joseph', role: 'issuer' },
+      })
+    })
+    await page.route('**/api/gate/pull', async (route: Route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', json: PULL })
+    })
+    await page.goto('/gate')
+
+    const nav = page.getByRole('navigation', { name: 'Gate navigation' })
+    await expect(nav.getByRole('link', { name: 'Gate' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Vehicle' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Control room' })).toHaveCount(0)
+    await expect(nav.getByRole('link', { name: 'Master list' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Operator menu' }).click()
+    await expect(page.getByText('Meera Joseph')).toBeVisible()
+    // A desk link a volunteer taps and gets refused is a trap, not security.
+    await expect(page.getByRole('link', { name: 'Manage users' })).toHaveCount(0)
+  })
+
   test('a pull that fails on signal offers Try again, not Sign in, and recovers', async ({ page }) => {
     await page.route('**/api/gate/session', async (route: Route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', json: SESSION })
