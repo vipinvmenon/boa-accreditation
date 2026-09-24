@@ -1054,6 +1054,9 @@ all still stand.
 
 > **ACC-104 released 2026-09-24 (IST):** Not a drift: the frozen v2 artboard is a three-band document and ADR-018 made the domain eight-band. Measured at 69405d9 (fixture unchanged): 13.17/13.43/25.82/25.81%, ref 1360x2389 got 1360x2726, ref 390x4665 got 390x6072. Proved by DOM measurement: .bands3 accounts for +395px of the +337px web delta and +1441px of the +1407px mobile delta; every other section is within 80px. Cause is 88c8bd7 (ACC-115) + b790111, which made the Control room render one card per boa_acc_type row and moved the visual fixture from 3 tiers to 8. Forcing the fixture back to 3 tiers as a diagnostic only reaches 4.52/4.80/7.50/7.49% (and the page then runs SHORT: 2302 vs 2389, 4445 vs 4665), because ADR-018 also replaced every string and colour in the card: the artboard draws THE STANDARD/WORKING CREW/POISON GREEN BAND over seven v1 zones, the app draws 500 PRINTED/CREW/PURPLE BAND over the pack's six zones. No honest change closes this. It needs a decision from Vipin: amend the v2 contract's band section to the pack (a change to a frozen file, then one sanctioned re-capture), or restate ACC-104's acceptance. Do NOT re-baseline design/reference to make it pass.
 
+
+> **ACC-107 released 2026-09-24 (IST):** Reproduced 7.00/5.25/5.96/5.28%, web +68px/mob +203px. Diagnosed section-by-section: entire delta is the .zones strip (+33.75px/card), because ADR-018 (6 pack zones, longer labels) vs the frozen v2 artboard's v1 7-zone vocabulary. Same ADR-017/018 conflict as ACC-104, in the zones not the band count. 2 rows web x33.75=68, 6 rows mob x33.75=203 — exact match, no other confounder. No code changed. See CURRENT-STATE.md 24 Sep entry.
+
 ## Session log
 
 ### 24 Sep 2026 — ACC-128: login `checking` skeleton; `app/global-error.tsx` created (did not exist); `reset`→`retry`
@@ -1261,6 +1264,72 @@ not a regression from this task. Full run output and diffs are not committed
 in this environment failed to connect; `corepack pnpm test:e2e` itself was
 not attempted from the CLI either, so its current pass/fail state for this
 change is unverified, not claimed.
+### 24 Sep 2026 — ACC-107 diagnosed: Passes' height regression is the same ADR-017/018 conflict as ACC-104, in the zone strip
+
+**Reproduced first**, clean tree at `d5f72d1` (`chore(ACC-107): start` on top
+of `1371ef9`), `design/reference/` and `.env.local` copied from the main
+checkout and hash-verified identical, fresh `corepack pnpm build`:
+
+| | dark/web | light/web | dark/mob | light/mob |
+|---|---|---|---|---|
+| passes | 7.00% | 5.25% | 5.96% | 5.28% |
+
+Dimensions: **web ref 1360x1987, got 1360x2055** (+68); **mobile ref
+390x4511, got 390x4714** (+203). 7 masked regions (the operator menu plus one
+`.qr-wrap svg` per of the 6 pass cards), 4/4 variants compared. These match
+`docs/CURRENT-STATE.md`'s prior figures exactly, so the regression is
+deterministic.
+
+**Diagnosed section-by-section before any fix**, the same way ACC-104 was: a
+throwaway Playwright script (not committed; written to `scripts/` for
+`node_modules` resolution and deleted afterwards, `git status` clean) drove
+`design/source/boa_design_v2.html`'s own "Passes" screen and the built
+`/desk/passes` route side by side, both fed the identical six-person fixture
+(`scripts/visual-fixtures/desk.mjs`'s `SHEET`, which is byte-identical to the
+artboard's own `PS` array — names, orgs, roles, tiers, refs, vehicles all
+match). Bounding boxes, first card:
+
+| region | ref (v2 artboard) | app (`/desk/passes`) | delta |
+|---|---|---|---|
+| `.ph` | 22 | 22 | 0 |
+| `.who` | 73 | 73 | 0 |
+| `.bandbox` | 80.5 | 80.5 | 0 |
+| **`.zones`** | **61.5** | **95.25** | **+33.75** |
+| `.qr` | 160 | 160 | 0 |
+| `.vehbox` | 48 | 48 | 0 |
+| `.fine` | 51.5 | 51.5 | 0 |
+| card total | 648.5 | 682.25 | +33.75 |
+
+**The zone strip accounts for the entire delta, and the arithmetic ties out
+exactly.** The artboard's `.zones` renders its own frozen `ALLZ` array — v1's
+seven zones, one short word each: `Site | Backstage | Stage | Prod office |
+Bar | Lounges | Artist area`. The app's `.zones` renders `lib/desk-tiers.ts`'s
+`zoneChips()`, which is `lib/design.ts`'s `zoneStrip()` — ADR-018's six pack
+zones, longer names that wrap: `Festival Area | Eddie's Lounge | Promoters
+Lounge | Photo Pit | Backstage | Main Stage`. Six spans instead of seven, but
+the longer labels wrap onto more lines and net +33.75px per card. The passes
+grid is 3-wide on web (2 rows of 6 cards) and 1-wide on mobile (6 rows):
+2 x 33.75 ≈ 68px — the exact web delta; 6 x 33.75 ≈ 203px — the exact mobile
+delta. No other region, no other confounder.
+
+**This is ACC-104's conflict, not a new one.** ADR-018 is explicit that it
+supersedes the 8-Sep design "on tier and zone vocabulary only": "Zones | 7 —
+Site … Artist area (ADR-001) | **6** — Festival Area, Eddie's Lounge,
+Promoters Lounge, Photo Pit, Backstage, Main Stage (this ADR)." The frozen
+`design/source/boa_design_v2.html` still draws the old seven; the app
+correctly draws the pack's six, per ADR-018 and non-negotiable #1's own carve
+-out for ADR-017. The two contracts disagree about the same load-bearing fact
+ACC-104 found — zone vocabulary, not tier count this time — and it resolves
+the same way: only Vipin can pick one of the two documents.
+
+**What was not done, deliberately:** no reference was re-captured, no mask
+added on `.zones` or anywhere else, no threshold touched, the `.qr-wrap svg`
+mask is untouched and still fires (7 masked regions, unchanged). No code was
+changed — the six-region-per-card table above shows every other region
+already matches to the sub-pixel, so there is no independent app-side bug to
+fix underneath the vocabulary conflict. `control-room`, `gate` and `vehicle`
+were not touched. ACC-107 is left unchecked, blocked with this diagnosis.
+
 ### 24 Sep 2026 — ACC-104 diagnosed: the Control room's height regression is ADR-018, not drift
 
 **Reproduced first, at `69405d9` (a clean tree, nothing but the ACC-104
