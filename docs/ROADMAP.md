@@ -374,14 +374,14 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [ ] **ACC-128** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
 - [x] **ACC-129** · Gate safety: vehicle Turn away can log a clear (stale state); gate idles on REFUSE; double issue; scanner over empty cache; outbox drains only after an issue · **C** · due Sun 20
 - [x] **ACC-135** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
-- [ ] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
-- [ ] **ACC-131** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
+- [x] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
+- [x] **ACC-131** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
 - [ ] **ACC-136** · Desk nav (rewritten 22 Sep, ADR-019): Control room · Master list · Passes · Queue; Orgs & users; Devices/Users in account menu · **C** · due Thu 24
 - [ ] **ACC-132** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
 - [-] **ACC-137** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
       **Retired 22 Sep (ADR-019):** replaced by ACC-144 (per-person, not per-org, pass delivery); the band-colour half moves to ACC-133.
-- [ ] **ACC-133** · Sample data that looks real: plate placeholders; one shared outbox-status hook; master-list band colour per theme (from ACC-137) · **C** · due Fri 25
-- [ ] **ACC-134** · Operator copy instead of designer rationale (Vipin reviews factual copy) · **C** · due Mon 28
+- [x] **ACC-133** · Sample data that looks real: plate placeholders; one shared outbox-status hook; master-list band colour per theme (from ACC-137) · **C** · due Fri 25
+- [x] **ACC-134** · Operator copy instead of designer rationale (Vipin reviews factual copy) · **C** · due Mon 28
 
 ## Phase 3 — The desk · Mon 21 – Sat 26 Sep
 
