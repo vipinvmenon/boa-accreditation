@@ -517,7 +517,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
       **Retired 22 Sep (ADR-019):** the `/s/[token]` submission surface is no longer the collection path.
-- [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
+- [~] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
       aeroplane-mode green and the precache count recorded. Post-`6820e49`
       visual output is Gate **2.22/0.28/5.41/4.38%** and Vehicle
       **10.06/10.68/47.38/46.99%** (dark/web, light/web, dark/mobile,
