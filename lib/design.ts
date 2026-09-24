@@ -155,21 +155,28 @@ export function passType(code: PassTypeCode) {
  * organisations, no longer how invite links are minted — is relabelled
  * "Organisations".
  *
- * ACC-132: the design source's own `.island` nav is one preview tool's
- * furniture that lists every screen at once (SCREENS, all 7 entries) so a
- * reviewer can jump between them — it is not a literal transcription target,
- * the same way the Web/Mob toggle and the "Live" pip were not (ACC-130).
- * A volunteer's gate device is not a desk operator's device: `DeskChrome`
- * renders `DESK_NAV` (the desk screens; Gate/Vehicle reachable but not as
- * primary nav) and `GateChrome` renders `GATE_NAV` only (Gate · Vehicle) —
- * no Control room / Master list / Passes / Organisations link ships on a
- * volunteer's screen.
+ * ACC-132: `GateChrome` used to render this whole array too, so a volunteer's
+ * `/gate` device showed the full desk nav (Control room, Master list, Passes,
+ * Organisations) alongside Gate and Vehicle. That is the bug ACC-132 fixes —
+ * a gate device is not a desk operator's device. It is scoped to the gate
+ * side only: `GateChrome` now renders `GATE_NAV` (Gate · Vehicle) and nothing
+ * else, in both the island nav and the mobile drawer. `DeskChrome` keeps
+ * rendering the full six-item set as `DESK_NAV` — a desk lead still needs
+ * Gate and Vehicle in their own nav to reach those screens without typing a
+ * URL, and what a desk operator's nav shows is a separate product decision
+ * (Vipin's), not part of this task. The design source's own `.island` nav is
+ * one preview tool's furniture that lists every screen at once (SCREENS, all
+ * 7 entries) so a reviewer can jump between them — not a literal
+ * transcription target, the same way the Web/Mob toggle and the "Live" pip
+ * were not (ACC-130).
  */
 export const DESK_NAV = [
   { id: 'dashboard', label: 'Control room', href: '/desk' },
   { id: 'master', label: 'Master list', href: '/desk/master' },
   { id: 'pass', label: 'Passes', href: '/desk/passes' },
   { id: 'orgs', label: 'Organisations', href: '/desk/orgs' },
+  { id: 'gate', label: 'Gate', href: '/gate' },
+  { id: 'vehicle', label: 'Vehicle', href: '/gate/vehicle' },
 ] as const
 
 export const GATE_NAV = [
