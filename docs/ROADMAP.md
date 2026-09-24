@@ -493,7 +493,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
 - [-] **ACC-105** · Queue on v2 at ≤0.8%, 4 variants. Read ACC-098's
       native-`<select>` writeup first · **CU** · due Sat 26
       **Retired 22 Sep (ADR-019):** the queue is an exceptions tool now; not worth pixel work.
-- [ ] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27
+- [~] **ACC-106** · Master list on v2 at ≤0.8%, 4 variants · **CU** · due Sun 27
       **Measured 24 Sep at `1371ef9`: 0.64/0.65/0.15/0.14%** (dark/web,
       light/web, dark/mobile, light/mobile) — all four under the bar, which is
       this task's acceptance criterion. Left unticked on purpose: that was a
