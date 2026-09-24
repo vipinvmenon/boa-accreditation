@@ -1054,6 +1054,9 @@ all still stand.
 
 > **ACC-104 released 2026-09-24 (IST):** Not a drift: the frozen v2 artboard is a three-band document and ADR-018 made the domain eight-band. Measured at 69405d9 (fixture unchanged): 13.17/13.43/25.82/25.81%, ref 1360x2389 got 1360x2726, ref 390x4665 got 390x6072. Proved by DOM measurement: .bands3 accounts for +395px of the +337px web delta and +1441px of the +1407px mobile delta; every other section is within 80px. Cause is 88c8bd7 (ACC-115) + b790111, which made the Control room render one card per boa_acc_type row and moved the visual fixture from 3 tiers to 8. Forcing the fixture back to 3 tiers as a diagnostic only reaches 4.52/4.80/7.50/7.49% (and the page then runs SHORT: 2302 vs 2389, 4445 vs 4665), because ADR-018 also replaced every string and colour in the card: the artboard draws THE STANDARD/WORKING CREW/POISON GREEN BAND over seven v1 zones, the app draws 500 PRINTED/CREW/PURPLE BAND over the pack's six zones. No honest change closes this. It needs a decision from Vipin: amend the v2 contract's band section to the pack (a change to a frozen file, then one sanctioned re-capture), or restate ACC-104's acceptance. Do NOT re-baseline design/reference to make it pass.
 
+
+> **ACC-147 released 2026-09-24 (IST):** built and verified as far as an agent can; awaits two-issuer rehearsal on real phones — no roster imported yet (ACC-145), no issuer operators invited yet, ACC-053b (real iPhone zxing-wasm) unverified
+
 ## Session log
 
 ### 24 Sep 2026 — ACC-136: desk nav verified already correct; stale ROADMAP wording reconciled to ADR-019
