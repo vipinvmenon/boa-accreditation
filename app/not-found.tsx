@@ -6,6 +6,10 @@
  * on a fake one would let anyone probe which 22-character strings exist.
  * See docs/SECURITY.md.
  */
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Link not found' }
+
 export default function NotFound() {
   return (
     <main className="utility-auth">

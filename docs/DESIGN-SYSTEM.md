@@ -195,15 +195,37 @@ per element.
 ## Additions to the design, and their justification
 
 The design is a canvas: it has no keyboard, no small screens and no accessibility
-surface. Four additions are made in `app/globals.css`, each minimal:
+surface. Five additions are made in `app/globals.css`, each minimal:
 
 1. `font-size: 16px` floor on form controls — below this iOS zooms on focus.
 2. `:focus-visible` ring in `--grn` — a canvas has no keyboard; an approver on a
-   laptop does. `:focus-visible` only, so a thumb tap leaves no ring.
+   laptop does. `:focus-visible` only, so a thumb tap leaves no ring. Three
+   controls (`.field input`, `.utility-input`, `.serial input` and their
+   containers) already carry the design's own `:focus`/`:focus-within` inset
+   ring in `--grn` (`design/source/boa_design_v2.html`, e.g. `.field
+   input:focus`) — that ring *is* their visible focus indicator, so their
+   `outline: none` is not a bare removal, it is a deliberate swap for the
+   contract's own treatment.
 3. `.sr-only` — for labels the design conveys by position alone.
-4. `prefers-reduced-motion` — standard.
+4. `.skip-link` (ACC-126) — an off-screen link to `#main-content`, first in
+   the DOM on `/desk` and `/gate`, that only becomes visible on
+   `:focus-visible`. Built from existing tokens only (`--panel`, `--ink`,
+   `--grn`, `--r-sm`, `--label`, `--z-tools`) — no new colour.
+5. `prefers-reduced-motion` — standard.
 
 Anything beyond these is a change to the contract and needs Vipin, not an edit.
+
+## Button-label casing (ACC-127)
+
+The contract (`design/source/boa_design_v2.html`) writes every button label in
+**sentence case**: first word capitalised, the rest lowercase except a proper
+noun or an acronym the contract itself capitalises (`WhatsApp`, `CSV`, `BMS`).
+Examples straight from the markup: "Clear the queue", "Open the gate
+scanner", "Manage list", "Approve all", "Export CSV", "Send on WhatsApp",
+"Issue wristband", "Log entry and open gate", "Turn away and log reason".
+Title Case ("Export CSV" written as "Export Csv" or "Sign In") is a
+deviation from the contract, not a style choice — apply sentence case to
+every button label added or touched.
 
 ## Definition of done for any UI task
 

@@ -6,6 +6,10 @@
  * "404, never 403"). Scoped to this route segment (not the root) because the
  * copy is pass-specific, not link-specific.
  */
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Pass not found' }
+
 export default function PassNotFound() {
   return (
     <main className="utility-auth">

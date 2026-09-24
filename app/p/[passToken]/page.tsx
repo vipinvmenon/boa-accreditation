@@ -12,7 +12,12 @@ export const dynamic = 'force-dynamic'
 // Belt and braces with the global robots block in app/layout.tsx and
 // vercel.json's per-path X-Robots-Tag on /p/(.*) — a crawled pass link would
 // publish a credential.
+//
+// ACC-127: title is the neutral "Your pass", never the holder's name — a
+// browser tab, history entry or shared-device tab strip must not leak who a
+// pass belongs to (non-negotiable #9's spirit, applied to metadata too).
 export const metadata: Metadata = {
+  title: 'Your pass',
   robots: { index: false, follow: false, nocache: true },
 }
 

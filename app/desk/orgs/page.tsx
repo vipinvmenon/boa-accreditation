@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { OrgsScreen } from './orgs-screen'
 import { DeskChrome } from '../desk-chrome'
 
@@ -5,6 +6,8 @@ import { DeskChrome } from '../desk-chrome'
 // current on every load — see docs/ARCHITECTURE.md's rendering table
 // ("all /desk/* force-dynamic").
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = { title: 'Organisations' }
 
 export default function OrgsPage() {
   return (

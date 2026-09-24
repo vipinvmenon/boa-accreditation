@@ -1,5 +1,8 @@
+import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { LoginForm } from './login-form'
+
+export const metadata: Metadata = { title: 'Sign in' }
 
 /**
  * Must render per request, never prerender. middleware.ts sends a fresh

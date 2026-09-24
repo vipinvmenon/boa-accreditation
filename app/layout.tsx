@@ -55,7 +55,15 @@ import './v2.css'
 import './phosphor.css'
 
 export const metadata: Metadata = {
-  title: 'BOA Accreditation',
+  // ACC-127: every route below sets its own `title` (a plain string), which
+  // fills the `%s` here. A route that sets no title falls back to `default`.
+  // `/p/[passToken]` deliberately sets neither its own title.template nor a
+  // person's name into `title` — see that route's page.tsx — so a shared
+  // device's tab strip never reads out who is accredited.
+  title: {
+    template: '%s · BOA Accreditation',
+    default: 'BOA Accreditation',
+  },
   description: 'Crew accreditation and wristband check-in for Bangalore Open Air 2026.',
   // Nothing here should ever be indexed: every surface is behind a secret token
   // or a login, and a crawled /p/<pass_token> would publish a credential.

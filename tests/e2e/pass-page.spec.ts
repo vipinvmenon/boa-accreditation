@@ -111,6 +111,10 @@ test.describe('/p/[passToken] (ACC-144)', () => {
 
     // Never the phone (non-negotiable #9) — nowhere on this screen, ever.
     await expect(page.getByText(/\+91/)).toHaveCount(0)
+
+    // ACC-127: a neutral title, never the holder's name — a shared device's
+    // tab strip or history must not read out who this pass belongs to.
+    await expect(page).toHaveTitle('Your pass · BOA Accreditation')
   })
 
   test('an unknown or not-yet-approved token: "This pass is not valid", 404, no distinguishable reason', async ({ page }) => {
