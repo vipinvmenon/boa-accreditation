@@ -27,6 +27,17 @@ export default function GatePage() {
   const [message, setMessage] = useState<string | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
+  /**
+   * What would actually fix the boot error, which is not always "sign in".
+   * A genuinely signed-out issuer never reaches this screen — boot redirects
+   * to the login page before it renders — so offering "Sign in" for every
+   * failure sent a signed-in issuer round a loop, and told an issuer with no
+   * signal to do the one thing that needs signal. Each cause gets its own
+   * action, and an empty roster gets none, because nothing on this phone can
+   * fix it.
+   */
+  const [bootFix, setBootFix] = useState<'signin' | 'retry' | null>(null)
+  const [retrying, setRetrying] = useState(false)
   const [cameraActive, setCameraActive] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -36,6 +47,35 @@ export default function GatePage() {
   const loadCache = useCallback(async () => {
     setSnapshot(await readGateSnapshot())
   }, [])
+
+  /**
+   * The "Try again" action for a pull that failed on signal, not on session.
+   * A session that has lapsed in the meantime still redirects to login, so
+   * the issuer is never left retrying something a retry cannot fix.
+   */
+  const retryPull = useCallback(async () => {
+    setRetrying(true)
+    try {
+      await pullGate()
+      await loadCache()
+      setBootError(null)
+      setBootFix(null)
+    } catch (cause: unknown) {
+      const reason = cause instanceof Error ? cause.message : ''
+      if (reason === 'not_signed_in' || reason === 'not_authorized') {
+        window.location.assign(loginHref())
+        return
+      }
+      if (reason === 'empty_roster') {
+        setBootError('No one has been approved yet, so there is nothing to check in against. The desk loads the roster first.')
+        setBootFix(null)
+      } else {
+        setBootError('Still could not load the approved list. Check signal and try again.')
+      }
+    } finally {
+      setRetrying(false)
+    }
+  }, [loadCache])
 
   /**
    * ACC-150 (ADR-020): the gate is for logged-in issuers. On load, while
@@ -58,7 +98,10 @@ export default function GatePage() {
       setSnapshot(current)
       const empty = current.roster.length === 0 && current.meta.rosterAsOf === null
       if (!navigator.onLine) {
-        if (empty) setBootError('This phone has no approved list yet. Find signal, sign in, and it loads itself.')
+        if (empty) {
+          setBootError('This phone has no approved list yet. Find signal, sign in, and it loads itself.')
+          setBootFix('signin')
+        }
         return
       }
       const check = await checkGateSession()
@@ -80,11 +123,15 @@ export default function GatePage() {
           window.location.assign(loginHref())
           return
         }
-        setBootError(
-          reason === 'empty_roster'
-            ? 'The approved list came back empty, so the scanner stays locked.'
-            : 'Could not load the approved list. Check signal and try again.',
-        )
+        if (reason === 'empty_roster') {
+          // Signed in, reached the server, and nobody is approved yet. No
+          // button belongs here: the desk has to approve someone first.
+          setBootError('No one has been approved yet, so there is nothing to check in against. The desk loads the roster first.')
+          setBootFix(null)
+        } else {
+          setBootError('Could not load the approved list. Check signal and try again.')
+          setBootFix('retry')
+        }
       }
     }
     void boot()
@@ -242,14 +289,25 @@ export default function GatePage() {
           <header className="utility-head">
             <div>
               <div className="tag">Crew check-in</div>
-              <h1 className="h1">No list on this phone</h1>
+              <h1 className="h1">{bootFix === null && bootError ? 'No one approved yet' : 'No list on this phone'}</h1>
             </div>
           </header>
-          <p className="lede">{bootError ?? 'Loading the approved list…'}</p>
-          {bootError && (
+          <p className="lede" role="status">{bootError ?? 'Loading the approved list…'}</p>
+          {bootFix === 'signin' && (
             <a href={loginHref()} className="btn go big wide hov-invert-grn" style={{ marginTop: 26 }}>
               Sign in and load the list
             </a>
+          )}
+          {bootFix === 'retry' && (
+            <button
+              type="button"
+              onClick={() => void retryPull()}
+              disabled={retrying}
+              className="btn go big wide hov-invert-grn"
+              style={{ marginTop: 26 }}
+            >
+              {retrying ? 'Trying…' : 'Try again'}
+            </button>
           )}
         </section>
       </main>

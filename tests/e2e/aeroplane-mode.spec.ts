@@ -437,9 +437,46 @@ test.describe('gate aeroplane mode', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', json: { ...PULL, roster: [] } })
     })
     await page.goto('/gate')
-    await expect(page.getByText('No list on this phone')).toBeVisible()
-    await expect(page.getByText('scanner stays locked', { exact: false })).toBeVisible()
+    await expect(page.getByText('No one approved yet')).toBeVisible()
+    await expect(page.getByText('No one has been approved yet', { exact: false })).toBeVisible()
     await expect(page.getByLabel('Manual scanner input')).toHaveCount(0)
+    // The bug this replaced: a signed-in issuer was told to "Sign in and load
+    // the list". Boot redirects a signed-out issuer before this screen ever
+    // renders, so the only people who see it are already signed in, and
+    // signing in again cannot conjure a roster that does not exist.
+    await expect(page.getByRole('link', { name: 'Sign in and load the list' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
+  })
+
+  test('a pull that fails on signal offers Try again, not Sign in, and recovers', async ({ page }) => {
+    await page.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', json: SESSION })
+    })
+    // Not a first-attempt-only failure: the sync scheduler (ACC-149) re-pulls
+    // on a timer while online and would quietly recover the screen before the
+    // assertions run, which is correct behaviour but races the test. The pull
+    // stays broken until the test itself heals it.
+    let pullWorks = false
+    await page.route('**/api/gate/pull', async (route: Route) => {
+      if (!pullWorks) {
+        await route.fulfill({ status: 500, contentType: 'application/json', json: { error: 'server_error' } })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', json: PULL })
+    })
+    await page.goto('/gate')
+
+    // Signal failed, so the fix is to retry — never to sign in, which would
+    // need the signal the issuer has just been told they are missing.
+    await expect(page.getByText('Check signal and try again', { exact: false })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Sign in and load the list' })).toHaveCount(0)
+
+    // Heal the pull, then press the button. The scheduler's own retry could
+    // now also succeed, so this asserts the screen recovers — not that the
+    // button was the only thing that could have recovered it.
+    pullWorks = true
+    await page.getByRole('button', { name: 'Try again' }).click()
+    await expect(page.getByLabel('Manual scanner input')).toBeVisible()
   })
 })
 
