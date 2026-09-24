@@ -28,7 +28,9 @@ export function DoubleIssuePanel({ count, list }: { count: number; list: DoubleI
       <div className="bz rv"><div className="pl"><div className="list" role="list" aria-label="People holding more than one live band">
         <div className="list-head">
           <span className="mono" style={{ color: 'var(--bad)' }}>Caught after sync</span>
-          <span className="mono">The ledger keeps every band. Void the spare at the gate.</span>
+          {/* ACC-134: "the ledger keeps every band" explained the database's own
+              append-only design, not what the desk should do about it. */}
+          <span className="mono">Both bands are on record. Void the spare next time this person is at the gate.</span>
         </div>
         {list === null ? (
           <div className="li" role="listitem"><div className="sub">The list could not load. Reload the Control room.</div></div>
