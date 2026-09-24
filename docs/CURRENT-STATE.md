@@ -1081,6 +1081,113 @@ nav plainly and to say why the old wording was wrong, rather than deleting the
 history. `test:visual`'s control-room numbers were not touched by this task
 (no chrome files were edited) — they stand as recorded just below, 13.17% /
 13.43% / 25.82% / 25.81%, unchanged.
+### 24 Sep 2026 — ACC-132: gate chrome no longer shows desk nav
+
+**Verified before changing anything:** `GateChrome` (`app/gate/gate-chrome.tsx`)
+and `DeskChrome` (`app/desk/desk-chrome.tsx`) both imported and mapped over
+the same `NAV` constant in `lib/design.ts` — all six items (Control room,
+Master list, Passes, Organisations, Gate, Vehicle) in both the desk header and
+a volunteer's gate header, in the primary island nav and the mobile drawer.
+The brand mark also read "Accred desk" on `/gate`. This was not partially
+done; it was not done at all. `DESIGN-SYSTEM.md`'s "Active nav item" section
+already claimed "`GateChrome` and `DeskChrome` render `NAV` independently
+(gate/desk have different routes visible)" — that sentence was aspirational,
+not a description of the code.
+
+**Fix, scoped to the gate side only.** Split `NAV` into `DESK_NAV` and
+`GATE_NAV` in `lib/design.ts`. `GateChrome` now renders only `GATE_NAV`
+(Gate · Vehicle), in both the island nav and the mobile drawer, and its brand
+text now reads "Accred gate". `DESK_NAV` keeps **all six** items the desk
+already shipped with — Control room, Master list, Passes, Organisations,
+Gate, Vehicle — unchanged from before this task; `DeskChrome`'s rendering did
+not change. An earlier version of this change also shrank `DESK_NAV` to four
+items, dropping Gate/Vehicle from the desk's own nav — caught in review before
+merge by the coordinating session (this worktree, being a separate branch,
+could not see it directly): ACC-132 is "no desk nav on volunteer devices",
+not "no gate links on desk devices", the four-item desk nav would have made
+this file's own "Phase R shipped" line above (`## Phase R shipped, 23 Sep
+2026`: "Desk nav is now Control room · Master list · Passes · Organisations ·
+Gate · Vehicle") false — the coordinator reported that a parallel agent had
+just completed ACC-136 by verifying that same six-item nav against
+`lib/design.ts` and ticking it, work this worktree has not itself seen merged
+— and removing a desk lead's one-click links to `/gate` and `/gate/vehicle`
+is a product decision for Vipin, not something in scope here. Reverted before
+landing. The design source's own `.island` nav (`design/source/boa_design_v2.html`) lists
+all seven screens in one bar because it is a single preview tool a reviewer
+clicks between screens with (`SCREENS`, line 652) — the same "furniture, not
+a literal transcription target" reasoning ACC-130 already applied to the
+Web/Mob toggle and the always-on "Live" pip; that reasoning justifies the
+gate-side split, not a desk-side one — the desk's six-item nav was a real,
+already-verified, in-scope decision, not furniture. The profile-menu "Manage
+users" link on the gate header was left as-is: the acceptance criterion is
+the primary nav (Gate · Vehicle, no desk items), not the account menu, and
+authorization for that link is enforced in the database regardless
+(non-negotiable #3) — an `issuer` gets refused by the RPC either way.
+
+**Visual gate, measured on this machine, not assumed — and a real discrepancy
+run down, not hand-waved.** `design/reference/` does not exist in a fresh
+worktree (it is gitignored, built by `corepack pnpm design:reference` from
+the frozen source) — copied the already-generated reference PNGs in from the
+main checkout rather than regenerating them; `shasum -a 256` on all five
+`gate-*`/`vehicle-*` PNGs confirmed byte-identical to the main checkout's
+copies, so the comparison is against the exact same frozen contract, not a
+new capture.
+
+The first `test:visual` run in this worktree (no code changes yet) measured
+gate at 1.46/1.46/4.66/4.65% and a **rendered mobile height of 1599px**. The
+23 Sep session log below records gate at 1.51/1.50/6.20/6.64% at the same
+code (`1371ef9`/`2573c45` — `git diff --stat` between those two commits
+touches only `docs/`, confirmed, so the app code was identical) with an
+implied height of 1615px ("46px short (ref 390x1661, got 390x1615)"). Not
+sub-pixel noise: a 16px rendered-height difference is a real layout
+difference, and `control-room`/`master`/`passes` reproduced their recorded
+percentages exactly on the first try in this same run, so the harness itself
+is deterministic on this machine — the gap was specific to `gate`/`vehicle`.
+
+**Root cause, confirmed by reproduction:** this fresh worktree had no
+`.env.local` (gitignored, not carried into a new git worktree; the main
+checkout has one, dated 11 Sep). `scripts/visual-check.mjs` mocks
+`/api/desk/*` for the desk screens (`page.route(/\/api\/desk\/dashboard/...)`
+etc.) but does **not** mock `/api/gate/pull` or `/api/gate/issue` — only
+`/api/gate/session`. Without real Supabase credentials, the gate page's own
+sync/pull call on load fails differently than it does with credentials
+present, changing rendered DOM height. Copied `.env.local` from the main
+checkout into this worktree (gitignored either way, never committed) and
+reran: gate mobile height became exactly **1615px**, matching the recorded
+run, and gate mobile percentages became **6.20% / 6.64%** — an exact match to
+the 23 Sep numbers. Gate web became 1.49%/1.48% against the recorded
+1.51%/1.50% — within ordinary local-rendering noise (see
+`docs/DESIGN-SYSTEM.md`, "CI-vs-local text rendering"), not the 16px/1.5pp
+structural gap the missing env file produced. **A worktree without
+`.env.local` cannot be trusted for `gate`/`vehicle` visual numbers**; this is
+worth a harness fix (mock `/api/gate/pull` and `/api/gate/issue` the way
+`/api/desk/*` is mocked) but that is out of ACC-132's scope and not done here.
+
+Full `test:visual` before and after this task's actual (narrowed) code
+change, same machine, `.env.local` present both times:
+
+| Screen | dark/web | light/web | dark/mob | light/mob |
+|---|---|---|---|---|
+| gate, before | 1.49% | 1.48% | 6.20% | 6.64% |
+| gate, after | 1.49% | 1.48% | 6.20% | 6.64% |
+| vehicle, before | 10.87% | 11.39% | 14.58% | 15.10% |
+| vehicle, after | 10.87% | 11.39% | 14.58% | 15.10% |
+
+Identical before and after: `GateChrome`'s own rendering (`GATE_NAV`, brand
+text) was already in place for both measurements — the only code that moved
+between "before" and "after" here is `DESK_NAV` reverting to six items, which
+`app/gate/page.tsx` and `app/gate/vehicle/vehicle-screen.tsx` do not import,
+so it cannot affect the gate/vehicle screens the visual harness captures.
+Neither screen regressed. 16 of 20 comparisons still fail overall, same count
+as the 24 Sep entry below — the pre-existing frozen lane (ACC-104/107/109),
+not a regression from this task. Full run output and diffs are not committed
+(`test-results/`, `design/reference/` and `.env.local` are all gitignored).
+
+`corepack pnpm typecheck && lint && test` all pass (214/214 unit tests).
+`test:e2e` (Playwright) was not run this session — the MCP Playwright server
+in this environment failed to connect; `corepack pnpm test:e2e` itself was
+not attempted from the CLI either, so its current pass/fail state for this
+change is unverified, not claimed.
 
 ### 24 Sep 2026 — Phase R pushed and deployed; the visual gate's real numbers
 

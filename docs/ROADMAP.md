@@ -377,7 +377,7 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [x] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22
 - [x] **ACC-131** · Labels that do what they say: real Search by name (offline), Start camera, readable disabled buttons, focused scanner input, real vehicle plate check · **C** · due Wed 23
 - [x] **ACC-136** · Desk nav — reconciled 24 Sep: this entry's wording ("…Passes · Queue; Orgs & users; Devices/Users in account menu") predates ADR-019 (22 Sep), which retired Queue and Devices. The nav ADR-019 and CURRENT-STATE's "Phase R shipped" section actually require is Control room · Master list · Passes · Organisations · Gate · Vehicle, with only Users (no Devices) in the account menu · **C** · due Thu 24
-- [ ] **ACC-132** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
+- [x] **ACC-132** · Gate-only chrome: Gate · Vehicle, "Accred gate", no desk nav on volunteer devices · **C** · due Thu 24
 - [-] **ACC-137** · Actions that fire on nothing: Passes print/WhatsApp at 0, WhatsApp scoped to one org; master-list band colour per theme · **C** · due Fri 25
       **Retired 22 Sep (ADR-019):** replaced by ACC-144 (per-person, not per-org, pass delivery); the band-colour half moves to ACC-133.
 - [x] **ACC-133** · Sample data that looks real: plate placeholders; one shared outbox-status hook; master-list band colour per theme (from ACC-137) · **C** · due Fri 25

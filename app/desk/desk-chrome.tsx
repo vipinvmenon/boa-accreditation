@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { NAV } from '@/lib/design'
+import { DESK_NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
 import { dashboardSchema, type Dashboard } from '@/lib/schemas/dashboard'
 import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
@@ -156,7 +156,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
 
-  const activeNav = NAV.find((item) => item.href === pathname)?.id
+  const activeNav = DESK_NAV.find((item) => item.href === pathname)?.id
 
   useLayoutEffect(() => {
     const links = document.getElementById('desk-links')
@@ -249,7 +249,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
             </Link>
             <div className="links" id="desk-links">
               <span className="pip" aria-hidden="true" />
-              {NAV.map((item) => {
+              {DESK_NAV.map((item) => {
                 const active = item.id === activeNav
                 return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>
               })}
@@ -308,7 +308,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
-          {NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
+          {DESK_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
             closeMobileMenu()
           }}>{item.label}</Link>)}
         </div>
