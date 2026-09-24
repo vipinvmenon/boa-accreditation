@@ -507,7 +507,7 @@ org list wins: `task block` the redesign task with a reason and commit it.
       **Re-verified 24 Sep:** at `d66e8d1` (after claiming), same four measurements
       (0.64%, 0.65%, 0.15%, 0.14%), all variants PASS. Typecheck/lint/test gates
       green on task done.
-- [ ] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
+- [~] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
       selector must survive · **CU** · due Mon 28
       **Current, 24 Sep at `1371ef9`: 7.00/5.25/5.96/5.28%** (dark/web,
       light/web, dark/mobile, light/mobile), 7 regions masked, with the render
