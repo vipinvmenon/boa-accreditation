@@ -285,8 +285,10 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
               }} aria-label="Menu" aria-controls="desk-menu" aria-expanded={mobileOpen}><i /><i /></button>
             </div>
           </nav>
+          {/* ACC-130: the mock's "Live" pip was always on regardless of whether the dashboard
+              fetch actually succeeded — the dashboard fetch's own error/retry state below is
+              the real signal. */}
           <div className="status">
-            <span className="live"><b />Live</span>
             <span className="hide-s">Build 05-09 Oct, show 10 Oct</span>
             {dashboardError ? (
               <span role="alert" className="status-error">

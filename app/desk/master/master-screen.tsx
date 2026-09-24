@@ -130,8 +130,11 @@ export function MasterScreen() {
               ))}
             </div>
           )}
+          {/* ACC-134: the in-app queue this empty state used to name was retired
+              (ADR-019, 22 Sep) — approval now happens from the response sheet,
+              not a screen here. */}
           {!loading && !error && rows.length === 0 && (
-            <EmptyState message={query || bmsFilter !== 'all' ? 'Nobody matches that. Try a phone number or a band serial.' : 'Nobody accredited yet. Approvals will appear here once the queue clears one.'} />
+            <EmptyState message={query || bmsFilter !== 'all' ? 'Nobody matches that. Try a phone number or a band serial.' : 'Nobody accredited yet. This list fills in once people are approved.'} />
           )}
           {!loading && !error && rows.map((row) => {
             const type = row.typeCode ? tier(row.typeCode) : null

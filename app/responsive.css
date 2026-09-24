@@ -69,41 +69,17 @@
 }
 
 /**
- * GateChrome's Web/Mob toggle. The design source ties its `vpTabs` highlight
- * 1:1 to `s.vp` — the same state that drives every `mob ? A : B` — so a
- * screen can never show mobile layout with "Web" highlighted or vice versa;
- * that combination doesn't exist in the source. `lib/design.ts` used to call
- * the toggle a "design-review affordance, not shipped" on the theory that it
- * was pure furniture, but decorative furniture wouldn't need to track a real
- * state. It ships as a real indicator of which layout is active, driven by
- * the same MOBILE_BREAKPOINT_PX media query as every other `mob ? A : B`
- * here — not by JS/matchMedia, so there is no hydration flash.
- *
- * The active tab's colours are PROP's ink/on literals (Layer 2), not the
- * `--ink`/`--on` CSS vars, because those two layers deliberately disagree —
- * see docs/DESIGN-SYSTEM.md, C8. GateChrome threads them in as `--vp-ink`/
- * `--vp-on` custom properties so this file never hardcodes the hex itself
- * (`lib/design.ts` stays the one place PROP's literals live).
+ * ACC-130: this file used to carry `.g-vp-web`/`.g-vp-mob` for a "GateChrome
+ * Web/Mob toggle" that GateChrome never actually rendered — grep confirms no
+ * `.tsx` in this repo ever used those classes. The comment above them claimed
+ * it "ships as a real indicator", which was false (see docs/DESIGN-SYSTEM.md,
+ * "Responsive": "the preview's Web/Mob furniture is not clicked or shipped" —
+ * the correct statement, which the removed comment contradicted). Removed,
+ * along with the toggle's markup in design/source/boa_design_v2.html
+ * (sanctioned edit, CLAUDE.md non-negotiable #1). The app reaches mobile vs.
+ * desktop layout purely through real container queries / media queries, with
+ * no JS toggle involved.
  */
-.g-vp-web {
-  background: transparent;
-  color: var(--ink3, rgba(242, 239, 226, 0.52)); /* mobile: inactive */
-}
-.g-vp-mob {
-  background: var(--vp-ink); /* mobile: active */
-  color: var(--vp-on);
-}
-
-@media (min-width: 768px) {
-  .g-vp-web {
-    background: var(--vp-ink); /* desktop: active */
-    color: var(--vp-on);
-  }
-  .g-vp-mob {
-    background: transparent; /* desktop: inactive */
-    color: var(--ink3, rgba(242, 239, 226, 0.52));
-  }
-}
 
 /**
  * ACC-033, the Control room (`isDash` block, renderVals() lines 826-850).

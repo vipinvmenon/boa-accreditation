@@ -238,7 +238,15 @@ export function PassesScreen() {
             /* Always drawn — the design has a WhatsApp action here — but it only
                works for a lead/admin with WhatsApp configured and N > 0. */
             <button type="button" onClick={requestSendAll} className="btn" disabled={!canSend || unsentCount === 0 || busy !== null}
-              title={sends && !sends.canSend ? 'Only a lead or admin can send passes' : undefined}>
+              title={
+                sends && !sends.canSend
+                  ? 'Only a lead or admin can send passes'
+                  : sends && !sends.configured
+                    ? 'WhatsApp sending is not set up yet'
+                    : sends && unsentCount === 0
+                      ? 'Every approved person already has a pass sent'
+                      : undefined
+              }>
               {busy === 'all' ? 'Sending…' : 'Send all unsent'}{sends && <span className="n">{unsentCount}</span>}<span className="ic"><Icon name="paper-plane-tilt" /></span>
             </button>
           )}
@@ -270,7 +278,9 @@ export function PassesScreen() {
           />
         )}
         {!loading && !error && passes.length === 0 && (
-          <EmptyState className="passes-state" message="No approved passes yet — approve in the queue →" />
+          // ACC-134: the in-app queue this used to point at was retired (ADR-019, 22 Sep) —
+          // approval now happens from the response sheet, not a screen here.
+          <EmptyState className="passes-state" message="No approved passes yet. They will appear here once people are approved." />
         )}
         {passes.map((pass, i) => {
           const type = tier(pass.typeCode)

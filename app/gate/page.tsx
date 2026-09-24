@@ -28,8 +28,10 @@ export default function GatePage() {
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
   const [cameraActive, setCameraActive] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const scannerInputRef = useRef<HTMLInputElement>(null)
 
   const loadCache = useCallback(async () => {
     setSnapshot(await readGateSnapshot())
@@ -217,18 +219,16 @@ export default function GatePage() {
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
   const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
 
+  /**
+   * ACC-131: this sr-only input is where a hardware (keyboard-wedge) scanner's
+   * keystrokes land — it was never focused, so a real wedge scanner had
+   * nowhere to type into. Focused whenever the scanner is actually the thing
+   * waiting for input: not mid-result, and not while the name search (which
+   * focuses its own input) is open.
+   */
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const segment = document.querySelector<HTMLElement>('#gres [data-seg]')
-      const active = segment?.querySelector<HTMLElement>('button[aria-pressed="true"]')
-      const thumb = segment?.querySelector<HTMLElement>('.thumb')
-      if (active && thumb) {
-        thumb.style.width = `${active.offsetWidth}px`
-        thumb.style.transform = `translateX(${active.offsetLeft}px)`
-      }
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [snapshot, resolution])
+    if (!resolution && !searchOpen) scannerInputRef.current?.focus()
+  }, [resolution, searchOpen])
 
   if (!snapshot) return <main id="main-content" tabIndex={-1} style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
@@ -280,21 +280,31 @@ export default function GatePage() {
               )}
             </div>
             <canvas ref={canvasRef} hidden />
-            <input aria-label="Manual scanner input" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
+            {/* inputMode="none" keeps a touchscreen's on-screen keyboard from popping up when
+                this gets focused — it exists to catch a hardware (keyboard-wedge) scanner's
+                keystrokes, not to be typed into by hand. */}
+            <input ref={scannerInputRef} aria-label="Manual scanner input" inputMode="none" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
             <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p><SyncStatus onSynced={loadCache} top={-16} /></div>
-            <PersonSearch roster={snapshot.roster} onOpen={() => setCameraError(null)} onPick={(payload) => void resolve(payload)} />
+            <PersonSearch roster={snapshot.roster} onOpen={() => { setCameraError(null); setSearchOpen(true) }} onClose={() => setSearchOpen(false)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <div role="alert" className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}>{cameraError}</div>}
             <div style={{ marginTop: 26 }}><span className="mono">Last issued at this gate</span><div className="last" style={{ marginTop: 8 }}>
               {recent.map((row) => {
                 const holder = personById.get(row.personId)
                 const time = new Date(row.occurredAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
                 const serial = row.bandSerial ?? row.stickerNo
-                return <div key={row.id} className="li"><span className="bar" style={{ '--c': holder ? tierColour(holder.typeCode, theme) : 'var(--ink3)' } as CSSProperties} /><div><div className="nm">{holder?.fullName ?? row.kind}</div><div className="sub">{holder ? gateBandCard(holder.typeCode).label : row.kind}, {serial ? `band ${serial.replace(/^#/, '')}` : 'no serial'}, {time}</div></div><button type="button" className="void hov-text-bad">Void</button></div>
+                // ACC-130: the mock's "Void" button here did nothing — no handler, and
+                // voiding a check-in is a real desk action (non-negotiable #2, the
+                // ledger is append-only), not something to fake at the gate.
+                return <div key={row.id} className="li"><span className="bar" style={{ '--c': holder ? tierColour(holder.typeCode, theme) : 'var(--ink3)' } as CSSProperties} /><div><div className="nm">{holder?.fullName ?? row.kind}</div><div className="sub">{holder ? gateBandCard(holder.typeCode).label : row.kind}, {serial ? `band ${serial.replace(/^#/, '')}` : 'no serial'}, {time}</div></div></div>
               })}
             </div><div className="foot-meta mono"><span>{snapshot.ledger.filter((row) => row.kind === 'wristband').length} issued today</span><span>Ledger append-only</span></div></div>
           </div></div>
+          {/* ACC-130: the mock's Scanning/Approved/Collected/Refuse tabs were rendered as
+              buttons with no click handler — they only ever reflected `outcome`, which the
+              verdict heading right below already states in words. Removed rather than kept
+              as fake tabs; the `.r-body` verdict + aria-live on this card carry the outcome. */}
           <div className="bz result rv" id="gres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': colour } as CSSProperties}><div className="pl">
-            <div className="flood" /><div className="r-top"><div className="seg" data-seg><span className="thumb" /><button type="button" data-o="idle" aria-pressed={!outcome}>Scanning</button><button type="button" data-o="ok" aria-pressed={outcome === 'ok'}>Approved</button><button type="button" data-o="col" aria-pressed={outcome === 'col'}>Collected</button><button type="button" data-o="bad" aria-pressed={outcome === 'bad'}>Refuse</button></div></div>
+            <div className="flood" />
             <div className="r-body">{!resolution && <div className="idle"><span className="mono">Waiting for a scan</span><h2 className="verdict stag" style={{ '--i': 0, color: 'var(--ink)' } as CSSProperties}>Ready</h2><p className="stag" style={{ '--i': 1 } as CSSProperties}>Hold the pass code inside the frame. Works with the radio off.</p></div>}{resolution && <><h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{verdict}</h2><p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{issued ? 'Band issued · send them through' : resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</p></>}
               {person && card && <div className="person"><div className="nm">{person.fullName}</div><div className="org">{person.orgName}<br /><span>{person.roleText} · {person.dayValidity === 'build_show' ? 'Build + show day' : DAY_VALIDITY[person.dayValidity]}</span></div></div>}
               {person && card && <><div className="gband" style={{ '--c': tierColour(person.typeCode, theme) } as CSSProperties}><b>{card.label}</b><small>{card.handOver}</small></div><div className="zones">{card.zones.map((zone) => <span key={zone.zone} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}</div>{stickerDue && <div className="vehbox"><span className="mono">Sticker due</span><b>{person.vehicleReg}</b></div>}</>}
