@@ -214,7 +214,7 @@ export function PassesScreen() {
   }, [passes.length, loading, error])
 
   return (
-    <main ref={rootRef} className="passes-screen">
+    <main id="main-content" tabIndex={-1} ref={rootRef} className="passes-screen">
       <section className="head rv">
         <div>
           <span className="tag">The pass</span>

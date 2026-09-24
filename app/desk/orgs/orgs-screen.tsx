@@ -178,7 +178,7 @@ export function OrgsScreen() {
   }
 
   return (
-    <main className="utility-screen">
+    <main id="main-content" tabIndex={-1} className="utility-screen">
       <div className="utility-inner">
         {!createError && !loadError && (
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
@@ -253,6 +253,9 @@ export function OrgsScreen() {
             <label className="utility-label">
               <span>Contact phone</span>
               <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 required
                 value={form.contactPhone}
                 onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}

@@ -168,6 +168,7 @@ export function GateChrome({
 
   return (
     <div className={`v2-app ${mobileOpen ? 'menu-open' : ''} ${profileOpen ? 'profile-open' : ''}`}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="frame">
         <header className="nav-wrap">
           <nav className="island" aria-label="Gate navigation">
@@ -187,7 +188,7 @@ export function GateChrome({
         <div id="gate-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>{NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
           closeMobileMenu()
         }}>{item.label}</Link>)}</div>
-        <main ref={mainRef}>{children}</main>
+        <main id="main-content" tabIndex={-1} ref={mainRef}>{children}</main>
         <SiteFooter />
       </div>
     </div>

@@ -152,4 +152,54 @@ test.describe('shared chrome interactions', () => {
     await expect(drawer).toHaveAttribute('aria-hidden', 'true')
     await expect(burger).toBeFocused()
   })
+
+  // ACC-126: a skip link past the nav to <main id="main-content">, first in
+  // tab order, invisible until it has keyboard focus.
+  test('desk skip link is the first Tab stop and moves focus to <main>', async ({ page }) => {
+    await installDeskFixtures(page)
+    await page.goto('/desk')
+
+    const skipLink = page.getByRole('link', { name: 'Skip to main content' })
+    const main = page.locator('main#main-content')
+    await expect(main).toHaveCount(1)
+
+    // Off-screen at rest (not merely visually hidden forever): out of the
+    // viewport above the fold until it is the focused element.
+    const restingTop = await skipLink.evaluate((el) => el.getBoundingClientRect().top)
+    expect(restingTop).toBeLessThan(0)
+
+    await page.keyboard.press('Tab')
+    await expect(skipLink).toBeFocused()
+    // The `top` move is a CSS transition (app/globals.css, .skip-link); poll
+    // past it rather than reading mid-animation.
+    await expect.poll(() => skipLink.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0)
+
+    await page.keyboard.press('Enter')
+    await expect(main).toBeFocused()
+  })
+
+  test('gate skip link moves focus to <main>', async ({ page }) => {
+    await installGateFixture(page)
+    await page.goto('/gate')
+    await expect(page.getByRole('button', { name: "Can't scan? Search by name" })).toBeVisible()
+
+    const skipLink = page.getByRole('link', { name: 'Skip to main content' })
+    const main = page.locator('main#main-content')
+    await expect(main).toHaveCount(1)
+
+    await skipLink.focus()
+    await page.keyboard.press('Enter')
+    await expect(main).toBeFocused()
+  })
+
+  // ACC-127: per-route <title>, via the metadata template in app/layout.tsx.
+  test('desk and gate routes carry their own title', async ({ page }) => {
+    await installDeskFixtures(page)
+    await page.goto('/desk')
+    await expect(page).toHaveTitle('Control room · BOA Accreditation')
+
+    await installGateFixture(page)
+    await page.goto('/gate')
+    await expect(page).toHaveTitle('Gate · BOA Accreditation')
+  })
 })

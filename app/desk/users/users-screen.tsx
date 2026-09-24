@@ -234,7 +234,7 @@ export function UsersScreen() {
   }
 
   return (
-    <main className="utility-screen">
+    <main id="main-content" tabIndex={-1} className="utility-screen">
       <div className="utility-inner">
         {!inviteMessage && !loadError && !rowError && (
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>

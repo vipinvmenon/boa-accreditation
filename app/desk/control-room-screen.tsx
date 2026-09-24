@@ -208,7 +208,7 @@ function ControlRoomV2({ dash, theme }: { dash: DashboardResponse; theme: 'dark'
   }, [])
 
   return (
-    <main ref={rootRef}>
+    <main id="main-content" tabIndex={-1} ref={rootRef}>
         <div className="bento">
         <div className="hero bz rv"><div className="pl">
           <div className="hero-art" role="img" aria-label="Festival poster art" /><div className="hero-scrim" />
@@ -296,13 +296,13 @@ export function ControlRoomScreen() {
 
   if (loadError) {
     return (
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <div className="pad">
           <InlineError message={loadError} onRetry={() => { setLoadError(null); setReloadKey((k) => k + 1) }} />
         </div>
       </main>
     )
   }
-  if (!dash) return <main><div role="status" aria-label="Loading control room"><ControlRoomSkeleton /></div></main>
+  if (!dash) return <main id="main-content" tabIndex={-1}><div role="status" aria-label="Loading control room"><ControlRoomSkeleton /></div></main>
   return <ControlRoomV2 dash={dash} theme={theme} />
 }

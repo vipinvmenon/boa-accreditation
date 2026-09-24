@@ -239,6 +239,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="frame">
         <header className="nav-wrap">
           <nav className="island" aria-label="Desk navigation">

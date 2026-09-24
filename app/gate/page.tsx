@@ -230,14 +230,14 @@ export default function GatePage() {
     return () => window.cancelAnimationFrame(frame)
   }, [snapshot, resolution])
 
-  if (!snapshot) return <main style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
+  if (!snapshot) return <main id="main-content" tabIndex={-1} style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
 
   // No approved list on this phone: never a scanner, which would answer
   // "Refuse" to every real pass. The list loads itself once, with signal,
   // for a signed-in issuer (ACC-150 — this is what /gate/setup used to do).
   if (snapshot.roster.length === 0) {
     return (
-      <main className="utility-gate">
+      <main id="main-content" tabIndex={-1} className="utility-gate">
         <section className="utility-inner">
           <header className="utility-head">
             <div>

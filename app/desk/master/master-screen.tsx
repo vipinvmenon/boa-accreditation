@@ -92,7 +92,7 @@ export function MasterScreen() {
   }, [rows.length, loading, error])
 
   return (
-    <main ref={rootRef} data-v2-ready={visualReady ? 'true' : 'false'}>
+    <main id="main-content" tabIndex={-1} ref={rootRef} data-v2-ready={visualReady ? 'true' : 'false'}>
       <section className="head rv">
         <div>
           <span className="tag">Master list</span>
