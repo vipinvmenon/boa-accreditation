@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { destinationAfterLogin } from '@/lib/safe-next'
 import { operatorRoleSchema } from '@/lib/schemas/operator'
+import { Skeleton } from '@/components/states/skeleton'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -32,6 +33,31 @@ import { operatorRoleSchema } from '@/lib/schemas/operator'
  * failed the same way: straight to `/desk` (404, ACC-027 not built) with no
  * error, no password ever set. See app/auth/confirm/route.ts's own comment.
  */
+/**
+ * ACC-128: the `checking`/`redirecting` states used to render nothing below
+ * the heading — a blank card while `supabase.auth.getUser()` resolves. That
+ * reads as broken, not busy. This is a skeleton of the sign-in form (the
+ * mode almost everyone lands in), built from the same `Skeleton` primitive
+ * and `.utility-skeleton-*` classes (app/v2.css) every other desk screen's
+ * loading state already uses (components/loading-skeleton.tsx) — not a new
+ * loading language, the login card's own shape drawn in placeholder bars.
+ */
+function LoginFormSkeleton() {
+  return (
+    <div className="utility-form" aria-hidden="true">
+      <div className="utility-skeleton-field">
+        <Skeleton width="58px" />
+        <Skeleton className="utility-skeleton-input" />
+      </div>
+      <div className="utility-skeleton-field">
+        <Skeleton width="82px" />
+        <Skeleton className="utility-skeleton-input" />
+      </div>
+      <Skeleton className="utility-skeleton-button" />
+    </div>
+  )
+}
+
 function DeskLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -206,6 +232,8 @@ function DeskLoginForm() {
         <h1 className="h1">
           {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : next?.startsWith('/gate') ? 'Check-in sign in' : 'Desk sign in'}
         </h1>
+
+        {(mode === 'checking' || mode === 'redirecting') && <LoginFormSkeleton />}
 
         {mode === 'sign-in' && (
           <form onSubmit={handleSignIn} className="utility-form">

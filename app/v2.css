@@ -397,6 +397,9 @@ main { position: relative; padding: 0 32px 64px; }
 .utility-auth .utility-head { display: block; padding: 0 0 28px; }
 .utility-auth .utility-form { gap: 18px; }
 .utility-auth .btn.wide { min-height: 56px; }
+/* ACC-128: the login `checking` skeleton's button placeholder matches the
+   real .btn.wide it stands in for, not the generic 48px utility-skeleton-button. */
+.utility-auth .utility-skeleton-button { height: 56px; }
 .utility-gate { min-height: 100vh; }
 .utility-gate .utility-inner { max-width: 900px; padding-top: clamp(48px, 8vw, 96px); }
 .utility-gate .utility-head { display: block; padding-inline: 0; }

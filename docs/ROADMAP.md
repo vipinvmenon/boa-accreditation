@@ -371,7 +371,7 @@ mistaken for each other. Plan: `polish/production-hardening` branch.
 - [x] **ACC-125** · Action feedback: pending labels, partial-failure report on Approve selected, inline confirm on Revoke / Deactivate · **C** · due Fri 25
 - [x] **ACC-126** · Keyboard + a11y: visible focus on every input, skip link, `<main>` on `/desk`, `aria-pressed` on filters, `type="tel"` on phone · **C** · due Tue 29
 - [x] **ACC-127** · Per-route titles (`%s · BOA Accreditation`), one button-label casing rule · **C** · due Wed 30
-- [~] **ACC-128** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
+- [x] **ACC-128** · Login, 404, error, global-error rebuilt in the contract's vocabulary; login `checking` state gets a form skeleton · **C** · due Sat 3
 - [x] **ACC-129** · Gate safety: vehicle Turn away can log a clear (stale state); gate idles on REFUSE; double issue; scanner over empty cache; outbox drains only after an issue · **C** · due Sun 20
 - [x] **ACC-135** · Queue logic: real selection count, nothing pre-selected, visible type control, bulk reject rejects all, Org N of M only on Pending · **C** · due Mon 21
 - [x] **ACC-130** · Remove the mock's presentation-only controls (Web/Mob, scan-state tabs, dead Void, dead Next org, always-on Live) — app + design/source · **C** · due Tue 22

@@ -1056,6 +1056,76 @@ all still stand.
 
 ## Session log
 
+### 24 Sep 2026 — ACC-128: login `checking` skeleton; `app/global-error.tsx` created (did not exist); `reset`→`retry`
+
+**Inspected before changing anything.** `app/not-found.tsx` and `app/error.tsx`
+already rendered in the contract's vocabulary (`.tag`/`.h1`/`.lede`/`.utility-auth`,
+the same classes `app/desk/login/login-form.tsx` uses) — built under
+ACC-108/110/122/124/125/127, confirmed by `git log --oneline -- <file>`. No
+rewrite was needed there for copy or class usage. `docs/COPY.md` had already
+reviewed `/desk/login`'s copy set line by line and found it in-voice with no
+rewrite — re-confirmed, not re-litigated.
+
+**Two real gaps found, not asserted from memory:**
+
+1. **`app/global-error.tsx` did not exist at all.** `error.tsx` wraps every
+   layout/page below it but never the root layout beside it — confirmed by
+   reading `node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md`
+   ("It does not wrap the layout.js ... above it. To handle errors in the
+   root layout, use global-error.js.") — so a throw in `app/layout.tsx` itself
+   had no boundary and fell through to Next's raw fallback. Created it: its
+   own `<html>`/`<body>` (required, since it replaces the root layout while
+   active), imports the same fonts/CSS directly so it still renders in the
+   `.tag`/`.h1`/`.lede` vocabulary, shows only `error.digest` (no stack, no
+   message) — same reasoning as `error.tsx`.
+2. **`app/error.tsx` was wired to `reset`, not `retry`.** Read
+   `node_modules/next/dist/client/components/error-boundary.js` directly: this
+   Next version's boundary passes both props, but `reset` only clears local
+   boundary state — it does not refetch anything — while `retry` also calls
+   the router's `refresh()` first. Every current doc example (`error.md`,
+   `global-error` in `10-error-handling.md`) uses `retry`. Not a crash (both
+   props exist on the object), but the weaker, undocumented one. Fixed in
+   `error.tsx` and used correctly from the start in the new `global-error.tsx`.
+
+**Login `checking`/`redirecting` states used to render nothing** below the
+h1 — a blank card while `supabase.auth.getUser()` resolved. Added
+`LoginFormSkeleton` (in `login-form.tsx`) built from the existing `Skeleton`
+primitive and the `.utility-skeleton-field`/`-input`/`-button` classes
+`components/loading-skeleton.tsx`'s `UtilityScreenSkeleton` already uses for
+every other desk screen — not a new loading language. One CSS rule added,
+scoped `.utility-auth .utility-skeleton-button { height: 56px }`, so the
+button placeholder matches the real `.btn.wide`'s 56px rather than the
+generic 48px.
+
+**Verified by running it, not by reading the code:**
+- Confirmed via `curl` that SSR output for `/desk/login` includes the new
+  `utility-skeleton-*` markup during `checking` (screenshotted in a Chromium
+  tab too — matches the sign-in form's shape).
+- Confirmed `app/error.tsx`'s "Try again" is wired to a working `retry` by
+  adding a page that always throws, hitting it, and clicking the button —
+  console showed the error boundary re-invoking `retry()` and re-throwing
+  (expected, since the test page always throws), not a "reset is not a
+  function" failure. Route deleted afterwards; `git status` clean.
+- Confirmed `global-error.tsx` renders by making `app/layout.tsx` throw
+  behind a temporary env-gated branch, running a real **production** build
+  and `next start` (dev mode's own error overlay hides boundary output, so
+  this could not be checked in `next dev`), and loading the page in a
+  Chromium tab: full Anton/Archivo rendering, `tag`/`h1`/`lede`, a digest
+  reference, a working "Reload" button, no leaked stack trace. The temporary
+  branch was reverted afterwards (`diff` against a pre-edit backup confirmed
+  byte-identical); `git status` shows only the four intended files changed.
+- `corepack pnpm typecheck && lint && test` and `corepack pnpm task done
+  ACC-128` (which reruns the same three) all pass — 214/214 unit tests, 0
+  lint errors (5 pre-existing `no-img-element` warnings, unrelated).
+  `corepack pnpm build` (Turbopack production build) also succeeds with
+  `global-error.tsx` in the tree.
+
+**Not touched:** `app/not-found.tsx` (already correct), `app/p/[passToken]/not-found.tsx`
+(same pattern, out of this task's file list). `test:visual` does not cover
+any of these four routes (`docs/COPY.md` confirms none has a
+`design/source/boa_design_body.html` counterpart) — not run against this
+change for that reason, per the task brief.
+
 ### 24 Sep 2026 — ACC-136: desk nav verified already correct; stale ROADMAP wording reconciled to ADR-019
 
 ACC-136's ROADMAP entry still read "Control room · Master list · Passes ·
