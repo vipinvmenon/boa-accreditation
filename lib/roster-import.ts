@@ -217,6 +217,16 @@ export function parseCsv(input: string): string[][] {
  * zone is the spreadsheet's setting, not in the cell; we treat it as
  * Asia/Kolkata (the desk's zone, and the zone the form was built in) and emit
  * an explicit +05:30 so the database never has to guess.
+ *
+ * TWO SHEET SETTINGS FEED THIS, AND THEY DISAGREE ON PURPOSE (verified in the
+ * live sheet, 25 Sep 2026; docs/ROSTER-FORM.md):
+ *   - File ▸ Settings ▸ Time zone  = (GMT+05:30) India Standard Time
+ *   - File ▸ Settings ▸ Locale     = United States
+ * The locale decides the date FORMAT, which is why it must stay US: it is what
+ * produces the `M/D/YYYY` this function parses. "Correcting" the locale to
+ * India re-formats every timestamp as `D/M/YYYY`, and days 1–12 of each month
+ * then parse happily as the WRONG date rather than failing. If timestamps ever
+ * start refusing here, check the sheet's locale before changing this regex.
  */
 export function parseFormTimestamp(raw: string): string | null {
   const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2}):(\d{2})$/.exec(raw.trim())

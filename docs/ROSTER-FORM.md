@@ -200,11 +200,25 @@ the first seven, so any deviation means the tab is not the raw responses sheet
 or someone has edited it — worth refusing over. A person types column I, so its
 capitalisation is not worth refusing over.
 
-**Also check the sheet's time zone** — File ▸ Settings ▸ Time zone must read
-**GMT+05:30**. The CSV carries no zone, the importer reads every timestamp as
-Asia/Kolkata, and a sheet set to anything else silently shifts every
-`submitted_at`. Nothing in the export reveals this, so it can only be checked
-in the sheet.
+### File ▸ Settings: one must be India, the other must not
+
+Verified in the live sheet on 25 Sep 2026. Both are already correct. They look
+inconsistent, and they are not — **changing the second one breaks the import.**
+
+| Setting | Must be | Why |
+|---|---|---|
+| **Time zone** | **(GMT+05:30) India Standard Time** | The CSV carries no zone. The importer reads every timestamp as Asia/Kolkata, so any other setting silently shifts every `submitted_at`. |
+| **Locale** | **United States** | The locale decides the date *format*. US gives `M/D/YYYY H:MM:SS`, which is exactly what `lib/roster-import.ts` parses. |
+
+**Do not "correct" the Locale to India.** Sitting beside a time zone that says
+India, `United States` reads like an oversight someone should tidy up. It is
+not. Switching it re-formats every timestamp as `D/M/YYYY`, and the importer
+refuses each row with *"Timestamp … is not M/D/YYYY H:MM:SS"* — or worse,
+silently misreads the days 1–12 of each month, where both formats parse but
+mean different dates.
+
+Neither setting is visible in the CSV, so neither can be checked from the
+export. They can only be read in the sheet.
 
 ### The desk's column: Accreditation type
 
