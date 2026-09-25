@@ -35,7 +35,9 @@
     "orgs:load": "node scripts/load-orgs.mjs",
     "orgs:wipe": "node scripts/wipe-orgs.mjs",
     "orgs:replace-placeholders": "node scripts/replace-placeholder-orgs.mjs",
-    "roster:import": "node scripts/import-roster.mjs"
+    "roster:import": "node scripts/import-roster.mjs",
+    "roster:fetch": "node scripts/fetch-roster.mjs",
+    "roster:sync": "node scripts/sync-roster.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

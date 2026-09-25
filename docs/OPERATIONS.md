@@ -214,19 +214,75 @@ straight apostrophe. If you are not sure yet, leave the cell blank — that pers
 is imported but waits, and gets no pass until you fill it in. General Admission is
 not a choice (it is the public ticket band, not an accreditation).
 
-**Export.** File ▸ Download ▸ Comma-separated values. The import script reads only
-the columns Google named, in order. Any rearrangement or renaming breaks it silently.
-Keep desk work to the right of column H and never insert rows: responses land in the
-next empty row.
+**Sync.** One command pulls the sheet, validates it, and dry-runs it against the
+database. It writes nothing:
 
-**Validate, then import.** Vipin, with a `responses.csv` from the sheet, runs three
-commands in order at a terminal:
+```bash
+corepack pnpm roster:sync
+```
+
+It stops after the dry run on purpose. When the output looks right, load it as the
+operator who is accountable for the decision:
+
+```bash
+corepack pnpm roster:sync --as vipin@example.com
+```
+
+Add `--gid <tab-id>` if the responses are not on the first tab.
+
+**Re-running the whole sheet IS the sync.** `public.boa_acc_import_approve` is
+idempotent on (organisation, phone), so there is nothing to diff and nothing to
+remember:
+
+| In the sheet | What the database does |
+|---|---|
+| New row, column I filled | Imported, approved, pass minted |
+| New row, column I blank | Imported as `submitted` — no pass until Salman decides |
+| A row already imported | `unchanged` |
+| Column I changed **after** that person was approved | `tier_changed` — **reported, never applied** |
+| Same phone twice in one organisation | `duplicate_phone`, refused |
+
+The fourth row is the one to watch. Someone already holding a pass never has it
+silently swapped; the database reports it and a person decides. **Those reports
+only work if someone reads them** — check the report file after every load.
+
+The import reads only the columns Google named, in order. It does not break
+silently on a rename: it refuses, and prints the header it expected. Keep desk
+work to the right of column H and never insert rows — responses land in the next
+empty row.
+
+<details><summary>Downloading the CSV by hand instead</summary>
+
+File ▸ Download ▸ Comma-separated values, then:
 
 ```bash
 corepack pnpm roster:import responses.csv --offline
 corepack pnpm roster:import responses.csv --dry
-corepack pnpm roster:import responses.csv --as vipin@example.com --report data/report.csv
+corepack pnpm roster:import responses.csv --as vipin@example.com --report data/report.local.csv
 ```
+
+Name the report `*.local.csv` under `data/` so it stays out of git.
+</details>
+
+### Pulling the sheet
+
+`corepack pnpm roster:fetch` reads the sheet directly. On 25 Sep 2026 it worked
+with **no credentials at all**, because the sheet was shared "anyone with the link
+can read" — which also meant every crew member's name and WhatsApp number was
+readable by anyone holding the URL. The script prints a warning whenever it
+succeeds that way, and it should stop being able to.
+
+Once the sheet is restricted to named people, give the script its own read access:
+
+1. Create a Google Cloud service account and download its JSON key.
+2. Share the sheet with the service account's email address as a **Viewer**.
+3. Put the key's path in `.env.local`:
+   `GOOGLE_SERVICE_ACCOUNT_KEY_FILE=../secrets/boa-sheets.json`
+
+Scope is `drive.readonly`, so it can read that one shared sheet and nothing else,
+and access is revoked by un-sharing. **The key is local only — it never goes into
+Vercel.** The application has no Google dependency and must not gain one; only
+this script talks to Google.
 
 The first, `--offline`, proves the sheet is well-formed — column headers, dates,
 phone numbers, all the characters — without touching the database. The second, `--dry`,
