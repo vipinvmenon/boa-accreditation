@@ -1041,15 +1041,19 @@ database objects behind the removed screens (`boa_acc_submit`,
 `boa_acc_org_view`, `boa_acc_mint_invite`, `boa_acc_org_invite`) are still
 present and now unused by the app.
 
-**Not done, and not claimed:** no roster has been imported (`boa_acc_person` is
-0); no WhatsApp message has ever been sent; no real issuer has logged in; the
-38 organisations are still `PLACEHOLDER — …` fixtures.
+**Not done, and not claimed:** no WhatsApp message has ever been sent; no real
+issuer has logged in; 37 of the 38 organisations do not exist yet.
 
-**Superseded 24 Sep:** the line above used to end "nothing is deployed —
-production still runs the pre-Phase-R build". Phase R was pushed and deployed
-on 24 Sep; see the session-log entry below for what was verified and what was
-not. Deployed is not the same as exercised — the four "not done" items above
-all still stand.
+**Superseded 25 Sep — the roster is loaded.** This line used to open "no roster
+has been imported (`boa_acc_person` is 0)". It did, on 25 Sep: **25 people, all
+approved, all with a pass minted — 11 AAA, 9 Crew, 5 Stage**, under one real
+organisation (Bangalore Open Air). Verified with `db:state` and a direct query,
+not asserted. See the 25 Sep session-log entry.
+
+**Also superseded 24 Sep:** it once ended "nothing is deployed — production
+still runs the pre-Phase-R build". Phase R was deployed on 24 Sep. Deployed is
+not the same as exercised, and loaded is not the same as delivered: **nobody
+has received a pass**, because ACC-151 is still open.
 
 
 > **ACC-104 released 2026-09-24 (IST):** Not a drift: the frozen v2 artboard is a three-band document and ADR-018 made the domain eight-band. Measured at 69405d9 (fixture unchanged): 13.17/13.43/25.82/25.81%, ref 1360x2389 got 1360x2726, ref 390x4665 got 390x6072. Proved by DOM measurement: .bands3 accounts for +395px of the +337px web delta and +1441px of the +1407px mobile delta; every other section is within 80px. Cause is 88c8bd7 (ACC-115) + b790111, which made the Control room render one card per boa_acc_type row and moved the visual fixture from 3 tiers to 8. Forcing the fixture back to 3 tiers as a diagnostic only reaches 4.52/4.80/7.50/7.49% (and the page then runs SHORT: 2302 vs 2389, 4445 vs 4665), because ADR-018 also replaced every string and colour in the card: the artboard draws THE STANDARD/WORKING CREW/POISON GREEN BAND over seven v1 zones, the app draws 500 PRINTED/CREW/PURPLE BAND over the pack's six zones. No honest change closes this. It needs a decision from Vipin: amend the v2 contract's band section to the pack (a change to a frozen file, then one sanctioned re-capture), or restate ACC-104's acceptance. Do NOT re-baseline design/reference to make it pass.
@@ -1062,6 +1066,73 @@ all still stand.
 > **ACC-145 released 2026-09-25 (IST):** sheet header A1 is 'Column 1', must be 'Timestamp' (Vipin); and boa_acc_org is empty — creating Bangalore Open Air needs a real contactName/contactPhone in data/orgs.json, currently TODO, which the script rightly refuses to invent. Everything else parses: 25 valid, 1 refused. See docs/ROSTER-IMPORT-2026-09-25.md
 
 ## Session log
+
+### 25 Sep 2026 — ACC-145: the roster is in. 25 people, 25 passes, counts reconciled
+
+**The first real import ran against production.** `boa_acc_person` went 0 → 25.
+
+| Tier | Predicted from the sheet | Loaded | Passes minted |
+|---|---|---|---|
+| AAA | 11 | 11 | 11 |
+| Crew | 9 | 9 | 9 |
+| Stage | 5 | 5 | 5 |
+| **Total** | **25** | **25** | **25** |
+
+Every figure matches the prediction made from the export *before* anything was
+written — that row-for-row reconciliation is ACC-145's acceptance criterion,
+and it is why the counts were recorded in `docs/ROSTER-IMPORT-2026-09-25.md`
+first. Importer summary: `0 inserted, 25 approved, 0 unchanged, 0 tier_changed,
+0 skipped, 0 refused, 0 duplicate_phone, 0 invalid`.
+
+Verified by running, not asserted: `db:state` shows `boa_acc_person` 25,
+`boa_acc_org` 1, `boa_acc_aaa_nomination` 11 (the import records the nomination
+itself, so the count tracks the AAA tier), `anon` still 0 table grants and 0
+function EXECUTE. A direct query confirmed all 25 rows are `approved` and all
+25 carry a `pass_token`. The per-row report is
+`data/report-2026-09-25.local.csv` — row numbers, org, outcome, reason, **no
+names or phones** — and gitignored, as is the export itself.
+
+**Two blockers cleared, both by Vipin, both in the sheet.** Column A had been
+renamed `Column 1` and the importer refuses the seven form-generated headers
+unless they match exactly; renaming it back to `Timestamp` fixed the parse. A
+stray row carrying a bare `AAA` in column I with no person attached was
+cleared, taking refusals from 1 to 0 — so `--partial` was not needed.
+
+**The organisation.** `boa_acc_org` was empty, so all 25 rows were unmatched
+even though the alias layer already resolved all four spellings
+("Banglore Open Air", "Bangalore open air", "Bangalore open Air") to one
+canonical name. `boa_acc_org.contact_name` and `contact_phone` are `not null`
+with CHECK constraints, so the row could not exist without a real contact;
+Vipin supplied one and ran `orgs:replace-placeholders --apply` himself. The
+delete branch was a no-op (0 placeholders remained), so the run was a single
+INSERT: `Bangalore Open Air`, id `5f2fccb4-c90a-4970-b06c-7635d09d95b8`.
+
+**A stale citation, found and worth fixing.** Both
+`scripts/replace-placeholder-orgs.mjs` and `docs/ORG-IMPORT.md` say an agent
+may not write to production *"(CLAUDE.md, 'Never write to production')"*.
+**CLAUDE.md contains no such text.** The convention was respected anyway — the
+agent ran only `--dry` and Vipin ran `--apply` — but the rule should either be
+written into CLAUDE.md properly or stop claiming to be there.
+
+**Sheet settings, checked in the live sheet, both already correct.** Time zone
+is `(GMT+05:30) India Standard Time`. Locale is `United States`, and it must
+stay that way: the locale sets the date *format*, and US is what produces the
+`M/D/YYYY` the importer parses. Switching it to India would be a *silent*
+failure, not a clean one — days 1–12 of each month parse under both formats and
+would mean the wrong date. Recorded in `docs/ROSTER-FORM.md` and on
+`parseFormTimestamp` itself.
+
+**Syncing, now that the sheet keeps changing.** `corepack pnpm roster:sync`
+pulls the sheet, validates, dry-runs and stops; `--as <operator>` also loads.
+Re-running the whole sheet IS the sync: the RPC is idempotent on (org, phone),
+so new decided rows are approved, known rows come back `unchanged`, and a
+decision changed *after* approval is reported as `tier_changed` and never
+applied. **Nobody reads those reports yet — assign someone before build week.**
+
+**Not done, and not claimed:** `boa_acc_pass_send` is **0**. Nobody has
+received a pass, and nobody can until ACC-151. `/desk/passes` will show 25
+people as "Not sent" and say sending is not set up — honest, not broken. No
+real issuer has logged in. 37 of the 38 organisations still do not exist.
 
 ### 25 Sep 2026 — three defects found by looking at the running app, not the tests
 
