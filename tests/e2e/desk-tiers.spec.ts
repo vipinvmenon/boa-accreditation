@@ -55,7 +55,12 @@ test.describe('desk tiers (ACC-115)', () => {
       'Festival Area', "Eddie's Lounge", 'Promoters Lounge + ID', 'Photo Pit', 'Backstage + ID after 22:00', 'Main Stage',
     ])
     await expect(promoters.locator('.zones span.off')).toHaveCount(3)
-    await expect(page.locator('.li .band')).toHaveText('Photo')
+    // Removed with ADR-021: this asserted `.li .band`, the band chip on the
+    // Control room's ORGANISATIONS row — not a tier card, and nothing to do
+    // with this test's subject. That list moved to /desk/orgs, whose rows show
+    // kind, counts, status and contact rather than a band chip. The Control
+    // room's new contract (a count, no list) is covered by
+    // tests/e2e/org-filter.spec.ts.
   })
 
   test('master list names the tier from the row', async ({ page }) => {
