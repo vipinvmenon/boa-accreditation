@@ -174,6 +174,38 @@ Days on site, Loading vehicle registration
 column and breaks the import silently. Change the title in the script and here,
 together.
 
+### Three columns, three owners — and only one of them is yours to type
+
+This caught us on 25 Sep 2026: the sheet's column A had been renamed to
+`Column 1`, and the first real import refused the whole file. Re-running
+`build-roster-form.gs` would not have fixed it, because the script never writes
+that column.
+
+| Column | Written by | How it changes |
+|---|---|---|
+| **A — `Timestamp`** | **Google Forms itself**, when it creates the sheet | Nothing should change it. Not the script, not by hand. |
+| **B–H** | The form's question titles | Only by editing `build-roster-form.gs` **and this file** together — never in the sheet, never in the form editor |
+| **I — `Accreditation Type`** | The desk, by hand | By hand, by design. It is the one column a person is meant to type |
+
+**Column A is not the form script's to manage.** `build-roster-form.gs` controls
+question titles, which become B–H. Google writes `Timestamp` once, when it links
+the sheet, and never rewrites it — which is exactly why a rename sticks and why
+it broke the import rather than healing on the next submission. If it is ever
+wrong again, correct the cell in the sheet by hand. That is the only column for
+which hand-editing the header is the right answer.
+
+`lib/roster-import.ts` matches the seven form-generated headers **exactly** and
+the desk's column I ignoring case. That asymmetry is deliberate: Google writes
+the first seven, so any deviation means the tab is not the raw responses sheet
+or someone has edited it — worth refusing over. A person types column I, so its
+capitalisation is not worth refusing over.
+
+**Also check the sheet's time zone** — File ▸ Settings ▸ Time zone must read
+**GMT+05:30**. The CSV carries no zone, the importer reads every timestamp as
+Asia/Kolkata, and a sheet set to anything else silently shifts every
+`submitted_at`. Nothing in the export reveals this, so it can only be checked
+in the sheet.
+
 ### The desk's column: Accreditation type
 
 Added 22 Sep 2026 **by hand in the sheet**, by Vipin, for Salman to fill in:

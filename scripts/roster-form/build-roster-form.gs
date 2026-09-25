@@ -28,6 +28,14 @@
  * THE QUESTION TITLES ARE A CONTRACT. Google names each response-sheet column
  * after its question title, and the importer reads those columns by name.
  * Change titles here (and in docs/ROSTER-FORM.md), not in the form editor.
+ *
+ * THIS SCRIPT DOES NOT OWN COLUMN A. The question titles below become columns
+ * B–H. Column A is `Timestamp`, written by Google when it links the response
+ * sheet, and nothing here touches it; column I (`Accreditation Type`) is the
+ * desk's, typed by hand. On 25 Sep 2026 column A had been renamed to
+ * `Column 1` and the first real import refused the whole file — re-running
+ * this script would NOT have fixed it. Correct that one cell in the sheet.
+ * See docs/ROSTER-FORM.md, "Three columns, three owners".
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
