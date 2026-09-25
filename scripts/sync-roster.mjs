@@ -34,10 +34,30 @@ function opt(flag) {
 
 const as = opt('--as')
 const gid = opt('--gid')
+/**
+ * Passed through to import-roster. Without it, ONE malformed submission — a
+ * stray value on an empty row, a mistyped phone — stops the whole sync and no
+ * valid row loads. That is the right default (refuse rather than half-load
+ * silently), but on a busy day the operator needs to be able to say "load the
+ * good rows, I will come back to the rest".
+ */
+const partial = argv.includes('--partial') ? ['--partial'] : []
 const today = new Date().toISOString().slice(0, 10)
 const out = opt('--out') ?? `data/roster-${today}.local.csv`
 
-function run(script, args) {
+/**
+ * `allowFailure` exists because --offline and --dry are GATES, not reports:
+ * import-roster exits non-zero whenever any row is refused or any organisation
+ * is unmatched, and --partial only relaxes the LOAD (scripts/import-roster.mjs,
+ * the `dry` and `offline` exits vs. the `!partial` refusal). So without this,
+ * `--partial` could never reach the step it actually governs, and one mistyped
+ * phone number would make this whole script unusable — the busy-day failure it
+ * exists to prevent.
+ *
+ * It is safe: the load step re-runs validateRoster and still exits on a fatal
+ * parse error, so a broken header cannot slip past a tolerated gate.
+ */
+function run(script, args, allowFailure = false) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [join(root, 'scripts', script), ...args], {
       cwd: root,
@@ -45,7 +65,7 @@ function run(script, args) {
     })
     child.on('error', reject)
     child.on('close', (code) => {
-      if (code === 0) resolve()
+      if (code === 0 || allowFailure) resolve(code)
       else reject(new Error(`${script} exited ${code}`))
     })
   })
@@ -60,11 +80,20 @@ try {
   step(1, total, 'pull the sheet')
   await run('fetch-roster.mjs', ['--out', out, ...(gid ? ['--gid', gid] : [])])
 
+  const tolerate = partial.length > 0
+
   step(2, total, 'validate, no database')
-  await run('import-roster.mjs', [out, '--offline'])
+  const offlineCode = await run('import-roster.mjs', [out, '--offline', ...partial], tolerate)
 
   step(3, total, 'dry run against the database')
-  await run('import-roster.mjs', [out, '--dry'])
+  const dryCode = await run('import-roster.mjs', [out, '--dry', ...partial], tolerate)
+
+  if (tolerate && (offlineCode !== 0 || dryCode !== 0)) {
+    console.log(
+      '\n  --partial: the refused rows above are being left behind on purpose.\n' +
+        '  Everything valid and matched still loads. Come back to the rest.',
+    )
+  }
 
   if (!as) {
     console.log(
@@ -76,7 +105,7 @@ try {
   }
 
   step(4, total, `load as ${as}`)
-  await run('import-roster.mjs', [out, '--as', as, '--report', `data/report-${today}.local.csv`])
+  await run('import-roster.mjs', [out, '--as', as, '--report', `data/report-${today}.local.csv`, ...partial])
   console.log(
     '\nLoaded. Check the report for `tier_changed` rows — a decision changed after\n' +
       'approval is reported, never applied, and needs a person to resolve it.\n' +
@@ -84,6 +113,13 @@ try {
   )
 } catch (cause) {
   console.error(`\nroster:sync stopped: ${cause instanceof Error ? cause.message : String(cause)}`)
-  console.error('Nothing further ran. Fix the reported rows, or the sheet, and run it again.')
+  console.error('Nothing further ran, and nothing was written.')
+  if (partial.length === 0) {
+    console.error(
+      'Refused rows stop the run by design — a half-loaded roster is worse than none.\n' +
+        'Fix them in the sheet and run again, or load the valid rows and come back to the\n' +
+        'rest with:  corepack pnpm roster:sync --partial',
+    )
+  }
   process.exit(1)
 }
