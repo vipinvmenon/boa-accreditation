@@ -729,3 +729,51 @@ password → log in.** No phone is paired and no device token is minted.
 
 Roadmap: ACC-150 (login), ACC-148 (warning), ACC-149 (sync); ACC-061 retired;
 ACC-058 rehearsal widened to three or more phones with a staged double issue.
+
+## ADR-021 — One place lists people; Organisations lists companies
+
+**Accepted 25 Sep 2026, on Vipin's instruction**, after he went through the
+running app with the real roster loaded and asked, three separate times, what
+the Organisations tab was for — then what the Control room's organisations
+section was for, then what Master list was for. Three questions with one cause:
+**the same rows were reachable from three screens, and no screen owned them.**
+
+The rule, which every desk screen now follows:
+
+> **People are listed in exactly one place: Master list.
+> Organisations lists companies. Control room counts things.**
+
+What changes:
+
+- **The Control room's organisations list is removed.** It kept a count of
+  companies on site; the list itself moves. A glance belongs on the Control
+  room, a task does not.
+- **Organisations owns the company list** — name, kind, contact, status, and
+  **sent / approved**, which replaces a `used / quota` meter that displayed a
+  cap ACC-140g had already abolished (`ORG_QUOTA_NON_ENFORCING = 500`). It also
+  keeps "Copy names for the form dropdown", the one function nothing else does.
+- **Clicking a company opens Master list filtered to it** — `?org=<id>` — not a
+  new screen. `app/desk/orgs/[orgId]/`, an empty folder created 10 Sep and
+  never built, is deleted rather than filled: building it would have created a
+  *third* place listing people, which is the problem this ADR exists to end.
+- Master list keeps its three unique jobs, which is why it survives untouched:
+  search across everyone when the organisation is unknown, the **Not in BMS**
+  worklist (cross-organisation by nature — it is Bhoopesh's daily task), and
+  band serials, making it the only view of who collected what, and the source
+  for the paper fallback (ACC-059).
+
+**Two dead controls die with the move, not by repair.** The Control room's
+`25/500` meter and its "Needs you first" sort — a `<span>` styled as a link,
+with no handler, not keyboard-reachable — are both inside the section being
+removed. They are the same class ACC-130 cleared from the gate and missed here.
+
+**This diverges from the frozen contract, deliberately.**
+`design/source/boa_design_v2.html` draws the organisations list on the
+dashboard. Moving it is a divergence of the same kind as ADR-019's screen
+removals, and it will change the Control room's `test:visual` figures.
+Non-negotiable #1 still holds for everything the contract draws that the app
+still draws; this records the one section it no longer does, and why. It does
+not touch ACC-104's separate ADR-017-vs-ADR-018 band conflict, which is still
+open and still Vipin's to resolve.
+
+Roadmap: ACC-152.

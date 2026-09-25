@@ -213,6 +213,21 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       minute when the desk has signal. The last-synced time is visible on the
       gate. Acceptance: `test:e2e` with two browser contexts — one issues,
       the other shows amber after sync · **C** · due Tue 29 Sep
+- [~] **ACC-152** · **One place lists people (ADR-021).** Added 25 Sep on
+      Vipin's instruction, after three separate "what is this screen for?"
+      questions with one cause: the same rows were reachable from three
+      screens. Remove the Control room's organisations list, keeping the
+      company count. Organisations owns the list — contact, status, and
+      **sent / approved** replacing a `used / quota` meter showing a cap
+      ACC-140g abolished — and its rows open **Master list filtered to that
+      org** (`?org=<id>`), not a new screen; delete the empty
+      `app/desk/orgs/[orgId]/`. Two dead controls die with the moved section:
+      the `25/500` meter and "Needs you first", a `<span>` styled as a link
+      with no handler and no keyboard reach. Master list is untouched.
+      Acceptance: `test:e2e` for the org link applying the filter and for an
+      unknown org id; control-room `test:visual` re-measured and recorded (it
+      WILL move — ADR-021 is a deliberate divergence from the frozen
+      contract) · **C** · due Sat 26 Sep
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
