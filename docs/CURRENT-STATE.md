@@ -1067,6 +1067,78 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 26 Sep 2026 — ACC-152: one place lists people (ADR-021)
+
+Vipin went through the running app with the real roster and asked, three
+separate times, what a screen was for — Organisations, then the Control room's
+organisations section, then Master list. Three questions, one cause: **the same
+rows were reachable from three screens and no screen owned them.**
+
+The rule now: **people are listed in exactly one place, Master list.
+Organisations lists companies. Control room counts things.**
+
+- The Control room keeps the company **count** and links out; the list is gone.
+- Organisations owns the list and finally carries a lede saying what it is for,
+  including the thing nobody could have guessed from the screen: **a company
+  must exist before its crew are sent the form link**, or the import refuses
+  every row. That happened on 25 Sep, to all 25 rows.
+- A company row opens **Master list filtered to it** (`?org=<id>`), not a
+  per-org people screen. Master already searches, filters by BMS state and
+  shows band serials, so a second table would have been a *third* place listing
+  the same rows. `app/desk/orgs/[orgId]/` — an empty folder created 10 Sep and
+  never built — was **deleted rather than filled**.
+- Master list is otherwise untouched. Its three unique jobs are why it stays:
+  search when the organisation is unknown, the **Not in BMS** worklist (which
+  is cross-organisation by nature — Bhoopesh's daily task), and band serials.
+
+**Two dead controls died with the moved section rather than being repaired:**
+a `used / quota` meter rendering the `ORG_QUOTA_NON_ENFORCING` sentinel of 500
+as though it were a cap — drawing a green bar implying 475 free places that do
+not exist, when ACC-140g abolished quotas on 22 Sep — and "Needs you first", a
+`<span>` styled as a link with a sort icon, no handler and no keyboard reach.
+The same class ACC-130 cleared from the gate and missed here.
+
+**The filter is an exact org id, not the free-text search**, which already
+matches org names: clicking "Sound" must not drag in "Soundcheck Ltd". It is
+shown on screen with a "Show everyone" way out, because a filter an operator
+cannot see is its own bug — they would count three people and conclude the
+roster had lost twenty-two. The CSV export carries it too, so the download is
+what is on screen.
+
+**Measured, not asserted.** `test:e2e` **33/33** (was 29; four new specs cover
+the link applying the filter, the exact-id boundary, an org with nobody on it,
+and the Control room no longer listing companies). 219 unit tests, typecheck,
+lint 0 errors, build green.
+
+**`test:visual`, the number ADR-021 said would move:**
+
+| control-room | dark/web | light/web | dark/mob | light/mob |
+|---|---|---|---|---|
+| before (24 Sep) | 13.17% | 13.43% | 25.82% | 25.81% |
+| **after** | **10.65%** | **10.94%** | **10.58%** | **10.57%** |
+
+Mobile more than halved. Web is now 2156px against a 2389px reference — the app
+is **shorter** than the artboard, where before it was taller, because the
+contract still draws the organisations list ADR-021 removed. Mobile is 5067 vs
+4665 and still taller; that remainder is ACC-104's own `.bands3` conflict,
+untouched. **Every other screen is unchanged** — master still passes
+0.64/0.65/0.15/0.14, and passes, gate and vehicle are identical to their 25 Sep
+figures, so this change had no collateral.
+
+**A real regression the suite caught**, worth recording because the fix was a
+deletion: `desk-tiers.spec.ts` asserted `.li .band` had text 'Photo'. That was
+the Control room **organisations row's** band chip, not a tier card, sitting in
+a test about tier cards. ADR-021 removed the element, so the assertion went,
+with a comment in its place. Its test's actual subject is covered by the five
+assertions above it, and the Control room's new contract is asserted in the new
+spec — coverage rose.
+
+**Two of my own measurements were wrong before they were right.** An e2e run
+reporting "29 passed (38.2m)" and a unit failure during a commit hook were both
+**machine contention** — a dev server, the visual harness and a test suite
+running against each other — not regressions. Re-run alone: 33/33 and 219/219.
+Worth knowing for anyone who sees a slow, oddly-failing run on this machine.
+
 ### 25 Sep 2026 — ACC-145: the roster is in. 25 people, 25 passes, counts reconciled
 
 **The first real import ran against production.** `boa_acc_person` went 0 → 25.

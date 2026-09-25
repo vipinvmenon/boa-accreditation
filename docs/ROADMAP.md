@@ -213,7 +213,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       minute when the desk has signal. The last-synced time is visible on the
       gate. Acceptance: `test:e2e` with two browser contexts — one issues,
       the other shows amber after sync · **C** · due Tue 29 Sep
-- [~] **ACC-152** · **One place lists people (ADR-021).** Added 25 Sep on
+- [x] **ACC-152** · **One place lists people (ADR-021).** Added 25 Sep on
       Vipin's instruction, after three separate "what is this screen for?"
       questions with one cause: the same rows were reachable from three
       screens. Remove the Control room's organisations list, keeping the
@@ -498,7 +498,13 @@ org list wins: `task block` the redesign task with a reason and commit it.
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
 - [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
-      24 Sep at `1371ef9`: 13.17/13.43/25.82/25.81%** (dark/web, light/web,
+      26 Sep after ACC-152/ADR-021: 10.65/10.94/10.58/10.57%** (web 2156 vs
+      ref 2389 — the app is now SHORTER than the artboard, because ADR-021
+      deliberately removed the organisations list the contract still draws;
+      mobile 5067 vs 4665 is still taller, and that remainder is this task's
+      own `.bands3` conflict). Mobile more than halved, from 25.8%. The figures
+      below are the pre-ACC-152 measurement, kept because the diagnosis rests
+      on them. **Superseded, 24 Sep at `1371ef9`: 13.17/13.43/25.82/25.81%** (dark/web, light/web,
       dark/mobile, light/mobile) — and the render is much taller than the
       reference (web 2726 vs 2389; mobile 6072 vs 4665), so this is a layout
       difference, not a colour or spacing tweak. That is **worse** than the
