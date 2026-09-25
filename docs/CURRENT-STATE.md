@@ -1060,6 +1060,69 @@ all still stand.
 
 ## Session log
 
+### 25 Sep 2026 — three defects found by looking at the running app, not the tests
+
+All three were found by Vipin opening the screens while signed in. None was
+caught by 214 unit tests, 27 browser tests or the design gate, which is the
+point worth keeping: these suites prove the paths they know about.
+
+**1. The gate told a signed-in issuer to sign in.** `/gate` rendered "Sign in
+and load the list" to an already-signed-in admin. Boot redirects a genuinely
+signed-out issuer to login *before* that screen renders, so everyone who sees
+it is already signed in; the button was shown for any boot error. Empty roster
+now says "No one approved yet" and offers no button (nothing on the phone can
+fix it); a pull that failed on signal now offers "Try again", not a button that
+needs the signal the issuer was just told they lack. `app/gate/page.tsx`.
+
+**2. The gate chrome followed the route, not the person.** ACC-132 drew a
+volunteer's two-tab chrome for anyone standing on `/gate`, so a lead or admin
+who tapped Vehicle from the desk was stranded with no way back. Chosen by Vipin
+(24 Sep) over a narrower "Back to the desk" link: a lead or admin now keeps the
+desk navigation everywhere, an issuer still gets the two-tab gate and no desk
+links. `gate/use-operator.ts` is new.
+
+**3. The gate's operator identity was hardcoded.** The avatar was the literal
+string `VI` and the menu read `Vipin / Administrator`. All ten issuers' phones
+would have claimed to be Vipin — on a system whose double-issue story depends
+on knowing who issued a band. The ledger was never affected (it records the
+operator server-side); this was display only, and invisible to Vipin because
+the hardcoded value was correct for him.
+
+**Offline shaped the fix.** The role only ever arrived from
+`/api/gate/session`, which is online-only, while the gate must render with the
+radio off (non-negotiable #7). It is now cached in Dexie by both paths that
+learn it — the session check, and the pull, whose payload has always carried
+`operatorRole` (`lib/schemas/gate.ts`) and discarded it. Two non-indexed meta
+keys, no Dexie version bump. Display only: a stale role can show the wrong nav,
+never grant anything.
+
+**Organisations is read-only now**, on Vipin's instruction. It opened with a
+one-at-a-time "Create an org" form under an "Allocation desk" heading — a name
+from before quotas were dropped (ACC-140g), and the wrong tool for the ~38
+organisations Bhoopesh sends at once. The committed bulk path
+(`data/orgs.json` + `scripts/replace-placeholder-orgs.mjs`) calls the same
+`public.boa_acc_create_org` RPC and refuses to invent a contact. The screen
+keeps per-org counts, the contact to chase, and "Copy names for the form
+dropdown". `POST /api/desk/orgs` is left in place, simply uncalled. **Not done:**
+editing an org's contact — there is no PATCH, and it would need a new RPC and a
+migration, so it was written up rather than improvised.
+
+**Verified by running:** typecheck, lint, `build`, **219 unit tests** (was 214),
+**`test:e2e` 29/29** (was 26 — new specs cover the empty-roster screen, the
+signal-failure retry, and the lead/admin vs issuer chrome). `test:visual`
+re-run after the chrome change: gate 1.45/1.44/4.65/4.65 and vehicle
+13.38/13.96/14.56/15.19 — unchanged, because both the e2e and visual fixtures
+sign in as an `issuer`, so the captured screens still draw the volunteer chrome
+the frozen contract expects.
+
+**Two stale document headers corrected today.** `OFFLINE-SYNC.md` opened with
+"Nothing below is built — `gate/` is empty"; `gate/` holds 14 modules and the
+aeroplane-mode suite passes. `OPERATIONS.md` said the runbook was "written
+before the system exists". Both now say what is true: the code is built and
+tested, and **the human rehearsal has not happened**. A duplicate
+`## Session log` heading, left by a merge resolution on 24 Sep, was also
+removed.
+
 ### 24 Sep 2026 — ACC-128: login `checking` skeleton; `app/global-error.tsx` created (did not exist); `reset`→`retry`
 
 **Inspected before changing anything.** `app/not-found.tsx` and `app/error.tsx`
@@ -1130,8 +1193,6 @@ any of these four routes (`docs/COPY.md` confirms none has a
 `design/source/boa_design_body.html` counterpart) — not run against this
 change for that reason, per the task brief.
 > **ACC-109 released 2026-09-24 (IST):** design/reference is stale, not the app: captured 20 Sep from 2d4d6e0, but boa_design_v2.html moved at 418b416 (21 Sep) and 052bf93 (24 Sep, ACC-130 removed both result-panel tab rows). Against a reference regenerated from the CURRENT frozen source, gate measures 0.31/0.32/0.38/0.37% and vehicle 0.40/0.40/0.25/0.26% - all eight variants under 0.8%, dimensions exact, with ZERO app-code change. The two residuals were harness artefacts, both now fixed in scripts/visual-check.mjs: /api/gate/pull+issue were unmocked (401 -> needsLogin -> the .meta row wraps -> +16px, the .env.local trap) and Playwright left :hover parked on the vehicle CTA (2.45 of vehicle/web's 2.86%). test:e2e 26/26 green; build emits 55 precached assets. BLOCKED ON: one sanctioned regeneration of design/reference from the current frozen source (ACC-100 precedent) - NOT a re-baseline, the contract does not move - which is Vipin's call because it also rebases ACC-104/106/107. 2 Oct hard stop: v2 IS reachable, do not revert the gate to v1.
-
-## Session log
 
 ### 24 Sep 2026 — ACC-109: `design/reference/` is two commits behind its own source; the app already reproduces v2
 

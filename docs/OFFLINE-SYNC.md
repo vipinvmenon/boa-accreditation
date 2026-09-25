@@ -1,7 +1,17 @@
 # Offline and sync
 
-> **Status: specification.** Nothing below is built — `gate/` is empty. This is
-> Phase 4 (ACC-050…059). See CURRENT-STATE.md.
+> **Status: built, and tested — not yet rehearsed by people.** Corrected
+> 25 Sep 2026. This header used to read "Nothing below is built — `gate/` is
+> empty", which was written during Phase 4 and never updated. It was flatly
+> false: `gate/` holds 14 modules, and `corepack pnpm test:e2e` passes 29
+> specs including the aeroplane-mode suite — cold offline boot, offline
+> search by name, duplicate replay, 401/500 paths, and two phones converging
+> after sync.
+>
+> What is **not** done is the human half: no two-issuer rehearsal on real
+> phones (ACC-147), and the iPhone camera path is still unproven under the
+> enforced CSP (ACC-053b). Treat the code below as real and the sign-off as
+> outstanding.
 
 ## Who is at the gate (ACC-150, ADR-020)
 

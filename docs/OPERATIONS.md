@@ -1,8 +1,16 @@
 # Operations
 
-> **Status: specification.** Written before the system exists so the runbook is a
-> requirement on the build, not an afterthought. Nothing here has been rehearsed
-> yet — see CURRENT-STATE.md.
+> **Status: the system exists; the rehearsal has not happened.** Corrected
+> 25 Sep 2026. This header used to say the runbook was "written before the
+> system exists". That half is no longer true — the desk, the gate and the
+> ledger are built and their tests pass.
+>
+> The other half still stands, and matters more: **nothing here has been
+> rehearsed by the people who will run it.** No roster has been imported, no
+> WhatsApp pass has been sent, and no issuer other than Vipin has ever logged
+> in. The two-issuer rehearsal script below (ACC-147) is written and waiting,
+> not completed. Read this as a runbook to follow, not a record of something
+> that has already worked.
 
 This is a runbook, not a description. It exists because on 10 October only
 Bhoopesh will fully understand the desk, and he may be unreachable.
