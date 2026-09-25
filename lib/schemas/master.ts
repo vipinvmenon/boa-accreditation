@@ -5,6 +5,14 @@ export const masterQuerySchema = z.object({
   q: z.string().trim().max(120).default(''),
   inBms: z.enum(['all', 'true', 'false']).default('all'),
   format: z.enum(['json', 'csv']).default('json'),
+  /**
+   * ADR-021: one place lists people. Organisations links here rather than
+   * listing its own copy of the rows, so this is an EXACT org id, not the free
+   * text `q` already matches org names with. A company called "Sound" must not
+   * drag in "Soundcheck Ltd" when an operator clicked one specific row.
+   * Empty means every organisation.
+   */
+  org: z.string().trim().max(64).default(''),
 })
 
 export const masterRowSchema = z.object({

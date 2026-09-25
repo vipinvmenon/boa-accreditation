@@ -37,24 +37,6 @@ const CONTROL_ROOM_ERROR_OVERRIDES = {
   not_authorized: 'Only an active operator can view the Control room.',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  open: 'Open',
-  submitted: 'Submitted',
-  approved: 'Approved',
-  closed: 'Closed',
-}
-
-const STATUS_COPY: Record<string, string> = {
-  open: 'Open',
-  submitted: 'Pending',
-  approved: 'Approved',
-  closed: 'Closed',
-}
-
-function titleCase(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
 /**
  * The dates that do not move (CLAUDE.md). Bhoopesh and Salman already know
  * which bands exist and how approval works — what they don't have at a
@@ -240,21 +222,22 @@ function ControlRoomV2({ dash, theme }: { dash: DashboardResponse; theme: 'dark'
         <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{bandsHeading(dash.types.length)}</h2></div>
         <div className={`bands3${dash.types.length > 3 ? ' bands8' : ''}`}>{dash.types.map((type, index) => <V2BandCard key={type.code} code={type.code} count={type.count} note={type.note ?? null} theme={theme} delay={index + 7} />)}</div>
 
-        <div className="head rv" style={{ paddingTop: '72px' }}><h2 className="h2">{dash.submittedOrgs} compan{dash.submittedOrgs === 1 ? 'y' : 'ies'} on site</h2><span className="linkbtn">Needs you first <Icon name="sort-descending" /></span></div>
-        <div className="bz rv"><div className="pl"><div className="list-scroll" tabIndex={0} aria-label="Organisations on site"><div className="list">
-          <div className="list-head"><span className="mono">Organisations</span><span className="mono">{dash.orgs.length} listed</span></div>
-          {dash.orgs.map((org) => {
-            const type = tier(org.defaultType)
-            const colour = tierColour(org.defaultType, theme)
-            const percentage = org.quota > 0 ? Math.min(org.used / org.quota, 1) : 0
-            return <div className="li" key={org.id}>
-              <div><div className="nm">{org.name}</div><div className="sub">{titleCase(org.kind)}, {org.contactName}, {org.contactPhone}</div></div>
-              <div className="band" style={{ '--c': colour } as React.CSSProperties}>{type.label}</div>
-              <div className="qt"><span className="num"><b>{org.used}</b>/{org.quota}</span><div className="meter"><i style={{ '--w': percentage, '--c': percentage >= 1 ? 'var(--gold)' : 'var(--grn)' } as React.CSSProperties} /></div></div>
-              <span className={`st ${org.status === 'approved' ? 'ok' : org.status === 'submitted' ? 'wait' : 'mute'}`}>{STATUS_COPY[org.status] ?? STATUS_LABEL[org.status] ?? titleCase(org.status)}</span>
-            </div>
-          })}
-        </div></div></div></div>
+        {/**
+          * ADR-021: the organisations LIST moved to /desk/orgs, and its rows
+          * open Master list filtered to that company. Only the count stays —
+          * a glance belongs on the Control room, a task does not. Two dead
+          * controls went with it rather than being repaired: a `used/quota`
+          * meter showing the ORG_QUOTA_NON_ENFORCING sentinel of 500 as if it
+          * were a cap (quotas were abolished by ACC-140g), and a "Needs you
+          * first" sort that was a <span> with no handler and no keyboard
+          * reach. This is a deliberate divergence from the frozen contract,
+          * which draws the list here; see ADR-021.
+          */}
+        <div className="head rv" style={{ paddingTop: '72px' }}>
+          <h2 className="h2">{dash.submittedOrgs} compan{dash.submittedOrgs === 1 ? 'y' : 'ies'} on site</h2>
+          <Link href="/desk/orgs" className="linkbtn">Organisations <Icon name="sort-descending" /></Link>
+        </div>
+
     </main>
   )
 }

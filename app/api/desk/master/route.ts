@@ -78,6 +78,7 @@ export async function GET(request: Request) {
     q: params.get('q') ?? '',
     inBms: params.get('in_bms') ?? 'all',
     format: params.get('format') ?? 'json',
+    org: params.get('org') ?? '',
   })
   if (!query.success) return errorResponse('invalid_query', 400)
 
@@ -140,7 +141,9 @@ export async function GET(request: Request) {
       query.data.inBms === 'all' ||
       (query.data.inBms === 'true' && person.in_bms) ||
       (query.data.inBms === 'false' && !person.in_bms)
-    if (!matchesSearch || !matchesBms) return []
+    // ADR-021: exact id, never a name match — an operator clicked one row.
+    const matchesOrg = !query.data.org || person.org_id === query.data.org
+    if (!matchesSearch || !matchesBms || !matchesOrg) return []
     return [{
       id: person.id,
       fullName: person.full_name,

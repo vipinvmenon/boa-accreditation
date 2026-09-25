@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
 import { tier, tierColour } from '@/lib/design'
@@ -22,13 +23,20 @@ export function MasterScreen() {
   const rootRef = useRef<HTMLElement>(null)
   const bmsParam = searchParams.get('in_bms')
   const bmsFilter = bmsParam === 'true' || bmsParam === 'false' ? bmsParam : 'all'
+  /**
+   * ADR-021: Organisations links here instead of listing people itself, so
+   * this screen is the ONE place people are listed. An exact org id, not the
+   * free-text search — clicking "Sound" must not also return "Soundcheck".
+   */
+  const orgFilter = searchParams.get('org') ?? ''
 
-  async function load(nextQuery: string, nextBmsFilter: 'all' | 'true' | 'false') {
+  async function load(nextQuery: string, nextBmsFilter: 'all' | 'true' | 'false', nextOrg: string) {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (nextQuery) params.set('q', nextQuery)
       if (nextBmsFilter !== 'all') params.set('in_bms', nextBmsFilter)
+      if (nextOrg) params.set('org', nextOrg)
       const response = await fetch(`/api/desk/master?${params.toString()}`)
       if (response.status === 401) {
         router.replace('/desk/login')
@@ -55,18 +63,21 @@ export function MasterScreen() {
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(query, bmsFilter), 180)
+    const timer = window.setTimeout(() => void load(query, bmsFilter, orgFilter), 180)
     return () => window.clearTimeout(timer)
-    // The query and filter are the intended inputs; load is stable for this screen.
+    // The query and filters are the intended inputs; load is stable for this screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, bmsFilter])
+  }, [query, bmsFilter, orgFilter])
 
   const exportHref = useMemo(() => {
     const params = new URLSearchParams({ format: 'csv' })
     if (query) params.set('q', query)
     if (bmsFilter !== 'all') params.set('in_bms', bmsFilter)
+    // The export must be what is on screen. Leaving the org out here would
+    // hand someone a CSV of everybody while the table showed one company.
+    if (orgFilter) params.set('org', orgFilter)
     return `/api/desk/master?${params.toString()}`
-  }, [query, bmsFilter])
+  }, [query, bmsFilter, orgFilter])
 
   useEffect(() => {
     const root = rootRef.current
@@ -100,6 +111,35 @@ export function MasterScreen() {
           <p className="lede">Append-only. A reissue adds a row, it never overwrites the first. BMS entry is manual, and the flag tracks who is still to be added.</p>
         </div>
       </section>
+      {orgFilter && (
+        /**
+         * A filter the operator cannot see is a bug: they arrive from
+         * Organisations, count three people, and conclude the roster lost
+         * twenty-two. It names the company and offers the way out.
+         */
+        <div
+          className="rv"
+          role="status"
+          style={{
+            ['--d' as string]: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap',
+            margin: '0 0 18px',
+          }}
+        >
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))' }}>
+            {rows.length > 0
+              ? `Showing ${rows[0]!.orgName} only`
+              : loading
+                ? 'Filtering by organisation…'
+                : 'No one from this organisation yet'}
+          </span>
+          <Link href="/desk/master" className="btn hov-invert-grn">Show everyone</Link>
+        </div>
+      )}
       <div className="row rv" style={{ ['--d' as string]: 1, alignItems: 'center' }}>
         <label className="search" style={{ flex: 1 }}>
           <Icon name="magnifying-glass" />
@@ -113,7 +153,7 @@ export function MasterScreen() {
         <div className="pl">
           {error && (
             <div className="mrow">
-              <InlineError message={error} onRetry={() => void load(query, bmsFilter)} />
+              <InlineError message={error} onRetry={() => void load(query, bmsFilter, orgFilter)} />
             </div>
           )}
           {loading && !error && (

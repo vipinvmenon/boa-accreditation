@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type OrgRowWithCounts } from '@/lib/schemas/org'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
@@ -136,7 +137,9 @@ export function OrgsScreen() {
         {!loadError && (
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
         )}
-        <header className="utility-head"><div><div className="tag">Import matching</div><h1 className="h1">Organisations</h1></div></header>
+        <header className="utility-head"><div><div className="tag">Import matching</div><h1 className="h1">Organisations</h1>
+          <p className="lede">Every company sending crew, and how many they have sent. The importer refuses a row whose Organisation answer is not one of these names, so add a company <strong>before</strong> you send them the form link. Open one to see its people.</p>
+        </div></header>
 
         <section>
           <div
@@ -194,7 +197,21 @@ export function OrgsScreen() {
 
           <div className="utility-list">
             {orgs?.map((org) => (
-              <div key={org.id} className="bz"><div className="pl pad">
+              /**
+               * ADR-021: the row opens Master list filtered to this company,
+               * rather than a per-org people screen. Master already searches,
+               * filters by BMS state and shows band serials — a second table
+               * would be a third place listing the same rows, which is the
+               * duplication this ADR exists to end. The whole row is the
+               * target, so it works on a phone.
+               */
+              <Link
+                key={org.id}
+                href={`/desk/master?org=${encodeURIComponent(org.id)}`}
+                className="bz"
+                style={{ display: 'block', textDecoration: 'none' }}
+                aria-label={`${org.name} — show their people in the master list`}
+              ><div className="pl pad">
                 <div className="utility-row">
                   <div>
                     <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
@@ -202,11 +219,14 @@ export function OrgsScreen() {
                     </p>
                     <p style={{ ...labelStyle, marginTop: '4px' }}>
                       {org.kind} · sent {org.submittedCount} · approved {org.approvedCount} · {org.status} ·{' '}
-                      {org.contact_name}
+                      {org.contact_name} · {org.contact_phone}
                     </p>
                   </div>
+                  <span style={{ ...labelStyle, whiteSpace: 'nowrap' }} aria-hidden="true">
+                    {org.submittedCount} {org.submittedCount === 1 ? 'person' : 'people'} &rarr;
+                  </span>
                 </div>
-              </div></div>
+              </div></Link>
             ))}
           </div>
         </section>
