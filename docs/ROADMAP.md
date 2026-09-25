@@ -175,7 +175,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       real template message delivered to Vipin's own number; a rejected send
       shown with its reason; pgTAP on the send record. **Needs ACC-151** ·
       **C** · due Sat 26 Sep
-- [~] **ACC-145** · First real import from the live sheet: `--offline`, `--dry`,
+- [ ] **ACC-145** · First real import from the live sheet: `--offline`, `--dry`,
       then load, with `db:state` before and after; approved/submitted counts
       reconcile with the sheet row for row; report file committed without
       names or phones · **C/V** · due Mon 28 Sep

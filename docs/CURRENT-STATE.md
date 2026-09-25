@@ -1058,6 +1058,9 @@ all still stand.
 > **ACC-107 released 2026-09-24 (IST):** Reproduced 7.00/5.25/5.96/5.28%, web +68px/mob +203px. Diagnosed section-by-section: entire delta is the .zones strip (+33.75px/card), because ADR-018 (6 pack zones, longer labels) vs the frozen v2 artboard's v1 7-zone vocabulary. Same ADR-017/018 conflict as ACC-104, in the zones not the band count. 2 rows web x33.75=68, 6 rows mob x33.75=203 — exact match, no other confounder. No code changed. See CURRENT-STATE.md 24 Sep entry.
 > **ACC-147 released 2026-09-24 (IST):** built and verified as far as an agent can; awaits two-issuer rehearsal on real phones — no roster imported yet (ACC-145), no issuer operators invited yet, ACC-053b (real iPhone zxing-wasm) unverified
 
+
+> **ACC-145 released 2026-09-25 (IST):** sheet header A1 is 'Column 1', must be 'Timestamp' (Vipin); and boa_acc_org is empty — creating Bangalore Open Air needs a real contactName/contactPhone in data/orgs.json, currently TODO, which the script rightly refuses to invent. Everything else parses: 25 valid, 1 refused. See docs/ROSTER-IMPORT-2026-09-25.md
+
 ## Session log
 
 ### 25 Sep 2026 — three defects found by looking at the running app, not the tests
