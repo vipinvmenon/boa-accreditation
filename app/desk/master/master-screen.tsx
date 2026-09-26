@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
 import { tier, tierColour } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
-import { formatMasterBand, formatMasterCollected } from '@/lib/format'
+import { formatMasterBand, formatMasterCollected, masterFilterSummary } from '@/lib/format'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineError } from '@/components/states'
@@ -69,6 +69,14 @@ export function MasterScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, bmsFilter, orgFilter])
 
+  const filterSummary = masterFilterSummary({
+    orgFiltered: Boolean(orgFilter),
+    orgName: rows[0]?.orgName ?? null,
+    inBms: bmsFilter,
+    loading,
+    empty: rows.length === 0,
+  })
+
   const exportHref = useMemo(() => {
     const params = new URLSearchParams({ format: 'csv' })
     if (query) params.set('q', query)
@@ -111,11 +119,16 @@ export function MasterScreen() {
           <p className="lede">Append-only. A reissue adds a row, it never overwrites the first. BMS entry is manual, and the flag tracks who is still to be added.</p>
         </div>
       </section>
-      {orgFilter && (
+      {filterSummary && (
         /**
          * A filter the operator cannot see is a bug: they arrive from
          * Organisations, count three people, and conclude the roster lost
          * twenty-two. It names the company and offers the way out.
+         *
+         * ACC-154: `?in_bms=` is reached from the "N not in BMS" badge in the
+         * chrome of every desk screen and had neither the name nor the way
+         * out, so the list silently showed 14 of 612. One banner now covers
+         * both filters, and "Show everyone" clears both (lib/format.ts).
          */
         <div
           className="rv"
@@ -131,11 +144,7 @@ export function MasterScreen() {
           }}
         >
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))' }}>
-            {rows.length > 0
-              ? `Showing ${rows[0]!.orgName} only`
-              : loading
-                ? 'Filtering by organisation…'
-                : 'No one from this organisation yet'}
+            {filterSummary}
           </span>
           <Link href="/desk/master" className="btn hov-invert-grn">Show everyone</Link>
         </div>
@@ -174,7 +183,17 @@ export function MasterScreen() {
               (ADR-019, 22 Sep) — approval now happens from the response sheet,
               not a screen here. */}
           {!loading && !error && rows.length === 0 && (
-            <EmptyState message={query || bmsFilter !== 'all' ? 'Nobody matches that. Try a phone number or a band serial.' : 'Nobody accredited yet. This list fills in once people are approved.'} />
+            /* ACC-154: "Try a phone number or a band serial" is the frozen
+               design's own string (boa_design_v2.html:778) and stays for the
+               search. It is the wrong advice when a filter, not the query, is
+               why the list is empty — the banner above says which. */
+            <EmptyState message={
+              query
+                ? 'Nobody matches that. Try a phone number or a band serial.'
+                : orgFilter || bmsFilter !== 'all'
+                  ? 'Nobody matches this filter. Show everyone to see the full list.'
+                  : 'Nobody accredited yet. This list fills in once people are approved.'
+            } />
           )}
           {!loading && !error && rows.map((row) => {
             const type = row.typeCode ? tier(row.typeCode) : null

@@ -56,20 +56,27 @@ function person(id: string, fullName: string, orgName: string) {
   }
 }
 
-/** Honours `?org=` exactly, the way the real route does. */
+/** Honours `?org=` and `?in_bms=` exactly, the way the real route does. */
 async function installDesk(page: Page, seen: string[]) {
   await page.route('**/api/desk/dashboard', (route: Route) => route.fulfill({ json: dashboard }))
   await page.route('**/api/desk/operators', (route: Route) => route.fulfill({ json: operators }))
   await page.route('**/api/desk/orgs', (route: Route) => route.fulfill({ json: orgs }))
   await page.route('**/api/desk/master**', (route: Route) => {
-    const org = new URL(route.request().url()).searchParams.get('org') ?? ''
+    const params = new URL(route.request().url()).searchParams
+    const org = params.get('org') ?? ''
+    const inBms = params.get('in_bms')
     seen.push(org)
     const all = [
-      person('p1', 'Sound Person One', 'Sound'),
+      // ACC-154: p1 is the one person already in BMS, so `?in_bms=` splits
+      // this fixture the way it splits the real roster.
+      { ...person('p1', 'Sound Person One', 'Sound'), inBms: true },
       person('p2', 'Sound Person Two', 'Sound'),
       person('p3', 'Soundcheck Person', 'Soundcheck Ltd'),
     ]
-    const rows = org === ORG_A ? all.slice(0, 2) : org === ORG_B ? all.slice(2) : org ? [] : all
+    const byOrg = org === ORG_A ? all.slice(0, 2) : org === ORG_B ? all.slice(2) : org ? [] : all
+    const rows = inBms === 'true' || inBms === 'false'
+      ? byOrg.filter((row) => row.inBms === (inBms === 'true'))
+      : byOrg
     return route.fulfill({ json: masterResponseSchema.parse({ rows }) })
   })
 }
@@ -127,5 +134,65 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await expect(page.getByText('Needs you first')).toHaveCount(0)
     await expect(page.locator('[aria-label="Organisations on site"]')).toHaveCount(0)
     await expect(page.getByRole('link', { name: /Organisations/ }).first()).toBeVisible()
+  })
+})
+
+/**
+ * ACC-154 — the same principle, applied to the filter that had neither half
+ * of it. `?in_bms=` is reached from the "N not in BMS" badge in the chrome of
+ * every desk screen; before this it showed 14 of 612 with nothing saying why
+ * and no way back.
+ */
+test.describe('the BMS filter names itself and can be escaped (ACC-154)', () => {
+  test('the "not in BMS" badge leads to a list that says what it is showing', async ({ page }) => {
+    const seen: string[] = []
+    await installDesk(page, seen)
+    await page.goto('/desk')
+
+    await page.getByRole('link', { name: /not in BMS/ }).first().click()
+    await expect(page).toHaveURL(/\/desk\/master\?in_bms=false$/)
+
+    // Only the outstanding people are on screen...
+    await expect(page.getByText('Sound Person Two')).toBeVisible()
+    await expect(page.getByText('Sound Person One')).toHaveCount(0)
+    // ...and the screen says so, and offers the way out.
+    await expect(page.getByRole('status').filter({ hasText: 'Showing people not yet in BMS' })).toBeVisible()
+
+    await page.getByRole('link', { name: 'Show everyone' }).click()
+    await expect(page).toHaveURL(/\/desk\/master$/)
+    await expect(page.getByText('Sound Person One')).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Showing people' })).toHaveCount(0)
+  })
+
+  test('the other direction names itself too', async ({ page }) => {
+    const seen: string[] = []
+    await installDesk(page, seen)
+    await page.goto('/desk/master?in_bms=true')
+    await expect(page.getByText('Sound Person One')).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Showing people already in BMS' })).toBeVisible()
+  })
+
+  test('both filters at once name both, and one link clears both', async ({ page }) => {
+    const seen: string[] = []
+    await installDesk(page, seen)
+    await page.goto(`/desk/master?org=${ORG_A}&in_bms=false`)
+
+    await expect(page.getByText('Sound Person Two')).toBeVisible()
+    await expect(page.getByText('Soundcheck Person')).toHaveCount(0)
+    await expect(page.getByRole('status').filter({ hasText: 'Showing Sound, people not yet in BMS' })).toBeVisible()
+
+    await page.getByRole('link', { name: 'Show everyone' }).click()
+    await expect(page).toHaveURL(/\/desk\/master$/)
+    await expect(page.getByText('Soundcheck Person')).toBeVisible()
+  })
+
+  test('an empty outstanding list reads as finished work, not as a broken screen', async ({ page }) => {
+    const seen: string[] = []
+    await installDesk(page, seen)
+    await page.goto(`/desk/master?org=${ORG_B}&in_bms=true`)
+    await expect(page.getByRole('status').filter({ hasText: 'Nobody matches both filters' })).toBeVisible()
+    // Not "Try a phone number or a band serial" — nobody typed a search.
+    await expect(page.getByText('Nobody matches this filter. Show everyone to see the full list.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Show everyone' })).toBeVisible()
   })
 })
