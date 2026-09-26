@@ -364,6 +364,12 @@ interchangeable:
       so the desk can chase and resend one person. `Send all unsent` is **not**
       in `boa_design_v2.html`; the per-card state is the part that changes the
       contract, so **an ADR is needed for the card, not for the button**.
+      Two more from the same screen belong here rather than in their own task:
+      there is **no search or filter** on a sheet that will hold 612 cards, so
+      resending to one person means scrolling; and the zone chips for zones a
+      band does **not** hold are struck through in grey on a card whose whole
+      purpose is to be printed and cut, where that may not survive a photocopy
+      — consider omitting them, or marking held zones positively instead.
       **Blocked by ACC-107** (Passes pixel fidelity). Depends on ACC-144 for
       what a send actually records. Acceptance: the ADR for the card,
       `test:e2e` that the confirm names the true count and that dismissing it
@@ -389,6 +395,60 @@ interchangeable:
       `operatorRoleSchema` option has a description and a correct gate claim
       (so adding a role cannot silently ship undescribed), and `test:e2e` that
       the default selection is the agreed one · **C** · due Mon 28 Sep
+
+**Added 26 Sep, completing the walkthrough record.** ACC-155–161 captured the
+findings flagged at the time; these two carry the rest, which were in the
+critique and not in the roadmap. They are listed last because they are the
+least urgent, not because they are optional.
+
+- [ ] **ACC-162** · **The Master list is a table that is not a table.** Eight
+      columns of data — tier, band serial, vehicle, BMS flag, check-in time and
+      gate — with **no header row**, so a desk volunteer arriving on 5 Oct has
+      to infer that `#0412` is a band serial and `KA 05 MJ 8871` is a vehicle.
+      It is also `div`s, not a `<table>` (`tables: 0` when the DOM is probed),
+      so a screen-reader user gets a flat list with no row or column semantics
+      and no way to navigate by column. And nothing says how many of 612 rows
+      are on screen, filtered or not. **This deliberately breaks a currently
+      green gate**: master is the one v2 screen passing `test:visual` (26 Sep:
+      0.64 / 0.65 / 0.15 / 0.14%), and the frozen contract draws no header row.
+      **Needs an ADR** weighing legibility for a volunteer against the pixel
+      contract — put the options to Vipin before writing code, including the
+      cheaper half-measure of keeping the visual rows and adding only semantics
+      plus a count. Acceptance: the ADR; if headers are agreed,
+      `design/reference/` re-captured and master back to ≤0.8% on 4 variants;
+      an `axe` or equivalent check that the rows expose row/column semantics ·
+      **C** · due Wed 30 Sep
+- [ ] **ACC-163** · **Six small things, none of which touches a `test:visual`
+      screen's layout.** Grouped because each is a few lines and they would
+      otherwise never be worth a task of their own. `/desk/orgs` and
+      `/desk/login` are not gated screens at all; the two gate items change
+      behaviour and an aria label, not layout — prove that by re-measuring
+      rather than assuming it.
+      **(a)** `/desk/orgs` tells the operator to "add a company **before** you
+      send them the form link" and gives no destination — the screen is
+      read-only by design (see its header comment), so name the real path
+      (`data/orgs.json` + `scripts/replace-placeholder-orgs.mjs`,
+      `docs/ORG-IMPORT.md`).
+      **(b)** `/desk/orgs` rows read "SENT 68 · APPROVED 67 · APPROVED" — the
+      org's status and a person count using the same word in one line. Make the
+      status a chip, as the Master list already does.
+      **(c)** `/desk/orgs` sets company names in the body face while every
+      other list sets names in uppercase condensed. Pick one.
+      **(d)** `/desk/login` has no show-password toggle — the gate is outdoors,
+      at night, possibly in gloves — and reveals the 8-character rule only
+      after a failed submit. State it under the field.
+      **(e)** `/desk/login` renders "Check-in sign in" (the `?next=/gate`
+      heading) wrapping as "CHECK-" / "IN SIGN IN". Keep the word whole.
+      **(f)** `/gate/vehicle` leaves `askReason` true after the registration
+      changes, so the turn-away reason field from the last vehicle is still on
+      screen for the next one. Reset it where the verdict is cleared.
+      Plus one accessibility question rather than a defect: the 1×1 `sr-only`
+      "Manual scanner input" on `/gate` is focusable and tells a keyboard user
+      nothing about what it is for. Decide whether it should be reachable at
+      all. Acceptance: one commit per lettered item or one with a clear message
+      covering all; `test:visual` re-run for Gate and Vehicle and the numbers
+      recorded, showing (f) and the aria change moved nothing · **C** ·
+      due Tue 29 Sep
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 

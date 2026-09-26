@@ -1154,6 +1154,20 @@ none of those three may be resolved by tuning the app to a screenshot. Summary:
   tooltip, which a touch device cannot show.
 - The invite form on `/desk/users` defaults to `approver`, the one role
   `canUseGate()` excludes; only "Issuer" carries an explanation.
+- The Master list is eight columns of data with no header row, no `<table>`
+  semantics and no count of how many of 612 rows are showing (ACC-162 — it
+  would break the one v2 screen currently passing `test:visual`, so it needs
+  an ADR first).
+- `/desk/passes` has no search or filter on a sheet that will hold 612 cards,
+  and prints struck-through chips for zones a band does not hold (folded into
+  ACC-160).
+- Six smaller ones, none touching a gated screen's layout, are ACC-163:
+  Organisations' "add a company" instruction with no destination, its status
+  word colliding with its count word, its names set in the body face;
+  `/desk/login` having no show-password toggle and hiding the password rule
+  until a failed submit, and its "Check-in sign in" heading breaking mid-word;
+  and `/gate/vehicle` keeping the last vehicle's turn-away reason field on
+  screen for the next one.
 
 **Measured and worth protecting:** every visible text node on `/desk`,
 `/desk/master`, `/desk/passes`, `/desk/orgs`, `/desk/users` and `/gate/vehicle`
