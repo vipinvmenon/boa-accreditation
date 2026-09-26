@@ -245,7 +245,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       tests for the derivation (latest-wins, no registration, unparseable
       registration) and a `test:e2e` that pulls, then clears a vehicle at
       `/gate/vehicle` · **C** · due Sat 26 Sep
-- [ ] **ACC-154** · **`?in_bms=` is an invisible, inescapable filter.** Found
+- [~] **ACC-154** · **`?in_bms=` is an invisible, inescapable filter.** Found
       26 Sep, same walkthrough. ACC-152 gave `?org=` a banner naming the
       company and a "Show everyone" way out, on the stated principle that a
       filter the operator cannot see is a bug. `?in_bms=` — reached from the
