@@ -277,8 +277,9 @@ interchangeable:
   **Never resolve the collision by tuning the app to the screenshot** — that is
   the `boa-bar-control` failure this repository exists to avoid.
 
-- [ ] **ACC-155** · **A 401 mid-shift loses where the operator was.** Eight desk
-      call sites do `router.replace('/desk/login')` with no `next`, so an
+- [ ] **ACC-155** · **A 401 mid-shift loses where the operator was.** Ten desk
+      call sites do `router.replace('/desk/login')` with no `next` — nine of
+      them driven by a 401, plus the deliberate sign-out — so an
       operator whose session lapses on `/desk/passes` signs back in and lands
       on `/desk` — on show day, holding a phone, mid-task. `gate/session.ts`
       already has the correct shape (`loginHref(next)`), and

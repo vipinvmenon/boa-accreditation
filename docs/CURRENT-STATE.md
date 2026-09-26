@@ -1134,8 +1134,9 @@ contract, the ADR each one needs first. ACC-155/157/158/161 are safe to take
 now; **ACC-156 and ACC-159 are blocked by ACC-109, ACC-160 by ACC-107**, and
 none of those three may be resolved by tuning the app to a screenshot. Summary:
 
-- A 401 mid-shift loses the destination. Eight desk call sites do
-  `router.replace('/desk/login')` with no `next`, so an operator timed out on
+- A 401 mid-shift loses the destination. Ten desk call sites do
+  `router.replace('/desk/login')` with no `next` (nine on a 401, one the
+  deliberate sign-out), so an operator timed out on
   `/desk/passes` signs back in and lands on `/desk`. `gate/session.ts` already
   has the correct `loginHref(next)`.
 - `/gate` puts the scanner below roughly 390px of hero copy on a 390×844 phone,
