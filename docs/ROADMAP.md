@@ -754,7 +754,9 @@ org list wins: `task block` the redesign task with a reason and commit it.
       **Current, 24 Sep at `1371ef9`: 7.00/5.25/5.96/5.28%** (dark/web,
       light/web, dark/mobile, light/mobile), 7 regions masked, with the render
       taller than the reference (web 2055 vs 1987; mobile 4714 vs 4511).
-      Visual acceptance unmet.
+      Visual acceptance unmet. **Re-measured 26 Sep at `b762ddf`: unchanged**,
+      same four figures and the same dimensions — checked while correcting
+      ACC-109's stale numbers, so this entry can be trusted as it stands.
 - [-] **ACC-108** · Submission on v2, 4 variants. ADR-009 (no desk chrome) and
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
@@ -768,14 +770,30 @@ org list wins: `task block` the redesign task with a reason and commit it.
       with **59 precached assets**. Earlier Gate **6.31/6.16/70.85/71.05%**
       and Vehicle **10.45/10.60/63.81/64.48%** values are stale pre-fix
       measurements retained in `CURRENT-STATE.md`.
-      **Current, 24 Sep at `1371ef9`: Gate 1.51/1.50/6.20/6.64%** and
-      **Vehicle 10.88/11.42/14.58/15.10%** (dark/web, light/web, dark/mobile,
-      light/mobile). Two distinct problems, unlikely to share a fix: Gate's
-      **web** variants miss by ~1.5% with *matching* dimensions
-      (1360x1530 both sides), while Gate **mobile** is 46px short (ref
-      390x1661, got 390x1615) and Vehicle is short on every variant (web 1230
-      vs 1294; mobile 1519 vs 1581). Presentation only — no diff
-      in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not green
+      **Superseded 26 Sep — the 24 Sep figures below are stale, Vehicle's by
+      about 2.5 points. Measured at `b762ddf`: Gate 1.44/1.43/4.62/4.61%**
+      (1360x1530 matching; mobile 390x1599 vs ref 390x1661) and **Vehicle
+      13.37/13.95/14.52/15.16%** (web 1360x1221 vs ref 1294; mobile 390x1503
+      vs ref 1581).
+      **The 26 Sep task work is not what moved them.** The same two screens
+      were measured at `f3957fa`, before ACC-155/157/158/161/163 were written:
+      Gate **1.45/1.44/4.65/4.65%** and Vehicle **13.38/13.96/14.56/15.19%**,
+      at identical dimensions. So that whole batch moved every variant by 0.04
+      or less, and Gate slightly for the better. The drift happened between
+      `1371ef9` and `f3957fa` — the ACC-152/ADR-021, ACC-153 and ACC-154
+      window — and **which commit in it has not been isolated**. Both mobile
+      screens lost exactly 16px (Gate 1615→1599, Vehicle 1519→1503), which is
+      the height of the `.meta` wrap the diagnosis below attributes to the
+      harness leaving `/api/gate/pull` unmocked; that fix landing is the likely
+      cause, but it is inference, not measurement. Vehicle **web** also lost
+      9px (1230→1221) and that is not explained by it.
+      **The 24 Sep figures, kept as the record they were:** at `1371ef9`,
+      Gate **1.51/1.50/6.20/6.64%** and Vehicle **10.88/11.42/14.58/15.10%**
+      (dark/web, light/web, dark/mobile, light/mobile). Two distinct problems,
+      unlikely to share a fix: Gate's **web** variants miss by ~1.5% with
+      *matching* dimensions (1360x1530 both sides), while Gate **mobile** was
+      46px short and Vehicle short on every variant. Presentation only — no
+      diff in `gate/db.ts`, `gate/roster.ts` or the outbox. **Hard stop: not green
       and rehearsed by 2 Oct → revert and ship gate on v1** · **CU** · due Thu
       2 Oct
       The 59-asset count is historical evidence from that earlier build; the

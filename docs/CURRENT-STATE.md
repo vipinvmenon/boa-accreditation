@@ -1070,6 +1070,33 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 26 Sep 2026 — ACC-109's and ACC-107's visual figures, re-measured
+
+ACC-109 quoted Vehicle at **10.88/11.42/14.58/15.10%** from 24 Sep. That is
+about 2.5 points optimistic on the two web variants, and whoever picks up the
+2 Oct hard stop would have started from it.
+
+Measured today at `b762ddf` after a clean build: **Gate
+1.44/1.43/4.62/4.61%**, **Vehicle 13.37/13.95/14.52/15.16%**. To find out
+whether the day's task work caused it, the same two screens were measured on a
+detached checkout of `f3957fa` — before ACC-155/157/158/161/163 existed — and
+came back **Gate 1.45/1.44/4.65/4.65%** and **Vehicle 13.38/13.96/14.56/15.19%**
+at identical dimensions. So that batch moved nothing: 0.04 or less on every
+variant, Gate slightly better. The drift is older, somewhere between `1371ef9`
+and `f3957fa`, and **which commit has not been isolated** — both mobile screens
+lost exactly 16px, the height of the `.meta` wrap the ACC-109 diagnosis blames
+on the harness leaving `/api/gate/pull` unmocked, but Vehicle web's 9px is not
+explained by that and neither was bisected.
+
+ACC-107 (Passes) was re-measured in the same run and is **unchanged** —
+7.00/5.25/5.96/5.28% at the same dimensions — so that entry can be trusted as
+written.
+
+Control room is also unchanged at 10.65/10.94/10.58/10.57%, matching what
+ACC-104 already records after the ACC-152 correction. Master still passes
+(0.64/0.65/0.15/0.14%). The suite total is the long-standing **16 failed,
+4 passed**.
+
 ### 26 Sep 2026 — ACC-153 and ACC-154: two defects found walking the running app
 
 Same method as 25 Sep, and the same lesson: both were found by driving the
