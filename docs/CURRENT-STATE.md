@@ -1067,6 +1067,96 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 26 Sep 2026 — ACC-153 and ACC-154: two defects found walking the running app
+
+Same method as 25 Sep, and the same lesson: both were found by driving the
+real screens, and neither was caught by 228 unit tests, 36 browser tests or
+the design gate. In ACC-153's case a passing test suite was part of why it
+survived.
+
+**1. ACC-153 — the vehicle gate could not clear a single vehicle.**
+`gateDb.sticker`, the plate → sticker/holder index `/gate/vehicle` checks a car
+against, was **read** by the vehicle screen and `stickerForPlate()` and
+**written by nothing** in `app/`, `gate/` or `lib/`. Only `gate/db.test.ts` and
+the visual harness ever put a row in it. `gatePullSchema` carried no stickers
+either. So on a real phone `gateDb.sticker.get(plate)` always missed,
+`stickerOk` was always false, and every plate returned "No sticker is issued to
+this plate. Not logged." The barrier could turn cars away and nothing else.
+
+The existing ACC-109 vehicle tests seeded the sticker table straight into
+IndexedDB and then went offline **so the pull could not replace it** — they
+proved the screen works given a cache, and could not see that nothing filled
+one. That is the `boa-bar-control` shape again, in a new place: a test that
+supplies what production does not.
+
+No migration was needed. The binding was already in the pull — a
+`vehicle_sticker` ledger row names the holder and the sticker number, and that
+holder's roster row names the registration — so `pullGate` derives the index
+and writes it in the same transaction as roster and ledger, and `drainOutbox`
+rebuilds it when a sticker posts so one handed over at the crew gate is
+recognised at the barrier without waiting for the next pull. A reissue appends,
+so the latest sticker per plate wins (non-negotiable #2).
+
+**Verified, not asserted:** 9 unit tests for the derivation
+(`gate/sticker-index.test.ts`); 3 new e2e in `aeroplane-mode.spec.ts` that hand
+the gate nothing but a pull — clear, refuse, and clear with the radio off. The
+two clearing tests were **confirmed to fail** with the `sticker.bulkPut`
+removed and to pass with it. Full suite green: 228 unit, 36 e2e.
+**Not verified:** no physical rehearsal, and no run against a real
+`boa_acc_gate_pull()` — the pull payloads in these tests are fixtures. What the
+production RPC returns for a person with a sticker has not been read.
+
+**2. ACC-154 — `?in_bms=` was an invisible, inescapable filter.** ACC-152 gave
+`?org=` a banner naming the company and a "Show everyone" way out, on the
+stated principle that a filter the operator cannot see is a bug. The other
+filter got neither — and it is the one reached from the "N not in BMS" badge in
+the chrome of **every** desk screen, so an operator chasing BMS entries landed
+on a list showing 14 of 612 with nothing on screen saying why and no way back.
+One banner now describes either filter or both, and the same link clears both;
+the copy is a pure function (`masterFilterSummary` in `lib/format.ts`) so its
+twelve outcomes are tested rather than reasoned about.
+
+The empty state no longer blames the search when a filter is the cause. The
+string it used to show, "Nobody matches that. Try a phone number or a band
+serial", is the **frozen design's own** (`boa_design_v2.html:778`) and stays for
+the search case.
+
+**Verified:** 12 unit tests; 4 e2e added to `org-filter.spec.ts`, two of which
+were confirmed to fail with the banner gated on the org filter alone; the 4
+ACC-152 tests still pass with their wording unchanged. The same live probe that
+returned `{banner: [], escape: []}` for `?in_bms=false` now returns both.
+`test:visual --screen master` 4/4 PASS (0.64 / 0.65 / 0.15 / 0.14%), so the
+banner does not disturb the unfiltered screen the reference captures.
+
+**Found in the same pass and NOT fixed** — no task claimed, recorded here so
+they are not rediscovered from scratch:
+
+- A 401 mid-shift loses the destination. Eight desk call sites do
+  `router.replace('/desk/login')` with no `next`, so an operator timed out on
+  `/desk/passes` signs back in and lands on `/desk`. `gate/session.ts` already
+  has the correct `loginHref(next)`.
+- `/gate` puts the scanner below roughly 390px of hero copy on a 390×844 phone,
+  and "Can't scan? Search by name" is visually heavier than the scanner itself.
+- The gate shows two sync statements about 40px apart in different words
+  ("ONLINE | 3 QUEUED" and "NOT SYNCED YET · 3 PENDING").
+- The gate's "last issued" list renders a `vehicle_sticker` row as "band
+  V-0231", and a holder missing from the local roster as "WRISTBAND /
+  wristband, no serial" — the kind twice, no name (`app/gate/page.tsx:356`).
+- `/desk/passes` "Send all unsent" is a bulk outward action with no count and
+  no confirmation, and no screen shows per-person send state.
+- The vehicle screen asks the officer to decide before telling them anything:
+  the sticker and wristband are only looked up **after** "Log entry and open
+  gate" is pressed. Its disabled buttons are explained only by a `title`
+  tooltip, which a touch device cannot show.
+- The invite form on `/desk/users` defaults to `approver`, the one role
+  `canUseGate()` excludes; only "Issuer" carries an explanation.
+
+**Measured and worth protecting:** every visible text node on `/desk`,
+`/desk/master`, `/desk/passes`, `/desk/orgs`, `/desk/users` and `/gate/vehicle`
+was checked against its painted backdrop in both themes, with the 3:1
+large-text allowance — **zero WCAG AA contrast failures**. Focus ring is a
+consistent 2px on every control reached in the first twelve tab stops.
+
 ### 26 Sep 2026 — ACC-152: one place lists people (ADR-021)
 
 Vipin went through the running app with the real roster and asked, three
