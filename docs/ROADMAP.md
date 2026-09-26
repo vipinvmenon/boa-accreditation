@@ -376,7 +376,7 @@ interchangeable:
       sends nothing, per-card state rendered from the data layer (never a
       fixture default — `check-bundle-content.mjs` enforces this), Passes
       ≤0.8% · **C** · due Thu 1 Oct
-- [ ] **ACC-161** · **The invite form defaults to the one role that cannot use
+- [~] **ACC-161** · **The invite form defaults to the one role that cannot use
       the gate.** `/desk/users` defaults to `approver`, which `canUseGate()` in
       `lib/schemas/operator.ts` excludes, and only "Issuer" carries any
       explanation ("check-in only"). With up to ten issuers invited in the week
