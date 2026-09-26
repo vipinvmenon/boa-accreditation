@@ -116,7 +116,7 @@ async function phone(browser: Browser, server: FixtureServer, volunteerName: str
   })
 
   await page.goto('/gate')
-  await expect(page.locator('[data-sync-status]')).toHaveText(/^Last synced \d\d:\d\d · 0 pending$/)
+  await expect(page.locator('[data-sync-status]')).toHaveText(/^Last synced \d\d:\d\d$/)
   return { context, page, pulls }
 }
 
@@ -147,7 +147,7 @@ test.describe('two phones converge when there is signal (ACC-149)', () => {
     await a.page.getByLabel('Wristband serial, optional').fill('0412')
     await a.page.getByRole('button', { name: 'Issue wristband' }).click()
     await expect.poll(() => server.issued.length).toBe(1)
-    await expect(a.page.locator('[data-sync-status]')).toHaveText(/· 0 pending$/)
+    await expect(a.page.locator('[data-sync-status]')).toHaveText(/^Last synced \d\d:\d\d$/)
 
     // B has not pulled since; it still says green.
     const pullsBefore = b.pulls.count

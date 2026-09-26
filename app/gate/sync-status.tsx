@@ -2,23 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
-
-/**
- * ACC-149 — renders "Last synced HH:MM · N pending". The scheduler itself
- * (start/stop, ref-counted across every mounted consumer) now lives entirely
- * in gate/use-outbox-sync.ts (ACC-133): this component used to keep its own
- * copy of the same singleton, so a gate screen that both called
- * `useOutboxSync()` directly and rendered `<SyncStatus>` ran two independent
- * sync loops. There is exactly one now, shared by every consumer.
- */
-function clock(epochMs: number): string {
-  return new Date(epochMs).toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Kolkata',
-  })
-}
+import { formatSyncStatus } from '@/lib/format-sync-status'
 
 /**
  * The line is laid out with zero height and drawn into existing whitespace
@@ -29,8 +13,7 @@ function clock(epochMs: number): string {
 export function SyncStatus({ onSynced, top }: { onSynced?: () => void | Promise<void>; top: number }) {
   const { status } = useOutboxSync(onSynced)
 
-  const last = status === null ? '' : status.lastPullAt === null ? 'Not synced yet' : `Last synced ${clock(status.lastPullAt)}`
-  const text = status === null ? '' : `${last} · ${status.pending} pending${status.needsLogin ? ' · sign in' : ''}`
+  const text = formatSyncStatus(status)
   const line: CSSProperties = {
     position: 'absolute',
     top,
@@ -42,7 +25,7 @@ export function SyncStatus({ onSynced, top }: { onSynced?: () => void | Promise<
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    color: status?.needsLogin ? 'var(--gold)' : 'var(--ink3)',
+    color: 'var(--ink3)',
   }
   return (
     <div style={{ position: 'relative', height: 0, margin: 0 }}>

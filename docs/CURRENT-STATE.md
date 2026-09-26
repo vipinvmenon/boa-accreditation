@@ -1194,6 +1194,23 @@ passed, and the full `test:e2e` passed **41/41**, including the new 401 →
 sign-in → filtered-path case. `ReadLints` reported no errors. `test:visual` was
 not run; no screen layout or visual-reference files changed.
 
+### 26 Sep 2026 — ACC-157: gate sync status uses one vocabulary
+
+The gate pill remains the source for online/offline and queued state. The
+zero-height `SyncStatus` line now reports only pull freshness: `Not synced yet`
+or `Last synced HH:MM`. Pending counts and the sign-in suffix were removed from
+that line, so it no longer contradicts or repeats the pill. The callers,
+absolute positioning, zero-height wrapper and both offsets are unchanged.
+
+Verified: `corepack pnpm task done ACC-157` passed typecheck, lint (the five
+pre-existing `<img>` warnings), and 240 unit tests; the focused two-phone e2e
+passed, and the focused formatter test covers null, never-synced, synced,
+pending and needs-login states. Gate visual re-measurement compared all four
+variants at exact desktop dimensions (1360×1530) and reported **1.44% dark/web,
+1.43% light/web, 4.62% dark/mobile, 4.62% light/mobile**; mobile rendered
+1599px against the 1661px reference. This remains the existing Gate visual
+baseline failure, not a claimed visual pass, and no reference was regenerated.
+
 ### 26 Sep 2026 — ACC-152: one place lists people (ADR-021)
 
 Vipin went through the running app with the real roster and asked, three

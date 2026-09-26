@@ -184,14 +184,13 @@ outbox (non-negotiable #7).
   restores ledger rows only for entries that turned `done` *during* that pull.
   Entries done before the request left are not restored: the server's answer
   has them, or correctly omits them because the desk voided them.
-- **"Last synced HH:MM · N pending"** renders on `/gate` (the second line under
+- **"Last synced HH:MM"** renders on `/gate` (the second line under
   *"N approved passes held on this device"*, as specified above) and on
   `/gate/vehicle`. The time is the last successful pull, persisted in Dexie
-  `meta.lastPullAt` (and `meta.lastDrainAt` for the last drain that emptied the
-  queue), so a cold offline reload still shows when this phone last heard from
-  the server. N is the same count as `queuedCount()` (pending + syncing). With
-  no credentials or after a 401 it appends *"sign in"* in `--gold`. The line
-  is laid out at zero height and drawn into existing whitespace (the gap above
+  `meta.lastPullAt`, so a cold offline reload still shows when this phone last
+  heard from the server. The gate pill owns online/offline and queued state;
+  this line reports pull freshness only. The line is laid out at zero height
+  and drawn into existing whitespace (the gap above
   *Can't scan?* on `/gate`, the panel padding under the note on
   `/gate/vehicle`), so it moves nothing in the v2 contract's layout:
   `test:visual` for `gate` and `vehicle` measured 0.10–0.38% on 22 Sep 2026.
