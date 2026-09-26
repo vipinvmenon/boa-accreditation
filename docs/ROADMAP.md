@@ -229,6 +229,38 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       WILL move — ADR-021 is a deliberate divergence from the frozen
       contract) · **C** · due Sat 26 Sep
 
+- [~] **ACC-153** · **The gate's sticker cache is never written.** Found 26 Sep
+      in a walkthrough of the running app. `gateDb.sticker` (plate → sticker,
+      holder) is read by the vehicle screen and `stickerForPlate`, and written
+      by nothing in `app/`, `gate/` or `lib/` — only by `gate/db.test.ts` and
+      the visual harness. `gatePullSchema` carries no stickers either, so on a
+      real phone `gateDb.sticker.get(plate)` is always `undefined`,
+      `stickerOk` is always false, and **every** vehicle is refused with "No
+      sticker is issued to this plate. Not logged." The vehicle gate is a
+      turn-away-only device. No migration: the binding is already in the pull
+      — a `vehicle_sticker` ledger row names the holder, and their roster row
+      names the registration — so `pullGate` derives the cache and writes it
+      in the same transaction as roster and ledger. A reissue appends, so the
+      latest sticker per plate wins (non-negotiable #2). Acceptance: unit
+      tests for the derivation (latest-wins, no registration, unparseable
+      registration) and a `test:e2e` that pulls, then clears a vehicle at
+      `/gate/vehicle` · **C** · due Sat 26 Sep
+- [ ] **ACC-154** · **`?in_bms=` is an invisible, inescapable filter.** Found
+      26 Sep, same walkthrough. ACC-152 gave `?org=` a banner naming the
+      company and a "Show everyone" way out, on the stated principle that a
+      filter the operator cannot see is a bug. `?in_bms=` — reached from the
+      "N not in BMS" badge in the chrome of **every** desk screen — got
+      neither: the list silently shows 14 of 612 with nothing saying why.
+      Measured on the running app: `?org=` yields a banner and an escape,
+      `?in_bms=false` yields `{banner: [], escape: []}`. Give both filters the
+      one banner, describing either or both, with the same escape. The
+      empty-state copy must stop blaming the search ("Try a phone number or a
+      band serial") when a filter is the cause — but that exact string is the
+      frozen design's own (`boa_design_v2.html:778`) and stays for the search
+      case. Acceptance: unit tests for the summary copy and `test:e2e` in
+      `org-filter.spec.ts` for in_bms alone and combined with org · **C** ·
+      due Sat 26 Sep
+
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
 - [x] **ACC-001** · Recover the design from the bundle; commit to `design/source/`
