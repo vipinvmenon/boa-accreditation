@@ -1065,6 +1065,9 @@ has received a pass**, because ACC-151 is still open.
 
 > **ACC-145 released 2026-09-25 (IST):** sheet header A1 is 'Column 1', must be 'Timestamp' (Vipin); and boa_acc_org is empty — creating Bangalore Open Air needs a real contactName/contactPhone in data/orgs.json, currently TODO, which the script rightly refuses to invent. Everything else parses: 25 valid, 1 refused. See docs/ROSTER-IMPORT-2026-09-25.md
 
+
+> **ACC-144 released 2026-09-26 (IST):** Blocked on ACC-151: Vipin must configure the Meta phone, approved template, WABA/phone IDs, System User token, Vercel env and webhook before real delivery/rejection acceptance can be verified.
+
 ## Session log
 
 ### 26 Sep 2026 — ACC-153 and ACC-154: two defects found walking the running app
