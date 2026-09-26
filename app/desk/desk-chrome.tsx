@@ -9,6 +9,7 @@ import { dashboardSchema, type Dashboard } from '@/lib/schemas/dashboard'
 import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
+import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { z } from 'zod'
@@ -57,7 +58,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
         const response = await fetch('/api/desk/dashboard')
         if (cancelled) return
         if (response.status === 401) {
-          router.replace('/desk/login')
+          router.replace(loginHref(window.location.pathname + window.location.search))
           return
         }
         if (!response.ok) {

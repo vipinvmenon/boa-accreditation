@@ -6,6 +6,7 @@ import { operatorRoleSchema, type InviteOperatorInput, type OperatorRow } from '
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
 import { copyForError } from '@/lib/error-copy'
+import { loginHref } from '@/gate/session'
 
 /**
  * Not part of the approved design — design/source/boa_design_body.html has no
@@ -94,7 +95,7 @@ export function UsersScreen() {
         const res = await fetch('/api/desk/operators')
         if (cancelled) return
         if (res.status === 401) {
-          router.replace('/desk/login')
+          router.replace(loginHref(window.location.pathname + window.location.search))
           return
         }
         if (!res.ok) {
@@ -135,7 +136,7 @@ export function UsersScreen() {
     try {
       const res = await fetch('/api/desk/operators')
       if (res.status === 401) {
-        router.replace('/desk/login')
+        router.replace(loginHref(window.location.pathname + window.location.search))
         return
       }
       if (!res.ok) {
@@ -162,7 +163,7 @@ export function UsersScreen() {
         body: JSON.stringify({ email: form.email, displayName: form.displayName, role: form.role }),
       })
       if (res.status === 401) {
-        router.replace('/desk/login')
+        router.replace(loginHref(window.location.pathname + window.location.search))
         return
       }
       if (!res.ok) {
@@ -209,7 +210,7 @@ export function UsersScreen() {
         body: JSON.stringify({ active }),
       })
       if (res.status === 401) {
-        router.replace('/desk/login')
+        router.replace(loginHref(window.location.pathname + window.location.search))
         return
       }
       if (!res.ok) {

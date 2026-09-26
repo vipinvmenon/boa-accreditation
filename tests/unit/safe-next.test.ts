@@ -11,6 +11,9 @@ describe('safeNext', () => {
     expect(safeNext('/gate')).toBe('/gate')
     expect(safeNext('/gate/vehicle')).toBe('/gate/vehicle')
     expect(safeNext('/desk/queue')).toBe('/desk/queue')
+    expect(safeNext('/desk/master?org=11111111-1111-4111-8111-111111111111')).toBe(
+      '/desk/master?org=11111111-1111-4111-8111-111111111111',
+    )
   })
 
   it('refuses anything that could leave this origin', () => {
@@ -21,6 +24,11 @@ describe('safeNext', () => {
       'javascript:alert(1)',
       '/api/gate/pull',
       '/gate?x=1',
+      '/desk/master?evil=1',
+      '/desk/master?org=not-an-id',
+      '/desk/master?in_bms=maybe',
+      '/desk/master?org=11111111-1111-4111-8111-111111111111&',
+      '/desk/master?org=11111111-1111-4111-8111-111111111111&org=22222222-2222-4222-8222-222222222222',
       '',
       null,
       undefined,

@@ -10,6 +10,7 @@ import { formatMasterBand, formatMasterCollected, masterFilterSummary } from '@/
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineError } from '@/components/states'
+import { loginHref } from '@/gate/session'
 
 export function MasterScreen() {
   const router = useRouter()
@@ -39,7 +40,7 @@ export function MasterScreen() {
       if (nextOrg) params.set('org', nextOrg)
       const response = await fetch(`/api/desk/master?${params.toString()}`)
       if (response.status === 401) {
-        router.replace('/desk/login')
+        router.replace(loginHref(window.location.pathname + window.location.search))
         return
       }
       if (!response.ok) {

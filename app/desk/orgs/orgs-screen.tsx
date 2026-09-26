@@ -7,6 +7,7 @@ import { type OrgRowWithCounts } from '@/lib/schemas/org'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineError } from '@/components/states'
 import { copyForError } from '@/lib/error-copy'
+import { loginHref } from '@/gate/session'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -78,7 +79,7 @@ export function OrgsScreen() {
         const res = await fetch('/api/desk/orgs')
         if (cancelled) return
         if (res.status === 401) {
-          router.replace('/desk/login')
+          router.replace(loginHref(window.location.pathname + window.location.search))
           return
         }
         if (!res.ok) {

@@ -1175,6 +1175,22 @@ was checked against its painted backdrop in both themes, with the 3:1
 large-text allowance — **zero WCAG AA contrast failures**. Focus ring is a
 consistent 2px on every control reached in the first twelve tab stops.
 
+### 26 Sep 2026 — ACC-155: desk 401s preserve the operator's return path
+
+All nine desk redirects caused by a 401 now use
+`loginHref(window.location.pathname + window.location.search)`, so a session
+lapse on `/desk/master?org=<id>` carries the exact organisation filter through
+sign-in. The deliberate sign-out in `desk-chrome.tsx` remains a plain
+`/desk/login` redirect by design. `safeNext` now permits only the Master-list
+filter query keys and validates their values; external, malformed, duplicate
+and otherwise unsafe destinations remain refused.
+
+Verified: `corepack pnpm task done ACC-155` passed typecheck, lint (the five
+pre-existing `<img>` warnings), and 240 unit tests; the focused return-path e2e
+passed, and the full `test:e2e` passed **41/41**, including the new 401 →
+sign-in → filtered-path case. `ReadLints` reported no errors. `test:visual` was
+not run; no screen layout or visual-reference files changed.
+
 ### 26 Sep 2026 — ACC-152: one place lists people (ADR-021)
 
 Vipin went through the running app with the real roster and asked, three

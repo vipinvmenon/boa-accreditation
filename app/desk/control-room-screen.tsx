@@ -11,6 +11,7 @@ import { ControlRoomSkeleton } from '@/components/loading-skeleton'
 import { Icon } from '@/components/icon'
 import { InlineError } from '@/components/states'
 import { copyForError, ERROR_COPY } from '@/lib/error-copy'
+import { loginHref } from '@/gate/session'
 import { DoubleIssuePanel } from './double-issue-panel'
 
 /**
@@ -255,7 +256,7 @@ export function ControlRoomScreen() {
       try {
         const response = await fetch('/api/desk/dashboard')
         if (cancelled) return
-        if (response.status === 401) { router.replace('/desk/login'); return }
+        if (response.status === 401) { router.replace(loginHref(window.location.pathname + window.location.search)); return }
         if (!response.ok) {
           setLoadError(copyForError(await response.json().catch(() => null), CONTROL_ROOM_ERROR_OVERRIDES))
           return

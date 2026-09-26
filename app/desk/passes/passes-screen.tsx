@@ -10,6 +10,7 @@ import { Icon } from '@/components/icon'
 import { PassesSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
 import { copyForError } from '@/lib/error-copy'
+import { loginHref } from '@/gate/session'
 import {
   passSendsResponseSchema,
   sendResponseSchema,
@@ -168,7 +169,7 @@ export function PassesScreen() {
       try {
         const response = await fetch('/api/desk/passes')
         if (response.status === 401) {
-          router.replace('/desk/login')
+          router.replace(loginHref(window.location.pathname + window.location.search))
           return
         }
         if (!response.ok) throw new Error('request_failed')
