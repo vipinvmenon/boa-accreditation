@@ -309,7 +309,7 @@ interchangeable:
       source, Gate ≤0.8% on 4 variants, `test:e2e` aeroplane-mode still green,
       and the measured scan-frame offset on 390×844 recorded before and
       after · **C** · due Thu 1 Oct
-- [ ] **ACC-157** · **The gate states its sync twice, in conflicting words.**
+- [~] **ACC-157** · **The gate states its sync twice, in conflicting words.**
       About 40px apart it draws "ONLINE | 3 QUEUED" (the design's own pill —
       `QUEUED` appears in `boa_design_v2.html`) and "NOT SYNCED YET · 3 PENDING"
       (`app/gate/sync-status.tsx`, added by ACC-149). One says online, the other
