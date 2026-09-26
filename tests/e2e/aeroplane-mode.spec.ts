@@ -624,3 +624,73 @@ test.describe('vehicle gate (ACC-109)', () => {
     await expect.poll(() => vehicleOutbox(gate)).toEqual([['turned_away', 'Plate does not match sticker']])
   })
 })
+
+/**
+ * ACC-153 — the plate index is built by the pull, not by hand.
+ *
+ * The suite above seeds `sticker` straight into IndexedDB and goes offline so
+ * the pull cannot replace it. That proved the screen works given a cache, and
+ * hid the fact that nothing in shipped code ever wrote one: on a real phone
+ * `gateDb.sticker` stayed empty and every vehicle was refused with "No
+ * sticker is issued to this plate". These tests hand the gate nothing but a
+ * pull — the binding it really has — and require the barrier to work.
+ */
+const STICKER_HOLDER = PEOPLE[0]
+const PULL_WITH_VEHICLE = {
+  ...PULL,
+  roster: PULL.roster.map((row) => (
+    row.personId === STICKER_HOLDER.personId ? { ...row, vehicleReg: 'KA 05 MJ 8871' } : row
+  )),
+  ledger: [
+    { id: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1', personId: STICKER_HOLDER.personId, kind: 'vehicle_sticker' as const, occurredAt: '2026-09-12T11:00:00.000Z', bandSerial: null, stickerNo: '#V-0231', gateLabel: PULL.gateLabel, volunteerName: PULL.volunteerName, isReissue: false },
+    { id: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2', personId: STICKER_HOLDER.personId, kind: 'wristband' as const, occurredAt: '2026-09-12T11:05:00.000Z', bandSerial: '#0412', stickerNo: null, gateLabel: PULL.gateLabel, volunteerName: PULL.volunteerName, isReissue: false },
+  ],
+}
+
+test.describe('the plate index is built by the pull (ACC-153)', () => {
+  test('a vehicle whose sticker arrived only in the pull clears at the barrier', async ({ page }) => {
+    const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
+    await gate.route('**/api/gate/pull', (route: Route) => route.fulfill({ json: PULL_WITH_VEHICLE }))
+
+    // Shift start: the crew gate pulls. Nothing is written to Dexie by hand.
+    await gate.goto('/gate')
+    await expect(gate.getByLabel('Manual scanner input')).toBeAttached()
+
+    await gate.goto('/gate/vehicle')
+    // Typed the way an officer types it, not the way the roster stores it.
+    await gate.getByLabel('Vehicle registration').fill('ka05mj8871')
+    await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
+
+    await expectVerdict(gate, 'Cleared')
+    await expect(gate.getByText('#V-0231', { exact: false }).first()).toBeVisible()
+    await expect.poll(() => vehiclePosts.map((post) => post.outcome)).toEqual(['cleared'])
+    expect(vehiclePosts[0]?.checks).toEqual({ sticker: true, wristband: true, plateVisual: true })
+  })
+
+  test('a plate nobody registered is still refused, and still logs nothing', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await gate.route('**/api/gate/pull', (route: Route) => route.fulfill({ json: PULL_WITH_VEHICLE }))
+    await gate.goto('/gate')
+    await expect(gate.getByLabel('Manual scanner input')).toBeAttached()
+
+    await gate.goto('/gate/vehicle')
+    await gate.getByLabel('Vehicle registration').fill('KA 01 ZZ 9999')
+    await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
+    await expectVerdict(gate, 'Not cleared')
+    expect(await vehicleOutbox(gate)).toEqual([])
+  })
+
+  test('the index survives the radio going off — it is in the cache, not the network', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await gate.route('**/api/gate/pull', (route: Route) => route.fulfill({ json: PULL_WITH_VEHICLE }))
+    await gate.goto('/gate')
+    await expect(gate.getByLabel('Manual scanner input')).toBeAttached()
+
+    await gate.context().setOffline(true)
+    await gate.goto('/gate/vehicle')
+    await gate.getByLabel('Vehicle registration').fill('KA05MJ8871')
+    await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
+    await expectVerdict(gate, 'Cleared')
+    await expect.poll(() => vehicleOutbox(gate)).toEqual([['cleared', null]])
+  })
+})

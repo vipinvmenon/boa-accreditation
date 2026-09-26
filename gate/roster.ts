@@ -1,11 +1,80 @@
 import { z } from 'zod'
 import { gatePullSchema } from '@/lib/schemas/gate'
-import { gateDb, ledgerRowSchema, metaRowSchema, rosterRowSchema, type LedgerRow, type RosterRow } from './db'
+import { gateDb, ledgerRowSchema, metaRowSchema, rosterRowSchema, stickerRowSchema, type LedgerRow, type RosterRow, type StickerRow } from './db'
+import { normalizePlate } from './vehicle-flow'
 
 export type GateSnapshot = {
   roster: RosterRow[]
   ledger: LedgerRow[]
   meta: { gateLabel: string; volunteerName: string; rosterAsOf: string | null; ledgerAsOf: string | null }
+}
+
+/**
+ * ACC-153 — the plate → sticker index the vehicle screen checks a car against.
+ *
+ * Until this existed nothing wrote `gateDb.sticker` at all: the vehicle screen
+ * and `stickerForPlate()` read it, `gate/db.test.ts` and the visual harness
+ * seeded it, and no shipped code ever put a row in. So on a real phone
+ * `gateDb.sticker.get(plate)` was always `undefined`, `stickerOk` always
+ * false, and every vehicle was refused with "No sticker is issued to this
+ * plate" — the vehicle gate could turn cars away and nothing else.
+ *
+ * The binding is already in the pull, so no migration and no new server
+ * contract: a `vehicle_sticker` ledger row names the holder and carries the
+ * sticker number, and that holder's roster row carries the registration the
+ * sticker is stuck to. Derived rather than fetched also means the index can
+ * never disagree with the ledger the same screen checks against.
+ *
+ * Two rules, both from the ledger being append-only (non-negotiable #2):
+ * a reissue appends, so the LATEST sticker per plate wins; and a row whose
+ * holder has left the roster, has no registration, or whose registration does
+ * not parse is skipped rather than thrown — one bad registration must not
+ * cost the phone its whole cache.
+ */
+export function stickerRowsFrom(
+  roster: readonly RosterRow[],
+  ledger: readonly LedgerRow[],
+): StickerRow[] {
+  const registrationOf = new Map(
+    roster.filter((row) => row.vehicleReg).map((row) => [row.personId, row.vehicleReg!]),
+  )
+  const latest = new Map<string, StickerRow>()
+  for (const row of ledger) {
+    if (row.kind !== 'vehicle_sticker' || !row.stickerNo) continue
+    const registration = registrationOf.get(row.personId)
+    if (!registration) continue
+    let plate: string
+    try {
+      plate = normalizePlate(registration)
+    } catch {
+      continue
+    }
+    const previous = latest.get(plate)
+    if (previous && previous.issuedAt >= row.occurredAt) continue
+    latest.set(plate, stickerRowSchema.parse({
+      plate,
+      stickerNo: row.stickerNo,
+      personId: row.personId,
+      issuedAt: row.occurredAt,
+    }))
+  }
+  return [...latest.values()]
+}
+
+/**
+ * Rebuild the index from whatever this phone now holds.
+ *
+ * `pullGate` derives it inside its own transaction, but the ledger also grows
+ * between pulls: `drainOutbox` writes the row the server confirmed as soon as
+ * an issue posts. Without this, a sticker handed over at the crew gate would
+ * not be recognised at the vehicle barrier until the next roster pull.
+ */
+export async function rebuildStickerIndex(): Promise<void> {
+  await gateDb.transaction('rw', gateDb.roster, gateDb.ledger, gateDb.sticker, async () => {
+    const [roster, ledger] = await Promise.all([gateDb.roster.toArray(), gateDb.ledger.toArray()])
+    await gateDb.sticker.clear()
+    await gateDb.sticker.bulkPut(stickerRowsFrom(roster, ledger))
+  })
 }
 
 function localRoster(row: z.infer<typeof gatePullSchema>['roster'][number]): RosterRow {
@@ -44,11 +113,17 @@ export async function pullGate(): Promise<GateSnapshot> {
       ledgerAsOf: parsed.data.ledgerAsOf,
     },
   }
-  await gateDb.transaction('rw', gateDb.roster, gateDb.ledger, gateDb.meta, async () => {
+  // ACC-153: the sticker index is derived from the two tables beside it, so it
+  // is rebuilt in the same transaction. A cache where the ledger has moved on
+  // and the index has not is the bug this replaces, in the other direction.
+  const stickers = stickerRowsFrom(snapshot.roster, snapshot.ledger)
+  await gateDb.transaction('rw', gateDb.roster, gateDb.ledger, gateDb.sticker, gateDb.meta, async () => {
     await gateDb.roster.clear()
     await gateDb.ledger.clear()
+    await gateDb.sticker.clear()
     await gateDb.roster.bulkPut(snapshot.roster)
     await gateDb.ledger.bulkPut(snapshot.ledger)
+    await gateDb.sticker.bulkPut(stickers)
     const rows = [
       { key: 'operatorId' as const, value: parsed.data.operatorId },
       // The pull has always carried the role and thrown it away. Caching it

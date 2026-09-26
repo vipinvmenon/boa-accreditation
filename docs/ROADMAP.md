@@ -229,7 +229,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       WILL move — ADR-021 is a deliberate divergence from the frozen
       contract) · **C** · due Sat 26 Sep
 
-- [~] **ACC-153** · **The gate's sticker cache is never written.** Found 26 Sep
+- [x] **ACC-153** · **The gate's sticker cache is never written.** Found 26 Sep
       in a walkthrough of the running app. `gateDb.sticker` (plate → sticker,
       holder) is read by the vehicle screen and `stickerForPlate`, and written
       by nothing in `app/`, `gate/` or `lib/` — only by `gate/db.test.ts` and

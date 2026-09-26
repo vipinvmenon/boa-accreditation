@@ -2,6 +2,7 @@ import { gateIssueResultSchema } from '@/lib/schemas/gate'
 import { vehicleEventResponseSchema } from '@/lib/schemas/vehicle'
 import { gateDb } from './db'
 import { classifyFailure, nextAttemptDelayMs, selectDrainBatch } from './outbox-policy'
+import { rebuildStickerIndex } from './roster'
 
 /**
  * One drain at a time per page. Since ACC-109 a drain can start from the
@@ -27,6 +28,12 @@ export function drainOutbox(): Promise<void> {
 async function drainOnce(): Promise<void> {
   const entries = await gateDb.outbox.toArray()
   const batch = selectDrainBatch(entries, Date.now())
+  // ACC-153: a sticker confirmed by the server adds a ledger row here, between
+  // roster pulls. The plate index is derived from that ledger, so it is
+  // rebuilt once at the end of the drain rather than left until the next pull
+  // — otherwise a sticker handed over at the crew gate is not recognised at
+  // the vehicle barrier for up to a minute.
+  let stickerIssued = false
   for (const selected of batch) {
     const entry = await gateDb.outbox.get(selected.id)
     if (!entry) continue
@@ -65,6 +72,7 @@ async function drainOnce(): Promise<void> {
       await gateDb.transaction('rw', gateDb.outbox, gateDb.ledger, async () => {
         await gateDb.outbox.update(entry.id, { status: 'done', result })
         if (result.kind !== 'void') {
+          if (result.kind === 'vehicle_sticker') stickerIssued = true
           await gateDb.ledger.put({
             id: result.id,
             personId: result.personId,
@@ -109,4 +117,5 @@ async function drainOnce(): Promise<void> {
       break
     }
   }
+  if (stickerIssued) await rebuildStickerIndex()
 }
