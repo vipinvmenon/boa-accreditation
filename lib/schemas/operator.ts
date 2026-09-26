@@ -20,6 +20,32 @@ export function canUseGate(role: z.infer<typeof operatorRoleSchema>): boolean {
   return (GATE_ROLES as readonly string[]).includes(role)
 }
 
+export const OPERATOR_ROLE_COPY = {
+  lead: {
+    label: 'Lead',
+    description: 'Manage the desk, approve and import people, send passes, and use the gate.',
+    canUseGate: true,
+  },
+  approver: {
+    label: 'Approver',
+    description: 'Review and approve people in the desk; cannot use the gate.',
+    canUseGate: false,
+  },
+  admin: {
+    label: 'Admin',
+    description: 'Manage users and desk operations, and use the gate.',
+    canUseGate: true,
+  },
+  issuer: {
+    label: 'Issuer',
+    description: 'Check people in, issue wristbands, and log vehicle events; gate only.',
+    canUseGate: true,
+  },
+} as const satisfies Record<
+  z.infer<typeof operatorRoleSchema>,
+  { label: string; description: string; canUseGate: boolean }
+>
+
 export const inviteOperatorSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   displayName: z.string().trim().min(2).max(80),

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { operatorRoleSchema, type InviteOperatorInput, type OperatorRow } from '@/lib/schemas/operator'
+import { OPERATOR_ROLE_COPY, operatorRoleSchema, type InviteOperatorInput, type OperatorRow } from '@/lib/schemas/operator'
 import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
 import { copyForError } from '@/lib/error-copy'
@@ -36,15 +36,6 @@ import { loginHref } from '@/gate/session'
  * below is a usability affordance only; the real guard is the database CHECK
  * inside the RPC.
  */
-const ROLE_LABEL: Record<InviteOperatorInput['role'], string> = {
-  lead: 'Lead',
-  approver: 'Approver',
-  admin: 'Admin',
-  // ACC-150 (ADR-020): the gate-only role. Wristbands and vehicle events,
-  // nothing else — and that is enforced in the database, not by this label.
-  issuer: 'Issuer (check-in only)',
-}
-
 // ACC-122: shared with every other desk screen via lib/error-copy.ts; this
 // screen's `not_authorized`, `forbidden`, `rate_limited` and `not_found`
 // wording differ from the default because they name this screen's own
@@ -70,7 +61,7 @@ type InviteFormState = {
   role: InviteOperatorInput['role']
 }
 
-const EMPTY_FORM: InviteFormState = { displayName: '', email: '', role: 'approver' }
+const EMPTY_FORM: InviteFormState = { displayName: '', email: '', role: 'issuer' }
 
 export function UsersScreen() {
   const router = useRouter()
@@ -269,14 +260,15 @@ export function UsersScreen() {
             <label className="utility-label">
               <span>Full name</span>
               <input
+                aria-describedby="operator-name-hint"
                 required
                 minLength={2}
                 maxLength={80}
                 value={form.displayName}
                 onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
                 className="utility-input"
-                placeholder="As they should appear to the team"
               />
+              <small id="operator-name-hint" className="utility-hint">Shown to the team and on gate records.</small>
             </label>
             <label className="utility-label">
               <span>Email</span>
@@ -292,16 +284,18 @@ export function UsersScreen() {
             <label className="utility-label">
               <span>Role</span>
               <select
+                aria-describedby="operator-role-description"
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: operatorRoleSchema.parse(e.target.value) }))}
-                className="utility-input"
+                className="utility-input utility-select"
               >
                 {operatorRoleSchema.options.map((option) => (
                   <option key={option} value={option}>
-                    {ROLE_LABEL[option]}
+                    {OPERATOR_ROLE_COPY[option].label}
                   </option>
                 ))}
               </select>
+              <small id="operator-role-description" className="utility-hint">{OPERATOR_ROLE_COPY[form.role].description}</small>
             </label>
             <div className="utility-actions full">
               <button type="submit" disabled={inviting} className="btn go hov-invert-grn" style={{ opacity: inviting ? 0.6 : 1 }}>
@@ -361,7 +355,7 @@ export function UsersScreen() {
                         {isSelf ? ' (you)' : ''}
                       </p>
                       <p style={{ ...labelStyle, marginTop: '4px' }}>
-                        {ROLE_LABEL[o.role]} · {o.active ? 'active' : 'deactivated'}
+                        {OPERATOR_ROLE_COPY[o.role].label} · {o.active ? 'active' : 'deactivated'}
                       </p>
                     </div>
                     {isSelf ? (

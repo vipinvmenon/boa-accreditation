@@ -1194,6 +1194,21 @@ passed, and the full `test:e2e` passed **41/41**, including the new 401 →
 sign-in → filtered-path case. `ReadLints` reported no errors. `test:visual` was
 not run; no screen layout or visual-reference files changed.
 
+### 26 Sep 2026 — ACC-161: issuer is the deliberate invite default
+
+The Manage users invite form now defaults to `issuer`, the role intended for
+check-in phones. One exported role metadata map supplies each role's label,
+capability description and gate-access claim; the form uses it for option text,
+the selected-role explanation and existing operator labels. The gate claim is
+tested against `canUseGate`, but remains a usability description rather than an
+authorization control. The full-name placeholder was replaced with a persistent
+hint, and the native role select now uses the app's styled input treatment.
+
+Verified: `corepack pnpm task done ACC-161` passed typecheck, lint (the five
+pre-existing `<img>` warnings), and 248 unit tests; the focused `/desk/users`
+e2e passed, including issuer default and approver/issuer descriptions. No
+visual-gated screen was changed.
+
 ### 26 Sep 2026 — ACC-158: gate history labels the physical article and unknown holder
 
 The Gate history now says `sticker V-0231` for vehicle-sticker ledger rows
