@@ -1194,6 +1194,24 @@ passed, and the full `test:e2e` passed **41/41**, including the new 401 →
 sign-in → filtered-path case. `ReadLints` reported no errors. `test:visual` was
 not run; no screen layout or visual-reference files changed.
 
+### 26 Sep 2026 — ACC-163: small operator and gate UX corrections
+
+Organisations now point operators to the real bulk-import path, show status in
+its own chip, and use the shared condensed name treatment. Login now shows the
+password rule before submission, supports a show/hide password control, and
+keeps “Check-in” together in the gate heading. Changing a vehicle registration
+clears the previous turn-away reason. The hidden hardware-scanner input is
+removed from sequential tab order and has an explicit accessible name.
+
+Verified: `corepack pnpm task done ACC-163` passed typecheck, lint (the five
+pre-existing `<img>` warnings), and 249 unit tests; focused desk e2e passed
+after the copy assertions were scoped to their organisation rows. Gate visual
+measurement: **1.44/1.43/4.62/4.61%** (dark/light web/mobile), dimensions
+1360×1530 and 390×1599 versus the same existing Gate references. Vehicle:
+**13.37/13.95/14.52/15.16%**, dimensions 1360×1221 and 390×1503 versus the
+existing references. These remain baseline visual failures; no reference was
+regenerated.
+
 ### 26 Sep 2026 — ACC-161: issuer is the deliberate invite default
 
 The Manage users invite form now defaults to `issuer`, the role intended for

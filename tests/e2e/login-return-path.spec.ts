@@ -123,3 +123,18 @@ test('a desk 401 returns to the exact filtered page after sign-in', async ({ pag
   })
   expect(new URL(page.url()).searchParams.get('org')).toBe(ORG_ID)
 })
+
+test('gate sign-in explains and can reveal the password', async ({ page }) => {
+  await installAuthFixtures(page)
+  await page.goto('/desk/login?next=/gate')
+
+  const password = page.getByLabel('Password')
+  await expect(password).toBeVisible()
+  await expect(page.getByText('Minimum 8 characters.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Check-in sign in' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Show password' }).click()
+  await expect(password).toHaveAttribute('type', 'text')
+  await page.getByRole('button', { name: 'Hide password' }).click()
+  await expect(password).toHaveAttribute('type', 'password')
+})

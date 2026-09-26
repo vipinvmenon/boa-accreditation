@@ -147,7 +147,7 @@ async function reloadColdOffline(page: Page) {
 }
 
 async function scan(page: Page, value: string) {
-  const input = page.getByLabel('Manual scanner input')
+  const input = page.getByLabel('Pass-code input for hardware scanner')
   await input.fill(value)
   await input.press('Enter')
 }
@@ -439,7 +439,7 @@ test.describe('gate aeroplane mode', () => {
     await page.goto('/gate')
     await expect(page.getByText('No one approved yet')).toBeVisible()
     await expect(page.getByText('No one has been approved yet', { exact: false })).toBeVisible()
-    await expect(page.getByLabel('Manual scanner input')).toHaveCount(0)
+    await expect(page.getByLabel('Pass-code input for hardware scanner')).toHaveCount(0)
     // The bug this replaced: a signed-in issuer was told to "Sign in and load
     // the list". Boot redirects a signed-out issuer before this screen ever
     // renders, so the only people who see it are already signed in, and
@@ -529,7 +529,7 @@ test.describe('gate aeroplane mode', () => {
     // button was the only thing that could have recovered it.
     pullWorks = true
     await page.getByRole('button', { name: 'Try again' }).click()
-    await expect(page.getByLabel('Manual scanner input')).toBeVisible()
+    await expect(page.getByLabel('Pass-code input for hardware scanner')).toBeVisible()
   })
 })
 
@@ -654,7 +654,7 @@ test.describe('the plate index is built by the pull (ACC-153)', () => {
 
     // Shift start: the crew gate pulls. Nothing is written to Dexie by hand.
     await gate.goto('/gate')
-    await expect(gate.getByLabel('Manual scanner input')).toBeAttached()
+    await expect(gate.getByLabel('Pass-code input for hardware scanner')).toBeAttached()
 
     await gate.goto('/gate/vehicle')
     // Typed the way an officer types it, not the way the roster stores it.
@@ -671,7 +671,7 @@ test.describe('the plate index is built by the pull (ACC-153)', () => {
     const { page: gate } = await installFixture(page, ['success'])
     await gate.route('**/api/gate/pull', (route: Route) => route.fulfill({ json: PULL_WITH_VEHICLE }))
     await gate.goto('/gate')
-    await expect(gate.getByLabel('Manual scanner input')).toBeAttached()
+    await expect(gate.getByLabel('Pass-code input for hardware scanner')).toBeAttached()
 
     await gate.goto('/gate/vehicle')
     await gate.getByLabel('Vehicle registration').fill('KA 01 ZZ 9999')
@@ -684,7 +684,7 @@ test.describe('the plate index is built by the pull (ACC-153)', () => {
     const { page: gate } = await installFixture(page, ['success'])
     await gate.route('**/api/gate/pull', (route: Route) => route.fulfill({ json: PULL_WITH_VEHICLE }))
     await gate.goto('/gate')
-    await expect(gate.getByLabel('Manual scanner input')).toBeAttached()
+    await expect(gate.getByLabel('Pass-code input for hardware scanner')).toBeAttached()
 
     await gate.context().setOffline(true)
     await gate.goto('/gate/vehicle')

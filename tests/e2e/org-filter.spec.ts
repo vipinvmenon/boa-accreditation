@@ -87,6 +87,9 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await installDesk(page, seen)
     await page.goto('/desk/orgs')
 
+    await expect(page.getByText(/Organisations are added from data\/orgs\.json/)).toBeVisible()
+    await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.nm')).toBeVisible()
+    await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.st.ok')).toHaveText('open')
     // The list does NOT show people — that is the whole point of ADR-021.
     await expect(page.getByText('Sound Person One')).toHaveCount(0)
 

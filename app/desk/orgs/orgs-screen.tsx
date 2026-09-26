@@ -139,7 +139,7 @@ export function OrgsScreen() {
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
         )}
         <header className="utility-head"><div><div className="tag">Import matching</div><h1 className="h1">Organisations</h1>
-          <p className="lede">Every company sending crew, and how many they have sent. The importer refuses a row whose Organisation answer is not one of these names, so add a company <strong>before</strong> you send them the form link. Open one to see its people.</p>
+          <p className="lede">Every company sending crew, and how many they have sent. The importer refuses a row whose Organisation answer is not one of these names. Organisations are added from <code>data/orgs.json</code> with <code>scripts/replace-placeholder-orgs.mjs</code>; see <code>docs/ORG-IMPORT.md</code> before you send the form link. Open one to see its people.</p>
         </div></header>
 
         <section>
@@ -215,14 +215,15 @@ export function OrgsScreen() {
               ><div className="pl pad">
                 <div className="utility-row">
                   <div>
-                    <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
+                    <p className="nm" style={{ margin: 0 }}>
                       {org.name}
                     </p>
                     <p style={{ ...labelStyle, marginTop: '4px' }}>
-                      {org.kind} · sent {org.submittedCount} · approved {org.approvedCount} · {org.status} ·{' '}
+                      {org.kind} · sent {org.submittedCount} · approved {org.approvedCount} ·{' '}
                       {org.contact_name} · {org.contact_phone}
                     </p>
                   </div>
+                  <span className={`st ${org.status === 'open' ? 'ok' : 'wait'}`}>{org.status}</span>
                   <span style={{ ...labelStyle, whiteSpace: 'nowrap' }} aria-hidden="true">
                     {org.submittedCount} {org.submittedCount === 1 ? 'person' : 'people'} &rarr;
                   </span>

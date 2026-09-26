@@ -121,7 +121,7 @@ async function phone(browser: Browser, server: FixtureServer, volunteerName: str
 }
 
 async function scan(page: Page, value: string) {
-  const input = page.getByLabel('Manual scanner input')
+  const input = page.getByLabel('Pass-code input for hardware scanner')
   await input.fill(value)
   await input.press('Enter')
 }

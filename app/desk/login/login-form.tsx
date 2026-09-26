@@ -70,6 +70,7 @@ function DeskLoginForm() {
   const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in' | 'forgot-password'>('checking')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(
@@ -230,7 +231,7 @@ function DeskLoginForm() {
         </div>
         <div className="tag">BOA accreditation</div>
         <h1 className="h1">
-          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : next?.startsWith('/gate') ? 'Check-in sign in' : 'Desk sign in'}
+          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : next?.startsWith('/gate') ? <><span style={{ whiteSpace: 'nowrap' }}>Check-in</span> sign in</> : 'Desk sign in'}
         </h1>
 
         {(mode === 'checking' || mode === 'redirecting') && <LoginFormSkeleton />}
@@ -251,13 +252,23 @@ function DeskLoginForm() {
             <label className="utility-label">
               <span>Password</span>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="utility-input"
               />
+              <small className="utility-hint">Minimum 8 characters.</small>
+              <button
+                type="button"
+                className="linkbtn hov-text-grn"
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+                style={{ minHeight: '44px', justifySelf: 'start' }}
+              >
+                {showPassword ? 'Hide password' : 'Show password'}
+              </button>
             </label>
             {error && <p role="alert" className="utility-error">{error}</p>}
             <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">

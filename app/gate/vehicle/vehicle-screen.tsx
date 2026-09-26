@@ -144,7 +144,7 @@ export function VehicleScreen() {
       <div className="split">
         <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
           <span className="mono">Enter registration</span>
-          <input className="plate-in" id="vehicle-plate" aria-label="Vehicle registration" value={plate} onChange={(event) => { setPlate(event.target.value); setResult(null) }} placeholder="KA01AB1234" autoCapitalize="characters" autoComplete="off" style={{ margin: '14px 0 18px' }} />
+          <input className="plate-in" id="vehicle-plate" aria-label="Vehicle registration" value={plate} onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }} placeholder="KA01AB1234" autoCapitalize="characters" autoComplete="off" style={{ margin: '14px 0 18px' }} />
           <div className="note" style={{ '--oc': 'var(--gold)' } as CSSProperties}><span className="mono" style={{ color: p.gold }}>Both or neither</span><br />A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</div>
           <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
         </div></div>

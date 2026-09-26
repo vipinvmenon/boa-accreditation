@@ -342,7 +342,7 @@ export default function GatePage() {
             {/* inputMode="none" keeps a touchscreen's on-screen keyboard from popping up when
                 this gets focused — it exists to catch a hardware (keyboard-wedge) scanner's
                 keystrokes, not to be typed into by hand. */}
-            <input ref={scannerInputRef} aria-label="Manual scanner input" inputMode="none" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
+            <input ref={scannerInputRef} aria-label="Pass-code input for hardware scanner" tabIndex={-1} inputMode="none" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
             <div className="scan-copy"><h3>Point at the pass code</h3><p>{snapshot.roster.length} approved passes held on this device</p><SyncStatus onSynced={loadCache} top={-16} /></div>
             <PersonSearch roster={snapshot.roster} onOpen={() => { setCameraError(null); setSearchOpen(true) }} onClose={() => setSearchOpen(false)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <div role="alert" className="note" style={{ '--oc': 'var(--bad)' } as CSSProperties}>{cameraError}</div>}

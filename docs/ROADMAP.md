@@ -418,7 +418,7 @@ least urgent, not because they are optional.
       `design/reference/` re-captured and master back to ≤0.8% on 4 variants;
       an `axe` or equivalent check that the rows expose row/column semantics ·
       **C** · due Wed 30 Sep
-- [~] **ACC-163** · **Six small things, none of which touches a `test:visual`
+- [x] **ACC-163** · **Six small things, none of which touches a `test:visual`
       screen's layout.** Grouped because each is a few lines and they would
       otherwise never be worth a task of their own. `/desk/orgs` and
       `/desk/login` are not gated screens at all; the two gate items change
