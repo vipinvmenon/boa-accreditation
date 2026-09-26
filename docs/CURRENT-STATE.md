@@ -1097,11 +1097,22 @@ crash is shifting the layout of screens that never render it.** Nothing is
 broken for an operator — it is 9px on desktop, 16px on mobile — but it is a
 trap for anyone debugging gate fidelity inside `app/gate/`.
 
-**A second cause is still open.** With `global-error.tsx` removed the height
-matches 24 Sep, but Vehicle measures 12.85/13.36/14.50/15.02% — still ~2 points
-above the recorded 10.88/11.42 on web. The harness credential fix in `0a0c40e`
-(same window, changes the `.meta` row's text) is the obvious suspect and has
-not been tested.
+**The second cause was bisected too: it is the harness, not the app.** A second
+`git bisect run` on the dark/web percentage lands on `0a0c40e`
+(`fix(ACC-109): close the gate harness's credential dependency`), which touches
+`scripts/visual-check.mjs` and two docs and **no application code**. The two
+causes are on parallel worktree branches, so all four combinations were
+measured: baseline 10.87% at 1230; `global-error.tsx` alone 11.43% at 1221;
+the harness fix alone 12.86% at 1230; both 13.38% at 1221, matching HEAD's
+13.37%. Additive, and they account for the whole move.
+
+**So none of the 2.5-point Vehicle "regression" since 24 Sep is the vehicle
+screen.** 0.56 of it is an unrelated root file reordering CSS chunks. 1.99 is
+the harness being *fixed* — before `0a0c40e` it left the gate unauthenticated
+during capture, so the screen it photographed was the wrong one. The capture
+became more correct and the measured diff got worse, which can only happen
+against a stale reference. It is one more argument for the regeneration of
+`design/reference/` that ACC-109 is already blocked on, and Vipin's call.
 
 ACC-107 (Passes) was re-measured in the same run and is **unchanged** —
 7.00/5.25/5.96/5.28% at the same dimensions — so that entry can be trusted as

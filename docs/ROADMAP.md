@@ -797,13 +797,31 @@ org list wins: `task block` the redesign task with a reason and commit it.
       cascade with it. **A file that renders only on a root-layout crash is
       silently changing the layout of screens that never render it** — worth
       knowing before anyone hunts this inside `app/gate/`.
-      **One residual is still not isolated.** With `global-error.tsx` removed
-      the height matches 24 Sep but Vehicle still measures
-      **12.85/13.36/14.50/15.02%**, about 2 points above the 10.88/11.42 web
-      figures recorded then. So height is one cause and something else is
-      another; the harness credential fix in `0a0c40e` (same window, changes
-      what the `.meta` row says) is the obvious suspect and has **not** been
-      tested.
+      **The residual was bisected too, and it is the harness.** A second
+      `git bisect run` over the same window, on the dark/web percentage,
+      lands on **`0a0c40e` `fix(ACC-109): close the gate harness's credential
+      dependency`** — which touches `scripts/visual-check.mjs` and two docs
+      and **no application code at all**. The two causes sit on parallel
+      worktree branches (neither is an ancestor of the other), so the four
+      combinations were each measured directly:
+
+      | state | `global-error.tsx` | harness mocks `/api/gate/pull` | dark/web | height |
+      | --- | --- | --- | --- | --- |
+      | `a4050f5`, `dd38713` | no | no | 10.87% | 1230 |
+      | `3add736` | **yes** | no | 11.43% | 1221 |
+      | `0a0c40e` | no | **yes** | 12.86% | 1230 |
+      | `8086c9b` | **yes** | **yes** | 13.38% | 1221 |
+      | `b762ddf` (HEAD) | **yes** | **yes** | 13.37% | 1221 |
+
+      The two are additive and account for the whole move:
+      10.87 + 0.56 + 1.99 = 13.42, against 13.38 measured.
+      **So none of the 2.5-point "regression" is the vehicle screen.** 0.56 is
+      an unrelated root file reordering the CSS chunks; 1.99 is the harness
+      being *fixed* — before `0a0c40e` it left the gate unauthenticated during
+      capture, so the screen it photographed was wrong. The capture got more
+      correct and the number got worse, which is only possible because the
+      reference is stale. That is the same conclusion the diagnosis below
+      reaches from the other direction, now with the arithmetic behind it.
       **The 24 Sep figures, kept as the record they were:** at `1371ef9`,
       Gate **1.51/1.50/6.20/6.64%** and Vehicle **10.88/11.42/14.58/15.10%**
       (dark/web, light/web, dark/mobile, light/mobile). Two distinct problems,
