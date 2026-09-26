@@ -781,12 +781,29 @@ org list wins: `task block` the redesign task with a reason and commit it.
       at identical dimensions. So that whole batch moved every variant by 0.04
       or less, and Gate slightly for the better. The drift happened between
       `1371ef9` and `f3957fa` — the ACC-152/ADR-021, ACC-153 and ACC-154
-      window — and **which commit in it has not been isolated**. Both mobile
-      screens lost exactly 16px (Gate 1615→1599, Vehicle 1519→1503), which is
-      the height of the `.meta` wrap the diagnosis below attributes to the
-      harness leaving `/api/gate/pull` unmocked; that fix landing is the likely
-      cause, but it is inference, not measurement. Vehicle **web** also lost
-      9px (1230→1221) and that is not explained by it.
+      window — **bisected 26 Sep, and it is none of those.** `git bisect run`
+      over the 49 commits, probing the rendered height of `/gate/vehicle` at
+      1360px (1230 → 1221, a signal independent of the reference PNGs, which
+      did not change in the window), lands on **`50e827e`
+      `feat(ACC-128): login checking-state form skeleton; global-error.tsx
+      created`**. The mechanism is **`app/global-error.tsx`**, not the login
+      skeleton: that commit's only CSS is scoped to `.utility-auth` and cannot
+      reach the gate. Confirmed by removing `app/global-error.tsx` at `b762ddf`
+      and rebuilding — Vehicle returns to **exactly** the 24 Sep dimensions,
+      1360x1230 and 390x1519. `global-error.tsx` replaces the root layout when
+      it is active, so it imports its own subset of the same fonts and
+      stylesheets (`@fontsource/*`, `globals.css`, `v2.css`); adding a second
+      entry that imports the same CSS changes the merged chunk order, and the
+      cascade with it. **A file that renders only on a root-layout crash is
+      silently changing the layout of screens that never render it** — worth
+      knowing before anyone hunts this inside `app/gate/`.
+      **One residual is still not isolated.** With `global-error.tsx` removed
+      the height matches 24 Sep but Vehicle still measures
+      **12.85/13.36/14.50/15.02%**, about 2 points above the 10.88/11.42 web
+      figures recorded then. So height is one cause and something else is
+      another; the harness credential fix in `0a0c40e` (same window, changes
+      what the `.meta` row says) is the obvious suspect and has **not** been
+      tested.
       **The 24 Sep figures, kept as the record they were:** at `1371ef9`,
       Gate **1.51/1.50/6.20/6.64%** and Vehicle **10.88/11.42/14.58/15.10%**
       (dark/web, light/web, dark/mobile, light/mobile). Two distinct problems,

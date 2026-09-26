@@ -1083,10 +1083,25 @@ detached checkout of `f3957fa` — before ACC-155/157/158/161/163 existed — an
 came back **Gate 1.45/1.44/4.65/4.65%** and **Vehicle 13.38/13.96/14.56/15.19%**
 at identical dimensions. So that batch moved nothing: 0.04 or less on every
 variant, Gate slightly better. The drift is older, somewhere between `1371ef9`
-and `f3957fa`, and **which commit has not been isolated** — both mobile screens
-lost exactly 16px, the height of the `.meta` wrap the ACC-109 diagnosis blames
-on the harness leaving `/api/gate/pull` unmocked, but Vehicle web's 9px is not
-explained by that and neither was bisected.
+and `f3957fa`. **Bisected**: `git bisect run` over those 49 commits, probing
+the rendered height of `/gate/vehicle` (1230 → 1221, independent of the
+reference PNGs, which did not change in the window), lands on `50e827e`
+(ACC-128). The cause is **`app/global-error.tsx`**, not the login skeleton in
+the same commit — that commit's only CSS is scoped to `.utility-auth`.
+Confirmed by removing the file at `b762ddf` and rebuilding: Vehicle returns to
+exactly 1360x1230 and 390x1519, the 24 Sep dimensions. `global-error.tsx`
+replaces the root layout when active, so it imports its own subset of the same
+fonts and stylesheets; a second entry importing the same CSS changes the merged
+chunk order and the cascade with it. **A file that renders only on a root-layout
+crash is shifting the layout of screens that never render it.** Nothing is
+broken for an operator — it is 9px on desktop, 16px on mobile — but it is a
+trap for anyone debugging gate fidelity inside `app/gate/`.
+
+**A second cause is still open.** With `global-error.tsx` removed the height
+matches 24 Sep, but Vehicle measures 12.85/13.36/14.50/15.02% — still ~2 points
+above the recorded 10.88/11.42 on web. The harness credential fix in `0a0c40e`
+(same window, changes the `.meta` row's text) is the obvious suspect and has
+not been tested.
 
 ACC-107 (Passes) was re-measured in the same run and is **unchanged** —
 7.00/5.25/5.96/5.28% at the same dimensions — so that entry can be trusted as
