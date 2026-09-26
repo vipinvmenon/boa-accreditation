@@ -1128,8 +1128,11 @@ returned `{banner: [], escape: []}` for `?in_bms=false` now returns both.
 `test:visual --screen master` 4/4 PASS (0.64 / 0.65 / 0.15 / 0.14%), so the
 banner does not disturb the unfiltered screen the reference captures.
 
-**Found in the same pass and NOT fixed** — no task claimed, recorded here so
-they are not rediscovered from scratch:
+**Found in the same pass and NOT fixed** — now **ACC-155 to ACC-161** in the
+roadmap, with acceptance criteria and, where they diverge from the frozen
+contract, the ADR each one needs first. ACC-155/157/158/161 are safe to take
+now; **ACC-156 and ACC-159 are blocked by ACC-109, ACC-160 by ACC-107**, and
+none of those three may be resolved by tuning the app to a screenshot. Summary:
 
 - A 401 mid-shift loses the destination. Eight desk call sites do
   `router.replace('/desk/login')` with no `next`, so an operator timed out on

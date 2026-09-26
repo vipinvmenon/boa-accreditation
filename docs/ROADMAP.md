@@ -261,6 +261,134 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       `org-filter.spec.ts` for in_bms alone and combined with org · **C** ·
       due Sat 26 Sep
 
+**Added 26 Sep, from the same walkthrough that produced ACC-153 and ACC-154.**
+Seven findings, none of them fixed, all recorded in `CURRENT-STATE.md`'s 26 Sep
+entry. Read this paragraph before claiming any of them, because they are not
+interchangeable:
+
+- **ACC-155, ACC-157, ACC-158 and ACC-161 are safe to take now.** None of them
+  changes the layout of a screen `test:visual` compares, so none needs an ADR.
+- **ACC-156, ACC-159 and ACC-160 deliberately diverge from the frozen v2
+  contract** (non-negotiable #1). Each needs an ADR **written and agreed with
+  Vipin before any code**, in the manner of ADR-021, and each collides with an
+  open pixel task on the same screen — ACC-109 for Gate and Vehicle, ACC-107
+  for Passes. Do not claim one of these while its pixel task is open: finish or
+  block that first, or fold the change into it and re-capture the reference.
+  **Never resolve the collision by tuning the app to the screenshot** — that is
+  the `boa-bar-control` failure this repository exists to avoid.
+
+- [ ] **ACC-155** · **A 401 mid-shift loses where the operator was.** Eight desk
+      call sites do `router.replace('/desk/login')` with no `next`, so an
+      operator whose session lapses on `/desk/passes` signs back in and lands
+      on `/desk` — on show day, holding a phone, mid-task. `gate/session.ts`
+      already has the correct shape (`loginHref(next)`), and
+      `lib/safe-next.ts` already allowlists destinations, so this is reuse, not
+      new machinery. Sites: `app/desk/desk-chrome.tsx` (2),
+      `app/desk/control-room-screen.tsx`, `app/desk/passes/passes-screen.tsx`,
+      `app/desk/master/master-screen.tsx`, `app/desk/orgs/orgs-screen.tsx`,
+      `app/desk/users/users-screen.tsx` (4). Decide explicitly whether the
+      deliberate sign-out in `desk-chrome.tsx:237` keeps `next` — it should
+      not. Acceptance: `test:e2e` that a 401 on `/desk/master?org=<id>` returns
+      there after sign-in with the filter intact, and that an unsafe `next` is
+      still refused by `lib/safe-next.ts`; no screen layout changes, so
+      `test:visual` numbers must be unmoved · **C** · due Sun 27 Sep
+- [ ] **ACC-156** · **The gate buries its own primary action.** On a 390×844
+      phone the scan frame's centre sits about 575px down: header, meta bar,
+      tag, a two-line hero and a three-line paragraph come first. The fallback
+      out-competes it too — "Can't scan? Search by name" is a filled pill with
+      a green icon while the scanner is a thin outline. At a gate at night with
+      a queue, the scanner should be the first thing on screen and the heaviest
+      thing on it. **Needs an ADR**: the hero and the button weights are the
+      frozen v2 contract's, and `Can't scan? Search by name` is the design's own
+      string. Proposal to put to Vipin: keep the copy, move it below the
+      scanner or behind an info affordance, and swap the fill so the scan target
+      is the filled element. **Blocked by ACC-109** (Gate + Vehicle pixel
+      fidelity, hard stop 2 Oct) — do not start until that is green or blocked.
+      Acceptance: the ADR, then `design/reference/` re-captured from the agreed
+      source, Gate ≤0.8% on 4 variants, `test:e2e` aeroplane-mode still green,
+      and the measured scan-frame offset on 390×844 recorded before and
+      after · **C** · due Thu 1 Oct
+- [ ] **ACC-157** · **The gate states its sync twice, in conflicting words.**
+      About 40px apart it draws "ONLINE | 3 QUEUED" (the design's own pill —
+      `QUEUED` appears in `boa_design_v2.html`) and "NOT SYNCED YET · 3 PENDING"
+      (`app/gate/sync-status.tsx`, added by ACC-149). One says online, the other
+      says not synced; one says queued, the other pending. Cheapest correct fix,
+      and the one that keeps the contract: the pill keeps saying online/queued,
+      and `SyncStatus` stops restating them and carries only what the pill
+      lacks — the last pull time. Do **not** fold the facts into the pill
+      without an ADR; that is the design's string. The overlay is laid out at
+      zero height on purpose (see its own comment), so a text change moves
+      nothing. Acceptance: one vocabulary on screen at once, a unit test for the
+      `SyncStatus` line in all four states (never synced, synced, pending,
+      needs-login), and Gate `test:visual` re-measured and recorded to show the
+      zero-height claim still holds · **C** · due Sun 27 Sep
+- [ ] **ACC-158** · **"Last issued at this gate" mislabels two rows.**
+      `app/gate/page.tsx:356` renders `band ${serial}` for every row, so a
+      `vehicle_sticker` reads "band V-0231" — a sticker shown as a wristband, at
+      the one gate whose whole rule is that the two are different things. And
+      when the holder is not in this phone's roster both lines fall back to
+      `row.kind`, giving "WRISTBAND" above "wristband, no serial, 08:14": the
+      same token twice and no name. That happens whenever the ledger carries
+      someone pulled after this phone's last sync. Branch the noun on
+      `row.kind`, and say plainly that the holder is not on this phone's list
+      rather than printing the kind twice. Acceptance: unit tests for both rows
+      (sticker row, unknown holder) and `test:visual` Gate unmoved — the
+      reference's three rows all have known holders and wristbands, so correct
+      code must not change those pixels · **C** · due Sun 27 Sep
+- [ ] **ACC-159** · **The vehicle officer decides before being told anything.**
+      `/gate/vehicle` looks the plate up **inside** `recordEvent`, after "Log
+      entry and open gate" is pressed: the officer presses the permissive green
+      button to discover whether there is a sticker and a live wristband, and is
+      then refused. The screen's own copy ("A sticker without a wristband does
+      not enter") describes a check the screen will not perform until after the
+      decision. Second defect, same screen: with an empty or invalid
+      registration both buttons sit disabled and the only explanation is
+      `title="Enter a valid registration first"` — a hover tooltip, on a touch
+      device, at a barrier. Resolve on input instead: as soon as the
+      registration parses, show holder, sticker number and wristband state, and
+      leave the button for the decision it names; render the disabled reason as
+      visible text (the "Not a valid registration format" line already exists).
+      **Needs an ADR** — the pre-decision panel is blank in the contract.
+      **Blocked by ACC-109.** Acceptance: the ADR, `test:e2e` that the three
+      checks are on screen before any press and that pressing still logs exactly
+      one event (the ACC-109 stale-state tests must keep passing), Vehicle
+      ≤0.8% against the re-captured reference · **C** · due Wed 30 Sep
+- [ ] **ACC-160** · **"Send all unsent" is a bulk outward action with no count
+      and no confirmation**, and nothing anywhere shows per-person send state.
+      Next to it sits "Print 6 passes", which does say the number. It sends real
+      WhatsApp messages to real people; an accidental press messages an unknown
+      number of them, and there is no screen that would afterwards tell you
+      whom. Put the count in the label, confirm naming the number and the
+      channel, and show each card's state — sent at, not sent, delivery failed —
+      so the desk can chase and resend one person. `Send all unsent` is **not**
+      in `boa_design_v2.html`; the per-card state is the part that changes the
+      contract, so **an ADR is needed for the card, not for the button**.
+      **Blocked by ACC-107** (Passes pixel fidelity). Depends on ACC-144 for
+      what a send actually records. Acceptance: the ADR for the card,
+      `test:e2e` that the confirm names the true count and that dismissing it
+      sends nothing, per-card state rendered from the data layer (never a
+      fixture default — `check-bundle-content.mjs` enforces this), Passes
+      ≤0.8% · **C** · due Thu 1 Oct
+- [ ] **ACC-161** · **The invite form defaults to the one role that cannot use
+      the gate.** `/desk/users` defaults to `approver`, which `canUseGate()` in
+      `lib/schemas/operator.ts` excludes, and only "Issuer" carries any
+      explanation ("check-in only"). With up to ten issuers invited in the week
+      before the show (ADR-020), a wrong role is a phone call at a gate. Give
+      each of the four roles a one-line description saying what it can do and
+      whether it reaches the gate, and choose the default deliberately —
+      `issuer` is the likely right answer now that the desk is Vipin, Bhoopesh
+      and Salman and everyone else is check-in. Two small things in the same
+      screen while it is open: the native `<select>` is the only unstyled
+      control in the app, and the full-name placeholder is clipped mid-word
+      ("As they should appear to the te…") — placeholder-as-help-text also
+      vanishes on typing, so move it to a hint line under the label.
+      `/desk/users` is not a `test:visual` screen, so no ADR and no pixel
+      budget. Acceptance: the role copy comes from one exported map used by both
+      the `<option>` and its description, a unit test that every
+      `operatorRoleSchema` option has a description and a correct gate claim
+      (so adding a role cannot silently ship undescribed), and `test:e2e` that
+      the default selection is the agreed one · **C** · due Mon 28 Sep
+
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
 - [x] **ACC-001** · Recover the design from the bundle; commit to `design/source/`
