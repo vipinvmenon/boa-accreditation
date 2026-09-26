@@ -45,6 +45,25 @@ export function formatBandSerial(serial: string | null): string {
   return serial.startsWith('#') ? serial : `#${serial}`
 }
 
+type RecentLedgerRow = {
+  kind: 'wristband' | 'vehicle_sticker'
+  holderName: string | null
+  holderLabel: string | null
+  serial: string | undefined
+  occurredAt: string
+}
+
+export function formatRecentLedgerRow(row: RecentLedgerRow): { name: string; detail: string } {
+  const isSticker = row.kind === 'vehicle_sticker'
+  const noun = isSticker ? 'sticker' : 'band'
+  const kindLabel = isSticker ? 'vehicle sticker' : 'wristband'
+  const serial = row.serial?.replace(/^#/, '')
+  return {
+    name: row.holderName ?? 'Holder not on this phone’s list',
+    detail: `${row.holderLabel ?? kindLabel}, ${serial ? `${noun} ${serial}` : 'no serial'}, ${new Date(row.occurredAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+  }
+}
+
 /**
  * ACC-154 — what the Master list says about the filters it is under.
  *

@@ -11,6 +11,7 @@ import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { scanFrame } from '@/gate/scanner'
 import { DAY_VALIDITY, tierColour } from '@/lib/design'
 import { gateBandCard } from '@/gate/band-card'
+import { formatRecentLedgerRow } from '@/lib/format'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { GateChrome } from './gate-chrome'
@@ -348,12 +349,20 @@ export default function GatePage() {
             <div style={{ marginTop: 26 }}><span className="mono">Last issued at this gate</span><div className="last" style={{ marginTop: 8 }}>
               {recent.map((row) => {
                 const holder = personById.get(row.personId)
-                const time = new Date(row.occurredAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
                 const serial = row.bandSerial ?? row.stickerNo
+                const history = row.kind === 'wristband' || row.kind === 'vehicle_sticker'
+                  ? formatRecentLedgerRow({
+                    kind: row.kind,
+                    holderName: holder?.fullName ?? null,
+                    holderLabel: holder ? gateBandCard(holder.typeCode).label : null,
+                    serial,
+                    occurredAt: row.occurredAt,
+                  })
+                  : { name: 'Ledger event', detail: `void, ${row.occurredAt}` }
                 // ACC-130: the mock's "Void" button here did nothing — no handler, and
                 // voiding a check-in is a real desk action (non-negotiable #2, the
                 // ledger is append-only), not something to fake at the gate.
-                return <div key={row.id} className="li"><span className="bar" style={{ '--c': holder ? tierColour(holder.typeCode, theme) : 'var(--ink3)' } as CSSProperties} /><div><div className="nm">{holder?.fullName ?? row.kind}</div><div className="sub">{holder ? gateBandCard(holder.typeCode).label : row.kind}, {serial ? `band ${serial.replace(/^#/, '')}` : 'no serial'}, {time}</div></div></div>
+                return <div key={row.id} className="li"><span className="bar" style={{ '--c': holder ? tierColour(holder.typeCode, theme) : 'var(--ink3)' } as CSSProperties} /><div><div className="nm">{history.name}</div><div className="sub">{history.detail}</div></div></div>
               })}
             </div><div className="foot-meta mono"><span>{snapshot.ledger.filter((row) => row.kind === 'wristband').length} issued today</span><span>Ledger append-only</span></div></div>
           </div></div>

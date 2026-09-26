@@ -1194,6 +1194,21 @@ passed, and the full `test:e2e` passed **41/41**, including the new 401 →
 sign-in → filtered-path case. `ReadLints` reported no errors. `test:visual` was
 not run; no screen layout or visual-reference files changed.
 
+### 26 Sep 2026 — ACC-158: gate history labels the physical article and unknown holder
+
+The Gate history now says `sticker V-0231` for vehicle-sticker ledger rows
+instead of mislabelling them as bands. When a ledger holder is not in the
+phone's cached roster, the name line says `Holder not on this phone’s list`
+instead of repeating `WRISTBAND`/`wristband`; known wristband rows retain their
+existing copy and fixture output.
+
+Verified: `corepack pnpm task done ACC-158` passed typecheck, lint (the five
+pre-existing `<img>` warnings), and 244 unit tests; focused gate tests passed.
+After a clean build, `test:visual -- --screen gate` retained exact desktop
+dimensions and measured **1.44% dark/web, 1.43% light/web, 4.62% dark/mobile,
+4.61% light/mobile**. This is the existing Gate visual baseline failure, not a
+claimed visual pass; no reference was regenerated.
+
 ### 26 Sep 2026 — ACC-157: gate sync status uses one vocabulary
 
 The gate pill remains the source for online/offline and queued state. The

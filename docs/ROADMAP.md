@@ -323,7 +323,7 @@ interchangeable:
       `SyncStatus` line in all four states (never synced, synced, pending,
       needs-login), and Gate `test:visual` re-measured and recorded to show the
       zero-height claim still holds · **C** · due Sun 27 Sep
-- [~] **ACC-158** · **"Last issued at this gate" mislabels two rows.**
+- [x] **ACC-158** · **"Last issued at this gate" mislabels two rows.**
       `app/gate/page.tsx:356` renders `band ${serial}` for every row, so a
       `vehicle_sticker` reads "band V-0231" — a sticker shown as a wristband, at
       the one gate whose whole rule is that the two are different things. And
