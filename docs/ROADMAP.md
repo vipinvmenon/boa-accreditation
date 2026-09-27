@@ -84,7 +84,14 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-140g** · **No quotas for now. Decided 22 Sep (Vipin).** The import
       does not refuse a row for being over a cap; Salman controls numbers
       through column I. The quota column stays in the schema, unused.
-- [ ] **ACC-164** · **Sanction one regeneration of `design/reference/` from the
+- [x] **ACC-164** · **Sanctioned and done 27 Sep (Vipin).** Regenerated at
+      `a490c66`; `design/reference/` is gitignored and was never committed, so
+      this was a local re-render of the already-frozen source, not a repo
+      re-baseline. Gate and Vehicle went green immediately; Control room and
+      Passes did not, so ACC-104/107 are real app work, not stale references.
+      Original statement of the decision follows.
+
+- [x] **ACC-164a** · **Sanction one regeneration of `design/reference/` from the
       current frozen source.** This is the single decision blocking every
       remaining v2 visual task. `design/reference/` was captured 20 Sep at
       `2d4d6e0`; the frozen source then moved at `418b416` (21 Sep) and
@@ -781,7 +788,31 @@ org list wins: `task block` the redesign task with a reason and commit it.
       ADR-016 (roster-backed list) hold; fold `motion.css` into the v2
       layer · **CU** · due Tue 29
       **Retired 22 Sep (ADR-019):** the `/s/[token]` submission surface is no longer the collection path.
-- [ ] **ACC-109** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
+- [x] **ACC-109** · **Done 27 Sep.** Gate **0.31/0.31/0.33/0.34%** and Vehicle
+      **0.39/0.39/0.21/0.22%** (dark/web, light/web, dark/mob, light/mob), all
+      eight variants under 0.8% at **exact** dimensions — Gate 1360x1530 and
+      390x1599, Vehicle 1360x1230 and 390x1519, reference and render identical
+      on every one. `test:e2e` **43/43**. Precache **57** (2 routes, 27 scripts,
+      1 CSS, 24 fonts, 1 WASM).
+      Two causes, both already bisected and both now removed, in this order:
+      **(1)** ACC-164 regenerated the stale reference — that alone took Gate to
+      0.31/0.31/0.33/0.34% with no app change, confirming the 24 Sep diagnosis
+      exactly. **(2)** Vehicle still failed at 4.51/4.63/7.15/7.63%, short by
+      exactly 9px on web and 16px on mobile — the `app/global-error.tsx`
+      mechanism. Fixed at the cause: that file is a second Next entry importing
+      the same stylesheets, and its import list was a *subset in a different
+      order* than `app/layout.tsx`'s, so the shared CSS chunks merged in a
+      different order and the cascade moved with them. Its imports are now
+      byte-identical to the root layout's, with a comment saying why trimming
+      them re-breaks the gate. Side effects, both good: it had been using
+      `hov-invert-grn` and `.utility-auth` while importing neither `hover.css`
+      nor `responsive.css`, and the merge dropped a duplicate CSS chunk
+      (precache 58 → 57).
+      **Control room and Passes were NOT fixed by the regeneration** and remain
+      ACC-104/ACC-107 — genuine app-side height gaps, not stale PNGs.
+      Historical diagnosis retained below.
+
+- [-] **ACC-109-history** · Gate + Vehicle on v2 at ≤0.8%, 4 variants, plus `test:e2e`
       aeroplane-mode green and the precache count recorded. Post-`6820e49`
       visual output is Gate **2.22/0.28/5.41/4.38%** and Vehicle
       **10.06/10.68/47.38/46.99%** (dark/web, light/web, dark/mobile,

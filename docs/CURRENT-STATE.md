@@ -1073,6 +1073,56 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 27 Sep 2026 — ACC-164 sanctioned; ACC-109 is green (Gate + Vehicle)
+
+**Gate and Vehicle now pass `test:visual` on all four variants**, at exact
+dimensions. Measured after a clean build, not asserted:
+
+| screen | dark/web | light/web | dark/mob | light/mob | dimensions |
+| --- | --- | --- | --- | --- | --- |
+| gate | 0.31% | 0.31% | 0.33% | 0.34% | 1360x1530 / 390x1599, both sides |
+| vehicle | 0.39% | 0.39% | 0.21% | 0.22% | 1360x1230 / 390x1519, both sides |
+| master | 0.54% | 0.56% | 0.03% | 0.04% | 1360x1395 / 390x1471, both sides |
+
+`test:e2e` **43/43**. Build emits **57** precached assets (2 routes,
+27 scripts, 1 CSS, 24 fonts, 1 WASM). `control-room` and `passes` still fail —
+see below, that is the real finding.
+
+**Two causes, removed in this order.** The 24 Sep diagnosis was right on both.
+
+1. **ACC-164, sanctioned by Vipin today**: `design/reference/` was captured
+   20 Sep at `2d4d6e0` and the frozen source then moved at `418b416` and
+   `052bf93`, so every comparison ran against a two-commit-old contract.
+   Regenerating with `corepack pnpm design:reference` took **Gate straight to
+   0.31/0.31/0.33/0.34% with no application change at all.**
+   *Worth recording: `design/reference/` is gitignored (`.gitignore:22`) and was
+   never committed.* So this was never a repo-level re-baseline — every machine
+   renders its own from the frozen source that is already in the tree, and the
+   "stale reference" was one working copy's local artefacts. That also explains
+   some of the cross-session measurement drift in the older entries.
+2. **`app/global-error.tsx`**, the bisected cause of the Vehicle residual.
+   After the regeneration Vehicle still failed at 4.51/4.63/7.15/7.63%, short by
+   **exactly 9px on web and 16px on mobile** — the signature from the 26 Sep
+   bisect. Fixed at the cause rather than the symptom: `global-error.tsx` is a
+   second Next entry point importing the same stylesheets, and its import list
+   was a *subset in a different order* than `app/layout.tsx`'s, so the shared
+   CSS chunks merged in a different order and the cascade moved with them. Its
+   imports are now byte-identical to the root layout's, with a comment recording
+   why trimming them back re-breaks a screen that file never renders.
+
+   Two incidental fixes fell out: it had been using `hov-invert-grn`
+   (`hover.css`) and `.utility-auth` (`responsive.css`) while importing neither,
+   and merging the duplicate chunk dropped the precache from 58 to 57.
+
+**The regeneration did NOT rescue Control room or Passes**, and this is the
+useful negative result: `control-room` is 10.54–10.87% (ref 2389 vs got 2156 on
+web; ref 4665 vs got 5067 on mobile) and `passes` is 5.19–6.94% (ref 1987 vs
+got 2055; ref 4511 vs got 4714). Both are real app-side height gaps against a
+*current* reference. ACC-104's is partly deliberate — ADR-021 removed the
+organisations list the contract still draws. **Nobody should now re-chase these
+as stale-reference problems; that explanation is spent.**
+
+
 ### 27 Sep 2026 — the reference regeneration is now a tracked item (ACC-164)
 
 No code changed today. One modelling defect was fixed: **seven tasks depended on

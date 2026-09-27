@@ -18,13 +18,39 @@
  * `app/error.tsx` and `app/not-found.tsx`, not as a generic browser crash
  * page. No error detail beyond the digest is shown — same reasoning as
  * `app/error.tsx`: this is an operator's screen, not a diagnostic console.
+ *
+ * ACC-109 — THE IMPORT LIST BELOW MUST STAY BYTE-IDENTICAL TO `app/layout.tsx`'s,
+ * IN THE SAME ORDER, AND IS NOT DEAD WEIGHT. This file is a second Next entry
+ * point importing the same stylesheets. When its subset or its order differed
+ * from the root layout's, the bundler merged the shared CSS chunks in a
+ * different order, the cascade changed with it, and `/gate/vehicle` rendered
+ * 9px shorter on web and 16px shorter on mobile — on every request, in a file
+ * that only renders after the root layout has already crashed. That cost a
+ * two-`git bisect` hunt (the trail is in ROADMAP ACC-109) precisely because
+ * nobody looks for a gate layout bug in the global error page. Trimming these
+ * imports back to "only what this page uses" re-breaks it.
+ *
+ * It also fixes a real omission: this page uses `hov-invert-grn` (hover.css)
+ * and `.utility-auth` (responsive.css) and previously imported neither.
  */
 import '@fontsource/anton/400.css'
+import '@fontsource/oswald/400.css'
+import '@fontsource/oswald/500.css'
+import '@fontsource/oswald/600.css'
+import '@fontsource/oswald/700.css'
 import '@fontsource/archivo/400.css'
 import '@fontsource/archivo/600.css'
+import '@fontsource/archivo/700.css'
+import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
+import '@fontsource/jetbrains-mono/600.css'
+import '@fontsource/jetbrains-mono/700.css'
+
 import './globals.css'
+import './responsive.css'
+import './hover.css'
 import './v2.css'
+import './phosphor.css'
 
 export default function GlobalError({
   error,
