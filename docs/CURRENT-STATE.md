@@ -1073,6 +1073,45 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 27 Sep 2026 — ACC-156's premise did not survive opening the render
+
+**A change was decided and then NOT made, on purpose.** Recording it because a
+silent non-implementation is indistinguishable from forgetting.
+
+ACC-156 says the gate's fallback out-competes its scanner: *"Can't scan? Search
+by name is a filled pill with a green icon while the scanner is a thin outline"*.
+Vipin chose, on that basis, to swap the two button weights. Before writing it,
+`design/reference/gate-dark-mob.png` and `gate-light-mob.png` were **opened**.
+The opposite is what renders, in both themes:
+
+- The **scan frame is a 240px box with green corner brackets** — the largest and
+  the only coloured element in the panel.
+- The **fallback is an outline pill**: `btn wide hov-outline-grn`, and `.btn`'s
+  own default is `--bb: transparent` with a 1px inset rule (`app/v2.css:150`),
+  with a muted `color-mix(… 10%)` icon circle, not a green one.
+
+**The scanner already out-weighs the fallback, so swapping the fills would
+invert a hierarchy that is currently correct.** Not implemented.
+
+The layout half of the claim is real but smaller than written. Measured against
+the running app at 390×844, not estimated: the scan frame runs **485–725px**
+(centre **605**, height 240) and the fallback pill sits at **817px** — both on
+the first screen, so "buried below the fold" is not what happens. What is true
+is that **485px, 57% of the viewport, goes on header, meta, tag, hero and
+paragraph** before the scanner starts. Acting on that means the full reorder,
+which breaks Gate's now-green 0.31/0.31/0.33/0.34% with no legitimate route
+back under the bar. Vipin declined it. ACC-156 therefore has **no remaining
+agreed action** and is left open carrying the corrected evidence.
+
+**ACC-104 is left open and failing, by decision (Vipin, 27 Sep).** It cannot
+reach ≤0.8% while ADR-021 stands: Control room renders 233px shorter than the
+contract because ADR-021 removed the organisations list the contract still
+draws, and a height mismatch cannot be masked. The acceptance was deliberately
+**not** re-scoped. Knock-on: **ACC-111's v2 sign-off depends on ACC-104**, so
+sign-off cannot complete while both stand. Measured against the current
+reference: 10.59/10.87/10.55/10.54%.
+
+
 ### 27 Sep 2026 — ACC-162: Master list has table semantics and a count
 
 **ADR-023 accepted.** Master list was eight columns of `div`s with no header row

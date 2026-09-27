@@ -320,7 +320,39 @@ interchangeable:
       there after sign-in with the filter intact, and that an unsafe `next` is
       still refused by `lib/safe-next.ts`; no screen layout changes, so
       `test:visual` numbers must be unmoved · **C** · due Sun 27 Sep
-- [ ] **ACC-156** · **The gate buries its own primary action.** On a 390×844
+- [ ] **ACC-156** · **CHECKED AGAINST THE RENDER 27 SEP — THE PREMISE BELOW IS
+      WRONG ON ITS SECOND HALF, AND MEASURED SOFTER ON ITS FIRST.** Read this
+      before doing anything to this task.
+      **(a) The weight claim is false.** The entry says "Can't scan? Search by
+      name is a filled pill with a green icon while the scanner is a thin
+      outline". The opposite is what renders, in **both** themes — see
+      `design/reference/gate-{dark,light}-mob.png`, opened, not assumed. The
+      scan frame is a 240px box with **green** corner brackets, the largest and
+      the only coloured element in the panel. The fallback is `btn wide
+      hov-outline-grn` — and `.btn`'s own default is `--bb: transparent` with a
+      1px inset rule (`app/v2.css:150`), i.e. a **thin outline pill**, with a
+      muted `color-mix(… 10%)` icon circle, not a green one. So the scanner
+      already out-weighs the fallback. **Swapping the fills would invert a
+      hierarchy that is currently correct** and make the gate worse. Vipin
+      chose the swap on 27 Sep on the strength of the claim above; when the
+      render was opened the claim did not survive, so it was **not
+      implemented** — deliberately, and this is the record of why.
+      **(b) The layout claim is real but smaller than stated.** Measured on a
+      390×844 phone against the running app, not estimated: the scan frame runs
+      **485–725px** (centre **605**, height 240), so it **is** on the first
+      screen — not "buried" below the fold — and the fallback pill sits at
+      **817px**, also just inside it. What is true is that **485px, 57% of the
+      viewport, is spent on header, meta bar, tag, hero and paragraph** before
+      the scanner starts. That is the only defensible part of this task.
+      Acting on (b) means the full reorder, which **breaks Gate's now-green
+      0.31/0.31/0.33/0.34%** with no legitimate route back under 0.8%: the
+      reference renders the frozen source, which draws the hero first. Vipin
+      declined the full reorder on 27 Sep. **So this task has no remaining
+      agreed action** — it is left open carrying the corrected evidence rather
+      than closed, so the decision can be revisited with the real numbers.
+      Original (uncorrected) text follows.
+
+- [-] **ACC-156-original** · **The gate buries its own primary action.** On a 390×844
       phone the scan frame's centre sits about 575px down: header, meta bar,
       tag, a two-line hero and a three-line paragraph come first. The fallback
       out-competes it too — "Can't scan? Search by name" is a filled pill with
@@ -786,7 +818,19 @@ org list wins: `task block` the redesign task with a reason and commit it.
       profile menu per ADR-015, burger drawer under 700px, v2 footer. `.tools`
       is not ported. `test:visual` run and intermediate failures recorded, per
       ADR-015's precedent · **CU** · due Wed 23
-- [ ] **ACC-104** · Control room on v2 at ≤0.8%, 4 variants. **Current,
+- [ ] **ACC-104** · **Left open and failing by decision (Vipin, 27 Sep).** It
+      cannot reach ≤0.8% as written: Control room renders **233px shorter** than
+      the reference on web (2156 vs 2389) because **ADR-021 deliberately removed
+      the organisations list the frozen contract still draws**. A height
+      mismatch shifts every pixel below it, so no mask can close it, and
+      re-capturing from a modified source would violate non-negotiable #1. The
+      acceptance was **not** re-scoped — it stays as written and stays
+      unchecked. Note the knock-on: **ACC-111's v2 sign-off depends on this**,
+      so sign-off cannot complete while both stand. Measured 27 Sep against a
+      current reference (ACC-164): **10.59/10.87/10.55/10.54%**.
+      Do not re-chase this as a stale-reference problem — the reference was
+      regenerated on 27 Sep and this is what remained.
+      Original acceptance follows · Control room on v2 at ≤0.8%, 4 variants. **Current,
       26 Sep after ACC-152/ADR-021: 10.65/10.94/10.58/10.57%** (web 2156 vs
       ref 2389 — the app is now SHORTER than the artboard, because ADR-021
       deliberately removed the organisations list the contract still draws;
