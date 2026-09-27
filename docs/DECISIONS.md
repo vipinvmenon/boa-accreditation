@@ -777,3 +777,57 @@ not touch ACC-104's separate ADR-017-vs-ADR-018 band conflict, which is still
 open and still Vipin's to resolve.
 
 Roadmap: ACC-152.
+
+## ADR-022 — The vehicle gate resolves on input; the officer is told before deciding
+
+**Accepted 27 Sep 2026, on Vipin's instruction** (ACC-159), from the two options
+put to him: resolve on input, or fix only the tooltip and leave the lookup where
+it was.
+
+The defect, stated plainly: `/gate/vehicle` looked the plate up **inside**
+`recordEvent`, after "Log entry and open gate" was pressed. So the only way for
+the officer to learn whether there was a sticker and a live wristband was to
+**press the permissive green button and be refused.** The screen's own copy — "A
+sticker without a wristband does not enter" — described a check the screen would
+not perform until after the decision it was describing. At a barrier, at night,
+with a queue behind the car, that is an instrument that answers the question
+only once you have already committed to an answer.
+
+The rule:
+
+> **A plate that parses is resolved immediately. The three checks are on screen
+> before any button is pressed. A button press is a decision, never a query.**
+
+What changes:
+
+- **`resolvePlate(db, plate)`** (`gate/vehicle-flow.ts`) is the single source of
+  truth, and is used by **both** the pre-decision panel and `recordEvent`. There
+  is deliberately no second copy of the lookup: showing the officer one thing
+  while enforcing another would be worse than the defect being fixed. It reads
+  Dexie only and writes nothing — non-negotiable #7 holds, and resolving is safe
+  on every keystroke because resolving is not an event.
+- **The panel shows holder, sticker number and wristband state** as soon as the
+  registration parses, headed "Ready to clear" or "Will not clear". "Plate
+  matches sticker" is shown as the officer's own check, because the app cannot
+  see the vehicle — that one is not a claim the software is entitled to make.
+- **The resolution is keyed to its own plate.** The panel renders facts only
+  when `resolved.plate === normalized`, so editing the registration cannot leave
+  the previous vehicle's sticker on screen under a new plate.
+- **The disabled reason is visible text.** `title="Enter a valid registration
+  first"` was the only explanation for two disabled buttons, and `title` has no
+  touch or keyboard equivalent — on the phone this screen runs on, it did not
+  exist. The title stays for pointer users; the visible lines are the real
+  affordance.
+
+**This diverges from the frozen contract, deliberately, and the divergence is
+not pixel-gated.** `design/source/boa_design_v2.html` draws the result panel
+blank until a verdict exists. The vehicle reference is captured on the settled
+`Cleared` result (`scripts/visual-check.mjs`, `GATE_CAPTURE_STATE.vehicle`), and
+the post-press branch of the screen was left untouched, so the gated shot cannot
+move — verified, not assumed: Vehicle measured **0.38/0.39/0.21/0.22%** at exact
+dimensions after the change, against 0.39/0.39/0.21/0.22% before it. The blank
+pre-decision panel is therefore a state the contract draws that the app no
+longer draws, in the same class as ADR-019's and ADR-021's removals, and
+non-negotiable #1 continues to hold for everything both still draw.
+
+Roadmap: ACC-159. Depends on ACC-109/ACC-164 having made the reference current.

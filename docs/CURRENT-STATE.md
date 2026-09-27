@@ -1073,6 +1073,43 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 27 Sep 2026 — ACC-159: the vehicle gate tells the officer before they decide
+
+**ADR-022 accepted.** `/gate/vehicle` used to look the plate up *inside*
+`recordEvent`, so the only way to learn whether a vehicle would be let in was to
+press the permissive green "Log entry and open gate" and be refused. The screen's
+own copy described a check it would not perform until after the decision.
+
+What is true now that was not before:
+
+- **`resolvePlate(db, plate)`** in `gate/vehicle-flow.ts` is the single source of
+  truth for a plate, used by **both** the pre-decision panel and `recordEvent`.
+  There is no second copy: a panel that said "ready" over a refusal would be
+  worse than saying nothing. It reads Dexie only and writes nothing.
+- The panel shows **holder, sticker number and wristband state** as soon as the
+  registration parses. "Plate matches sticker" is shown as the officer's own
+  check, because the app cannot see the vehicle.
+- The resolution is **keyed to its own plate**, so editing the registration
+  cannot leave the previous vehicle's sticker on screen under a new one.
+- The disabled buttons' reason is **visible text**. `title` has no touch or
+  keyboard equivalent, so on the phone this screen runs on it did not exist.
+
+**Verified by running the gates, not asserted:**
+
+| gate | result |
+| --- | --- |
+| `test:visual` vehicle | 0.38 / 0.39 / 0.21 / 0.22%, exact dimensions |
+| `test:visual` gate, master | unmoved (0.31/0.31/0.33/0.34, 0.54/0.56/0.03/0.04) |
+| `test:e2e` | **49/49**, incl. 6 new ACC-159 tests |
+| unit | **255** passing, incl. 9 on `resolvePlate` |
+
+The vehicle figure before the change was 0.39/0.39/0.21/0.22%, so the
+pre-decision panel moved nothing: the gated shot is the settled `Cleared` state
+(`GATE_CAPTURE_STATE.vehicle`) and the post-press branch was left untouched on
+purpose. The blank pre-decision panel the contract draws is a deliberate,
+ADR'd divergence, in the same class as ADR-019's and ADR-021's removals.
+
+
 ### 27 Sep 2026 — ACC-164 sanctioned; ACC-109 is green (Gate + Vehicle)
 
 **Gate and Vehicle now pass `test:visual` on all four variants**, at exact

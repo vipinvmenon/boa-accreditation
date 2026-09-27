@@ -363,7 +363,27 @@ interchangeable:
       (sticker row, unknown holder) and `test:visual` Gate unmoved — the
       reference's three rows all have known holders and wristbands, so correct
       code must not change those pixels · **C** · due Sun 27 Sep
-- [ ] **ACC-159** · **The vehicle officer decides before being told anything.**
+- [x] **ACC-159** · **Done 27 Sep — ADR-022.** The officer is told before
+      deciding. `resolvePlate(db, plate)` (`gate/vehicle-flow.ts`) is now the
+      single source of truth used by **both** the pre-decision panel and
+      `recordEvent`, so what is shown is what is enforced — there is no second
+      copy of the lookup, deliberately. As soon as the registration parses the
+      panel shows holder, sticker number and wristband state, headed "Ready to
+      clear" / "Will not clear"; "Plate matches sticker" is shown as the
+      officer's own check because the app cannot see the vehicle. The
+      resolution is keyed to its own plate, so editing the registration cannot
+      leave the previous vehicle's sticker under a new one. The disabled reason
+      is now visible text — `title` has no touch or keyboard equivalent, so on
+      the phone this screen runs on it did not exist.
+      Verified, not asserted: **Vehicle 0.38/0.39/0.21/0.22%** at exact
+      dimensions (against 0.39/0.39/0.21/0.22% before the change — the gated
+      shot is the settled `Cleared` state and did not move), Gate and master
+      unmoved, `test:e2e` **49/49** including 6 new ACC-159 tests and the
+      ACC-109 stale-state tests still green, and **9** unit tests on
+      `resolvePlate` covering no-sticker, sticker-without-band,
+      sticker-not-in-ledger, blank serial, and that resolving queues nothing.
+      Side finding: `recordEvent`'s inline lookup is gone, so the screen no
+      longer reads Dexie twice for one decision · **C** · due Wed 30 Sep
       `/gate/vehicle` looks the plate up **inside** `recordEvent`, after "Log
       entry and open gate" is pressed: the officer presses the permissive green
       button to discover whether there is a sticker and a live wristband, and is
