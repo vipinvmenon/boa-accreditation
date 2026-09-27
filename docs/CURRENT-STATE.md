@@ -1073,6 +1073,39 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 27 Sep 2026 — ACC-107 diagnosed: half of it is ADR-018, the same as ACC-104
+
+Measured against the **current** reference, so this is not a stale-PNG problem:
+Passes is **6.94/5.19/5.92/5.25%**, web 2055 vs ref 1987 (**+68px**), mobile
+4714 vs ref 4511 (**+203px**).
+
+**The zone strip is a deliberate ADR-018 divergence.** The frozen contract draws
+**seven** short zones in **two** rows (SITE, BACKSTAGE, STAGE, PROD OFFICE,
+BAR / LOUNGES, ARTIST AREA). The app draws the pack's zones (`ZONES`,
+`lib/design.ts:239`) — Festival Area, Eddie's Lounge, Promoters Lounge, Photo
+Pit, Backstage, Main Stage — **six** chips whose longer labels wrap to **three**
+rows. Measured in the running app, not estimated: 6 chips, 3 rows, row tops
+735 / 768 / 802, chip height 28px, so the row pitch is **33.5px**.
+
+- **Web** lays the cards side by side, so the extra row costs the page 33.5px
+  once: **~34 of the 68px**.
+- **Mobile** stacks them, so it costs 3 × 33.5 ≈ **100 of the 203px**.
+
+So the zone strip is **about half the gap in both variants**, and that half is
+unreachable while ADR-018 stands — a height mismatch cannot be masked, and
+re-capturing from a modified source would violate non-negotiable #1. **This is
+the ADR-017-vs-ADR-018 conflict ACC-104's entry already flags as Vipin's to
+resolve; it reaches Passes too.**
+
+**The other half is real, unexplained ACC-107 work**: ~34px on web and ~103px on
+mobile remain after the chip row is accounted for. The pass card measures 682px
+in the app. Whoever picks this up should start at the card and should **not**
+re-chase the reference or the chip rows — both are now accounted for.
+
+ACC-107 was left open and unclaimed rather than re-scoped, matching the call
+Vipin made for ACC-104 the same day.
+
+
 ### 27 Sep 2026 — ACC-156's premise did not survive opening the render
 
 **A change was decided and then NOT made, on purpose.** Recording it because a

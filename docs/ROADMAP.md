@@ -861,7 +861,39 @@ org list wins: `task block` the redesign task with a reason and commit it.
       **Re-verified 24 Sep:** at `d66e8d1` (after claiming), same four measurements
       (0.64%, 0.65%, 0.15%, 0.14%), all variants PASS. Typecheck/lint/test gates
       green on task done.
-- [ ] **ACC-107** · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
+- [ ] **ACC-107** · **Diagnosed 27 Sep — HALF of this is unreachable while
+      ADR-018 stands, and it is the same shape as ACC-104.** Read before
+      starting.
+      Measured against the **current** reference (ACC-164 regenerated it, so
+      this is not a stale-PNG problem): **6.94/5.19/5.92/5.25%**, web 1360x2055
+      vs ref 1987 (**+68px**), mobile 390x4714 vs ref 4511 (**+203px**).
+      **The zone strip is an ADR-018 divergence, measured not guessed.** The
+      frozen contract draws **seven** short zones in **two** rows — SITE,
+      BACKSTAGE, STAGE, PROD OFFICE, BAR / LOUNGES, ARTIST AREA. The app draws
+      ADR-018's pack zones (`ZONES`, `lib/design.ts:239`): Festival Area,
+      Eddie's Lounge, Promoters Lounge, Photo Pit, Backstage, Main Stage —
+      **six** chips whose longer labels wrap to **three** rows. Measured in the
+      running app: 6 chips, 3 rows, row tops 735/768/802, chip height 28px, so
+      the row pitch is **33.5px** and the block is 95px against the contract's
+      ~61.5px. That is **one extra chip row = ~33.5px**.
+      Web lays the three cards side by side, so the extra row costs the page
+      33.5px **once**: ~34 of the 68px. Mobile stacks them, so it costs 3 ×
+      33.5 ≈ **100** of the 203px. **In both variants the zone strip is about
+      half the gap.** A height mismatch cannot be masked, so no `.qr-wrap`-style
+      mask helps, and re-capturing from a modified source would violate
+      non-negotiable #1.
+      **The other half is NOT explained and is genuine ACC-107 work**: ~34px on
+      web and ~103px on mobile remain after the chip row is accounted for. The
+      card itself measures 682px tall in the app. Anyone picking this up should
+      start there and should NOT re-chase the reference or the chip rows.
+      **Decision needed** before more time goes in, exactly as for ACC-104: this
+      cannot reach ≤0.8% while ADR-018 stands, so either the acceptance changes
+      or it stays open and failing. Vipin chose "open and failing" for ACC-104
+      on 27 Sep; this was left in the same state pending his call rather than
+      re-scoped unilaterally. **This is the ADR-017-vs-ADR-018 band/zone
+      conflict that ACC-104's entry already flags as "still open and still
+      Vipin's to resolve" — it reaches Passes too.**
+      Original acceptance follows · Passes on v2 at ≤0.8%, 4 variants; the `.qr-wrap svg` mask
       selector must survive · **CU** · due Mon 28
       **Current, 24 Sep at `1371ef9`: 7.00/5.25/5.96/5.28%** (dark/web,
       light/web, dark/mobile, light/mobile), 7 regions masked, with the render
