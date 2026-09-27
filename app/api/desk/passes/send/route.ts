@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { sendPassTemplate, whatsappConfig, type WhatsAppConfig } from '@/lib/whatsapp'
+import { interaktConfig, sendPassTemplate, type InteraktConfig } from '@/lib/interakt'
 import {
   passSendsResponseSchema,
   passSendsRpcSchema,
@@ -11,6 +11,12 @@ import {
 } from '@/app/desk/passes/send-schema'
 
 // ACC-144 · Send each approved person their pass on WhatsApp.
+//
+// Delivery goes through Interakt, not Meta's Cloud API (ADR-024). The wire
+// contract is unchanged: "whatsapp_not_configured" still means "no sender is
+// set up", and p_wa_message_id now carries Interakt's message id — the id its
+// webhooks refer to. Interakt NEVER reports delivery in the send response, so
+// "queued" here means accepted by Interakt and nothing more.
 //
 // Authorisation is the database's: every RPC below checks for an active
 // lead/admin row itself (non-negotiable #3). The session check here only
@@ -44,14 +50,14 @@ export async function GET() {
   const rpc = passSendsRpcSchema.safeParse(data)
   if (!rpc.success) return errorResponse('internal', 500)
 
-  const parsed = passSendsResponseSchema.safeParse({ ...rpc.data, configured: whatsappConfig() !== null })
+  const parsed = passSendsResponseSchema.safeParse({ ...rpc.data, configured: interaktConfig() !== null })
   if (!parsed.success) return errorResponse('internal', 500)
   return NextResponse.json(parsed.data)
 }
 
 async function sendOne(
   supabase: Supabase,
-  config: WhatsAppConfig,
+  config: InteraktConfig,
   personId: string,
   resend: boolean,
 ): Promise<SendResult> {
@@ -101,9 +107,9 @@ export async function POST(request: Request) {
   const body = sendRequestSchema.safeParse(await request.json().catch(() => null))
   if (!body.success) return errorResponse('invalid_body', 400)
 
-  const maybeConfig = whatsappConfig()
+  const maybeConfig = interaktConfig()
   if (!maybeConfig) return errorResponse('whatsapp_not_configured', 503)
-  const config: WhatsAppConfig = maybeConfig
+  const config: InteraktConfig = maybeConfig
 
   try {
     if (body.data.mode === 'one') {

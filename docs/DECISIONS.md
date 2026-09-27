@@ -883,3 +883,79 @@ rather than quietly left out of the task.
 
 Roadmap: ACC-162. Related: ADR-021 (Master list is the one place people are
 listed), ACC-154 (the filter banner this count sits beside).
+
+---
+
+## ADR-024 — Passes are delivered through Interakt, not Meta's Cloud API directly
+
+**Accepted 27 Sep 2026, on Vipin's instruction**, from three options put to him:
+add a payment method and keep Cloud API as ACC-144 built it; switch to
+Interakt's API; or inspect Interakt's dashboard before choosing. He chose the
+switch. This supersedes the delivery half of **ADR-019** and the "Cloud API"
+statement in ARCHITECTURE.md. It does **not** touch the ledger, the send record,
+or the RPCs.
+
+### Why the direct path stopped
+
+ACC-144's code was finished and unit-tested against Meta's Graph API, and it
+cannot send. Meta disables **Send message** on a production number with:
+
+> Missing payment method. Add a valid payment method to send business-initiated
+> messages using a production phone number. You can respond to the first 1,000
+> user-initiated conversations each month for free.
+
+BOA's WhatsApp accounts are already held by BSPs — **Haptik has Full access to
+both**, **AiSensy** is a second partner, the credit lines belong to them, and
+per Salman BOA pays **₹4,000/month** for Interakt (Haptik's product). Adding a
+BOA card would have been a second payment relationship beside one already being
+paid for. See docs/WHATSAPP.md for what was read in the console.
+
+### What was weighed
+
+- **Add a card.** Cheapest in engineering — zero code — and the send path was
+  already written and tested. Rejected: it pays twice, and the account's billing
+  is not BOA's to restructure two weeks before the show.
+- **Invert to reply-on-contact** and live inside Meta's 1,000 free
+  user-initiated conversations a month, which the 612-person roster fits inside.
+  Rejected: it is a different product — the crew must message first — and a
+  larger change than the one chosen.
+- **Interakt's API.** Chosen. The subscription, the number, the templates and
+  the billing already exist and work; BOA's ticket marketing runs on them today.
+
+### What this costs, stated plainly
+
+The direct path was **finished code with a billing blocker**. This is **new code
+against an API nothing in this repository has ever called**, 13 days before the
+show. That trade was made with the cost named, not hidden.
+
+### What is verified, and what is not
+
+Verified in Interakt's dashboard and docs on 27 Sep (docs/WHATSAPP.md has the
+detail): API access is on BOA's plan at 600 req/min; the send endpoint,
+auth header, payload and response shape; and — the capability the whole design
+depends on — **`buttonValues` carries a dynamic URL**, so each person's pass
+token can be the button's link.
+
+**Not verified, and load-bearing:** the webhook payload's shape, how Interakt
+authenticates its callbacks, and whether BOA's plan tier includes webhooks at
+all (the toggle is on, which is suggestive, not proof). Interakt's docs are
+explicit that **a send's status never comes back in the response** — it arrives
+only by webhook. So until the webhook is understood, a pass can be sent and
+**its status cannot be known**.
+
+### Consequences
+
+- `lib/interakt.ts` is the new send client. `lib/whatsapp.ts` **stays** until
+  Interakt is proven end to end: it still owns the Meta webhook route, and
+  deleting a working fallback to make room for an unproven path is how the
+  gate would be lost.
+- `/api/whatsapp/webhook` verifies Meta's `X-Hub-Signature-256`. Interakt does
+  not send it. That route must be **replaced, not adjusted**, and Interakt must
+  not be pointed at it before then.
+- The send record stores a provider message id and moves status on webhook
+  events. That shape is unchanged; only the id's issuer changes.
+- The one-tap `wa.me` link stays the fallback, as in ADR-019.
+- New env vars: `INTERAKT_API_KEY`, `INTERAKT_TEMPLATE_NAME`,
+  `INTERAKT_TEMPLATE_LANG`. Server-only, never `NEXT_PUBLIC_`, set by Vipin.
+
+Roadmap: ACC-144, ACC-151. Supersedes the delivery mechanism in ADR-019.

@@ -9,7 +9,8 @@ fallback when a template is rejected or the API is down.
 
 | Piece | Where |
 | --- | --- |
-| Cloud API client (template send, webhook signature, status parsing) | `lib/whatsapp.ts` — server only |
+| **Interakt send client (ADR-024)** | `lib/interakt.ts` — server only |
+| Meta Cloud API client — **send path retired, webhook still live** | `lib/whatsapp.ts` — server only |
 | Send route: one person, or "all approved and unsent" | `POST /api/desk/passes/send` |
 | Send state for the pass sheet | `GET /api/desk/passes/send` |
 | Meta's webhook: handshake + delivery statuses | `GET`/`POST /api/whatsapp/webhook` |
@@ -266,3 +267,74 @@ permanent **System User** token (no WhatsApp-capable system user exists — the
 only one is a `Conversions API System User`, Employee role, no assets), the
 **App secret**, the Vercel env vars, the `boa_crew_pass` template submission,
 and the webhook registration.
+
+## Interakt: what the dashboard and docs actually say (27 Sep 2026)
+
+**Vipin decided on 27 Sep 2026 to send through Interakt rather than Meta's Cloud
+API directly**, because BOA already pays Interakt ₹4,000/month and a direct
+Cloud API send is blocked on a payment method. This section records what was
+read in Interakt's dashboard (logged in with Salman's account, with his
+knowledge) and in their own documentation. **This change still owes an ADR** —
+it moves the delivery provider, which ARCHITECTURE.md and ADR-019 describe as
+Cloud API. Do not treat this section as the decision record.
+
+### Verified in Settings → Developer Settings
+
+- **API access is on BOA's plan**, rate-limited to **600 requests/minute** for
+  Public APIs; exceeding it returns **429**. 612 sends is far inside that.
+- **Secret Key** exists, masked, with a copy button. It is the `Authorization`
+  header value. Vipin puts it in Vercel; **no agent has seen it**.
+- **Configure Webhook** — "Get webhooks for customer messages & delivery status
+  of template messages" — and **Interakt Webhook is already enabled**, with an
+  *Edit Configuration* link.
+- The page links live **API DOC**, **Postman Collection** and **Python SDK**.
+  (Interakt's public resource-centre URLs 404 from search engines; reach the
+  docs through this page, not by guessing URLs.)
+
+### The send call
+
+    POST https://api.interakt.ai/v1/public/message/
+    Authorization: Basic <SECRET_KEY>
+    Content-Type: application/json
+
+- `countryCode` and `phoneNumber` are **separate**; the number must carry
+  **no country code and no leading zero**.
+- `template.name` is the template's **code name**, not its display name — read
+  it from `https://app.interakt.ai/template/<codename>/view`.
+- `template.languageCode` must match the language the template was created in.
+- **`buttonValues` carries the dynamic URL** — this is the capability the pass
+  link depends on, and it exists:
+
+      "buttonValues": { "1": ["<pass token>"] }
+
+  Interakt's own comment: *"value for {{1}} for dynamic url in button at index
+  position 0"*. `headerValues` / `bodyValues` follow the same shape, and the
+  docs state button values apply *"only in case there is a dynamic URL in the
+  button"*.
+- Response: `{ "result": true, "message": "Message created successfully",
+  "id": "<uuid>" }`. **The `id` is the message id referenced by webhooks.**
+
+### The consequence for our code
+
+- **Status never comes back from the send call.** Interakt's docs are explicit:
+  the status of a sent template *"won't be given in the API's response, but will
+  only be available via webhooks"* (Sent / Delivered / Read / Failed). Our
+  send record already stores a provider message id and moves status on webhook
+  events, so the shape holds — but `lib/whatsapp.ts` must stop expecting a
+  Meta message id and store Interakt's `id` instead.
+- **Webhooks need Interakt's Growth or Advanced plan.** The toggle is on in
+  BOA's dashboard, which suggests the plan covers it; **not confirmed** — check
+  the plan before relying on delivery status.
+- `/api/whatsapp/webhook` verifies Meta's `X-Hub-Signature-256` HMAC. Interakt
+  does not send that, so the route's authentication must be **replaced**, not
+  adjusted. Until it is, do not point Interakt at it.
+- Templates created in Meta Business Manager can be **synced** into Interakt
+  from `https://app.interakt.ai/templates/list`, so `boa_crew_pass` can be
+  authored in either place.
+
+### Still unverified
+
+- Whether BOA's plan includes webhooks (above).
+- The webhook payload's shape and how Interakt authenticates its callbacks.
+- **Nothing has been sent.** No Interakt API call has been made from this
+  repository or by hand.
