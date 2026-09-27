@@ -1073,6 +1073,39 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 27 Sep 2026 — ACC-162: Master list has table semantics and a count
+
+**ADR-023 accepted.** Master list was eight columns of `div`s with no header row
+(`tables: 0` when probed), so a screen-reader user got a flat list with no way to
+navigate by column, and nothing said how many of 612 rows were on screen.
+
+The constraint that shaped the fix: **master is the one v2 screen passing
+`test:visual`**, and the frozen contract draws no header row. Everything below is
+therefore at zero pixel cost, verified rather than assumed — master measured
+**0.54 / 0.56 / 0.03 / 0.04% before and after**, at identical dimensions.
+
+- The rows are an **ARIA table**: `role="table"` on the panel, `role="row"` per
+  `.mrow`, `role="cell"` per cell, and a `role="row"` of six `columnheader`s.
+  That header row is `.sr-only` — `position:absolute`, so out of flow: full
+  presence in the accessibility tree, none in the layout.
+- `role="table"` is applied **only when there are rows**. An empty or loading
+  ARIA table promises structure that is not there.
+- **`masterCountLabel(shown, total)`** (`lib/format.ts`, pure, 6 unit tests) is
+  the table's accessible name, so the count is announced with or without a
+  filter, and is drawn beside the ACC-154 filter banner. It says "All 612
+  people", not "612 of 612", which reads as a filter matching everyone.
+- **`total`** is a new field on the master response, counted the same way `rows`
+  is built (no org, no row, not in the total) and costing no extra query.
+
+`test:e2e` **53/53**, including 4 new ACC-162 tests; **261** unit tests.
+
+**What is still NOT true, and is nobody's secret:** a *sighted* volunteer still
+has no column names. Only a visible header row gives them that, and it was
+declined to keep the gate green — so the 5 Oct orientation problem is solved for
+screen-reader users and for "how much am I looking at", and **not** for "which
+column is this". Doing it later costs master's reference and a re-measure.
+
+
 ### 27 Sep 2026 — ACC-159: the vehicle gate tells the officer before they decide
 
 **ADR-022 accepted.** `/gate/vehicle` used to look the plate up *inside*

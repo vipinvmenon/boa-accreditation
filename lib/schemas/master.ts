@@ -35,6 +35,13 @@ export const masterRowSchema = z.object({
 
 export const masterResponseSchema = z.object({
   rows: z.array(masterRowSchema),
+  /**
+   * ACC-162: everyone on the roster, BEFORE `q`/`in_bms`/`org` are applied, so
+   * the screen can say "showing 14 of 612" rather than leaving a volunteer to
+   * wonder whether a filter ate the other 598. The route already reads every
+   * person to build `rows`, so this costs no extra query.
+   */
+  total: z.number().int().nonnegative(),
 })
 
 export type MasterRow = z.infer<typeof masterRowSchema>

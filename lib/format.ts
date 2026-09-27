@@ -111,3 +111,22 @@ export function masterFilterSummary(input: {
   if (empty || !orgName) return 'Nobody matches both filters'
   return `Showing ${orgName}, ${bmsPeople}`
 }
+
+/**
+ * ACC-162 — "Showing 14 of 612 people".
+ *
+ * The Master list had no count at all, so a volunteer arriving on 5 Oct could
+ * not tell a short list from a filtered one. Kept as a pure function because it
+ * is read in two places that must not drift: the visible line in the filter
+ * banner, and the table's accessible name, which carries it even when no filter
+ * is on and the banner is therefore absent.
+ *
+ * `shown === total` says so plainly rather than "612 of 612", which reads as a
+ * filter that happens to match everyone.
+ */
+export function masterCountLabel(shown: number, total: number): string {
+  if (total === 0) return 'Nobody on the roster yet'
+  if (shown === 0) return `None of ${total} ${total === 1 ? 'person' : 'people'}`
+  if (shown >= total) return `All ${total} ${total === 1 ? 'person' : 'people'}`
+  return `Showing ${shown} of ${total} people`
+}

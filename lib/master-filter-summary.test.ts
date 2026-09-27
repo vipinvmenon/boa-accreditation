@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { masterFilterSummary } from './format'
+import { masterCountLabel, masterFilterSummary } from './format'
 
 /**
  * ACC-154 — a filter the operator cannot see is a bug. ACC-152 established
@@ -85,5 +85,32 @@ describe('masterFilterSummary', () => {
         }
       }
     }
+  })
+})
+
+describe('masterCountLabel (ACC-162)', () => {
+  it('names both numbers when a filter is hiding rows', () => {
+    expect(masterCountLabel(14, 612)).toBe('Showing 14 of 612 people')
+  })
+
+  it('says "all" rather than "612 of 612", which reads as a filter', () => {
+    expect(masterCountLabel(612, 612)).toBe('All 612 people')
+  })
+
+  it('an empty result still states the population it was drawn from', () => {
+    expect(masterCountLabel(0, 612)).toBe('None of 612 people')
+  })
+
+  it('an empty roster is not a filter problem and does not pretend to be one', () => {
+    expect(masterCountLabel(0, 0)).toBe('Nobody on the roster yet')
+  })
+
+  it('counts one person in the singular', () => {
+    expect(masterCountLabel(1, 1)).toBe('All 1 person')
+    expect(masterCountLabel(0, 1)).toBe('None of 1 person')
+  })
+
+  it('never reports more shown than exist, even if a caller passes nonsense', () => {
+    expect(masterCountLabel(700, 612)).toBe('All 612 people')
   })
 })

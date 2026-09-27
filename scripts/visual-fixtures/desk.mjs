@@ -156,6 +156,10 @@ export const master = {
     gateLabel: m.gate,
     decidedAt: m.rejectedAt ?? null,
   })),
+  // ACC-162: the unfiltered population. The reference is captured with no
+  // filter on, so this equals the row count and the screen reads "All N
+  // people" — which is what the frozen contract's own unfiltered list shows.
+  total: MASTER.length,
 }
 
 // ── Passes (lines 740-756) ──────────────────────────────────────────────────

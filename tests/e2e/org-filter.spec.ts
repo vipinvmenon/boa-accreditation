@@ -77,7 +77,9 @@ async function installDesk(page: Page, seen: string[]) {
     const rows = inBms === 'true' || inBms === 'false'
       ? byOrg.filter((row) => row.inBms === (inBms === 'true'))
       : byOrg
-    return route.fulfill({ json: masterResponseSchema.parse({ rows }) })
+    // ACC-162: `all` IS the unfiltered population here, so the count the screen
+    // prints is checked against the same fixture the filtering is derived from.
+    return route.fulfill({ json: masterResponseSchema.parse({ rows, total: all.length }) })
   })
 }
 
@@ -197,5 +199,67 @@ test.describe('the BMS filter names itself and can be escaped (ACC-154)', () => 
     // Not "Try a phone number or a band serial" — nobody typed a search.
     await expect(page.getByText('Nobody matches this filter. Show everyone to see the full list.')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Show everyone' })).toBeVisible()
+  })
+})
+
+/**
+ * ACC-162 / ADR-023 — the Master list exposes real row and column semantics.
+ *
+ * It was eight columns of `div`s with no header row, so a screen-reader user got
+ * a flat list with no way to navigate by column, and nothing said how many of
+ * the roster was on screen. The frozen contract draws no header row and master
+ * is the one v2 screen passing `test:visual`, so the headers are exposed through
+ * ARIA and kept out of flow (`.sr-only` is `position:absolute`) — the pixels are
+ * byte-identical, verified at 0.54/0.56/0.03/0.04% before and after.
+ */
+test.describe('master list semantics and count (ACC-162)', () => {
+  const COLUMNS = ['Name and company', 'Tier', 'Band serial', 'Vehicle', 'BMS', 'Collected']
+
+  test('the rows are a table with named columns, and every row has one cell per column', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master')
+    const table = page.getByRole('table')
+    await expect(table).toHaveCount(1)
+
+    for (const column of COLUMNS) {
+      await expect(page.getByRole('columnheader', { name: column, exact: true })).toHaveCount(1)
+    }
+    await expect(page.getByRole('columnheader')).toHaveCount(COLUMNS.length)
+
+    // 3 fixture people + the header row.
+    await expect(page.getByRole('row')).toHaveCount(4)
+    for (const row of await page.getByRole('row').filter({ has: page.locator('.nm') }).all()) {
+      expect(await row.getByRole('cell').count()).toBe(COLUMNS.length)
+    }
+  })
+
+  test('the column names are for screen readers only — they are not drawn', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master')
+    // Present in the accessibility tree, absent from the layout: that is the
+    // whole point, and it is what keeps the passing pixel gate passing.
+    await expect(page.getByRole('columnheader', { name: 'Band serial', exact: true })).toHaveCount(1)
+    await expect(page.locator('[role="row"].sr-only')).toHaveCount(1)
+    await expect(page.locator('[role="row"].sr-only')).not.toBeInViewport()
+  })
+
+  test('the table says how much of the roster is on screen, unfiltered and filtered', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master')
+    // Unfiltered: "all", not "3 of 3", which would read as a filter.
+    await expect(page.getByRole('table')).toHaveAccessibleName('Master list. All 3 people.')
+
+    await page.goto(`/desk/master?org=${ORG_A}`)
+    await expect(page.getByRole('table')).toHaveAccessibleName('Master list. Showing 2 of 3 people.')
+    // And visibly, next to the banner that already names the filter.
+    await expect(page.getByText('Showing 2 of 3 people')).toBeVisible()
+  })
+
+  test('a filter that matches nobody still says what it was drawn from', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master?org=99999999-9999-4999-8999-999999999999')
+    // No table when there are no rows — an empty ARIA table is worse than none.
+    await expect(page.getByRole('table')).toHaveCount(0)
+    await expect(page.getByText('None of 3 people')).toBeVisible()
   })
 })

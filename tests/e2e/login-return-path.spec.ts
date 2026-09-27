@@ -71,6 +71,7 @@ async function installDeskFixtures(page: Page) {
           gateLabel: null,
           decidedAt: null,
         }],
+        total: 1,
       }),
     })
   })

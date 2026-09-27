@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
 import { tier, tierColour } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
-import { formatMasterBand, formatMasterCollected, masterFilterSummary } from '@/lib/format'
+import { formatMasterBand, formatMasterCollected, masterCountLabel, masterFilterSummary } from '@/lib/format'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineError } from '@/components/states'
@@ -18,6 +18,8 @@ export function MasterScreen() {
   const theme = useDomTheme()
   const [query, setQuery] = useState('')
   const [rows, setRows] = useState<MasterRow[]>([])
+  /** ACC-162: the unfiltered population, so the screen can say "14 of 612". */
+  const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [visualReady, setVisualReady] = useState(false)
@@ -53,6 +55,7 @@ export function MasterScreen() {
         return
       }
       setRows(parsed.data.rows)
+      setTotal(parsed.data.total)
       setError(null)
     } catch {
       // A thrown fetch (network down) must still clear the spinner and tell
@@ -111,6 +114,24 @@ export function MasterScreen() {
     return () => window.clearTimeout(timer)
   }, [rows.length, loading, error])
 
+  /**
+   * ACC-162 — the eight columns a volunteer had to infer.
+   *
+   * The frozen contract draws no header row, and master is the one v2 screen
+   * passing `test:visual`, so these are exposed as an ARIA table rather than as
+   * visible headings: `.sr-only` is `position:absolute`, so this row is out of
+   * flow and costs zero pixels, while a screen reader gets real row and column
+   * semantics instead of a flat list of `div`s. The order MUST match the cells
+   * below and `.mrow`'s six grid columns (app/v2.css).
+   *
+   * A visible header row is the other half of this problem and is NOT solved
+   * here — see ADR-023: it would break the passing gate, so it was deliberately
+   * left to Vipin rather than taken quietly.
+   */
+  const COLUMNS = ['Name and company', 'Tier', 'Band serial', 'Vehicle', 'BMS', 'Collected'] as const
+  const showTable = !loading && !error && rows.length > 0
+  const countLabel = masterCountLabel(rows.length, total)
+
   return (
     <main id="main-content" tabIndex={-1} ref={rootRef} data-v2-ready={visualReady ? 'true' : 'false'}>
       <section className="head rv">
@@ -147,6 +168,9 @@ export function MasterScreen() {
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))' }}>
             {filterSummary}
           </span>
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink3)' }}>
+            {countLabel}
+          </span>
           <Link href="/desk/master" className="btn hov-invert-grn">Show everyone</Link>
         </div>
       )}
@@ -160,7 +184,12 @@ export function MasterScreen() {
         </a>
       </div>
       <div className="bz rv section" style={{ ['--d' as string]: 2 }}>
-        <div className="pl">
+        <div className="pl" {...(showTable ? { role: 'table', 'aria-label': `Master list. ${countLabel}.` } : {})}>
+          {showTable && (
+            <div role="row" className="sr-only">
+              {COLUMNS.map((column) => <span role="columnheader" key={column}>{column}</span>)}
+            </div>
+          )}
           {error && (
             <div className="mrow">
               <InlineError message={error} onRetry={() => void load(query, bmsFilter, orgFilter)} />
@@ -204,16 +233,16 @@ export function MasterScreen() {
               : row.bandSerial ? 'ser' : 'ser none'
             const collectedClass = row.status === 'rejected' ? 'when bad' : row.collectedAt ? 'when' : 'when mute'
             return (
-              <div key={row.id} className="mrow">
-                <div>
+              <div key={row.id} className="mrow" role="row">
+                <div role="cell">
                   <div className="nm">{row.fullName}</div>
                   <div className="sub">{row.orgName}, {row.phone}</div>
                 </div>
-                <span className="band" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
-                <span className={bandClass}>{formatMasterBand(row)}</span>
-                <span className="plate">{row.vehicleReg ?? <span style={{ color: 'var(--ink3)' }}>No vehicle</span>}</span>
-                <span className="bms"><span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span></span>
-                <span className={collectedClass}>{formatMasterCollected(row)}</span>
+                <span role="cell" className="band" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
+                <span role="cell" className={bandClass}>{formatMasterBand(row)}</span>
+                <span role="cell" className="plate">{row.vehicleReg ?? <span style={{ color: 'var(--ink3)' }}>No vehicle</span>}</span>
+                <span role="cell" className="bms"><span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span></span>
+                <span role="cell" className={collectedClass}>{formatMasterCollected(row)}</span>
               </div>
             )
           })}

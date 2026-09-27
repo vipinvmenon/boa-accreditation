@@ -124,6 +124,11 @@ export async function GET(request: Request) {
     latestByPersonAndKind.set(key, checkin)
   }
 
+  // ACC-162: the unfiltered population, counted the same way `rows` is built
+  // (a person whose org is missing is not a row), so "N of M" cannot disagree
+  // with the list under it.
+  const total = parsedPeople.data.reduce((count, person) => count + (orgById.has(person.org_id) ? 1 : 0), 0)
+
   const needle = query.data.q.toLocaleLowerCase()
   const rows = parsedPeople.data.flatMap((person): MasterRow[] => {
     const org = orgById.get(person.org_id)
@@ -163,7 +168,7 @@ export async function GET(request: Request) {
     }]
   })
 
-  const parsedResponse = masterResponseSchema.safeParse({ rows })
+  const parsedResponse = masterResponseSchema.safeParse({ rows, total })
   if (!parsedResponse.success) return errorResponse('internal', 500)
   if (query.data.format === 'csv') {
     return new NextResponse(toCsv(parsedResponse.data.rows), {

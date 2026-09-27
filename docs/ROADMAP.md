@@ -448,7 +448,28 @@ findings flagged at the time; these two carry the rest, which were in the
 critique and not in the roadmap. They are listed last because they are the
 least urgent, not because they are optional.
 
-- [ ] **ACC-162** · **The Master list is a table that is not a table.** Eight
+- [x] **ACC-162** · **Done 27 Sep — ADR-023.** Semantics and a count, at **zero
+      pixel cost**: master measured 0.54/0.56/0.03/0.04% before *and after*, at
+      identical dimensions, so the one passing v2 screen stayed passing.
+      The rows are now an ARIA table — `role="table"` on the panel (only in the
+      success state; an empty ARIA table promises structure that is not there),
+      `role="row"` per `.mrow`, `role="cell"` per cell, and a `role="row"` of six
+      `columnheader`s naming every column. That header row is `.sr-only`, which
+      is `position:absolute` and therefore out of flow: real presence in the
+      accessibility tree, none in the layout. The six names must stay in step
+      with `.mrow`'s six grid columns in `app/v2.css`.
+      `masterCountLabel(shown, total)` (`lib/format.ts`, pure, 6 unit tests)
+      reads "Showing 14 of 612 people" and says "All 612 people" rather than
+      "612 of 612", which reads as a filter matching everyone. It is the table's
+      accessible name, so it is announced with or without a filter, and is drawn
+      beside the existing ACC-154 filter banner. `total` is a new master-response
+      field, counted the same way `rows` is built, with no extra query.
+      `test:e2e` **53/53**, including 4 new ACC-162 tests.
+      **Deliberately NOT fixed, and recorded rather than dropped:** a *sighted*
+      volunteer still has no column names — only a visible header row gives them
+      that, and Vipin declined it to keep the gate green. If it is wanted before
+      5 Oct that is a fresh decision and it costs master's reference and a
+      re-measure. See ADR-023 · **C** · due Wed 30 Sep Eight
       columns of data — tier, band serial, vehicle, BMS flag, check-in time and
       gate — with **no header row**, so a desk volunteer arriving on 5 Oct has
       to infer that `#0412` is a band serial and `KA 05 MJ 8871` is a vehicle.

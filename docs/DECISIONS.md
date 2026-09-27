@@ -831,3 +831,55 @@ longer draws, in the same class as ADR-019's and ADR-021's removals, and
 non-negotiable #1 continues to hold for everything both still draw.
 
 Roadmap: ACC-159. Depends on ACC-109/ACC-164 having made the reference current.
+
+## ADR-023 — Master list gets table semantics and a count, not a visible header row
+
+**Accepted 27 Sep 2026, on Vipin's instruction** (ACC-162), from the three
+options put to him: semantics and a count only, a visible header row as well, or
+leave it alone. He chose **semantics and a count**, explicitly to protect a
+passing gate.
+
+The defect had two halves. Master list is eight columns of data with **no header
+row**, so a desk volunteer arriving on 5 Oct has to infer that `#0412` is a band
+serial and `KA 05 MJ 8871` is a vehicle. And it is `div`s, not a table
+(`tables: 0` when the DOM is probed), so a screen-reader user gets a flat list
+with no row or column semantics and no way to navigate by column. Separately,
+nothing said how many of 612 rows were on screen, filtered or not.
+
+The tension: **master is the one v2 screen passing `test:visual`** (0.54 / 0.56 /
+0.15 / 0.14% when this was written), and the frozen contract draws no header row.
+Anything visible added to it spends that.
+
+What was done, all of it at **zero pixel cost** — verified, not assumed: master
+measured 0.54 / 0.56 / 0.03 / 0.04% before *and after*, at identical dimensions.
+
+- **The rows are an ARIA table**: `role="table"` on the panel, `role="row"` per
+  `.mrow`, `role="cell"` per cell, and a `role="row"` of six `columnheader`s
+  naming every column. The header row is `.sr-only`, which is
+  `position:absolute` and therefore **out of flow**, so it has real presence in
+  the accessibility tree and none in the layout. The six names match `.mrow`'s
+  six grid columns in `app/v2.css`; changing one without the other is a defect.
+- **The table is only a table when it has rows.** `role="table"` is applied only
+  in the success state — an empty or loading ARIA table is worse than no table,
+  because it promises structure that is not there.
+- **`masterCountLabel(shown, total)`** (`lib/format.ts`, pure and unit-tested)
+  reads "Showing 14 of 612 people", and says **"All 612 people"** rather than
+  "612 of 612", which reads as a filter that happens to match everyone. It is
+  the table's accessible name, so it is announced whether or not a filter is on,
+  and it is drawn beside the existing filter banner, which is the case where a
+  sighted operator is actually being misled about how much they can see.
+- **`total` is a new field on the master response.** The route already reads
+  every person to build `rows`, so it is counted the same way — a person whose
+  org is missing is not a row and is not in the total — and costs no extra query.
+
+**What this deliberately does NOT fix, and who owns it.** A *sighted* volunteer
+still has no column names; only a visible header row gives them that, and that
+is the option Vipin declined in order to keep the gate green. So the 5 Oct
+orientation problem is solved for screen-reader users and for "how much am I
+looking at", and **not** for "which column is this". If that is wanted before
+5 Oct it is a fresh decision, and it costs: master's reference must be
+re-captured and the screen re-measured to 0.8% on four variants. Recorded here
+rather than quietly left out of the task.
+
+Roadmap: ACC-162. Related: ADR-021 (Master list is the one place people are
+listed), ACC-154 (the filter banner this count sits beside).

@@ -71,6 +71,7 @@ test.describe('desk tiers (ACC-115)', () => {
         typeCode: 'eddies_lounge', status: 'approved', passRef: 'BOA26-0001', vehicleReg: null, bandSerial: null,
         stickerNo: null, inBms: false, collectedAt: null, gateLabel: null, decidedAt: null,
       }],
+      total: 1,
     })
     await page.route('**/api/desk/master**', (route: Route) => route.fulfill({ json: master }))
     await page.goto('/desk/master')
