@@ -608,7 +608,20 @@ footer span:last-child { color: var(--gold); }
 
 .v2-app { min-height: 100dvh; display: flex; flex-direction: column; }
 .v2-app > main { flex: 1; }
-.v2-app .site-footer { border-top: 0 !important; gap: 16px !important; padding: 28px 40px 110px !important; font-family: var(--label) !important; font-weight: 600 !important; font-size: 11.5px !important; letter-spacing: .12em !important; }
+/* ACC-176b: overrides the generic v2 `footer` rule (flex row, uppercase). */
+.site-footer, footer.site-footer { display: block; padding: 0; font-family: var(--body); font-weight: 400; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--ink2); border-top: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); background: var(--bg); }
+.v2-app .site-footer { padding-bottom: 110px; }
+.sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 28px 64px; padding: 40px 40px 26px; }
+.sf-brand { display: grid; gap: 14px; }
+.sf-brand img { width: 176px; height: auto; filter: var(--logo-filter); }
+.sf-date { margin: 0; font-family: var(--display); font-size: 44px; line-height: .9; text-transform: uppercase; color: var(--ink); }
+.sf-date span { color: var(--gold); }
+.sf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.sf-cols h2 { margin: 0 0 6px; font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.sf-cols p { margin: 0; max-width: 32ch; font-size: 14px; line-height: 1.55; color: var(--ink2); }
+.sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin: 0 40px; padding: 16px 0 24px; border-top: 1px solid var(--hair); font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); }
+.sf-base a { color: var(--ink3); text-decoration: none; }
+.sf-base a:hover { color: var(--ink); }
 .profile-wrap { position: relative; }
 .profile-menu { position: absolute; top: calc(100% + 10px); left: 0; z-index: var(--z-menu); min-width: 230px; padding: 6px; border-radius: var(--r-sm); background: var(--panel); opacity: 1; backdrop-filter: blur(22px); box-shadow: 0 0 0 1px var(--hair), var(--lift); }
 .profile-menu .profile-head { display: grid; gap: 2px; padding: 12px; border-bottom: 1px solid var(--hair); }
@@ -619,4 +632,11 @@ footer span:last-child { color: var(--gold); }
 .profile-menu button:last-child, .profile-menu a:last-child { border-bottom: 0; }
 .profile-menu button:hover, .profile-menu a:hover { color: var(--grn); }
 @media (max-width: 700px) { .profile-menu { left: auto; right: -8px; } }
-@media (max-width: 700px) { .v2-app .site-footer { padding: 20px 20px 110px !important; } }
+@media (max-width: 700px) {
+  .sf-in { grid-template-columns: 1fr; gap: 22px; padding: 30px 20px 20px; }
+  .sf-brand img { width: 140px; }
+  .sf-date { font-size: 36px; }
+  .sf-cols { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .sf-cols > :last-child { grid-column: 1 / -1; }
+  .sf-base { flex-direction: column; margin: 0 20px; }
+}

@@ -1070,3 +1070,14 @@ anywhere yet, so the audit's UX-10 (login ignores the gate's theme) was about
 the whole app, not this page.
 
 Roadmap: ACC-176. The footer is ACC-176b.
+
+### Amended 28 Sep 2026 — the footer (ACC-176b, round 4)
+
+`components/site-footer.tsx`, on every desk and gate screen: the logo and
+"Show 10 Oct 2026" in Anton (the date in gold), then Build / Need help /
+Your data in gold Oswald heads over Archivo, and a base row naming who is
+signed in beside rocknrolloriginals.com. It replaces the v2 footer's two
+lines of staff policy, which this ADR accepts as a divergence from the v2
+contract on the `test:visual` screens that carry the footer. Help stays
+plain text until ACC-173. The gate's base row shows the operator, not sync
+status: the gate's sync state already lives in its own header strip.

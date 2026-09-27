@@ -92,6 +92,10 @@ Phase R (ACC-140–147).
   beside a solid form panel; a sheet over the poster on phones; inline errors
   only. Verified in a browser at 1440 and 390 (desk and gate variants) and by
   `test:e2e` 56/56. The help line is plain text until ACC-173.
+- **Footer redesigned, 28 Sep 2026 (ACC-176b).** Logo, show date, build,
+  help, data promise, signed-in operator; on every desk and gate screen.
+  Seen through a mocked Playwright render at 1440 and 390 (no local desk
+  login). Help is plain text until ACC-173.
 
 
 ## In one line

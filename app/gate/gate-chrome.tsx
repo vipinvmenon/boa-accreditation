@@ -214,7 +214,7 @@ export function GateChrome({
           closeMobileMenu()
         }}>{item.label}</Link>)}</div>
         <main id="main-content" tabIndex={-1} ref={mainRef}>{children}</main>
-        <SiteFooter />
+        <SiteFooter signedInAs={operator ? `${operator.displayName} (${GATE_ROLE_LABEL[operator.role]})` : null} />
       </div>
     </div>
   )

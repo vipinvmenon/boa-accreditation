@@ -314,7 +314,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           }}>{item.label}</Link>)}
         </div>
         {children}
-        <SiteFooter />
+        <SiteFooter signedInAs={me ? `${me.display_name} (${ROLE_LABEL[me.role]})` : null} />
       </div>
     </div>
   )
