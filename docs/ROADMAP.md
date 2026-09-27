@@ -584,7 +584,7 @@ contract — record it in an ADR before shipping, as ACC-156/159/160 did.
 - [ ] **ACC-174b** · **The same band strip on the gate result** ("hand over THIS band"). Changes a `test:visual` screen — extend ADR-025 first · **C** · due Sat 3 Oct
 - [ ] **ACC-175** · **Per-tier WhatsApp header card** (§5 B2, UX-04): eight static 1200×628 cards, `headerValues` wired in `lib/interakt.ts`, tier-neutral body. Blocked by ACC-171 and the approved template in ACC-172 · **C** · *after ACC-174*
 - [x] **ACC-176** · **Sign-in redesign** (§5 B3, UX-06 to UX-11): round 4 of design/proposals, chosen by Vipin 28 Sep — the poster, a solid form panel (a sheet over the poster on phones), one heading and one sentence, inline errors · **C** · due Sat 3 Oct
-- [ ] **ACC-176b** · **A footer that does a job** (§5 B4, UX-18): round 4 of design/proposals. Help link waits on ACC-173 · **C** · due Sat 3 Oct
+- [~] **ACC-176b** · **A footer that does a job** (§5 B4, UX-18): round 4 of design/proposals. Help link waits on ACC-173 · **C** · due Sat 3 Oct
 - [ ] **ACC-177** · **`Button` and `Field` primitives; one radius and spacing scale** (§5 B5, UX-23), plus `loading.tsx` (UX-24) and the stale PRODUCT.md/COPY.md vocabulary (UX-25) · **C** · *after the show*
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
