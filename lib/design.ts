@@ -245,6 +245,20 @@ export const ZONES = [
   { code: 'main_stage', label: 'Main Stage', labelKn: 'ಮುಖ್ಯ ವೇದಿಕೆ', mapColour: 'orange' },
 ] as const
 export type ZoneCode = (typeof ZONES)[number]['code']
+
+/**
+ * ACC-174 — the square colours from the printed zone map ("Zones & band
+ * access", the master sheet), so the pass lists zones in the same colours
+ * security is briefed on. Keyed by ZONES[].mapColour.
+ */
+export const ZONE_MAP_HEX: Record<(typeof ZONES)[number]['mapColour'], string> = {
+  green: '#22B35A',
+  red: '#E0453A',
+  blue: '#2F5BE0',
+  yellow: '#F2C21C',
+  purple: '#8A3FE0',
+  orange: '#F07A2A',
+}
 export const ZONE_CODES = ZONES.map((z) => z.code) as unknown as readonly [ZoneCode, ...ZoneCode[]]
 
 /**

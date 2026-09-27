@@ -1,188 +1,211 @@
-import { BAND_ART, bandArtSrc, tier, tierColour } from '@/lib/design'
-import { zoneChips } from '@/lib/desk-tiers'
+import { BAND_ART, ZONE_MAP_HEX, ZONES, bandArtSrc, tier, tierColour, zoneStrip } from '@/lib/design'
 import { dayValidityCopy } from '@/lib/pass-copy'
 import type { PassViewWithQr } from '@/lib/schemas/pass-view'
 
 /**
  * ACC-144 — the person's own pass, at /p/[passToken]. The one screen anyone
  * outside BOA staff is ever handed a link to (docs/WHATSAPP.md), so it gets
- * no desk chrome (ADR-009) and is built to be read off a phone screen in
- * hand, outdoors, once: one big card, one big QR, no navigation, nothing to
- * tap. It is a server component — the data is already resolved by
- * page.tsx before this renders, so there is nothing to fetch and no reason
- * to ship client JS for a screen nobody interacts with.
+ * no desk chrome (ADR-009). It is a server component — the data is already
+ * resolved by page.tsx before this renders, so there is nothing to fetch and
+ * no client JS for a screen nobody interacts with.
  *
- * The card markup (`.pass .pl`, `.ph`, `.who`, `.bandbox`, `.zones`, `.qr`,
- * `.vehbox`, `.fine`) is the same DOM the desk's /desk/passes "Pass sheet"
- * screen uses (app/desk/passes/passes-screen.tsx, design/source/
- * boa_design_v2.html lines 568-819) — that IS the pixel contract for one
- * pass; there is no separate single-pass mock in the design source. What is
- * new here (documented, not hidden): the page-scoped <style> below enlarges
- * the card and the QR, and lifts contrast, because this screen has a
- * requirement the desk sheet never had — legible in direct sunlight, at
- * arm's length, on one phone — derived from the v2 primitives (theme
- * tokens, type scale, the same `.qr`/`.bandbox` shapes) rather than the
- * source having a scan-in-sunlight variant to copy.
+ * ACC-174 (ADR-025, round 6 of design/proposals, chosen by Vipin 28 Sep): a
+ * ticket over the festival poster, built to be opened from WhatsApp and read
+ * on ONE screen with no scrolling — the busiest tier fits the in-app browser
+ * at 390×706. Top to bottom: the logo; a dark glass ticket whose top edge is
+ * the tier's woven band; the name, then organisation and role as one line;
+ * the tier in its band colour beside the day; the zones this pass enters, in
+ * the printed zone map's colours; a notched tear line; the QR on a light
+ * plate with the pass reference under it.
  *
- * ACC-174 (ADR-025): the pass leads with the tier's woven wristband artwork —
- * a full-bleed strip across the top of the card, and the same artwork tiled
- * behind the page — because the steward checks the band on the wrist against
- * the band on the phone. The card itself stays a solid surface: no text ever
- * sits on the artwork. The tinted `.bandbox` is kept as the plain-text tier
- * name (the General Admission band prints no tier name at all).
+ * Deliberately not shown (Vipin, 28 Sep): the photo-ID and after-22:00
+ * qualifiers. They stay in ZONE_ACCESS, on the printed zone sheets, and at
+ * the gate; the pass lists where you may go, not the conditions.
  *
- * Fixed dark theme, same as /s/[token]'s SubmissionScreen: public surfaces
- * carry no theme toggle (that toggle is desk/review furniture — see
- * lib/design.ts's MOBILE_BREAKPOINT_PX comment and ADR-009).
+ * A slow light sweep crosses the ticket (React Bits' GlareHover, adapted to
+ * run without hover): a screenshot cannot reproduce it, so a steward can tell
+ * a live pass from a copy. It stops under prefers-reduced-motion.
+ *
+ * Fixed dark theme: public surfaces carry no theme toggle (ADR-009).
  */
 
 const THEME = 'dark' as const
 
 export function PassScreen({ pass }: { pass: PassViewWithQr }) {
   const type = tier(pass.typeCode)
-  const zones = zoneChips(pass.typeCode)
+  const zones = zoneStrip(pass.typeCode).filter((z) => z.held)
+  const allZones = zones.length === ZONES.length
   const validity = dayValidityCopy(pass.dayValidity)
 
   return (
-    <main className="pass-page" style={{ '--band-art': `url(${bandArtSrc(type.code)})` } as React.CSSProperties}>
-      <article className="pass pass-page-card" style={{ '--c': tierColour(type.code, THEME) } as React.CSSProperties}>
-        <img
-          className="pass-page-band"
-          src={bandArtSrc(type.code)}
-          alt={`${type.label} wristband`}
-          width={BAND_ART.width}
-          height={BAND_ART.height}
-        />
-        <div className="pl">
-          <div className="ph">
-            <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
-            <span className="mono">{pass.passRef}</span>
-          </div>
-          <div className="who">
-            <div className="nm">{pass.fullName}</div>
-            <div className="sub" style={{ marginTop: '8px' }}>
-              {pass.orgName}
-              <br />
-              {pass.role}
+    <main className="tk-page">
+      <img className="tk-logo" src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+      <article className="tk" style={{ '--c': tierColour(type.code, THEME) } as React.CSSProperties}>
+        <div className="tk-top tk-glare">
+          <img
+            className="tk-band"
+            src={bandArtSrc(type.code)}
+            alt={`${type.label} wristband`}
+            width={BAND_ART.width}
+            height={BAND_ART.height}
+          />
+          <div className="tk-body">
+            <div>
+              <h1 className="tk-name">{pass.fullName}</h1>
+              <p className="tk-who">
+                {pass.orgName}, {pass.role}
+              </p>
             </div>
-          </div>
-          <div className="bandbox">
-            <b>{type.label}</b>
-            <small>{type.band} band</small>
-          </div>
-          <div className="pass-page-validity">
-            <span className="mono">Valid</span>
-            <b>{validity.label}</b>
-            <span>{validity.dates}</span>
-          </div>
-          <div className="zones">
-            {zones.map((zone) => (
-              <span key={zone.zone} className={zone.held ? undefined : 'off'}>
-                {zone.text}
+            <p className="tk-line">
+              <span className="tk-tier">{type.label}</span>
+              <span className="tk-valid">
+                {validity.label}, {validity.dates}
               </span>
-            ))}
+            </p>
+            <ul className="tk-zones" aria-label="Zones this pass enters">
+              {allZones ? (
+                <li>All zones</li>
+              ) : (
+                zones.map((z) => {
+                  const colour = ZONE_MAP_HEX[ZONES.find((x) => x.code === z.zone)!.mapColour]
+                  return (
+                    <li key={z.zone}>
+                      <i style={{ background: colour }} aria-hidden="true" />
+                      {z.label}
+                    </li>
+                  )
+                })
+              )}
+            </ul>
+            {pass.vehicleReg && (
+              <p className="tk-vehicle">
+                Vehicle <b>{pass.vehicleReg}</b>
+              </p>
+            )}
           </div>
+        </div>
+        <div className="tk-perf" aria-hidden="true" />
+        <div className="tk-stub tk-glare">
           <div
-            className="qr qr-wrap"
+            className="tk-qr"
             role="img"
             aria-label={`Pass QR code for ${pass.fullName}`}
             dangerouslySetInnerHTML={{ __html: pass.qrSvg }}
           />
-          {pass.vehicleReg && (
-            <div className="vehbox">
-              <span className="mono">Vehicle</span>
-              <b>{pass.vehicleReg}</b>
-            </div>
-          )}
-          <p className="fine">
-            Bring this and a valid photo ID. Non-transferable. One person, one pass, one
-            check-in, one wristband.
-          </p>
-          <p className="fine pass-page-instruction">
-            Show this at the crew check-in desk. No collection on anyone else&rsquo;s behalf.
-          </p>
+          <p className="tk-fine">Bring photo ID. One person, one pass, one band.</p>
+          <span className="tk-ref">{pass.passRef}</span>
         </div>
       </article>
 
       <style>{`
-        .pass-page {
+        .tk-page {
           position: relative;
           isolation: isolate;
-          overflow: hidden;
           min-height: 100dvh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px 16px 40px;
+          display: grid;
+          align-content: start;
+          justify-items: center;
+          gap: 12px;
+          padding: 14px 16px 24px;
           background: var(--bg, #0A0A0A);
         }
-        /* The tier's band, tiled like a crate of them and tilted, well under
-           the card. Decorative only; the scrim keeps it from competing. */
-        .pass-page::before {
+        /* The poster covers the whole viewport and never ends mid-page. */
+        .tk-page::before {
           content: '';
           position: fixed;
-          inset: -30%;
+          inset: 0;
           z-index: -2;
-          background: var(--band-art) 0 0 / auto 72px repeat;
-          transform: rotate(-12deg);
-          opacity: .32;
+          background: var(--bg, #0A0A0A) url(/assets/pass-poster.webp) 50% 18% / cover no-repeat;
+          opacity: .78;
         }
-        .pass-page::after {
+        .tk-page::after {
           content: '';
           position: fixed;
           inset: 0;
           z-index: -1;
-          background: color-mix(in srgb, var(--bg, #0A0A0A) 62%, transparent);
+          background: linear-gradient(180deg, rgba(10,10,10,.15), rgba(10,10,10,.35) 50%, rgba(10,10,10,.7));
         }
-        .pass-page-card {
-          width: min(420px, 100%);
+        .tk-logo { justify-self: start; width: 104px; height: auto; margin-left: max(4px, calc(50% - 206px)); }
+        .tk { width: min(420px, 100%); filter: drop-shadow(0 24px 34px rgba(0,0,0,.55)); }
+        .tk-top, .tk-stub {
+          position: relative;
           overflow: hidden;
-          border-radius: var(--r-out);
-          background: var(--panel, #101012);
-          box-shadow: inset 0 0 0 1px var(--rule), var(--lift);
+          background: rgba(12,12,14,.72);
+          -webkit-backdrop-filter: blur(14px) saturate(1.1);
+          backdrop-filter: blur(14px) saturate(1.1);
+          box-shadow: inset 0 0 0 1px rgba(227,187,114,.26);
         }
-        /* The whole band is ~17:1 — 20px tall on a phone. Show its first
-           ~60% (tier name, horns, BANGALORE mark) at 10:1 instead; the
-           repeated ".COM" end is what gets cropped. */
-        .pass-page-band {
+        .tk-top {
+          border-radius: 22px 22px 0 0;
+          -webkit-mask: radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right/51% 100% no-repeat;
+          mask: radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right/51% 100% no-repeat;
+        }
+        .tk-stub {
+          border-radius: 0 0 22px 22px;
+          display: grid;
+          justify-items: center;
+          gap: 10px;
+          padding: 16px 20px 14px;
+          -webkit-mask: radial-gradient(circle 12px at 0 0, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right/51% 100% no-repeat;
+          mask: radial-gradient(circle 12px at 0 0, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right/51% 100% no-repeat;
+        }
+        .tk-band {
           display: block;
           width: 100%;
           height: auto;
-          aspect-ratio: 10 / 1;
+          aspect-ratio: 12 / 1;
           object-fit: cover;
           object-position: left center;
+          opacity: .62;
+          filter: saturate(.85);
+          border-bottom: 1px solid rgba(227,187,114,.4);
         }
-        .pass-page-card .bandbox {
-          background: none;
-          box-shadow: none;
-          padding: 0;
+        .tk-body { display: grid; gap: 16px; padding: 20px 22px; }
+        .tk-name {
+          margin: 0;
+          font-family: var(--display);
+          font-weight: 400;
+          font-size: 38px;
+          line-height: .95;
+          text-transform: uppercase;
+          color: var(--ink);
+          text-wrap: balance;
+          overflow-wrap: anywhere;
         }
-        /* One surface under the band, not the shared bezel's inner panel —
-           and no hover lift on a card nobody interacts with. */
-        .pass-page-card .pl,
-        .pass-page-card:hover .pl {
-          padding: 24px 24px 28px;
-          gap: 20px;
-          border-radius: 0;
-          background: none;
-          box-shadow: none;
-          transform: none;
-        }
-        .pass-page-card .who .nm { font-size: 40px; }
-        .pass-page-card .qr-wrap { justify-self: center; padding: 20px; }
-        .pass-page-card .qr-wrap svg { display: block; width: min(280px, 62vw); height: min(280px, 62vw); }
-        .pass-page-validity {
+        .tk-who { margin: 6px 0 0; font-size: 15px; color: var(--ink2); }
+        .tk-line {
           display: flex;
           flex-wrap: wrap;
+          justify-content: space-between;
           align-items: baseline;
-          gap: 4px 10px;
-          padding: 12px 14px;
-          border-radius: var(--r-sm, 12px);
-          box-shadow: inset 0 0 0 1px var(--rule);
+          gap: 4px 12px;
+          margin: 0;
+          padding-top: 14px;
+          border-top: 1px solid var(--hair);
         }
-        .pass-page-validity b { font-family: var(--display); font-weight: 400; font-size: 18px; text-transform: uppercase; }
-        .pass-page-validity span:last-child { color: var(--ink2); font-size: 13px; }
-        .pass-page-instruction { font-weight: 600; color: var(--ink2); }
+        .tk-tier { font-family: var(--display); font-size: 24px; line-height: 1; text-transform: uppercase; color: var(--c); }
+        .tk-valid { font-size: 14px; color: var(--ink); }
+        .tk-zones { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
+        .tk-zones li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+        .tk-zones i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+        .tk-vehicle { margin: 0; font-size: 14px; color: var(--ink2); }
+        .tk-vehicle b { font-family: var(--mono); font-weight: 700; color: var(--ink); letter-spacing: .04em; }
+        .tk-perf { margin: 0 20px; border-top: 2px dashed rgba(227,187,114,.32); position: relative; top: -1px; }
+        .tk-qr { padding: 13px; border-radius: 14px; background: var(--ink, #F2EFE2); }
+        .tk-qr svg { display: block; width: min(200px, 52vw); height: min(200px, 52vw); }
+        .tk-fine { margin: 0; font-size: 13px; color: var(--ink2); text-align: center; }
+        .tk-ref { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--ink3); }
+        .tk-glare::after {
+          content: '';
+          position: absolute;
+          inset: -50%;
+          pointer-events: none;
+          background: linear-gradient(115deg, transparent 44%, rgba(255,255,255,.1) 50%, transparent 56%);
+          transform: translateX(-60%);
+          animation: tk-sweep 4.5s cubic-bezier(.6,0,.3,1) infinite;
+        }
+        @keyframes tk-sweep { 0%, 55% { transform: translateX(-60%); } 100% { transform: translateX(60%); } }
+        @media (prefers-reduced-motion: reduce) { .tk-glare::after { animation: none; opacity: 0; } }
       `}</style>
     </main>
   )

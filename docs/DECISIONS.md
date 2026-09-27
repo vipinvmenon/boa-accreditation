@@ -1003,3 +1003,26 @@ Not in this ADR: the same strip on the gate result (ACC-174b), the WhatsApp
 header card (ACC-175), zone squares on the pass (ACC-168).
 
 Roadmap: ACC-174, ACC-171.
+
+### Amended 28 Sep 2026 — the ticket (round 6)
+
+After seven rounds of mockups (`design/proposals/ux-directions-r*.html`),
+Vipin chose round 6 for the pass. It replaces the strip-and-tiled-backdrop
+layout above:
+
+- The festival poster covers the page (a 900px WebP, `pass-poster.webp`,
+  derived at build time; the 2.4 MB PNG is too heavy for a link opened from
+  WhatsApp). The card is a dark glass ticket over it, with the band strip as
+  its top edge at 62% opacity, a notched tear line, and the QR in the stub.
+- **One screen, no scrolling**, inside WhatsApp's in-app browser: verified at
+  390×706 on live Stage (four zones) and AAA passes.
+- Name; organisation and role as one line; the tier in its band colour beside
+  the day; only the zones held, in the printed zone map's colours
+  (`ZONE_MAP_HEX`); "All zones" for AAA.
+- **No photo-ID or after-22:00 qualifiers on the pass** (Vipin). They remain
+  in `ZONE_ACCESS`, on the printed sheets and at the gate.
+- The pass no longer tells every tier to go to "the crew check-in desk"
+  (part of ACC-167); the one fine-print line is "Bring photo ID. One person,
+  one pass, one band."
+- A slow light sweep (React Bits' GlareHover, adapted to run without hover,
+  hand-written CSS, no dependency) marks a live pass; off under reduced motion.

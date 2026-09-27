@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOA Accreditation — design directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Oswald:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0A0A0A; --panel:#101012; --panel2:#16161a; --ink:#F2EFE2;
+    --ink2:rgba(242,239,226,.72); --ink3:rgba(242,239,226,.52);
+    --rule:rgba(242,239,226,.16); --hair:rgba(242,239,226,.08);
+    --grn:#00F5A5; --gold:#E3BB72;
+    --display:'Anton',sans-serif; --label:'Oswald',sans-serif;
+    --body:'Archivo',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --r-out:28px; --r-in:22px; --r-sm:14px;
+    --A:'../../public/assets';
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#1b1b1f; color:var(--ink2); font-family:var(--body); font-size:15px; line-height:1.5; }
+  .doc { max-width:1320px; margin:0 auto; padding:48px 32px 120px; }
+  .doc > header h1 { font-family:var(--display); font-weight:400; font-size:64px; line-height:.95; color:var(--ink); text-transform:uppercase; margin:0 0 12px; }
+  .doc > header p { max-width:70ch; margin:0 0 8px; }
+  h2.surface { font-family:var(--display); font-weight:400; font-size:40px; color:var(--ink); text-transform:uppercase; margin:88px 0 6px; padding-top:28px; border-top:1px solid var(--rule); }
+  p.surface-note { max-width:75ch; margin:0 0 28px; }
+  .opts { display:grid; gap:28px; }
+  .opt { background:#141417; border-radius:18px; padding:22px; box-shadow:0 0 0 1px var(--hair); }
+  .opt-head { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+  .opt-id { font-family:var(--mono); font-weight:700; font-size:12px; letter-spacing:.14em; color:var(--gold); }
+  .opt-name { font-family:var(--label); font-weight:600; font-size:18px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); }
+  .opt-flag { font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; padding:3px 8px; border-radius:6px; box-shadow:inset 0 0 0 1px var(--rule); color:var(--ink3); }
+  .opt p { margin:0 0 16px; max-width:80ch; font-size:14px; }
+  .row { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; }
+  .cols3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:22px; }
+  @media (max-width:1100px){ .cols3 { grid-template-columns:1fr; } }
+
+  /* ---------- frames ---------- */
+  .desk-frame { width:720px; height:450px; overflow:hidden; border-radius:10px; box-shadow:0 0 0 1px var(--rule); background:var(--bg); flex:none; position:relative; }
+  .desk-frame > .inner { width:1440px; height:900px; transform:scale(.5); transform-origin:0 0; position:absolute; inset:0 auto auto 0; }
+  .phone { width:300px; height:640px; overflow:hidden; border-radius:26px; box-shadow:0 0 0 1px var(--rule), 0 0 0 6px #0c0c0e; background:var(--bg); flex:none; position:relative; }
+  .phone > .inner { width:390px; height:832px; transform:scale(.7692); transform-origin:0 0; position:absolute; inset:0 auto auto 0; overflow:hidden; }
+  .cap { font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); margin:8px 0 0; }
+
+  /* ---------- shared bits ---------- */
+  .band { display:block; width:100%; height:auto; }
+  .h1 { font-family:var(--display); font-weight:400; text-transform:uppercase; line-height:.92; color:var(--ink); margin:0; }
+  .lbl { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; color:var(--ink3); }
+  .inp { height:52px; border-radius:var(--r-sm); background:var(--bg); box-shadow:inset 0 0 0 1px var(--rule); }
+  .btn { height:52px; border-radius:999px; background:var(--grn); color:#0A0A0A; display:grid; place-items:center; font-family:var(--label); font-weight:600; font-size:13px; letter-spacing:.12em; text-transform:uppercase; }
+  .link { font-family:var(--label); font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); }
+  .form { display:grid; gap:16px; }
+  .field { display:grid; gap:8px; }
+  .fhead { display:flex; justify-content:space-between; align-items:center; }
+  .lede { color:var(--ink2); font-size:15px; line-height:1.55; margin:0; }
+  .logo { display:block; height:auto; }
+
+  /* ---------- login L1 cleaned card ---------- */
+  .l1 { height:100%; display:grid; place-items:center; background:var(--bg); padding:24px 16px; }
+  .l1 .card { width:min(100%,440px); border-radius:var(--r-out); background:var(--panel); box-shadow:0 0 0 1px var(--rule); overflow:hidden; }
+  .l1 .band { aspect-ratio:10/1; object-fit:cover; object-position:left center; }
+  .l1 .body { padding:30px 32px 32px; display:grid; gap:22px; }
+
+  /* ---------- login L2 wristband across the top ---------- */
+  .l2 { height:100%; background:var(--bg); display:flex; flex-direction:column; }
+  .l2 .strip { flex:none; height:64px; background:url(../../public/assets/bands/general_admission.webp) left center / auto 100% repeat-x; }
+  .l2 .col { width:min(100% - 40px, 440px); margin:72px auto 0; display:grid; gap:22px; }
+  .phone .l2 .strip { height:40px; }
+  .phone .l2 .col { margin-top:36px; }
+
+  /* ---------- login L3 poster ---------- */
+  .l3 { height:100%; display:grid; grid-template-columns:1.1fr 1fr; background:var(--bg); }
+  .l3 .poster { background:#000 url(../../public/assets/boa-poster.png) center 30% / cover no-repeat; position:relative; }
+  .l3 .poster::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent 70%, var(--bg)); }
+  .l3 .side { display:grid; align-items:center; padding:0 72px; }
+  .l3 .side .col { width:min(100%,420px); display:grid; gap:22px; }
+  .phone .l3 { grid-template-columns:1fr; grid-template-rows:230px 1fr; }
+  .phone .l3 .poster::after { background:linear-gradient(180deg, transparent 60%, var(--bg)); }
+  .phone .l3 .side { align-items:start; padding:20px 20px 0; }
+
+  /* ---------- pass ---------- */
+  .pass-page { height:100%; background:var(--bg); padding:22px 16px; position:relative; isolation:isolate; overflow:hidden; }
+  .pass-page.tiled::before { content:''; position:absolute; inset:-30%; z-index:-2; background:var(--art) 0 0 / auto 72px repeat; transform:rotate(-12deg); opacity:.32; }
+  .pass-page.tiled::after { content:''; position:absolute; inset:0; z-index:-1; background:rgba(10,10,10,.62); }
+  .pc { border-radius:var(--r-out); background:var(--panel); box-shadow:inset 0 0 0 1px var(--rule); overflow:hidden; }
+  .pc .pl { padding:22px 22px 24px; display:grid; gap:16px; }
+  .pc .band.top { aspect-ratio:10/1; object-fit:cover; object-position:left center; }
+  .ph { display:flex; justify-content:space-between; align-items:center; }
+  .ph img { height:24px; }
+  .ref { font-family:var(--mono); font-size:12px; letter-spacing:.1em; color:var(--ink3); }
+  .nm { font-family:var(--display); font-size:38px; line-height:1; color:var(--ink); text-transform:uppercase; }
+  .sub { font-family:var(--mono); font-size:12px; color:var(--ink3); margin-top:6px; }
+  .tier b { display:block; font-family:var(--display); font-weight:400; font-size:28px; line-height:1; text-transform:uppercase; color:var(--c); }
+  .tier small { font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); }
+  .tierbox { border-radius:var(--r-sm); padding:14px 16px; background:color-mix(in srgb, var(--c) 10%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); }
+  .valid { display:flex; gap:10px; align-items:baseline; padding:11px 14px; border-radius:var(--r-sm); box-shadow:inset 0 0 0 1px var(--rule); }
+  .valid b { font-family:var(--display); font-weight:400; font-size:18px; text-transform:uppercase; color:var(--ink); }
+  .valid span { font-size:13px; color:var(--ink2); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips span { font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:6px 10px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--rule); color:var(--ink); }
+  .chips span.off { color:var(--ink3); text-decoration:line-through; opacity:.6; }
+  .zsq { display:grid; gap:8px; }
+  .zsq div { display:flex; align-items:center; gap:10px; font-family:var(--label); font-weight:600; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); }
+  .zsq i { width:18px; height:18px; border-radius:3px; flex:none; }
+  .zsq em { font-style:normal; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.1em; padding:2px 6px; border-radius:4px; background:var(--ink); color:#0A0A0A; }
+  .qr { background:#F2EFE2; border-radius:18px; padding:18px; display:grid; place-items:center; }
+  .qr div { width:190px; height:190px; background:
+    conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0) 0 0/19px 19px; }
+  .band.full { aspect-ratio:auto; }
+
+  /* ---------- whatsapp ---------- */
+  .wa { height:100%; background:#0b141a; padding:16px 12px; }
+  .wa-bubble { width:300px; background:#1f2c34; border-radius:10px; padding:4px; color:#e9edef; font-family:system-ui,sans-serif; font-size:14.5px; line-height:1.4; }
+  .wa-bubble .img { width:100%; aspect-ratio:1.91/1; border-radius:7px; overflow:hidden; position:relative; }
+  .wa-bubble .txt { padding:8px 8px 4px; }
+  .wa-bubble .meta { text-align:right; font-size:11px; color:#8696a0; padding:0 8px 6px; }
+  .wa-btn { width:300px; margin-top:3px; background:#1f2c34; border-radius:10px; padding:11px; text-align:center; color:#53bdeb; font-family:system-ui,sans-serif; font-size:14.5px; }
+  .wc1 { background:#0A0A0A; height:100%; display:grid; grid-template-rows:auto 1fr auto; padding:14px 16px; }
+  .wc1 img.logo { width:92px; }
+  .wc1 .t { font-family:var(--display); font-size:34px; line-height:1; color:var(--ink); text-transform:uppercase; align-self:end; margin-bottom:10px; }
+  .wc1 .band { width:calc(100% + 32px); margin:0 -16px -14px; }
+  .wc2 { height:100%; background:#000 url(../../public/assets/boa-poster.png) center 25% / cover; position:relative; }
+  .wc2 .band { position:absolute; left:0; right:0; bottom:0; }
+
+  /* ---------- footer ---------- */
+  .ft { background:var(--bg); border-radius:10px; box-shadow:0 0 0 1px var(--rule); padding:0; overflow:hidden; }
+  .ft .demo-above { height:70px; background:repeating-linear-gradient(90deg, var(--panel) 0 40px, var(--panel2) 40px 80px); opacity:.5; }
+  .f1 { display:flex; flex-wrap:wrap; gap:8px 28px; justify-content:space-between; padding:20px 24px 24px; border-top:1px solid var(--rule); font-family:var(--label); font-weight:600; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink3); }
+  .f1 a { color:var(--ink); text-decoration:none; }
+  .f2 { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:24px; padding:26px 24px 28px; border-top:1px solid var(--rule); }
+  .f2 h4 { margin:0 0 6px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); font-weight:700; }
+  .f2 p { margin:0; font-size:13px; color:var(--ink2); }
+  .f2 b { color:var(--ink); font-weight:700; }
+
+  ul.fix { margin:0; padding-left:18px; max-width:85ch; }
+  ul.fix li { margin:0 0 8px; }
+  ul.fix b { color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Design directions</h1>
+  <p>Proposals only — nothing here is built except where marked <b>SHIPPED</b>. Pick one per surface (or mix: "L2 with the footer F1"). All use the real band art (placeholder crops until the masters arrive) and the app's own fonts and tokens.</p>
+  <p>Rule across every option: <b>text never sits on artwork</b>, no glow blobs, no floating pill tags. The band is treated as a physical object — a strip — not a wallpaper.</p>
+</header>
+
+<!-- ================= SIGN-IN ================= -->
+<h2 class="surface">1 · Sign-in</h2>
+<p class="surface-note">Today: a floating card, a mint glow in the corner, a "BOA ACCREDITATION" pill, an illegible logo, and three labels saying the same thing. The split-screen attempt (all eight bands stacked) was too loud and is shelved.</p>
+<div class="opts">
+
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">L1</span><span class="opt-name">The current card, cleaned</span><span class="opt-flag">smallest change</span></div>
+    <p>Same card language as the rest of the desk. One band strip as the card's top edge — the same device as the pass, so sign-in and pass read as one family. Legible logo, one heading, one line saying who this is for. Glow and pill removed.</p>
+    <div class="row">
+      <div class="desk-frame"><div class="inner"><div class="l1"><div class="card">
+        <img class="band" src="../../public/assets/bands/general_admission.webp" alt="">
+        <div class="body">
+          <img class="logo" src="../../public/assets/boa-logo.png" style="width:150px" alt="">
+          <div><h1 class="h1" style="font-size:64px">Desk sign in</h1></div>
+          <p class="lede">For BOA accreditation staff. Crew and artists don't sign in here — your pass arrives on WhatsApp.</p>
+          <div class="form">
+            <div class="field"><span class="lbl">Email</span><div class="inp"></div></div>
+            <div class="field"><div class="fhead"><span class="lbl">Password</span><span class="link" style="font-size:11px">Show</span></div><div class="inp"></div></div>
+            <div class="btn">Sign in</div>
+            <span class="link">Forgot password?</span>
+          </div>
+        </div></div></div></div></div>
+      <div><div class="phone"><div class="inner"><div class="l1" style="place-items:start center;padding-top:28px"><div class="card">
+        <img class="band" src="../../public/assets/bands/general_admission.webp" alt="">
+        <div class="body" style="padding:24px 22px 26px">
+          <img class="logo" src="../../public/assets/boa-logo.png" style="width:120px" alt="">
+          <h1 class="h1" style="font-size:48px">Check-in sign in</h1>
+          <p class="lede">For gate issuers. Sign in once while you have signal — the gate keeps working offline after that.</p>
+          <div class="form">
+            <div class="field"><span class="lbl">Email</span><div class="inp"></div></div>
+            <div class="field"><div class="fhead"><span class="lbl">Password</span><span class="link" style="font-size:11px">Show</span></div><div class="inp"></div></div>
+            <div class="btn">Sign in</div>
+          </div>
+        </div></div></div></div></div><p class="cap">phone · gate variant</p></div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">L2</span><span class="opt-name">A wristband across the top</span><span class="opt-flag">calm, distinctive</span></div>
+    <p>No card at all. One band runs edge to edge across the top of the page — the only artwork — and the form sits in a plain left-aligned column underneath, like a printed form. Uses the neutral General Admission band so no tier is implied.</p>
+    <div class="row">
+      <div class="desk-frame"><div class="inner"><div class="l2"><div class="strip"></div><div class="col">
+        <img class="logo" src="../../public/assets/boa-logo.png" style="width:160px" alt="">
+        <h1 class="h1" style="font-size:80px">Desk sign in</h1>
+        <p class="lede">For BOA accreditation staff. Crew and artists don't sign in here — your pass arrives on WhatsApp.</p>
+        <div class="form">
+          <div class="field"><span class="lbl">Email</span><div class="inp"></div></div>
+          <div class="field"><div class="fhead"><span class="lbl">Password</span><span class="link" style="font-size:11px">Show</span></div><div class="inp"></div></div>
+          <div class="btn">Sign in</div>
+          <span class="link">Forgot password?</span>
+        </div></div></div></div></div>
+      <div><div class="phone"><div class="inner"><div class="l2"><div class="strip"></div><div class="col">
+        <img class="logo" src="../../public/assets/boa-logo.png" style="width:120px" alt="">
+        <h1 class="h1" style="font-size:52px">Check-in sign in</h1>
+        <p class="lede">For gate issuers. Sign in once while you have signal — the gate keeps working offline after that.</p>
+        <div class="form">
+          <div class="field"><span class="lbl">Email</span><div class="inp"></div></div>
+          <div class="field"><div class="fhead"><span class="lbl">Password</span><span class="link" style="font-size:11px">Show</span></div><div class="inp"></div></div>
+          <div class="btn">Sign in</div>
+        </div></div></div></div></div><p class="cap">phone · gate variant</p></div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">L3</span><span class="opt-name">The festival poster</span><span class="opt-flag">matches Control Room</span></div>
+    <p>The poster the Control Room already uses as its hero, on the left; the form on the right. Reuses existing art, so the first screen and the first desk screen feel continuous. No band art on this one.</p>
+    <div class="row">
+      <div class="desk-frame"><div class="inner"><div class="l3"><div class="poster"></div><div class="side"><div class="col">
+        <img class="logo" src="../../public/assets/boa-logo.png" style="width:150px" alt="">
+        <h1 class="h1" style="font-size:72px">Desk sign in</h1>
+        <p class="lede">For BOA accreditation staff. Crew and artists don't sign in here — your pass arrives on WhatsApp.</p>
+        <div class="form">
+          <div class="field"><span class="lbl">Email</span><div class="inp"></div></div>
+          <div class="field"><div class="fhead"><span class="lbl">Password</span><span class="link" style="font-size:11px">Show</span></div><div class="inp"></div></div>
+          <div class="btn">Sign in</div>
+          <span class="link">Forgot password?</span>
+        </div></div></div></div></div></div>
+      <div><div class="phone"><div class="inner"><div class="l3"><div class="poster"></div><div class="side"><div class="col" style="gap:18px">
+        <h1 class="h1" style="font-size:46px">Check-in sign in</h1>
+        <div class="form">
+          <div class="field"><span class="lbl">Email</span><div class="inp"></div></div>
+          <div class="field"><div class="fhead"><span class="lbl">Password</span><span class="link" style="font-size:11px">Show</span></div><div class="inp"></div></div>
+          <div class="btn">Sign in</div>
+        </div></div></div></div></div></div><p class="cap">phone · gate variant</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PASS ================= -->
+<h2 class="surface">2 · The pass (/p/…)</h2>
+<p class="surface-note">P1 is what's committed now; the other two are alternatives. All three are shown for a Crew pass. Zones are shown as today's chips in P1–P2 and as the zone-sheet colour squares in P3 — that choice is independent, see Z below.</p>
+<div class="cols3">
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">P1</span><span class="opt-name">Strip + tiled backdrop</span><span class="opt-flag">SHIPPED a8f24f7</span></div>
+    <p>Band strip on top; the same band tiled and tilted behind the page.</p>
+    <div class="phone"><div class="inner"><div class="pass-page tiled" style="--art:url(../../public/assets/bands/crew.webp);--c:#A64DFF"><div class="pc">
+      <img class="band top" src="../../public/assets/bands/crew.webp" alt="">
+      <div class="pl">
+        <div class="ph"><img src="../../public/assets/boa-logo.png" alt=""><span class="ref">BOA26-1060</span></div>
+        <div><div class="nm">Ananya Das</div><div class="sub">Special Tickets · Crew</div></div>
+        <div class="tier"><b>Crew</b><small>Purple band</small></div>
+        <div class="valid"><span class="lbl">Valid</span><b>Show day</b><span>10 Oct 2026</span></div>
+        <div class="chips"><span>Festival area</span><span class="off">Eddie's lounge</span><span class="off">Promoters lounge</span><span>Photo pit</span><span class="off">Backstage</span><span class="off">Main stage</span></div>
+        <div class="qr"><div></div></div>
+      </div></div></div></div></div>
+  </div>
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">P2</span><span class="opt-name">Strip only, plain page</span><span class="opt-flag">quieter</span></div>
+    <p>Same strip, no backdrop. The band is the only colour on the screen, so it carries more.</p>
+    <div class="phone"><div class="inner"><div class="pass-page" style="--c:#A64DFF"><div class="pc">
+      <img class="band top" src="../../public/assets/bands/crew.webp" alt="">
+      <div class="pl">
+        <div class="ph"><img src="../../public/assets/boa-logo.png" alt=""><span class="ref">BOA26-1060</span></div>
+        <div><div class="nm">Ananya Das</div><div class="sub">Special Tickets · Crew</div></div>
+        <div class="tier"><b>Crew</b><small>Purple band</small></div>
+        <div class="valid"><span class="lbl">Valid</span><b>Show day</b><span>10 Oct 2026</span></div>
+        <div class="chips"><span>Festival area</span><span class="off">Eddie's lounge</span><span class="off">Promoters lounge</span><span>Photo pit</span><span class="off">Backstage</span><span class="off">Main stage</span></div>
+        <div class="qr"><div></div></div>
+      </div></div></div></div></div>
+  </div>
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">P3</span><span class="opt-name">The band replaces the tier box</span><span class="opt-flag">closest to today's layout</span></div>
+    <p>No top strip. The whole band sits exactly where the tinted tier box is today, full width of the card, name of the tier under it. Zones as colour squares, granted only.</p>
+    <div class="phone"><div class="inner"><div class="pass-page" style="--c:#A64DFF"><div class="pc">
+      <div class="pl">
+        <div class="ph"><img src="../../public/assets/boa-logo.png" alt=""><span class="ref">BOA26-1060</span></div>
+        <div><div class="nm">Ananya Das</div><div class="sub">Special Tickets · Crew</div></div>
+        <div style="margin:0 -22px"><img class="band full" src="../../public/assets/bands/crew.webp" alt=""></div>
+        <div class="tier" style="margin-top:-6px"><b>Crew</b><small>Purple band</small></div>
+        <div class="valid"><span class="lbl">Valid</span><b>Show day</b><span>10 Oct 2026</span></div>
+        <div class="zsq"><div><i style="background:#22B35A"></i>Festival area</div><div><i style="background:#F2C21C"></i>Photo pit</div></div>
+        <div class="qr"><div></div></div>
+      </div></div></div></div></div>
+  </div>
+</div>
+
+<div class="opt" style="margin-top:22px">
+  <div class="opt-head"><span class="opt-id">Z</span><span class="opt-name">Zones: chips vs zone-sheet squares</span></div>
+  <p><b>Chips (today):</b> all six zones, refused ones struck through — a steward has to read six words to find two. <b>Squares:</b> only the zones you may enter, each with the colour square from the printed zone map, plus solid tags for rules — the same visual language security is briefed on. Example for a Promoters Lounge pass:</p>
+  <div class="zsq" style="max-width:360px">
+    <div><i style="background:#22B35A"></i>Festival area</div>
+    <div><i style="background:#2F5BE0"></i>Promoters lounge <em>+ PHOTO ID</em></div>
+    <div><i style="background:#8A3FE0"></i>Backstage <em>+ PHOTO ID</em> <em style="background:#C0392B;color:#fff">AFTER 10 PM</em></div>
+  </div>
+</div>
+
+<!-- ================= WHATSAPP ================= -->
+<h2 class="surface">3 · The WhatsApp message</h2>
+<p class="surface-note">Today the message is text only ("…your Bangalore Open Air <i>crew</i> accreditation is approved") with an "Open my pass" button. An image header needs a new Meta template approval. WhatsApp shows header images at about 1.91:1, so the 17:1 band has to sit inside a card. One static image per tier — never a name in the image.</p>
+<div class="row">
+  <div class="opt" style="flex:1">
+    <div class="opt-head"><span class="opt-id">W1</span><span class="opt-name">Black card, band across the foot</span></div>
+    <p>Logo, tier name, band. Reads like the pass it opens.</p>
+    <div class="phone"><div class="inner"><div class="wa">
+      <div class="wa-bubble"><div class="img"><div class="wc1"><img class="logo" src="../../public/assets/boa-logo.png" alt=""><div class="t">Crew pass</div><img class="band" src="../../public/assets/bands/crew.webp" alt=""></div></div>
+        <div class="txt">Ananya, your Bangalore Open Air pass is approved: <b>Crew — purple band</b>. Show it at the accreditation desk with photo ID. It's yours alone — don't forward it.</div>
+        <div class="meta">10:42</div></div>
+      <div class="wa-btn">↗ Open my pass</div>
+    </div></div></div>
+  </div>
+  <div class="opt" style="flex:1">
+    <div class="opt-head"><span class="opt-id">W2</span><span class="opt-name">Poster, band as the edge</span></div>
+    <p>The festival poster with the tier's band along the bottom edge. More festival, less document.</p>
+    <div class="phone"><div class="inner"><div class="wa">
+      <div class="wa-bubble"><div class="img"><div class="wc2"><img class="band" src="../../public/assets/bands/crew.webp" alt=""></div></div>
+        <div class="txt">Ananya, your Bangalore Open Air pass is approved: <b>Crew — purple band</b>. Show it at the accreditation desk with photo ID. It's yours alone — don't forward it.</div>
+        <div class="meta">10:42</div></div>
+      <div class="wa-btn">↗ Open my pass</div>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ================= FOOTER ================= -->
+<h2 class="surface">4 · Footer</h2>
+<p class="surface-note">Today: two lines of staff policy ("Not registered, not approved… Not inside." / "Artists handled at the hotel") on desk and gate only; nothing on sign-in, the pass or error pages. Those policy lines move into the gate screen body, where they're instructions. The help number is yours to decide (ACC-173).</p>
+<div class="opts">
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">F1</span><span class="opt-name">One line</span></div>
+    <div class="ft"><div class="demo-above"></div><div class="f1">
+      <span>Bangalore Open Air · 10 Oct 2026</span>
+      <span>Help: <a href="#">message the accreditation desk</a></span>
+      <span>rocknrolloriginals.com</span>
+    </div></div>
+  </div>
+  <div class="opt">
+    <div class="opt-head"><span class="opt-id">F2</span><span class="opt-name">Three columns — help, data promise, status</span></div>
+    <div class="ft"><div class="demo-above"></div><div class="f2">
+      <div><h4>Bangalore Open Air</h4><p><b>Show 10 Oct 2026</b> · build 5–9 Oct<br>rocknrolloriginals.com</p></div>
+      <div><h4>Need help</h4><p><b>Message the accreditation desk</b> on WhatsApp</p></div>
+      <div><h4>Your data</h4><p>We keep your name, phone, role and vehicle number. Nothing else.</p></div>
+    </div></div>
+    <p class="cap" style="margin-top:10px">On the gate, the third column becomes "Last synced 21:04 · 0 waiting to send".</p>
+  </div>
+</div>
+
+<!-- ================= CONSISTENCY ================= -->
+<h2 class="surface">5 · Consistency fixes (no choice needed, for your OK)</h2>
+<ul class="fix">
+  <li><b>Remove the corner glow blobs</b> (the green/gold radial "orbs" behind every screen). They're the most template-looking thing in the app.</li>
+  <li><b>One green.</b> The UI mint (#00F5A5) sits next to the AAA band green (#39E639) on passes and reads as an error. On the pass, the tier colour owns the page; mint stays for desk actions only.</li>
+  <li><b>Buttons and inputs from two shared components</b> instead of 18 hand-combined class sets — this is where the "slightly different on every screen" feeling comes from.</li>
+  <li><b>One radius scale</b> (28 / 22 / 14) applied everywhere; today some screens mix pill, 12px and 14px corners.</li>
+  <li><b>Copy:</b> "crew" removed from messages sent to every tier; one-line fine print on the pass.</li>
+</ul>
+</div>
+</body>
+</html>

@@ -92,6 +92,24 @@
         ],
         "createdAt": "2026-09-20T15:30:26.020Z",
         "reason": "app/v2.css is app/v2.css's own header comment: transcribed verbatim from design/source/boa_design_v2.html, already exempted for this same rule. Same approved contract, same animations (.frame max-width, .burger i top, etc.), just the app-side copy of the identical CSS rather than the design-source file. Same non-negotiable #1 boundary — not unilaterally switching these to transform/opacity, which would deviate from the pixel contract's actual behaviour."
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "design/proposals/ux-directions.html"
+        ],
+        "createdAt": "2026-09-27T18:38:02.722Z",
+        "reason": "agent triage: the purple is the printed Crew wristband (#A64DFF, lib/design.ts TIERS) and the mint is the existing v2 accent; mockup reproduces real brand colours"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "design/proposals/ux-directions-r2.html"
+        ],
+        "createdAt": "2026-09-27T18:46:16.883Z",
+        "reason": "agent triage: purple and blue are the printed Crew and Promoters Lounge wristband colours (lib/design.ts TIERS); mint is the existing v2 accent"
       }
     ]
   }

@@ -95,18 +95,24 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     await expect(page.getByText('Chakra Sound & Light')).toBeVisible()
     await expect(page.getByText('BOA26-0412')).toBeVisible()
     await expect(page.getByText('KA05MJ8871')).toBeVisible()
-    await expect(page.locator('.bandbox b')).toHaveText('Stage')
+    await expect(page.locator('.tk-tier')).toHaveText('Stage')
     // ADR-025: the tier's woven band leads the card, and the file really loads.
     const band = page.getByRole('img', { name: 'Stage wristband' })
     await expect(band).toBeVisible()
     await expect(band).toHaveAttribute('src', '/assets/bands/stage.webp')
     expect(await band.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+    // Round 6 (Vipin, 28 Sep): only the zones this pass enters, no ID or
+    // time qualifiers, and the whole pass on one phone screen.
+    await expect(page.getByRole('list', { name: 'Zones this pass enters' }).getByRole('listitem')).toHaveText([
+      'Festival Area', 'Photo Pit', 'Backstage', 'Main Stage',
+    ])
+    await expect(page.getByText(/with ID|after 22:00|after 10 PM/i)).toHaveCount(0)
     // Plain-words validity with real dates (lib/pass-copy.ts), not just the
     // short desk label.
     await expect(page.getByText(/Build \+ show/)).toBeVisible()
     await expect(page.getByText(/5.9 Oct and 10 Oct 2026/)).toBeVisible()
     // A scannable QR actually rendered, not a placeholder.
-    const qr = page.locator('.qr svg')
+    const qr = page.locator('.tk-qr svg')
     await expect(qr).toBeVisible()
     expect(await qr.locator('rect, path').count()).toBeGreaterThan(0)
 

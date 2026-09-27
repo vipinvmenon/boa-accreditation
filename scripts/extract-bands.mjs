@@ -88,3 +88,16 @@ for (const [i, [top, bottom]] of runs.entries()) {
     console.log(`${ORDER[i].padEnd(18)} placeholder ${region.width}×${region.height}`)
   }
 }
+
+// The pass page's backdrop (ACC-174). boa-poster.png is 2.4 MB — fine for the
+// desk, too heavy for a link opened from WhatsApp on festival 4G. A 900px WebP
+// covers a phone at 2x behind a dimmed layer. extract-assets.mjs writes the
+// PNG first (it runs before this script in `build`).
+const POSTER = join(root, 'public/assets/boa-poster.png')
+if (existsSync(POSTER)) {
+  const out = join(root, 'public/assets/pass-poster.webp')
+  await sharp(POSTER).resize({ width: 900 }).webp({ quality: 68 }).toFile(out)
+  console.log('pass-poster        900w webp')
+} else {
+  throw new Error('public/assets/boa-poster.png missing — run scripts/extract-assets.mjs first')
+}

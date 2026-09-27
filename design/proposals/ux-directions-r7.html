@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOA Accreditation, round 7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#F2EFE2; --ink2:rgba(242,239,226,.74); --ink3:rgba(242,239,226,.56); --hair:rgba(242,239,226,.1);
+    --display:'Anton',sans-serif; --body:'Archivo',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --poster:url(../../public/assets/boa-poster.png);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#18181b; color:var(--ink2); font-family:var(--body); font-size:15px; line-height:1.5; }
+  .doc { max-width:1280px; margin:0 auto; padding:48px 32px 120px; }
+  .doc h1 { font-family:var(--display); font-weight:400; font-size:56px; line-height:.95; color:var(--ink); text-transform:uppercase; margin:0 0 12px; }
+  .doc > p { max-width:74ch; margin:0 0 10px; }
+  .row { display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap; margin-top:28px; }
+  .cap { font-size:13px; color:var(--ink3); margin:12px 0 0; max-width:330px; }
+  .phone { width:340px; height:664px; overflow:hidden; border-radius:34px; box-shadow:0 0 0 1px var(--hair), 0 0 0 7px #0c0c0e; background:#0A0A0A; flex:none; position:relative; }
+  .phone > .inner { width:390px; height:762px; transform:scale(.8718); transform-origin:0 0; position:absolute; top:0; left:0; overflow:hidden; }
+  .wa-bar { height:56px; display:flex; align-items:center; gap:14px; padding:0 16px; background:#1f2c34; color:#e9edef; font:600 15px system-ui,sans-serif; }
+  .wa-bar small { display:block; font-weight:400; font-size:12px; color:#8696a0; }
+
+  /* page: the poster behind, dimmed, the card on top of it */
+  .wl { position:relative; height:706px; padding:18px 16px; isolation:isolate; overflow:hidden; }
+  .wl::before { content:''; position:absolute; inset:0; z-index:-2; background:#0A0A0A var(--poster) 50% 20% / cover no-repeat; opacity:.7; }
+  .wl::after { content:''; position:absolute; inset:0; z-index:-1; background:rgba(8,8,9,.45); }
+
+  /* the pass: one solid card in a deep tint of the tier colour */
+  .pass { --c:#A64DFF; border-radius:16px; overflow:hidden;
+    background:color-mix(in oklab, var(--c) 24%, #0C0C0E);
+    box-shadow:0 1px 0 rgba(255,255,255,.08) inset, 0 20px 40px -12px rgba(0,0,0,.7), 0 4px 10px rgba(0,0,0,.35); }
+  .pass-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 12px; }
+  .pass-head img { width:96px; height:auto; }
+  .f { display:grid; gap:1px; min-width:0; }
+  .f dt { font-size:10.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:color-mix(in oklab, var(--c) 35%, #F2EFE2 65%); opacity:.85; }
+  .f dd { margin:0; font-size:16px; font-weight:500; color:var(--ink); line-height:1.25; }
+  .f.r { text-align:right; }
+  .strip { display:block; width:100%; aspect-ratio:11/1; object-fit:cover; object-position:left center; }
+  .pass-body { padding:16px 18px 18px; display:grid; gap:16px; }
+  .prim { display:flex; justify-content:space-between; align-items:end; gap:12px; }
+  .prim dd { font-family:var(--display); font-weight:400; font-size:40px; line-height:1; text-transform:uppercase; letter-spacing:.005em; }
+  .prim .f.r dd { font-size:40px; }
+  .aux { display:grid; grid-template-columns:1fr auto; gap:12px 16px; }
+  .aux .wide { grid-column:1/-1; }
+  .aux .wide dd { font-size:20px; font-weight:600; }
+  .zones { display:flex; flex-wrap:wrap; gap:4px 14px; margin:0; padding:0; list-style:none; }
+  .zones li { display:flex; align-items:center; gap:7px; font-size:15px; font-weight:500; color:var(--ink); }
+  .zones i { width:9px; height:9px; border-radius:2px; flex:none; }
+  .zones small { font-size:13px; font-weight:400; color:var(--ink2); }
+  .code { display:grid; justify-items:center; gap:8px; padding:4px 18px 18px; }
+  .code .plate { background:#fff; border-radius:10px; padding:12px; }
+  .code .qr { width:176px; height:176px; background:conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0) 0 0/12.6px 12.6px; }
+  .code span { font-family:var(--mono); font-size:12px; letter-spacing:.06em; color:var(--ink2); }
+  .under { margin:12px 4px 0; text-align:center; font-size:13px; color:var(--ink2); }
+</style>
+</head>
+<body>
+<div class="doc">
+<h1>Round 7: Apple Wallet boarding pass</h1>
+<p>One solid card, tinted from the band colour, laid out the way Wallet lays out a boarding pass: logo and one header field on top, a strip (the band) under it, two big primary values (access and day, where a boarding pass puts SFO and JFK), then small label-and-value fields, then the code on a white plate. No glass, no outlines, no ornaments. The poster stays behind the card.</p>
+
+<div class="row">
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="wl">
+      <article class="pass" style="--c:#A64DFF">
+        <div class="pass-head"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><dl class="f r" style="margin:0"><dt>Pass</dt><dd>BOA26-0412</dd></dl></div>
+        <img class="strip" src="../../public/assets/bands/crew.webp" alt="Crew wristband">
+        <div class="pass-body">
+          <dl class="prim" style="margin:0"><div class="f"><dt>Access</dt><dd>Crew</dd></div><div class="f r"><dt>Show day</dt><dd>10 Oct</dd></div></dl>
+          <dl class="aux" style="margin:0">
+            <div class="f wide"><dt>Name</dt><dd>Meera Kulkarni</dd></div>
+            <div class="f"><dt>Organisation</dt><dd>Chakra Sound &amp; Light</dd></div>
+            <div class="f r"><dt>Role</dt><dd>Rigger</dd></div>
+            <div class="f wide"><dt>Zones</dt><dd><ul class="zones"><li><i style="background:#22B35A"></i>Festival area</li><li><i style="background:#F2C21C"></i>Photo pit</li></ul></dd></div>
+          </dl>
+        </div>
+        <div class="code"><div class="plate"><div class="qr"></div></div><span>BOA26-0412</span></div>
+      </article>
+      <p class="under">Bring photo ID. One person, one pass, one band.</p>
+    </div>
+  </div></div><p class="cap">Crew</p></div>
+
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="wl">
+      <article class="pass" style="--c:#4371FF">
+        <div class="pass-head"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><dl class="f r" style="margin:0"><dt>Pass</dt><dd>BOA26-0877</dd></dl></div>
+        <img class="strip" src="../../public/assets/bands/promoters_lounge.webp" alt="Promoters Lounge wristband">
+        <div class="pass-body">
+          <dl class="prim" style="margin:0"><div class="f"><dt>Access</dt><dd>Promoters</dd></div><div class="f r"><dt>Show day</dt><dd>10 Oct</dd></div></dl>
+          <dl class="aux" style="margin:0">
+            <div class="f wide"><dt>Name</dt><dd>Rohan Menezes</dd></div>
+            <div class="f"><dt>Organisation</dt><dd>Skyline Live</dd></div>
+            <div class="f r"><dt>Role</dt><dd>Promoter</dd></div>
+            <div class="f wide"><dt>Zones</dt><dd><ul class="zones"><li><i style="background:#22B35A"></i>Festival area</li><li><i style="background:#2F5BE0"></i>Promoters lounge <small>with ID</small></li><li><i style="background:#8A3FE0"></i>Backstage <small>after 10 PM, with ID</small></li></ul></dd></div>
+          </dl>
+        </div>
+        <div class="code"><div class="plate"><div class="qr"></div></div><span>BOA26-0877</span></div>
+      </article>
+      <p class="under">Bring photo ID. One person, one pass, one band.</p>
+    </div>
+  </div></div><p class="cap">Promoters Lounge: three zones and two rules. "Promoters" alone in the big field, as Wallet keeps primary values short; the full tier name is on the band strip.</p></div>
+
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="wl">
+      <article class="pass" style="--c:#39E639">
+        <div class="pass-head"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><dl class="f r" style="margin:0"><dt>Pass</dt><dd>BOA26-0063</dd></dl></div>
+        <img class="strip" src="../../public/assets/bands/aaa.webp" alt="AAA wristband">
+        <div class="pass-body">
+          <dl class="prim" style="margin:0"><div class="f"><dt>Access</dt><dd>AAA</dd></div><div class="f r"><dt>Build + show</dt><dd>5-10 Oct</dd></div></dl>
+          <dl class="aux" style="margin:0">
+            <div class="f wide"><dt>Name</dt><dd>Kabir Nair</dd></div>
+            <div class="f"><dt>Organisation</dt><dd>Bangalore Open Air</dd></div>
+            <div class="f r"><dt>Role</dt><dd>Production</dd></div>
+            <div class="f wide"><dt>Zones</dt><dd><ul class="zones"><li>All zones</li></ul></dd></div>
+          </dl>
+        </div>
+        <div class="code"><div class="plate"><div class="qr"></div></div><span>BOA26-0063</span></div>
+      </article>
+      <p class="under">Bring photo ID. One person, one pass, one band.</p>
+    </div>
+  </div></div><p class="cap">AAA, build and show days: "All zones" instead of six squares.</p></div>
+</div>
+</div>
+</body>
+</html>

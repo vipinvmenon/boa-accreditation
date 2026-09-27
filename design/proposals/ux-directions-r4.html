@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOA Accreditation, round 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;700&family=JetBrains+Mono:wght@400;700&family=Oswald:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0A0A0A; --ink:#F2EFE2; --ink2:rgba(242,239,226,.76); --ink3:rgba(242,239,226,.58);
+    --rule:rgba(242,239,226,.14); --hair:rgba(242,239,226,.09);
+    --grn:#00F5A5; --gold:#E3BB72; --goldline:rgba(227,187,114,.4);
+    --display:'Anton',sans-serif; --label:'Oswald',sans-serif; --body:'Archivo',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --poster:url(../../public/assets/boa-poster.png);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#18181b; color:var(--ink2); font-family:var(--body); font-size:15px; line-height:1.5; }
+  .doc { max-width:1320px; margin:0 auto; padding:48px 32px 120px; }
+  .doc > header h1 { font-family:var(--display); font-weight:400; font-size:58px; line-height:.95; color:var(--ink); text-transform:uppercase; margin:0 0 12px; }
+  .doc > header p, p.note { max-width:76ch; margin:0 0 10px; }
+  h2.surface { font-family:var(--display); font-weight:400; font-size:36px; color:var(--ink); text-transform:uppercase; margin:76px 0 8px; padding-top:28px; border-top:1px solid var(--rule); }
+  .row { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; margin-top:22px; }
+  .cap { font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink3); margin:10px 0 0; max-width:340px; }
+  .phone { width:340px; height:664px; overflow:hidden; border-radius:32px; box-shadow:0 0 0 1px var(--rule), 0 0 0 7px #0c0c0e; background:var(--bg); flex:none; position:relative; }
+  .phone > .inner { width:390px; height:762px; transform:scale(.8718); transform-origin:0 0; position:absolute; top:0; left:0; overflow:hidden; }
+  .wa-bar { height:56px; display:flex; align-items:center; gap:12px; padding:0 16px; background:#1f2c34; color:#e9edef; font:600 15px system-ui,sans-serif; }
+  .wa-bar small { display:block; font-weight:400; font-size:12px; color:#8696a0; }
+
+  /* ================= PASS, one screen ================= */
+  /* The poster is a fixed, full-cover layer: it can never end mid-page. */
+  .pp { position:relative; height:100%; overflow:hidden; isolation:isolate; display:grid; grid-template-rows:auto 1fr auto; padding:14px 16px 10px; }
+  .pp::before { content:''; position:absolute; inset:0; z-index:-2; background:#0A0A0A var(--poster) 50% 18% / cover no-repeat; opacity:.78; }
+  .pp::after { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(10,10,10,.15), rgba(10,10,10,.35) 50%, rgba(10,10,10,.7)); }
+  .pp-top { display:flex; justify-content:space-between; align-items:center; padding:2px 4px 12px; }
+  .pp-top img { width:104px; height:auto; }
+  .pp-top span { font-family:var(--mono); font-size:12px; letter-spacing:.1em; color:var(--ink2); }
+
+  .tk { --c:#A64DFF; position:relative; align-self:start; filter:drop-shadow(0 24px 34px rgba(0,0,0,.55)); }
+  .tk-top, .tk-stub { position:relative; overflow:hidden; background:rgba(12,12,14,.72); -webkit-backdrop-filter:blur(14px) saturate(1.1); backdrop-filter:blur(14px) saturate(1.1); box-shadow:inset 0 0 0 1px var(--goldline); }
+  .tk-top { border-radius:22px 22px 0 0;
+    -webkit-mask:radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right/51% 100% no-repeat;
+            mask:radial-gradient(circle 12px at 0 100%, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, #0000 97%, #000) right/51% 100% no-repeat; }
+  .tk-stub { border-radius:0 0 22px 22px;
+    -webkit-mask:radial-gradient(circle 12px at 0 0, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right/51% 100% no-repeat;
+            mask:radial-gradient(circle 12px at 0 0, #0000 97%, #000) left/51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, #0000 97%, #000) right/51% 100% no-repeat; }
+  .tk-band { display:block; width:100%; aspect-ratio:12/1; object-fit:cover; object-position:left center; opacity:.62; filter:saturate(.85); border-bottom:1px solid var(--goldline); }
+  .tk-body { padding:16px 20px 16px; display:grid; gap:14px; }
+  .tk-name { font-family:var(--display); font-size:38px; line-height:.95; color:var(--ink); text-transform:uppercase; text-wrap:balance; }
+  .tk-tier { margin-top:6px; font-family:var(--display); font-size:22px; line-height:1; text-transform:uppercase; color:var(--c); }
+  .tk-facts { display:grid; grid-template-columns:auto 1fr auto; gap:0 18px; padding-top:12px; border-top:1px solid var(--hair); }
+  .tk-facts dt { font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); }
+  .tk-facts dd { margin:2px 0 0; font-family:var(--label); font-weight:600; font-size:14px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink); line-height:1.2; }
+  .tk-zones { display:flex; flex-wrap:wrap; gap:8px 16px; padding-top:12px; border-top:1px solid var(--hair); }
+  .tk-zones div { display:flex; align-items:center; gap:8px; font-family:var(--label); font-weight:600; font-size:13.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink); }
+  .tk-zones i { width:14px; height:14px; border-radius:3px; flex:none; }
+  .tk-zones em { font-style:normal; font-family:var(--mono); font-size:11px; font-weight:700; padding:3px 7px; border-radius:4px; background:var(--ink); color:#0A0A0A; }
+  .tk-zones em.t { background:#B8392B; color:#fff; }
+  .tk-perf { margin:0 20px; border-top:2px dashed rgba(227,187,114,.32); position:relative; top:-1px; }
+  .tk-stub { padding:16px 20px 14px; display:grid; gap:10px; justify-items:center; }
+  .qr { width:200px; height:200px; padding:13px; border-radius:14px; background:#F2EFE2; }
+  .qr div { width:100%; height:100%; background:conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0) 0 0/14.5px 14.5px; }
+  .tk-fine { margin:0; font-size:13px; color:var(--ink2); }
+  /* React Bits GlareHover, adapted: a slow automatic sweep, because a phone has
+     no hover. Moving light is how a steward tells a live pass from a screenshot. */
+  .glare::after { content:''; position:absolute; inset:-50%; pointer-events:none;
+    background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,.16) 50%, transparent 58%);
+    transform:translateX(-60%); animation:sweep 4.5s cubic-bezier(.6,0,.3,1) infinite; }
+  @keyframes sweep { 0%, 55% { transform:translateX(-60%); } 100% { transform:translateX(60%); } }
+  @media (prefers-reduced-motion: reduce) { .glare::after { animation:none; opacity:0; } }
+  .pp-help { text-align:center; font-size:12.5px; color:var(--ink3); padding-top:8px; }
+  .pp-help a { color:var(--ink); }
+
+  /* ================= WhatsApp ================= */
+  .wa { height:100%; background:#0b141a; padding:14px 12px; display:grid; align-content:start; gap:4px; }
+  .bub { width:310px; background:#1f2c34; border-radius:10px; padding:4px; color:#e9edef; font:14.5px/1.4 system-ui,sans-serif; }
+  .bub.out { justify-self:end; background:#005c4b; }
+  .bub .txt { padding:7px 8px 2px; }
+  .bub .meta { text-align:right; font-size:11px; color:#8696a0; padding:0 8px 5px; }
+  .bub.out .meta { color:#9fd3c7; }
+  .wa-btn { width:310px; background:#1f2c34; border-radius:10px; padding:11px; text-align:center; color:#53bdeb; font:14.5px system-ui,sans-serif; }
+  .card { width:100%; aspect-ratio:1.91/1; border-radius:7px; overflow:hidden; position:relative; background:#0A0A0A var(--poster) 50% 22% / cover; isolation:isolate; }
+  .card::before { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(90deg, rgba(10,10,10,.92) 30%, rgba(10,10,10,.25)); }
+  .card .in { position:absolute; inset:0; display:grid; grid-template-rows:auto 1fr auto; padding:12px 14px 0; }
+  .card img.logo { width:84px; }
+  .card .t { align-self:end; margin-bottom:8px; font-family:var(--display); font-size:30px; line-height:.95; color:var(--ink); text-transform:uppercase; }
+  .card .t b { display:block; font-weight:400; color:var(--c); }
+  .card .band { width:calc(100% + 28px); margin:0 -14px; display:block; aspect-ratio:14/1; object-fit:cover; object-position:left; opacity:.8; }
+  .lp { background:#1a252c; border-radius:7px; overflow:hidden; }
+  .lp .d { padding:8px 10px; }
+  .lp .d b { display:block; color:#e9edef; font-size:13.5px; }
+  .lp .d span { font-size:12.5px; color:#8696a0; }
+
+  /* ================= FOOTER ================= */
+  .ftr { background:var(--bg); border-top:1px solid var(--goldline); }
+  .ftr-in { display:grid; grid-template-columns:auto 1fr; gap:28px 56px; align-items:end; padding:40px 48px 26px; }
+  .ftr-brand { display:grid; gap:14px; }
+  .ftr-brand img { width:180px; }
+  .ftr-date { font-family:var(--display); font-size:44px; line-height:.9; text-transform:uppercase; color:var(--ink); }
+  .ftr-date span { color:var(--gold); }
+  .ftr-cols { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:28px; }
+  .ftr-cols h4 { margin:0 0 6px; font-family:var(--label); font-weight:600; font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); }
+  .ftr-cols p { margin:0; font-size:14px; line-height:1.55; color:var(--ink2); }
+  .ftr-cols a { color:var(--ink); text-decoration:underline; text-decoration-color:var(--goldline); text-underline-offset:3px; }
+  .ftr-base { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin:0 48px; padding:16px 0 24px; border-top:1px solid var(--hair); font-family:var(--label); font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3); }
+  .phone .ftr-in { grid-template-columns:1fr; padding:30px 22px 20px; gap:22px; }
+  .phone .ftr-cols { grid-template-columns:1fr 1fr; gap:20px; }
+  .phone .ftr-cols > :last-child { grid-column:1/-1; }
+  .phone .ftr-date { font-size:36px; }
+  .phone .ftr-base { margin:0 22px; flex-direction:column; gap:6px; }
+
+  /* ================= React Bits table ================= */
+  table.rb { width:100%; border-collapse:collapse; margin-top:18px; font-size:14px; }
+  table.rb th { text-align:left; font-family:var(--label); font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); padding:10px 12px; border-bottom:1px solid var(--goldline); }
+  table.rb td { padding:12px; vertical-align:top; border-bottom:1px solid var(--hair); color:var(--ink2); }
+  table.rb td:first-child { color:var(--ink); font-weight:600; white-space:nowrap; }
+  table.rb code { font-family:var(--mono); font-size:12px; color:var(--ink); }
+  .pill { display:inline-block; font-family:var(--mono); font-size:11px; padding:2px 7px; border-radius:4px; }
+  .ok { background:rgba(0,245,165,.12); color:#7cf5cb; }
+  .dep { background:rgba(227,187,114,.14); color:var(--gold); }
+  .no { background:rgba(184,57,43,.2); color:#ff9a8c; }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Round 4: the pass on one screen</h1>
+  <p>Built to open from WhatsApp: everything fits in the WhatsApp in-app browser on an ordinary phone (390 by 762 shown, the space left under WhatsApp's own top bar), with no scrolling. The poster is now a full-cover layer, so it can never be cut off. The "Purple band / Blue band" line is gone. Sign-in is unchanged from round 3.</p>
+</header>
+
+<!-- ============ PASS ============ -->
+<h2 class="surface">The pass</h2>
+<p class="note">Order on screen: name, tier, the three facts a steward asks about, the zones you may enter, then the QR. The pass number moved to the top line. A slow light sweep crosses the ticket every few seconds (React Bits Glare Hover, adapted to run on its own): a screenshot of a pass can't do that, so a steward can tell a live pass from a copy at a glance. It stops for people who turn motion off.</p>
+<div class="row">
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="pp" style="height:706px">
+      <div class="pp-top"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><span>BOA26-0412</span></div>
+      <div class="tk">
+        <div class="tk-top glare">
+          <img class="tk-band" src="../../public/assets/bands/crew.webp" alt="Crew wristband">
+          <div class="tk-body">
+            <div><div class="tk-name">Meera Kulkarni</div><div class="tk-tier">Crew</div></div>
+            <dl class="tk-facts" style="margin:0">
+              <div><dt>Valid</dt><dd>Show, 10 Oct</dd></div>
+              <div><dt>Organisation</dt><dd>Chakra Sound &amp; Light</dd></div>
+              <div><dt>Role</dt><dd>Rigger</dd></div>
+            </dl>
+            <div class="tk-zones">
+              <div><i style="background:#22B35A"></i>Festival area</div>
+              <div><i style="background:#F2C21C"></i>Photo pit</div>
+            </div>
+          </div>
+        </div>
+        <div class="tk-perf"></div>
+        <div class="tk-stub glare">
+          <div class="qr"><div></div></div>
+          <p class="tk-fine">Bring photo ID. One person, one pass, one band.</p>
+        </div>
+      </div>
+      <div class="pp-help">Something wrong? <a href="#">Message the accreditation desk</a></div>
+    </div>
+  </div></div><p class="cap">Crew, opened from WhatsApp. No scrolling.</p></div>
+
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="pp" style="height:706px">
+      <div class="pp-top"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><span>BOA26-0877</span></div>
+      <div class="tk" style="--c:#4371FF">
+        <div class="tk-top glare">
+          <img class="tk-band" src="../../public/assets/bands/promoters_lounge.webp" alt="Promoters Lounge wristband">
+          <div class="tk-body">
+            <div><div class="tk-name">Rohan Menezes</div><div class="tk-tier">Promoters Lounge</div></div>
+            <dl class="tk-facts" style="margin:0">
+              <div><dt>Valid</dt><dd>Show, 10 Oct</dd></div>
+              <div><dt>Organisation</dt><dd>Skyline Live</dd></div>
+              <div><dt>Role</dt><dd>Promoter</dd></div>
+            </dl>
+            <div class="tk-zones">
+              <div><i style="background:#22B35A"></i>Festival area</div>
+              <div><i style="background:#2F5BE0"></i>Promoters lounge <em>+ ID</em></div>
+              <div><i style="background:#8A3FE0"></i>Backstage <em>+ ID</em> <em class="t">After 10 PM</em></div>
+            </div>
+          </div>
+        </div>
+        <div class="tk-perf"></div>
+        <div class="tk-stub glare">
+          <div class="qr"><div></div></div>
+          <p class="tk-fine">Bring photo ID. One person, one pass, one band.</p>
+        </div>
+      </div>
+      <div class="pp-help">Something wrong? <a href="#">Message the accreditation desk</a></div>
+    </div>
+  </div></div><p class="cap">The busiest case: three zones and two rules. Still one screen.</p></div>
+</div>
+
+<!-- ============ WHATSAPP ============ -->
+<h2 class="surface">How it looks in WhatsApp</h2>
+<p class="note">Two moments. The approved message (Interakt template) carries an image header: one static card per tier, built from the poster and the band, never with a name in it. And when the pass link is pasted by hand (the one-tap fallback), WhatsApp builds a link preview from the page's own preview image and title, so the page needs those set per tier too. Titles stay neutral ("Your Bangalore Open Air pass"), because previews are visible to anyone the chat is forwarded to.</p>
+<div class="row">
+  <div><div class="phone"><div class="inner"><div class="wa-bar"><div>BOA Accreditation<small>business account</small></div></div><div class="wa">
+    <div class="bub"><div class="card" style="--c:#A64DFF"><div class="in"><img class="logo" src="../../public/assets/boa-logo.png" alt=""><div class="t">Crew<b>pass</b></div><img class="band" src="../../public/assets/bands/crew.webp" alt=""></div></div>
+      <div class="txt">Meera, your Bangalore Open Air pass is approved: <b>Crew</b>. Show it at the accreditation desk with photo ID. It's yours alone, please don't forward it.</div><div class="meta">10:42</div></div>
+    <div class="wa-btn">Open my pass</div>
+  </div></div></div><p class="cap">Approved message, image header per tier</p></div>
+
+  <div><div class="phone"><div class="inner"><div class="wa-bar"><div>Accreditation desk<small>online</small></div></div><div class="wa">
+    <div class="bub out"><div class="lp"><div class="card" style="--c:#4371FF;border-radius:0"><div class="in"><img class="logo" src="../../public/assets/boa-logo.png" alt=""><div class="t">Promoters<b>Lounge</b></div><img class="band" src="../../public/assets/bands/promoters_lounge.webp" alt=""></div></div>
+      <div class="d"><b>Your Bangalore Open Air pass</b><span>Show it at the accreditation desk with photo ID.</span></div></div>
+      <div class="txt" style="color:#d1f4ea">accred.bangaloreopenair.com/p/…</div><div class="meta">10:44 ✓✓</div></div>
+  </div></div></div><p class="cap">Link pasted by hand: the page's own preview</p></div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<h2 class="surface">Footer, in the poster's type</h2>
+<p class="note">The logo and the show date set in Anton (the poster headline face), column heads in Oswald, gold. Body stays Archivo for readability. These are the app's existing fonts; adding a new family would mean a design-contract change (ADR-017), so I haven't.</p>
+<div class="row">
+  <div style="width:820px"><div class="ftr">
+    <div class="ftr-in">
+      <div class="ftr-brand"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><div class="ftr-date">Show <span>10 Oct</span> 2026</div></div>
+      <div class="ftr-cols">
+        <div><h4>Build</h4><p>5 to 9 October.</p></div>
+        <div><h4>Need help</h4><p><a href="#">Message the accreditation desk</a> on WhatsApp.</p></div>
+        <div><h4>Your data</h4><p>We keep your name, phone, role and vehicle number. Nothing else.</p></div>
+      </div>
+    </div>
+    <div class="ftr-base"><span>Gate synced 21:04, nothing waiting</span><span>rocknrolloriginals.com</span></div>
+  </div><p class="cap">desktop, gate status variant</p></div>
+
+  <div><div class="phone" style="height:560px"><div class="inner"><div class="ftr">
+    <div class="ftr-in">
+      <div class="ftr-brand"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air" style="width:140px"><div class="ftr-date">Show <span>10 Oct</span> 2026</div></div>
+      <div class="ftr-cols">
+        <div><h4>Build</h4><p>5 to 9 October.</p></div>
+        <div><h4>Need help</h4><p><a href="#">Message the desk</a></p></div>
+        <div><h4>Your data</h4><p>We keep your name, phone, role and vehicle number. Nothing else.</p></div>
+      </div>
+    </div>
+    <div class="ftr-base"><span>Signed in as Vipin (admin)</span><span>rocknrolloriginals.com</span></div>
+  </div></div></div><p class="cap">phone, desk variant</p></div>
+</div>
+
+<!-- ============ REACT BITS ============ -->
+<h2 class="surface">React Bits: what to use, and where</h2>
+<p class="note">React Bits components are copied into the repo as source (TypeScript + plain CSS matches this app; it has no Tailwind). Licence is MIT with Commons Clause: fine to use in the product. I checked each component's real dependency list in the React Bits registry. The app has no animation library today, so "no deps" components cost nothing extra; the ones needing <code>motion</code> add one library (motion for React, tens of KB gzipped) and should stay off the offline gate unless worth it.</p>
+<table class="rb">
+  <thead><tr><th>Component</th><th>Where</th><th>Why it earns its place</th><th>Deps</th></tr></thead>
+  <tbody>
+    <tr><td>Glare Hover</td><td>Pass ticket</td><td>Auto-sweeping light (shown above). A static screenshot can't reproduce it, so it's a real anti-screenshot cue, not decoration.</td><td><span class="pill ok">none</span></td></tr>
+    <tr><td>Hold Button</td><td>Gate: "Issue band", vehicle "Log entry"</td><td>Press-and-hold to confirm. Stops accidental taps from issuing a wristband twice in a rush. The ledger is append-only, so a mistaken issue costs a void.</td><td><span class="pill ok">none</span></td></tr>
+    <tr><td>Split Flap Text</td><td>Gate result name / pass ref</td><td>The departures-board flip draws the eye to the one line that changed after a scan. Short, once per scan.</td><td><span class="pill ok">none</span></td></tr>
+    <tr><td>Noise</td><td>Sign-in, pass, Control Room</td><td>Film grain over the poster. Replaces the app's current inline SVG grain with one shared component.</td><td><span class="pill ok">none</span></td></tr>
+    <tr><td>Spotlight Card</td><td>Desk: org and user cards</td><td>Subtle cursor-follow light on hover. Desk only (mouse); does nothing on phones.</td><td><span class="pill ok">none</span></td></tr>
+    <tr><td>Count Up</td><td>Control Room counts</td><td>Approved / collected / pending numbers roll to their value when they change, so a change is noticed.</td><td><span class="pill dep">motion</span></td></tr>
+    <tr><td>Status Mark</td><td>Gate green / amber / red</td><td>Animated tick or cross on the scan result. Strong feedback, but the gate already has a clear colour result.</td><td><span class="pill dep">motion</span></td></tr>
+    <tr><td>Tear Ticket</td><td>Pass, first open</td><td>A tear-along-the-perforation reveal of the QR. Fits the ticket perfectly, but it's 24 KB of component and adds a step before the QR. Nice, not needed.</td><td><span class="pill dep">motion</span></td></tr>
+    <tr><td>Slide Commit</td><td>"Send all unsent" (ACC-160)</td><td>Slide to confirm a bulk send. Right idea, but it brings the Hugeicons set and the app uses one icon family.</td><td><span class="pill no">motion + icons</span></td></tr>
+    <tr><td>Lanyard, Dome Gallery, backgrounds (Aurora, Silk, Galaxy…)</td><td>none</td><td>Three.js / WebGL. Heavy on phones and battery, and the poster already does the atmosphere. Skip.</td><td><span class="pill no">three / ogl</span></td></tr>
+  </tbody>
+</table>
+<p class="note" style="margin-top:18px">Recommendation: take the five no-dependency ones now (Glare Hover, Hold Button, Split Flap Text, Noise, Spotlight Card). Decide on <code>motion</code> separately; if yes, Count Up first.</p>
+</div>
+</body>
+</html>

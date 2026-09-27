@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOA Accreditation, round 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0B0B0C; --ink:#F2EFE2; --ink2:rgba(242,239,226,.72); --ink3:rgba(242,239,226,.5);
+    --hair:rgba(242,239,226,.1); --field:#151517; --grn:#00F5A5; --gold:#E3BB72;
+    --display:'Anton',sans-serif; --body:'Archivo',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --poster:url(../../public/assets/boa-poster.png);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#18181b; color:var(--ink2); font-family:var(--body); font-size:15px; line-height:1.5; }
+  .doc { max-width:1280px; margin:0 auto; padding:48px 32px 120px; }
+  .doc > header h1 { font-family:var(--display); font-weight:400; font-size:56px; line-height:.95; color:var(--ink); text-transform:uppercase; margin:0 0 12px; }
+  .doc p.note { max-width:74ch; margin:0 0 10px; }
+  h2.surface { font-family:var(--display); font-weight:400; font-size:34px; color:var(--ink); text-transform:uppercase; margin:72px 0 8px; padding-top:28px; border-top:1px solid var(--hair); }
+  .row { display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap; margin-top:22px; }
+  .cap { font-size:13px; color:var(--ink3); margin:12px 0 0; max-width:330px; }
+  .phone { width:340px; height:664px; overflow:hidden; border-radius:34px; box-shadow:0 0 0 1px var(--hair), 0 0 0 7px #0c0c0e; background:var(--bg); flex:none; position:relative; }
+  .phone > .inner { width:390px; height:762px; transform:scale(.8718); transform-origin:0 0; position:absolute; top:0; left:0; overflow:hidden; }
+  .desk { width:840px; height:525px; overflow:hidden; border-radius:12px; box-shadow:0 0 0 1px var(--hair); flex:none; position:relative; }
+  .desk > .inner { width:1440px; height:900px; transform:scale(.5834); transform-origin:0 0; position:absolute; top:0; left:0; }
+  .wa-bar { height:56px; display:flex; align-items:center; gap:14px; padding:0 16px; background:#1f2c34; color:#e9edef; font:600 15px system-ui,sans-serif; }
+  .wa-bar small { display:block; font-weight:400; font-size:12px; color:#8696a0; }
+
+  /* ================= PASS ================= */
+  .p5 { height:706px; display:grid; grid-template-rows:auto auto 1fr auto; background:var(--bg); }
+  .p5-art { position:relative; height:224px; background:#0A0A0A var(--poster) 50% 26% / cover no-repeat; }
+  .p5-art img { position:absolute; left:20px; top:18px; width:92px; }
+  /* the band, wrapped round the ticket like the real thing */
+  .p5-band { display:block; width:100%; height:18px; object-fit:cover; object-position:0 50%; }
+  .p5-info { padding:22px 24px 0; display:grid; gap:16px; align-content:start; }
+  .p5-name { margin:0; font-family:var(--display); font-weight:400; font-size:40px; line-height:.95; text-transform:uppercase; color:var(--ink); text-wrap:balance; }
+  .p5-who { margin:6px 0 0; font-size:15px; color:var(--ink2); }
+  .p5-line { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:14px; border-top:1px solid var(--hair); }
+  .p5-tier { font-family:var(--display); font-size:22px; line-height:1; text-transform:uppercase; color:var(--c); }
+  .p5-valid { font-size:14px; color:var(--ink); }
+  .p5-zones { display:flex; flex-wrap:wrap; gap:6px 16px; margin:0; padding:0; list-style:none; font-size:14px; color:var(--ink2); }
+  .p5-zones li { display:flex; align-items:center; gap:7px; }
+  .p5-zones i { width:9px; height:9px; border-radius:2px; flex:none; }
+  .p5-qr { display:grid; justify-items:center; gap:10px; padding:0 0 16px; }
+  .qr { width:184px; height:184px; padding:12px; border-radius:16px; background:#F2EFE2; }
+  .qr div { width:100%; height:100%; background:conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0) 0 0/13.3px 13.3px; }
+  .p5-foot { font-family:var(--mono); font-size:12px; color:var(--ink3); }
+
+  /* ================= SIGN-IN ================= */
+  .s5 { height:100%; display:grid; grid-template-columns:1fr 540px; background:var(--bg); }
+  .s5-art { background:#0A0A0A var(--poster) 50% 30% / cover no-repeat; }
+  .s5-panel { display:grid; grid-template-rows:auto 1fr auto; padding:56px 76px 48px; }
+  .s5-panel > img { width:132px; }
+  .s5-body { align-self:center; display:grid; gap:36px; }
+  .s5-h { margin:0; font-family:var(--display); font-weight:400; font-size:80px; line-height:.9; text-transform:uppercase; color:var(--ink); }
+  .s5-sub { margin:12px 0 0; font-size:16px; color:var(--ink2); max-width:32ch; }
+  .s5-form { display:grid; gap:20px; }
+  .s5-field { display:grid; gap:8px; }
+  .s5-field span { font-size:14px; font-weight:500; color:var(--ink2); }
+  .s5-field div { height:54px; border-radius:12px; background:var(--field); }
+  .s5-field div.focus { box-shadow:inset 0 0 0 1.5px var(--grn); }
+  .s5-field .pw { display:flex; justify-content:flex-end; align-items:center; padding-right:16px; font-size:13px; color:var(--ink3); }
+  .s5-btn { height:54px; border-radius:999px; background:var(--grn); color:#0A0A0A; display:grid; place-items:center; font-weight:600; font-size:15px; }
+  .s5-alt { font-size:14px; color:var(--ink2); }
+  .s5-help { font-size:14px; color:var(--ink3); }
+  .s5-help a, .s5-alt a { color:var(--ink); text-decoration:underline; text-decoration-color:rgba(242,239,226,.3); text-underline-offset:3px; }
+  /* phone */
+  .s5m { height:100%; background:#0A0A0A var(--poster) 50% 0 / 118% auto no-repeat; position:relative; }
+  .s5m-sheet { position:absolute; left:0; right:0; bottom:0; top:300px; padding:30px 24px 24px; border-radius:28px 28px 0 0; background:var(--bg); display:grid; align-content:start; gap:28px; }
+  .s5m-sheet .s5-h { font-size:52px; }
+
+  /* ================= FOOTER ================= */
+  .f5 { background:var(--bg); padding:34px 48px 30px; display:grid; gap:22px; border-top:1px solid var(--hair); }
+  .f5-top { display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; }
+  .f5-top img { width:128px; }
+  .f5-when { font-family:var(--display); font-size:26px; text-transform:uppercase; color:var(--ink); letter-spacing:.01em; }
+  .f5-when span { color:var(--ink3); }
+  .f5-bot { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:13.5px; color:var(--ink3); }
+  .f5 a { color:var(--ink); text-decoration:underline; text-decoration-color:rgba(242,239,226,.3); text-underline-offset:3px; }
+  .phone .f5 { padding:28px 22px; }
+  .phone .f5-top, .phone .f5-bot { flex-direction:column; align-items:flex-start; gap:10px; }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Round 5: less</h1>
+  <p class="note">Round 4 stacked ten devices on one screen: glass, gold outline, notches, perforation, drop shadow, band strip, glare, mono labels, rule tags, help line. This round removes most of them. The poster gets its own space instead of hiding behind glass. The band is a thin woven edge, like the real wristband wrapped round the ticket. Labels become plain sentences. One accent colour per screen: the tier on the pass, mint on the sign-in button. Nothing else competes.</p>
+</header>
+
+<h2 class="surface">The pass</h2>
+<p class="note">Art, band, who you are, where you can go, the code. Organisation and role read as a sentence. Zones are one quiet line with the zone-map colour as a small square; rules are words ("with ID", "after 10 PM"), not badges. Help lives in the WhatsApp chat the pass came from, so it isn't repeated here. Fits one screen inside WhatsApp, busiest case included.</p>
+<div class="row">
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="p5" style="--c:#A64DFF">
+      <div class="p5-art"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"></div>
+      <img class="p5-band" src="../../public/assets/bands/crew.webp" alt="Crew wristband">
+      <div class="p5-info">
+        <div><h1 class="p5-name">Meera Kulkarni</h1><p class="p5-who">Chakra Sound &amp; Light, rigger</p></div>
+        <div class="p5-line"><span class="p5-tier">Crew</span><span class="p5-valid">Show day, 10 October</span></div>
+        <ul class="p5-zones"><li><i style="background:#22B35A"></i>Festival area</li><li><i style="background:#F2C21C"></i>Photo pit</li></ul>
+      </div>
+      <div class="p5-qr"><div class="qr"><div></div></div><span class="p5-foot">BOA26-0412 &nbsp; Bring photo ID</span></div>
+    </div>
+  </div></div><p class="cap">Crew</p></div>
+
+  <div><div class="phone"><div class="inner">
+    <div class="wa-bar"><span>✕</span><div>Your pass<small>accred.bangaloreopenair.com</small></div></div>
+    <div class="p5" style="--c:#4371FF">
+      <div class="p5-art"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"></div>
+      <img class="p5-band" src="../../public/assets/bands/promoters_lounge.webp" alt="Promoters Lounge wristband">
+      <div class="p5-info">
+        <div><h1 class="p5-name">Rohan Menezes</h1><p class="p5-who">Skyline Live, promoter</p></div>
+        <div class="p5-line"><span class="p5-tier">Promoters lounge</span><span class="p5-valid">Show day, 10 October</span></div>
+        <ul class="p5-zones"><li><i style="background:#22B35A"></i>Festival area</li><li><i style="background:#2F5BE0"></i>Promoters lounge, with ID</li><li><i style="background:#8A3FE0"></i>Backstage after 10 PM, with ID</li></ul>
+      </div>
+      <div class="p5-qr"><div class="qr"><div></div></div><span class="p5-foot">BOA26-0877 &nbsp; Bring photo ID</span></div>
+    </div>
+  </div></div><p class="cap">Promoters Lounge, the busiest case: three zones and two rules.</p></div>
+</div>
+
+<h2 class="surface">Sign-in</h2>
+<p class="note">The poster, untouched, and a quiet form. Sentence-case labels, filled fields instead of outlines, one button, one link. The show date and the "staff only" labels are gone; the one sentence says who this is for.</p>
+<div class="row">
+  <div class="desk"><div class="inner"><div class="s5">
+    <div class="s5-art" role="img" aria-label="Bangalore Open Air 2026 poster"></div>
+    <div class="s5-panel">
+      <img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air">
+      <div class="s5-body">
+        <div><h1 class="s5-h">Sign in</h1><p class="s5-sub">For accreditation staff. Crew passes arrive on WhatsApp.</p></div>
+        <div class="s5-form">
+          <label class="s5-field"><span>Email</span><div class="focus"></div></label>
+          <label class="s5-field"><span>Password</span><div class="pw">Show</div></label>
+          <div class="s5-btn">Sign in</div>
+          <span class="s5-alt"><a href="#">Forgot your password?</a></span>
+        </div>
+      </div>
+      <span class="s5-help">Can't get in? <a href="#">Message the accreditation desk</a></span>
+    </div>
+  </div></div></div>
+
+  <div><div class="phone"><div class="inner"><div class="s5m"><div class="s5m-sheet">
+    <div><h1 class="s5-h">Gate sign in</h1><p class="s5-sub">Sign in while you have signal. The gate keeps working offline after that.</p></div>
+    <div class="s5-form">
+      <label class="s5-field"><span>Email</span><div></div></label>
+      <label class="s5-field"><span>Password</span><div class="pw">Show</div></label>
+      <div class="s5-btn">Sign in</div>
+      <span class="s5-alt"><a href="#">Forgot your password?</a></span>
+    </div>
+  </div></div></div></div><p class="cap">Phone: the logo is already on the poster, so the sheet doesn't repeat it.</p></div>
+</div>
+
+<h2 class="surface">Footer</h2>
+<p class="note">Two lines. The logo and the date on one; help and the data promise on the other. On the gate the right side of the second line becomes the sync status.</p>
+<div class="row">
+  <div style="width:840px"><div class="f5">
+    <div class="f5-top"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><div class="f5-when">Show 10 October 2026 <span>Build from 5 October</span></div></div>
+    <div class="f5-bot"><span>Need help? <a href="#">Message the accreditation desk</a></span><span>We keep your name, phone, role and vehicle number. Nothing else.</span></div>
+  </div></div>
+  <div><div class="phone" style="height:300px"><div class="inner"><div class="f5">
+    <div class="f5-top"><img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air"><div class="f5-when">Show 10 October 2026</div></div>
+    <div class="f5-bot"><span>Need help? <a href="#">Message the accreditation desk</a></span><span>We keep your name, phone, role and vehicle number. Nothing else.</span></div>
+  </div></div></div></div>
+</div>
+</div>
+</body>
+</html>
