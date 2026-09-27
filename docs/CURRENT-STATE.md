@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 24 September 2026 (Phase R pushed and deployed)._
+_Last updated: 27 September 2026 (ACC-151 Meta console session; see WHATSAPP.md)._
 
 ## Replan, 22 Sep 2026 — read this before the rest
 
@@ -29,6 +29,24 @@ Phase R (ACC-140–147).
   fallback); **no quotas** for now. Vipin owes the Meta setup (ACC-151: number,
   approved template, system-user token into Vercel env). ACC-140e (form close
   date) is TBD and not blocking.
+- **ACC-151 part-done, 27 Sep 2026 — see docs/WHATSAPP.md, last section.**
+  Verified in the Meta console: the portfolio had **no app at all**, so the
+  app **"BOA Accreditation"** was created and the WhatsApp + Webhooks products
+  added. **BOA already sends WhatsApp through Haptik**: the Activity log shows
+  Salman added `+1 555 489 9720` on 25 Aug 2026 and Haptik registered it on
+  Cloud API, with live templates and 23 messages delivered in the last 7 days.
+  The sender is that number (Vipin, 27 Sep). A second `+91` number sits on a
+  **different WABA that Vipin cannot open** — so the phone-number and WABA IDs
+  must be taken as a matched pair from API Setup. **A test send on 27 Sep could not run:** Meta
+  disables **Send message** with *"Missing payment method … to send
+  business-initiated messages using a production phone number. You can respond
+  to the first 1,000 user-initiated conversations each month for free."* So
+  **billing is the blocker**, the 612-person roster **would fit inside Meta's
+  free tier if the flow were inverted to reply-on-contact** (ADR-level change,
+  not decided), and it remains **unverified** whether our app can send from a
+  number Haptik registered. Also outstanding: app in Development mode, no
+  WhatsApp-capable system user, no template submitted, no webhook. **No agent has seen or handled any token, secret
+  or ID.**
 - **Up to 10 issuers, not device tokens (ADR-020).** Each logs in with their own
   invite and password; an `issuer` role is to be added (ACC-150). Offline double
   issues are caught after sync, not prevented (ACC-148, ACC-149). Not built yet.

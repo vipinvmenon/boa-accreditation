@@ -98,6 +98,10 @@ keyed with the app secret). The route rejects a missing or wrong signature with
 
 ## Setup checklist for Vipin (ACC-151)
 
+If the Meta business portfolio is not yours to administer, the access
+handover comes first: **docs/WHATSAPP-ACCESS.md** is the short guide to
+hand to whoever owns it.
+
 1. Register the sending phone number on BOA's WhatsApp Business Account
    (Meta Business Manager → WhatsApp Accounts). Note its **Phone number ID**
    and the **WABA ID**.
@@ -148,12 +152,117 @@ Not verified:
 - The Graph API error object's shape was not re-read from a Meta page (the
   reference page shows no error example); it is parsed leniently.
 - The template wording has not been submitted to or approved by Meta.
-- **`/p/<token>` does not exist yet** (docs/ARCHITECTURE.md lists it, no route
-  is built). Until it ships, the template's button and the one-tap link open a
-  404. Build it before the first real send.
+- ~~**`/p/<token>` does not exist yet.**~~ **Stale — corrected 27 Sep 2026.**
+  `app/p/[passToken]/` (page, screen, not-found) is built and committed; the
+  template's button target resolves. The route has still not been opened with a
+  real token end-to-end from a delivered message.
 - The `/desk/passes` send controls have not been checked with `test:visual` or
   in a browser session. The visual harness (`scripts/visual-check.mjs`) stubs
   `/api/desk/passes` but not `/api/desk/passes/send`, so under it the page
   renders with no send state; the header button's label also changed from the
   design's "Send on WhatsApp" to "Send all unsent". Both are additions to the
   design contract (DESIGN-SYSTEM.md) that Vipin asked for in ACC-144.
+
+## What the Meta side actually looks like (27 Sep 2026, verified in the console)
+
+Observed directly in Meta Business Suite and the app dashboard by a browser
+session driven by an agent, with Vipin present. **No IDs, tokens or secrets are
+recorded here** — ACC-151 stands: they are read from the API Setup page and
+typed into Vercel by Vipin, never pasted into chat or committed.
+
+Done in this session:
+
+- The Meta app **"BOA Accreditation"** was created (type **Business**, contact
+  `vipinmenon006@gmail.com`) and attached to the **Bangalore Open Air** business
+  portfolio. The **WhatsApp** and **Webhooks** products are added; the WhatsApp
+  *Quickstart / API Setup / Configuration* pages are live. Before this, the
+  portfolio had **no apps at all** — which is why `WHATSAPP_APP_SECRET` and the
+  webhook had no possible value.
+- Vipin has **Full access / Everything** on the portfolio, and two-factor
+  authentication is now on (Meta blocks business access without it, per browser).
+
+Facts that change the plan:
+
+- **Two senders exist, on two different WhatsApp Business Accounts:**
+  `+1 555 489 9720` and `+91 99727 69682`.
+  **Corrected 27 Sep 2026:** an earlier version of this section called the `+1`
+  number one of Meta's *test* numbers and said it could only reach a handful of
+  allow-listed recipients. **That was wrong.** WhatsApp Manager's Activity log
+  shows **Salman Syed added it on 25 Aug 2026**, requested name verification and
+  installed an app, and **Haptik registered it on Cloud API** the same minute.
+  It carries an approved display name, a full BOA business profile, and live
+  templates created by Haptik (`update_regarding_case`,
+  `informative_artist_features`, `boa_buy_tickets_`). It is BOA's real sender.
+  The two numbers' WABA IDs differ, so `WHATSAPP_PHONE_NUMBER_ID` and
+  `WHATSAPP_WABA_ID` must be copied as a **matched pair** from API Setup for
+  whichever number is used — one from each fails every send.
+- **That account is in active use.** Insights → Message pricing, last 7 days
+  (read 27 Sep 2026): 16 sent, 23 delivered, 19 received; **7 paid
+  "marketing-lite" messages delivered**, 16 free service messages; approximate
+  total charges **₹0.00**. The crew-pass send will share this number with BOA's
+  ticket marketing.
+- **Decided by Vipin, 27 Sep 2026: the sender is `+1 555 489 9720`.** The agent
+  twice argued against it on the mistaken test-number belief; the Activity log
+  disproved that and the decision stands. The template, the env-var pair and the
+  webhook all belong to that number's WABA.
+  **Still open:** whether the new `BOA Accreditation` app can send from a number
+  Haptik registered under its own app. A test send on 27 Sep **could not run** —
+  Meta disables **Send message** before it gets that far (see the payment note
+  below), so the question is untouched, not answered.
+- **Vipin cannot open the other WABA.** WhatsApp Manager returns *"You do not
+  have access to the WhatsApp Business Account …"* for the one holding the `+91`
+  number, though that number does appear in API Setup's From picker.
+- **Two BSPs hold partner access.** **Haptik** has *Full access* to **both**
+  Bangalore Open Air WhatsApp accounts; **AiSensy** is also a partner with 2
+  assets. BOA still **owns** the WABAs. A phone number can only be registered to
+  one app at a time, so pointing this app's Cloud API at a number that is live on
+  a BSP's app means taking it off theirs. **Resolved 27 Sep 2026 for Haptik:** BOA *is*
+  sending through Haptik on the `+1` number (see the Activity log and Insights
+  above). AiSensy's role is still unknown. No new number needs registering.
+- **No payment method — and it blocks the send.** A test send was attempted on
+  27 Sep 2026 with From set to `+1 555 489 9720` and a real `+91` recipient.
+  **Send message is disabled**, with Meta's tooltip:
+  > Missing payment method. Add a valid payment method to send business-initiated
+  > messages using a **production phone number**. You can respond to the first
+  > **1,000 user-initiated conversations each month for free**.
+
+  Two things follow. First, Meta itself calls that number a *production* number,
+  which is the last word on the test-number error corrected above. Second,
+  **the free allowance is 1,000 user-initiated conversations a month** — more
+  than the 612-person roster. That is only reachable if the crew member messages
+  BOA **first** and the app replies inside the 24-hour window; the pass push
+  ACC-144 built is business-initiated and therefore chargeable. Inverting the
+  flow to reply-on-contact (the one-tap `wa.me` links already exist) would cost
+  nothing per message but is an **ADR-level change, not a setting** — it has not
+  been designed, costed or decided.
+
+- **What Salman says (27 Sep 2026, reported by Vipin from WhatsApp — not
+  verified by an agent):** BOA pays **₹4,000 per month**, and Salman knows the
+  vendor as **Interakt**, which is Haptik's product; he did not recognise the
+  name "Haptik". So the BSP subscription is live and billed monthly.
+- **The credit lines differ per WABA.** The Summary tab of one Bangalore Open
+  Air WhatsApp account shows a credit line from **Jio Haptik Technologies
+  Limited**; a second, in a screenshot Salman sent, shows one from **AISENSY
+  COMMUNICATIONS PRIVATE LIMITED**. Both BSPs are billing something. That is why
+  Meta can say "missing payment method for 3 of your accounts" while credit
+  lines exist: the line is attached per WABA, and the one our app targets does
+  not appear to have a usable one.
+
+  **Before anyone adds a card**, the question for Interakt/AiSensy support is
+  narrow: *can the existing credit line on the WABA holding `+1 555 489 9720`
+  cover Cloud API messages sent from BOA's own Meta app, or does that WABA need
+  its own payment method?* The ₹4,000/month is a platform subscription, not
+  Meta's per-message charge — the two are separate. Vipin's to resolve; an agent
+  does not enter payment details.
+- **The app is in Development mode.** It must be switched to **Live** before any
+  real send to the roster.
+- The WABA's **time zone is Europe/Vienna** and its currency INR. Cosmetic for
+  sending, wrong for reporting — worth correcting.
+- The API Setup page reports *"You have alerts that need review"* in WhatsApp
+  Manager. **Not opened; contents unknown.**
+
+Still outstanding, all Vipin's and none of them started: payment method, the
+permanent **System User** token (no WhatsApp-capable system user exists — the
+only one is a `Conversions API System User`, Employee role, no assets), the
+**App secret**, the Vercel env vars, the `boa_crew_pass` template submission,
+and the webhook registration.
