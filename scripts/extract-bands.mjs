@@ -98,6 +98,9 @@ if (existsSync(POSTER)) {
   const out = join(root, 'public/assets/pass-poster.webp')
   await sharp(POSTER).resize({ width: 900 }).webp({ quality: 68 }).toFile(out)
   console.log('pass-poster        900w webp')
+  // The sign-in page's poster panel (ACC-176) is ~900px wide on a laptop at 2x.
+  await sharp(POSTER).resize({ width: 1600 }).webp({ quality: 72 }).toFile(join(root, 'public/assets/login-poster.webp'))
+  console.log('login-poster       1600w webp')
 } else {
   throw new Error('public/assets/boa-poster.png missing — run scripts/extract-assets.mjs first')
 }

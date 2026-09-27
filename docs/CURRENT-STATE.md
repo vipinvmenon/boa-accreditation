@@ -88,6 +88,10 @@ Phase R (ACC-140–147).
   with the Send/Resend/One-tap row kept under each. Seen only through a
   mocked Playwright render (no desk login exists locally); `test:visual`
   for Passes not re-run (needs ACC-090a).
+- **Sign-in redesigned, 28 Sep 2026 (ACC-176, ADR-026, round 4).** Poster
+  beside a solid form panel; a sheet over the poster on phones; inline errors
+  only. Verified in a browser at 1440 and 390 (desk and gate variants) and by
+  `test:e2e` 56/56. The help line is plain text until ACC-173.
 
 
 ## In one line

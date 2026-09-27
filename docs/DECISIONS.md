@@ -1038,3 +1038,35 @@ sending is configured and the role may send; resend asks first), and
 pre-written). **This diverges from the v2 pass-sheet contract** — Passes is
 a `test:visual` screen, so its reference numbers will move when that suite
 can next run (it needs ACC-090a's operator).
+
+## ADR-026 — Sign-in: the poster, and a quiet form beside it
+
+**Accepted 28 Sep 2026, on Vipin's instruction** (round 4 of
+`design/proposals/`, the UX audit's UX-06 to UX-11). `/desk/login` is not a
+design-contract screen (no `test:visual` reference), so this changes no gate.
+
+- **Desktop:** the festival poster fills the page left of a 560px solid
+  panel. Nothing is written on the poster. The panel holds the logo, one
+  heading, one sentence saying who the page is for, the form, and a help line.
+- **Phone:** the poster fills the top of the screen and the form is a sheet
+  rising over its lower half, so the figure's face stays in view.
+- **Headings:** "Sign in" (desk), "Gate sign in" (arriving from `/gate`),
+  "Set your password" (invite), "Choose a new password" (recovery — it used
+  to tell a recovering user "this is your first sign-in"), "Reset your
+  password" (forgot).
+- **Behaviour:** the forms are `noValidate`; every message, including an
+  empty submit, arrives in the same inline `role="alert"` line instead of a
+  browser tooltip. The "minimum 8 characters" hint shows only when setting a
+  password. The pill tag and "Accred / desk" micro-wordmark are gone.
+- **Help line** is plain text until ACC-173 gives the desk a number; no dead
+  link.
+- **Assets:** `login-poster.webp` (1600w) and `pass-poster.webp` (900w) are
+  derived at build time by `scripts/extract-bands.mjs` from the poster PNG.
+- **Motion:** the poster settles and the panel lifts in once; both are off
+  under reduced motion.
+
+Still dark by default like every page: the theme toggle is not persisted
+anywhere yet, so the audit's UX-10 (login ignores the gate's theme) was about
+the whole app, not this page.
+
+Roadmap: ACC-176. The footer is ACC-176b.

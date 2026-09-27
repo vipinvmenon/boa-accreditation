@@ -131,8 +131,15 @@ test('gate sign-in explains and can reveal the password', async ({ page }) => {
 
   const password = page.getByLabel('Password')
   await expect(password).toBeVisible()
-  await expect(page.getByText('Minimum 8 characters.')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Check-in sign in' })).toBeVisible()
+  // ACC-176: the sentence under the heading is what explains the gate sign-in;
+  // the "minimum 8" hint belongs to setting a password, not signing in.
+  await expect(page.getByText('Sign in while you have signal. The gate keeps working offline after that.')).toBeVisible()
+  await expect(page.getByText('Minimum 8 characters.')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Gate sign in' })).toBeVisible()
+
+  // noValidate: an empty submit gets the page's own inline error, not a browser tooltip.
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.locator('form').getByRole('alert')).toHaveText('Enter your email and password.')
 
   await page.getByRole('button', { name: 'Show password' }).click()
   await expect(password).toHaveAttribute('type', 'text')

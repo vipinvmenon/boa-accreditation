@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useId, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { destinationAfterLogin } from '@/lib/safe-next'
@@ -10,9 +10,17 @@ import { Skeleton } from '@/components/states/skeleton'
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
  * login screen — the 7 screens in scripts/visual-check.mjs's SCREENS are the
- * whole contract) — so this is a minimal, on-brand page using the design's
- * own tokens (lib/design.ts / app/globals.css), not a transcription. Not
- * gated by test:visual for the same reason.
+ * whole contract) — so this page is built from the design's own primitives
+ * (tokens, `.h1`, `.btn.go`, `.linkbtn`, `.utility-input`), not transcribed.
+ * Not gated by test:visual for the same reason.
+ *
+ * ACC-176 (ADR-026; round 4 of design/proposals, chosen by Vipin 28 Sep):
+ * the festival poster is the page and nothing is written on it; the form
+ * sits on a solid panel to its right (on a phone, a sheet rising over the
+ * poster's lower half, so the figure's face stays in view). One heading, one
+ * sentence saying who this is for, the form, and a help line. It replaced a
+ * floating card with a pill tag and a micro-wordmark that read as a generic
+ * admin template — the audit's UX-06/UX-07.
  *
  * Two flows, one page, per docs/ARCHITECTURE.md ("Supabase email + password"):
  *
@@ -66,6 +74,9 @@ function DeskLoginForm() {
   // ACC-150: the gate sends an unauthenticated issuer here with ?next=/gate.
   const next = searchParams.get('next')
   const linkError = searchParams.get('error') === 'invalid_link'
+  const forGate = next?.startsWith('/gate') ?? false
+  const emailId = useId()
+  const passwordId = useId()
 
   const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in' | 'forgot-password'>('checking')
   const [email, setEmail] = useState('')
@@ -154,6 +165,12 @@ function DeskLoginForm() {
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    // The forms are noValidate: every message, including "you left it
+    // blank", arrives in the same role="alert" line, not a browser tooltip.
+    if (!email.trim() || !password) {
+      setError('Enter your email and password.')
+      return
+    }
     setBusy(true)
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -198,6 +215,10 @@ function DeskLoginForm() {
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!email.trim()) {
+      setError('Enter the email you were invited with.')
+      return
+    }
     setBusy(true)
     try {
       // Deliberately does not distinguish "no such account" from "sent" — the
@@ -219,57 +240,71 @@ function DeskLoginForm() {
     }
   }
 
+  const heading =
+    mode === 'set-password'
+      ? flow === 'recovery' ? 'Choose a new password' : 'Set your password'
+      : mode === 'forgot-password'
+        ? 'Reset your password'
+        : forGate
+          ? 'Gate sign in'
+          : 'Sign in'
+
   return (
-    <main className="utility-auth">
-      <div className="utility-inner">
+    <main className="auth">
+      <div className="auth-art" role="img" aria-label="The Bangalore Open Air 2026 poster" />
+      <section className="auth-panel">
+        <img className="auth-logo" src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+        <div className="auth-inner">
         {!error && (
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusAnnouncement}</div>
         )}
-        <div className="auth-brand">
-          <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
-          <span>Accred<br />desk</span>
-        </div>
-        <div className="tag">BOA accreditation</div>
-        <h1 className="h1">
-          {mode === 'set-password' ? 'Set your password' : mode === 'forgot-password' ? 'Reset your password' : next?.startsWith('/gate') ? <><span style={{ whiteSpace: 'nowrap' }}>Check-in</span> sign in</> : 'Desk sign in'}
-        </h1>
+        <h1 className="h1">{heading}</h1>
+        {(mode === 'sign-in' || mode === 'checking' || mode === 'redirecting') && (
+          <p className="auth-lede">
+            {forGate
+              ? 'Sign in while you have signal. The gate keeps working offline after that.'
+              : 'Staff access to BOA accreditation. Crew and partners don\u2019t sign in here. Your pass comes to you on WhatsApp.'}
+          </p>
+        )}
 
         {(mode === 'checking' || mode === 'redirecting') && <LoginFormSkeleton />}
 
         {mode === 'sign-in' && (
-          <form onSubmit={handleSignIn} className="utility-form">
-            <label className="utility-label">
-              <span>Email</span>
+          <form onSubmit={handleSignIn} className="utility-form" noValidate>
+            <div className="utility-label">
+              <label htmlFor={emailId}><span>Email</span></label>
               <input
+                id={emailId}
                 type="email"
-                required
                 autoComplete="username"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="utility-input"
               />
-            </label>
-            <label className="utility-label">
-              <span>Password</span>
+            </div>
+            <div className="utility-label">
+              <div className="auth-field-head">
+                <label htmlFor={passwordId}><span>Password</span></label>
+                <button
+                  type="button"
+                  className="linkbtn hov-text-grn auth-reveal"
+                  aria-pressed={showPassword}
+                  aria-controls={passwordId}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                >
+                  {showPassword ? 'Hide password' : 'Show password'}
+                </button>
+              </div>
               <input
+                id={passwordId}
                 type={showPassword ? 'text' : 'password'}
-                required
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="utility-input"
               />
-              <small className="utility-hint">Minimum 8 characters.</small>
-              <button
-                type="button"
-                className="linkbtn hov-text-grn"
-                aria-pressed={showPassword}
-                onClick={() => setShowPassword((visible) => !visible)}
-                style={{ minHeight: '44px', justifySelf: 'start' }}
-              >
-                {showPassword ? 'Hide password' : 'Show password'}
-              </button>
-            </label>
+            </div>
             {error && <p role="alert" className="utility-error">{error}</p>}
             <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
               {busy ? 'Signing in…' : 'Sign in'}
@@ -282,7 +317,7 @@ function DeskLoginForm() {
                 setMode('forgot-password')
               }}
               className="linkbtn hov-text-grn"
-              style={{ minHeight: '44px' }}
+              style={{ minHeight: '44px', justifySelf: 'start' }}
             >
               Forgot password?
             </button>
@@ -290,7 +325,7 @@ function DeskLoginForm() {
         )}
 
         {mode === 'forgot-password' && (
-          <form onSubmit={(e) => void handleForgotPassword(e)} className="utility-form">
+          <form onSubmit={(e) => void handleForgotPassword(e)} className="utility-form" noValidate>
             {resetSent ? (
               <p className="lede">
                 If that email has desk access, a reset link is on its way. Check your inbox.
@@ -304,8 +339,7 @@ function DeskLoginForm() {
                   <span>Email</span>
                   <input
                     type="email"
-                    required
-                    autoComplete="username"
+                        autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="utility-input"
@@ -324,7 +358,7 @@ function DeskLoginForm() {
                 setMode('sign-in')
               }}
               className="linkbtn hov-text-grn"
-              style={{ minHeight: '44px' }}
+              style={{ minHeight: '44px', justifySelf: 'start' }}
             >
               Back to sign in
             </button>
@@ -332,26 +366,27 @@ function DeskLoginForm() {
         )}
 
         {mode === 'set-password' && (
-          <form onSubmit={handleSetPassword} className="utility-form">
+          <form onSubmit={handleSetPassword} className="utility-form" noValidate>
             <p className="utility-copy">
-              This is your first sign-in. Choose a password for future visits.
+              {flow === 'recovery'
+                ? 'Choose a new password for your desk account.'
+                : 'This is your first sign-in. Choose a password for future visits.'}
             </p>
             <label className="utility-label">
               <span>New password</span>
               <input
                 type="password"
-                required
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="utility-input"
               />
+              <small className="utility-hint">Minimum 8 characters.</small>
             </label>
             <label className="utility-label">
               <span>Confirm password</span>
               <input
                 type="password"
-                required
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -364,7 +399,13 @@ function DeskLoginForm() {
             </button>
           </form>
         )}
-      </div>
+        </div>
+        {/* ACC-173 decides the desk's help number; until then this is plain text, not a dead link. */}
+        <p className="auth-info">
+          <span>Trouble signing in? Ask the accreditation desk.</span>
+          <span>Bangalore Open Air, 10 October 2026</span>
+        </p>
+      </section>
     </main>
   )
 }
