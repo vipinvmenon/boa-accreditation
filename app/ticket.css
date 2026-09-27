@@ -1,0 +1,122 @@
+/*
+ * ACC-174 (ADR-025, round 6) — the pass ticket, components/pass-ticket.tsx.
+ *
+ * The ticket carries its OWN palette, not the theme's: it is always dark, so
+ * on the light desk theme --ink would turn its text dark on a dark ticket.
+ * Colours are rgba() so the design-token gate (no raw hex outside the
+ * allowed files) holds; they are the dark theme's ink values.
+ */
+.tk {
+  --tk-ink: rgba(242, 239, 226, 1);
+  --tk-ink2: rgba(242, 239, 226, .74);
+  --tk-ink3: rgba(242, 239, 226, .56);
+  --tk-hair: rgba(242, 239, 226, .1);
+  --tk-gold: rgba(227, 187, 114, .26);
+  --tk-surface: rgba(12, 12, 14, .72);
+  width: min(420px, 100%);
+  color: var(--tk-ink);
+  filter: drop-shadow(0 24px 34px rgba(0, 0, 0, .55));
+}
+.tk--sheet { --tk-surface: rgba(17, 17, 19, 1); filter: none; }
+
+.tk-top, .tk-stub {
+  position: relative;
+  overflow: hidden;
+  background: var(--tk-surface);
+  box-shadow: inset 0 0 0 1px var(--tk-gold);
+}
+.tk--live .tk-top, .tk--live .tk-stub {
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+}
+/* Notches: two half-circles bitten out of each side at the tear line. */
+.tk-top {
+  border-radius: 22px 22px 0 0;
+  -webkit-mask: radial-gradient(circle 12px at 0 100%, transparent 97%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 100%, transparent 97%, black) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 12px at 0 100%, transparent 97%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 100%, transparent 97%, black) right / 51% 100% no-repeat;
+}
+.tk-stub {
+  border-radius: 0 0 22px 22px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 16px 20px 14px;
+  -webkit-mask: radial-gradient(circle 12px at 0 0, transparent 97%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 0, transparent 97%, black) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 12px at 0 0, transparent 97%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 0, transparent 97%, black) right / 51% 100% no-repeat;
+}
+.tk-band {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 12 / 1;
+  object-fit: cover;
+  object-position: left center;
+  opacity: .62;
+  filter: saturate(.85);
+  border-bottom: 1px solid rgba(227, 187, 114, .4);
+}
+.tk-body { display: grid; gap: 16px; padding: 20px 22px; }
+.tk-name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 38px;
+  line-height: .95;
+  text-transform: uppercase;
+  color: var(--tk-ink);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.tk--sheet .tk-name { font-size: 32px; }
+.tk-who { margin: 6px 0 0; font-size: 15px; color: var(--tk-ink2); }
+.tk-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--tk-hair);
+}
+.tk-tier { font-family: var(--display); font-size: 24px; line-height: 1; text-transform: uppercase; color: var(--c); }
+.tk-valid { font-size: 14px; color: var(--tk-ink); }
+.tk-zones { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
+.tk-zones li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tk-ink); }
+.tk-zones i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.tk-vehicle { margin: 0; font-size: 14px; color: var(--tk-ink2); }
+.tk-vehicle b { font-family: var(--mono); font-weight: 700; color: var(--tk-ink); letter-spacing: .04em; }
+.tk-perf { margin: 0 20px; border-top: 2px dashed rgba(227, 187, 114, .32); position: relative; top: -1px; }
+.tk-qr { padding: 13px; border-radius: 14px; background: rgba(242, 239, 226, 1); }
+.tk-qr svg { display: block; width: min(200px, 52vw); height: min(200px, 52vw); }
+.tk--sheet .tk-qr svg { width: 160px; height: 160px; }
+.tk-fine { margin: 0; font-size: 13px; color: var(--tk-ink2); text-align: center; }
+.tk-ref { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--tk-ink3); }
+
+/* The light sweep that marks a live pass (React Bits GlareHover, adapted to
+   run on its own: phones have no hover). A screenshot cannot reproduce it. */
+.tk-glare::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 44%, rgba(255, 255, 255, .1) 50%, transparent 56%);
+  transform: translateX(-60%);
+  animation: tk-sweep 4.5s cubic-bezier(.6, 0, .3, 1) infinite;
+}
+@keyframes tk-sweep { 0%, 55% { transform: translateX(-60%); } 100% { transform: translateX(60%); } }
+@media (prefers-reduced-motion: reduce) { .tk-glare::after { animation: none; opacity: 0; } }
+
+/* Paper: ink on white, band and QR kept, one ticket per page (the desk sheet
+   decides the page breaks). */
+@media print {
+  .tk { --tk-ink: rgba(10, 10, 10, 1); --tk-ink2: rgba(10, 10, 10, .75); --tk-ink3: rgba(10, 10, 10, .6);
+    --tk-hair: rgba(10, 10, 10, .15); --tk-surface: rgba(255, 255, 255, 1); filter: none; width: 100%; max-width: 150mm; }
+  .tk-band { opacity: 1; filter: none; }
+  .tk-qr { background: rgba(255, 255, 255, 1); }
+  .tk-qr svg, .tk--sheet .tk-qr svg { width: 45mm; height: 45mm; }
+}

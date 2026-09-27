@@ -1026,3 +1026,15 @@ layout above:
   one pass, one band."
 - A slow light sweep (React Bits' GlareHover, adapted to run without hover,
   hand-written CSS, no dependency) marks a live pass; off under reduced motion.
+
+### Amended 28 Sep 2026 — the desk pass sheet uses the same ticket
+
+`/desk/passes` now renders `components/pass-ticket.tsx` (variant `sheet`:
+solid, no light sweep, dark in either desk theme, white on paper) so the
+holder's pass and the desk's copy cannot drift. The WhatsApp row under each
+ticket is unchanged: status, **Send/Resend** (Interakt; shown only when
+sending is configured and the role may send; resend asks first), and
+**One-tap** (the `wa.me` fallback that opens WhatsApp with the message
+pre-written). **This diverges from the v2 pass-sheet contract** — Passes is
+a `test:visual` screen, so its reference numbers will move when that suite
+can next run (it needs ACC-090a's operator).

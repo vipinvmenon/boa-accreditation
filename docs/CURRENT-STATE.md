@@ -84,6 +84,10 @@ Phase R (ACC-140–147).
   on live Stage and AAA passes and at 1440; `test:e2e` 56/56. **Not yet seen
   inside the real WhatsApp in-app browser or on a phone outdoors.** Sign-in,
   footer and the WhatsApp image header are still proposals, not built.
+  **Same day:** `/desk/passes` uses the same ticket (shared component),
+  with the Send/Resend/One-tap row kept under each. Seen only through a
+  mocked Playwright render (no desk login exists locally); `test:visual`
+  for Passes not re-run (needs ACC-090a).
 
 
 ## In one line

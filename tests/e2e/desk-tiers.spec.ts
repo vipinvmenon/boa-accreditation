@@ -78,7 +78,7 @@ test.describe('desk tiers (ACC-115)', () => {
     await expect(page.locator('.mrow .band')).toHaveText("Eddie's Lounge")
   })
 
-  test('printed pass: tier, band colour name, and the six-zone strip with its qualifiers', async ({ page }) => {
+  test('printed pass: the shared ticket, its band, and only the zones it enters (ADR-025)', async ({ page }) => {
     await installChrome(page)
     const passes = passesResponseSchema.parse({
       passes: [{
@@ -89,12 +89,13 @@ test.describe('desk tiers (ACC-115)', () => {
     })
     await page.route('**/api/desk/passes', (route: Route) => route.fulfill({ json: passes }))
     await page.goto('/desk/passes')
-    const pass = page.locator('article.pass')
-    await expect(pass.locator('.bandbox b')).toHaveText('Promoters Lounge')
-    await expect(pass.locator('.bandbox small')).toHaveText('Royal blue band')
-    await expect(pass.locator('.zones span')).toHaveText([
-      'Festival Area', "Eddie's Lounge", 'Promoters Lounge + ID', 'Photo Pit', 'Backstage + ID after 22:00', 'Main Stage',
+    const pass = page.locator('article.pass-item')
+    await expect(pass.locator('.tk-tier')).toHaveText('Promoters Lounge')
+    await expect(pass.getByRole('img', { name: 'Promoters Lounge wristband' })).toHaveAttribute('src', '/assets/bands/promoters_lounge.webp')
+    // Round 6 (Vipin, 28 Sep): held zones only, no ID or time qualifiers on the pass.
+    await expect(pass.getByRole('list', { name: 'Zones this pass enters' }).getByRole('listitem')).toHaveText([
+      'Festival Area', 'Promoters Lounge', 'Backstage',
     ])
-    await expect(pass.locator('.zones span.off')).toHaveText(["Eddie's Lounge", 'Photo Pit', 'Main Stage'])
+    await expect(pass.getByText(/\+ ID|after 22:00/)).toHaveCount(0)
   })
 })

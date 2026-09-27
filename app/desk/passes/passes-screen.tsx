@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
-import { tier, tierColour } from '@/lib/design'
-import { zoneChips } from '@/lib/desk-tiers'
-import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
+import { PassTicket } from '@/components/pass-ticket'
 import { PassesSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
 import { copyForError } from '@/lib/error-copy'
@@ -56,13 +54,8 @@ const SEND_ERROR_OVERRIDES = {
   not_authenticated: 'Your session has ended. Log in again.',
 }
 
-function dayCopy(dayValidity: Pass['dayValidity']): string {
-  return dayValidity === 'build_show' ? 'build and show' : dayValidity === 'build' ? 'build day' : 'show day'
-}
-
 export function PassesScreen() {
   const router = useRouter()
-  const theme = useDomTheme()
   const [passes, setPasses] = useState<RenderedPass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -284,35 +277,11 @@ export function PassesScreen() {
           <EmptyState className="passes-state" message="No approved passes yet. They will appear here once people are approved." />
         )}
         {passes.map((pass, i) => {
-          const type = tier(pass.typeCode)
-          const zones = zoneChips(pass.typeCode)
           const send = sendByPerson.get(pass.id)
           const status = STATUS_COPY[send?.last?.status ?? 'none'] ?? { label: 'Not sent', tone: 'mute' as const }
           return (
-            <article className="pass bz rv" key={pass.id} style={{ '--c': tierColour(type.code, theme), '--d': i % 3 } as React.CSSProperties}>
-              <div className="pl">
-                <div className="ph">
-                  <img src="/assets/boa-logo.png" alt="BOA" />
-                  <span className="mono">{pass.passRef}</span>
-                </div>
-                <div className="who">
-                  <div className="nm">{pass.fullName}</div>
-                  <div className="sub" style={{ marginTop: '8px' }}>{pass.orgName}<br />{pass.role}, {dayCopy(pass.dayValidity)}</div>
-                </div>
-                <div className="bandbox">
-                  <b>{type.label}</b>
-                  <small>{type.band} band</small>
-                </div>
-                <div className="zones">
-                  {zones.map((zone) => <span key={zone.zone} className={zone.held ? undefined : 'off'}>{zone.text}</span>)}
-                </div>
-                <div className="qr qr-wrap" role="img" aria-label={`QR code for ${pass.fullName}`} dangerouslySetInnerHTML={{ __html: pass.qrSvg }} />
-                {pass.vehicleReg && <div className="vehbox">
-                  <span className="mono">Vehicle</span>
-                  <b>{pass.vehicleReg}</b>
-                </div>}
-                <p className="fine">Bring this and a valid photo ID. Non-transferable. One person, one pass, one check-in, one wristband.</p>
-              </div>
+            <article className="pass-item rv" key={pass.id} style={{ '--d': i % 3 } as React.CSSProperties}>
+              <PassTicket {...pass} variant="sheet" />
               {send && confirmResendId === pass.id ? (
                 <div className="send-row">
                   <InlineConfirm
@@ -342,7 +311,10 @@ export function PassesScreen() {
         .passes-actions { justify-content: flex-end; align-items: center; }
         .passes-state { grid-column: 1 / -1; margin: 0; padding: 18px 22px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); }
         .passes-state-error { color: var(--bad); }
-        .qr-wrap svg { display: block; width: 128px; height: 128px; }
+        /* ACC-174: each pass is the shared ticket (components/pass-ticket.tsx),
+           with its WhatsApp send row underneath. */
+        .pass-item { display: grid; align-content: start; gap: 4px; min-width: 0; }
+        .pass-item .tk { width: 100%; }
         .send-note { margin: 12px 0 0; }
         .send-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 4px 0; }
         .send-row .btn { min-height: 44px; }
@@ -358,12 +330,9 @@ export function PassesScreen() {
           html, body { background: white !important; }
           .nav-wrap, .status, .menu, footer, .head, .passes-state, .send-row, .send-failures { display: none !important; }
           .passes { display: block !important; }
-          .pass { min-height: 270mm; break-after: page; background: white !important; color: var(--on) !important; }
-          .pass:last-child { break-after: auto; }
-          .pass > .pl { box-shadow: none; background: white !important; padding: 0; }
-          .pass > .pl > * { break-inside: avoid; }
-          .qr-wrap { margin-top: 8mm; }
-          .qr-wrap svg { width: 35mm; height: 35mm; }
+          .pass-item { break-after: page; break-inside: avoid; display: block; }
+          .pass-item:last-child { break-after: auto; }
+          .pass-item .tk { margin: 0 auto; }
         }
       `}</style>
     </main>
