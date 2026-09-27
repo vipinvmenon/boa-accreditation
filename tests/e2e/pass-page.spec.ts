@@ -96,6 +96,11 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     await expect(page.getByText('BOA26-0412')).toBeVisible()
     await expect(page.getByText('KA05MJ8871')).toBeVisible()
     await expect(page.locator('.bandbox b')).toHaveText('Stage')
+    // ADR-025: the tier's woven band leads the card, and the file really loads.
+    const band = page.getByRole('img', { name: 'Stage wristband' })
+    await expect(band).toBeVisible()
+    await expect(band).toHaveAttribute('src', '/assets/bands/stage.webp')
+    expect(await band.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
     // Plain-words validity with real dates (lib/pass-copy.ts), not just the
     // short desk label.
     await expect(page.getByText(/Build \+ show/)).toBeVisible()

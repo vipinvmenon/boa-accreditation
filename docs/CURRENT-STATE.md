@@ -71,6 +71,13 @@ Phase R (ACC-140–147).
   issuers and is worth its own follow-up (wiring `bmsPending` from the real
   BMS count), but that is out of ACC-165's scope and no DB grants were
   touched here.
+- **ACC-174 done on placeholder art, 27 Sep 2026 (ADR-025).** `/p/[token]`
+  leads with the tier's woven band (strip on the card, tiled behind the page).
+  **The band images are placeholders** cut from a 2000px JPEG of the printed
+  sheet — soft next to the real thing. ACC-171 (Vipin: the 3900×236 masters)
+  is still open; commit the masters as `design/assets-source/bands/<tier>.png`
+  and `build` (or `corepack pnpm assets:bands`) uses them. Verified in a browser at 390 and 1440 against live crew, stage and
+  AAA passes; not yet seen on a real phone outdoors.
 
 
 ## In one line

@@ -317,6 +317,20 @@ export function tier(code: TierCode): Tier {
   return t
 }
 
+/**
+ * ACC-174 — the woven wristband artwork for a tier, as served from
+ * public/assets/bands/. PLACEHOLDERS until ACC-171: cut from a 2000px JPEG of
+ * the printed Festival Area sheet by scripts/extract-bands.mjs at build time.
+ * The masters (3900×236) go in design/assets-source/bands/<tier>.png and the
+ * script prefers them; their ratio is within 4% of this one and the strip is
+ * drawn object-fit: cover.
+ */
+export const BAND_ART = { width: 1588, height: 93 } as const
+
+export function bandArtSrc(code: TierCode): string {
+  return `/assets/bands/${code}.webp`
+}
+
 export function tierColour(code: TierCode, theme: Theme): string {
   const t = tier(code)
   return theme === 'dark' ? t.colour : t.colourLight

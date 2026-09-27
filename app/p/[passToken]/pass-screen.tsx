@@ -1,4 +1,4 @@
-import { tier, tierColour } from '@/lib/design'
+import { BAND_ART, bandArtSrc, tier, tierColour } from '@/lib/design'
 import { zoneChips } from '@/lib/desk-tiers'
 import { dayValidityCopy } from '@/lib/pass-copy'
 import type { PassViewWithQr } from '@/lib/schemas/pass-view'
@@ -24,6 +24,13 @@ import type { PassViewWithQr } from '@/lib/schemas/pass-view'
  * tokens, type scale, the same `.qr`/`.bandbox` shapes) rather than the
  * source having a scan-in-sunlight variant to copy.
  *
+ * ACC-174 (ADR-025): the pass leads with the tier's woven wristband artwork —
+ * a full-bleed strip across the top of the card, and the same artwork tiled
+ * behind the page — because the steward checks the band on the wrist against
+ * the band on the phone. The card itself stays a solid surface: no text ever
+ * sits on the artwork. The tinted `.bandbox` is kept as the plain-text tier
+ * name (the General Admission band prints no tier name at all).
+ *
  * Fixed dark theme, same as /s/[token]'s SubmissionScreen: public surfaces
  * carry no theme toggle (that toggle is desk/review furniture — see
  * lib/design.ts's MOBILE_BREAKPOINT_PX comment and ADR-009).
@@ -37,8 +44,15 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
   const validity = dayValidityCopy(pass.dayValidity)
 
   return (
-    <main className="pass-page">
+    <main className="pass-page" style={{ '--band-art': `url(${bandArtSrc(type.code)})` } as React.CSSProperties}>
       <article className="pass pass-page-card" style={{ '--c': tierColour(type.code, THEME) } as React.CSSProperties}>
+        <img
+          className="pass-page-band"
+          src={bandArtSrc(type.code)}
+          alt={`${type.label} wristband`}
+          width={BAND_ART.width}
+          height={BAND_ART.height}
+        />
         <div className="pl">
           <div className="ph">
             <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
@@ -92,6 +106,9 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
 
       <style>{`
         .pass-page {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
           min-height: 100dvh;
           display: flex;
           align-items: center;
@@ -99,12 +116,57 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
           padding: 24px 16px 40px;
           background: var(--bg, #0A0A0A);
         }
+        /* The tier's band, tiled like a crate of them and tilted, well under
+           the card. Decorative only; the scrim keeps it from competing. */
+        .pass-page::before {
+          content: '';
+          position: fixed;
+          inset: -30%;
+          z-index: -2;
+          background: var(--band-art) 0 0 / auto 72px repeat;
+          transform: rotate(-12deg);
+          opacity: .32;
+        }
+        .pass-page::after {
+          content: '';
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          background: color-mix(in srgb, var(--bg, #0A0A0A) 62%, transparent);
+        }
         .pass-page-card {
           width: min(420px, 100%);
+          overflow: hidden;
+          border-radius: var(--r-out);
+          background: var(--panel, #101012);
+          box-shadow: inset 0 0 0 1px var(--rule), var(--lift);
         }
-        .pass-page-card .pl {
-          padding: 28px 24px;
+        /* The whole band is ~17:1 — 20px tall on a phone. Show its first
+           ~60% (tier name, horns, BANGALORE mark) at 10:1 instead; the
+           repeated ".COM" end is what gets cropped. */
+        .pass-page-band {
+          display: block;
+          width: 100%;
+          height: auto;
+          aspect-ratio: 10 / 1;
+          object-fit: cover;
+          object-position: left center;
+        }
+        .pass-page-card .bandbox {
+          background: none;
+          box-shadow: none;
+          padding: 0;
+        }
+        /* One surface under the band, not the shared bezel's inner panel —
+           and no hover lift on a card nobody interacts with. */
+        .pass-page-card .pl,
+        .pass-page-card:hover .pl {
+          padding: 24px 24px 28px;
           gap: 20px;
+          border-radius: 0;
+          background: none;
+          box-shadow: none;
+          transform: none;
         }
         .pass-page-card .who .nm { font-size: 40px; }
         .pass-page-card .qr-wrap { justify-self: center; padding: 20px; }

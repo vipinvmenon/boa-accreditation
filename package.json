@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/extract-assets.mjs && node scripts/check-bundle-content.mjs && next build && node scripts/build-gate-sw.mjs",
+    "build": "node scripts/extract-assets.mjs && node scripts/extract-bands.mjs && node scripts/check-bundle-content.mjs && next build && node scripts/build-gate-sw.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "node scripts/check-design-tokens.mjs && node scripts/audit-font-weights.mjs && node scripts/check-agent-docs.mjs && eslint",
@@ -21,6 +21,7 @@
     "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
     "design:reference": "node scripts/capture-design-reference.mjs",
     "assets:extract": "node scripts/extract-assets.mjs",
+    "assets:bands": "node scripts/extract-bands.mjs",
     "prepare": "node scripts/install-hooks.mjs",
     "verify:deploy": "node scripts/check-bundle-content.mjs && node scripts/verify-deploy.mjs",
     "validate:paper": "node scripts/validate-paper-fallback.mjs",

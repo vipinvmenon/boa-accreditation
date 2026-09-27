@@ -959,3 +959,47 @@ only by webhook. So until the webhook is understood, a pass can be sent and
   `INTERAKT_TEMPLATE_LANG`. Server-only, never `NEXT_PUBLIC_`, set by Vipin.
 
 Roadmap: ACC-144, ACC-151. Supersedes the delivery mechanism in ADR-019.
+
+## ADR-025 — The public pass leads with the woven band artwork
+
+**Accepted 27 Sep 2026, on Vipin's instruction** (UX audit, `docs/ux-audit.md`
+UX-01 / §5 B1). Applies to `/p/[passToken]` only. It is a documented
+divergence from the v2 pass card, which shows the tier as a tinted text box
+(`.bandbox`); v2 remains the pixel contract everywhere else (ADR-017). No
+`test:visual` screen changes — the public pass is not one of them.
+
+### Why
+
+The steward's check is a picture match: the band on the wrist, the zone sheet
+on the wall, the band on the phone. The printed pack (ADR-018) gave every tier
+a distinct woven artwork; a text label in the tier colour is slower to match
+and trivially edited in a screenshot. The artwork is also the only strong,
+festival-specific visual the product has besides the poster.
+
+### What
+
+- A strip of the tier's band across the top of the card, full bleed, cropped
+  to its first ~60% at 10:1 (tier name, horns, BANGALORE mark) so it is ~34px
+  tall on a phone rather than ~20px for the whole 17:1 band.
+- The same artwork tiled and tilted behind the page at low opacity under a
+  scrim. The card is a solid surface: **no text sits on the artwork.**
+- The tier name stays as text (`.bandbox`, box removed): the General
+  Admission band prints no tier name, and the image's `alt` is not enough for
+  a sighted steward.
+- The card is one surface under the band (the shared bezel's inner panel and
+  hover lift are switched off on this page).
+
+### Assets — placeholders
+
+`public/assets/bands/<tier>.webp`, keyed by `TierCode` (`bandArtSrc()` in
+`lib/design.ts`), derived at build time by `scripts/extract-bands.mjs` (in
+`build`, like `extract-assets.mjs`; `public/assets/` is gitignored). Until
+ACC-171 delivers the 3900×236 masters, they are cut from a 2000px JPEG of the
+printed Festival Area sheet (`design/assets-source/zone-festival-area.jpg`) —
+correct, but soft. Commit the masters as `design/assets-source/bands/<tier>.png`
+and the script uses them instead; no code change.
+
+Not in this ADR: the same strip on the gate result (ACC-174b), the WhatsApp
+header card (ACC-175), zone squares on the pass (ACC-168).
+
+Roadmap: ACC-174, ACC-171.
