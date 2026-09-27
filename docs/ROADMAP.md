@@ -139,6 +139,22 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       login (`auth.users` rows, used to sign into `/desk/*`). Bhoopesh, Salman
       and the approvers only ever need the latter, which requires zero
       Supabase org access. The project stays in `otlqwoxbrsshuoebbamj`.
+- [ ] **ACC-171** · **Get the eight wristband master files** (3900×236, the ones
+      on the "Wristbands — final artwork" sheet) from Rock N Roll Originals, as
+      PNG or lossless. The repo has no band art. Blocks ACC-174, ACC-175, the
+      band header of ACC-172, and the login art in ACC-176. See
+      `docs/ux-audit.md` §5 B1 · **V** · due Tue 29 Sep
+- [ ] **ACC-172** · **Fix the printed zone sheets before security is briefed**
+      (`docs/ux-audit.md`, "Print collateral"): the Kannada under TURN AWAY
+      reads "ಅನುಮತಿ" not "ಅನುಮತಿ ಇಲ್ಲ" on six sheets; two numbering sets
+      ("of 5" / "of 6") disagree on Photo at Backstage and Main Stage; the
+      master sheet's Artist "+ID for lounges" contradicts the zone sheets and
+      `ZONE_ACCESS`. Decide the Artist rule; the app follows the zone sheets
+      until told otherwise. Also submit a WhatsApp template with an IMAGE
+      header alongside ACC-151 (§5 B2) · **V** · due Thu 1 Oct
+- [ ] **ACC-173** · **Decide a desk help contact** for the pass, 404 and
+      footer ("Message the accreditation desk"): a WhatsApp number the desk
+      will answer on show day. Unblocks ACC-170 · **V** · due Tue 29 Sep
 
 ---
 
@@ -549,6 +565,25 @@ least urgent, not because they are optional.
       covering all; `test:visual` re-run for Gate and Vehicle and the numbers
       recorded, showing (f) and the aria change moved nothing · **C** ·
       due Tue 29 Sep
+
+## Phase UX — The audit's fixes · 27 Sep → 3 Oct, then after the show
+
+**Added 27 Sep on Vipin's instruction** from `docs/ux-audit.md` (UX-nn IDs refer
+to its findings table). Order agreed with Vipin: the gate-safety fixes first,
+before gate-live; the band-led redesign once ACC-171 lands; primitives after
+the show. Anything that changes a `test:visual` screen diverges from the v2
+contract — record it in an ADR before shipping, as ACC-156/159/160 did.
+
+- [ ] **ACC-165** · **`/gate/vehicle` has no sign-in guard** (UX-02, UX-03). Signed out, the full vehicle screen renders and writes fail silently; the header shows "14 not in BMS" with no session. Acceptance: the route redirects to `/desk/login?next=/gate/vehicle` exactly as `/gate` does (reuse `checkGateSession`/`loginHref`), an e2e test proves it, and the source of the signed-out count is traced and either removed or shown to be local cache · **C** · due Mon 28 Sep
+- [ ] **ACC-166** · **Vehicle screen at 390px** (UX-13, UX-14, UX-15): the "Log entry and open gate" label overflows and clips the arrow; "Not synced yet" sits on the card border; the overflow menu is 38×38. Acceptance: no overflow at 360/390px, a 44×44 hit area, `test:visual` numbers recorded before/after · **C** · due Wed 30 Sep
+- [ ] **ACC-167** · **Pass copy assumes crew** (UX-05, UX-21): "Show this at the crew check-in desk" goes to every tier; the fine print is two paragraphs of repeated rules. Acceptance: tier-neutral desk line, one-line fine print at ≥4.5:1, COPY.md updated · **C** · due Thu 1 Oct
+- [ ] **ACC-168** · **Zones on the pass in the zone-sheet language** (UX-16, UX-17): granted zones only, as the sheet's colour squares, with solid "+ ID" / "after 22:00" tags; no mint accent on the pass. Needs an ADR (diverges from v2) · **C** · due Fri 2 Oct
+- [ ] **ACC-169** · **Login cleanup without a redesign** (UX-07 to UX-10): one H1 plus a legible logo, the "minimum 8" hint only when setting a password, `noValidate` with inline errors, follow the theme like the gate chrome · **C** · due Fri 2 Oct
+- [ ] **ACC-170** · **A way out of dead ends** (UX-19): 404 and invalid-pass get "Message the accreditation desk" and, for staff, "Back to sign in". Blocked by ACC-173 · **C** · due Fri 2 Oct
+- [ ] **ACC-174** · **The band is the pass** (§5 B1, UX-01): band strip across the top of the pass card, the same art faded behind it, the same strip on the gate result. WebP assets keyed by `TierCode`. Blocked by ACC-171; needs an ADR · **C** · due Sat 3 Oct
+- [ ] **ACC-175** · **Per-tier WhatsApp header card** (§5 B2, UX-04): eight static 1200×628 cards, `headerValues` wired in `lib/interakt.ts`, tier-neutral body. Blocked by ACC-171 and the approved template in ACC-172 · **C** · *after ACC-174*
+- [ ] **ACC-176** · **Sign-in redesign and a footer that does a job** (§5 B3, B4, UX-06, UX-11, UX-18) · **C** · *after ACC-174*
+- [ ] **ACC-177** · **`Button` and `Field` primitives; one radius and spacing scale** (§5 B5, UX-23), plus `loading.tsx` (UX-24) and the stale PRODUCT.md/COPY.md vocabulary (UX-25) · **C** · *after the show*
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
