@@ -1068,7 +1068,35 @@ has received a pass**, because ACC-151 is still open.
 
 > **ACC-144 released 2026-09-26 (IST):** Blocked on ACC-151: Vipin must configure the Meta phone, approved template, WABA/phone IDs, System User token, Vercel env and webhook before real delivery/rejection acceptance can be verified.
 
+
+> **ACC-109 released 2026-09-27 (IST):** Blocked on Vipin: one sanctioned regeneration of design/reference/ from the current frozen source. Diagnosis complete and bisected (26 Sep) - the app is not what fails. References were captured 20 Sep at 2d4d6e0; the frozen source moved at 418b416 and 052bf93, so the PNGs are two commits behind the contract. Against a reference regenerated from the current frozen source, Gate measures 0.31/0.32/0.38/0.37% and Vehicle 0.40/0.40/0.25/0.26% with no application-code change. Vipin's call because it also rebases ACC-104/106/107.
+
 ## Session log
+
+### 27 Sep 2026 — the reference regeneration is now a tracked item (ACC-164)
+
+No code changed today. One modelling defect was fixed: **seven tasks depended on
+a decision that nothing tracked.**
+
+`ACC-104`, `ACC-107`, `ACC-109`, `ACC-111`, `ACC-156`, `ACC-159` and `ACC-162`
+all route their acceptance through a re-captured `design/reference/`. That
+dependency was recorded only as a sentence buried inside ACC-109's entry
+("blocked on one sanctioned regeneration … which is Vipin's call"), so
+`corepack pnpm task` listed ACC-156 and ACC-159 as NEXT UP while both are in
+fact unstartable, and the decision itself appeared on no one's list.
+
+- **ACC-164** added to *Blocked on Vipin*, carrying the evidence and naming the
+  seven dependants. `corepack pnpm task` now shows 4 human blockers, not 3.
+- **ACC-109** released back to not-started with its reason recorded, since the
+  work is not startable and leaving it claimable invites a second agent to
+  re-run the diagnosis that is already complete and bisected.
+
+Nothing was re-measured today; the 26 Sep figures at `b762ddf` stand, verified
+by `git diff --stat b762ddf..HEAD` showing `docs/` only.
+
+**Read ACC-164 before picking up any visual task.** The 2 Oct hard stop on
+ACC-109 (revert the gate to v1) sits behind it.
+
 
 ### 26 Sep 2026 — ACC-109's and ACC-107's visual figures, re-measured
 

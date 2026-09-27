@@ -84,6 +84,26 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
 - [x] **ACC-140g** · **No quotas for now. Decided 22 Sep (Vipin).** The import
       does not refuse a row for being over a cap; Salman controls numbers
       through column I. The quota column stays in the schema, unused.
+- [ ] **ACC-164** · **Sanction one regeneration of `design/reference/` from the
+      current frozen source.** This is the single decision blocking every
+      remaining v2 visual task. `design/reference/` was captured 20 Sep at
+      `2d4d6e0`; the frozen source then moved at `418b416` (21 Sep) and
+      `052bf93` (24 Sep, ACC-130 deleted both result-panel tab rows), and was
+      never re-captured — so the PNGs render a contract two commits old.
+      Measured against a reference regenerated from the **current** frozen
+      source, **with no application-code change**, Gate is
+      0.31/0.32/0.38/0.37% and Vehicle 0.40/0.40/0.25/0.26% — all eight
+      variants under the 0.8% bar. The ACC-109 bisection (26 Sep) proves the
+      app is not what fails: the 2.5-point "regression" is `app/global-error.tsx`
+      reordering CSS chunks (0.56) plus the harness capture being *fixed*
+      (1.99), and a capture getting more correct while the number gets worse is
+      only possible against a stale reference.
+      **This is not a re-baseline and the contract does not move** — it is the
+      ACC-100 precedent: re-render the same frozen source that is already
+      committed. It is Vipin's call because it also rebases ACC-104/106/107.
+      **Blocks ACC-104, ACC-107, ACC-109, ACC-111, ACC-156, ACC-159, ACC-162.**
+      Note the hard stop it sits in front of: ACC-109 not green and rehearsed by
+      **2 Oct** means reverting the gate to v1 · **V** · *needed now*
 - [ ] **ACC-151** · WhatsApp Cloud API setup in Meta Business Manager (Vipin;
       an agent never handles these values): (1) the sending phone number
       registered on BOA's WhatsApp Business Account; (2) a **Utility** message
