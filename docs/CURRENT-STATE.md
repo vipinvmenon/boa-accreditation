@@ -52,6 +52,25 @@ Phase R (ACC-140–147).
   issues are caught after sync, not prevented (ACC-148, ACC-149). Not built yet.
 - Where this file below talks about invite links, `/s/[token]` as the
   collection path, or the queue as the approval path, read it as history.
+- **ACC-165 done, 27 Sep 2026.** `/gate/vehicle` had no sign-in guard;
+  `/gate` did. Fixed by extracting the one redirect mechanism both routes now
+  call (`redirectIfSignedOut` in `gate/session.ts`, used directly by `/gate`'s
+  boot effect and via the new `useGateSessionGuard` hook on `/gate/vehicle`).
+  **Traced the "14 not in BMS" the audit flagged as a possible security bug:
+  it is not.** `bmsPending={14}` is a **hardcoded literal** passed to
+  `GateChrome` from both `app/gate/page.tsx` and
+  `app/gate/vehicle/vehicle-screen.tsx` — not a query result, not `anon`
+  reading anything, and not read from the Dexie cache either. It renders the
+  same "14" whether signed in or out, online or off, because nothing computes
+  it yet. The "0 / 0 bands issued" half **is** the Dexie cache
+  (`snapshot.ledger`/`snapshot.roster`, via `readGateSnapshot()`) and reads 0/0
+  signed out only because a fresh/never-pulled cache is empty — also not a
+  network read. With the guard in place, a signed-out visitor never reaches
+  either number: they are redirected to `/desk/login?next=/gate/vehicle`
+  before the chrome renders. The literal `14` is still wrong for signed-in
+  issuers and is worth its own follow-up (wiring `bmsPending` from the real
+  BMS count), but that is out of ACC-165's scope and no DB grants were
+  touched here.
 
 
 ## In one line

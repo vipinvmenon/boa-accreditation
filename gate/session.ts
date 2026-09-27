@@ -46,3 +46,24 @@ export async function checkGateSession(): Promise<GateSessionCheck> {
   const parsed = gateSessionSchema.safeParse(await response.json().catch(() => null))
   return parsed.success ? { state: 'ok', session: parsed.data } : { state: 'unknown' }
 }
+
+/**
+ * ACC-165 — the one mechanism every `/gate/*` screen uses to send a
+ * signed-out visitor to login, extracted so `/gate/vehicle` (and anything
+ * after it) shares it rather than copying `/gate`'s inline check.
+ *
+ * Offline this never redirects (non-negotiable #7): a phone that has
+ * already pulled must keep resolving scans and logging vehicle events with
+ * the radio off, and the server checks the session again on the next
+ * write — until then the outbox holds everything. Returns `true` only when
+ * it actually navigated away, so a caller mid-boot knows to stop.
+ */
+export async function redirectIfSignedOut(next: string = GATE_PATH): Promise<boolean> {
+  if (!navigator.onLine) return false
+  const check = await checkGateSession()
+  if (check.state !== 'not_signed_in' && check.state !== 'not_authorized') return false
+  // A real navigation, not a router.replace: the service worker serves
+  // /gate/* from cache, and the login page is outside its scope.
+  window.location.assign(loginHref(next))
+  return true
+}

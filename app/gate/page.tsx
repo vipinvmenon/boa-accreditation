@@ -6,7 +6,7 @@ import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
 import { enqueueIssue, pullGate, readGateSnapshot, type GateSnapshot } from '@/gate/client'
-import { checkGateSession, loginHref } from '@/gate/session'
+import { GATE_PATH, loginHref, redirectIfSignedOut } from '@/gate/session'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { scanFrame } from '@/gate/scanner'
 import { DAY_VALIDITY, tierColour } from '@/lib/design'
@@ -105,14 +105,11 @@ export default function GatePage() {
         }
         return
       }
-      const check = await checkGateSession()
+      // ACC-165: the same redirect-on-signed-out mechanism /gate/vehicle
+      // uses via useGateSessionGuard — kept inline here because boot() must
+      // know whether it redirected before deciding whether to pull.
+      if (await redirectIfSignedOut(GATE_PATH)) return
       if (cancelled) return
-      if (check.state === 'not_signed_in' || check.state === 'not_authorized') {
-        // A real navigation, not a router.replace: the service worker serves
-        // /gate from cache, and the login page is outside its scope.
-        window.location.assign(loginHref())
-        return
-      }
       if (!empty) return
       try {
         await pullGate()

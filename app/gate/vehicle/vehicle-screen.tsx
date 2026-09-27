@@ -9,6 +9,7 @@ import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { normalizePlate, queueVehicleEvent, resolvePlate, type PlateResolution } from '@/gate/vehicle-flow'
 import { Icon } from '@/components/icon'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
+import { useGateSessionGuard } from '@/gate/use-session-guard'
 import { GateChrome } from '../gate-chrome'
 import { SyncStatus } from '../sync-status'
 
@@ -31,6 +32,10 @@ function formatIssuedAt(iso: string): string {
 }
 
 export function VehicleScreen() {
+  // ACC-165: same mechanism as /gate — signed out, this sends the visitor
+  // to /desk/login?next=/gate/vehicle instead of rendering the vehicle
+  // screen and letting every write fail 401, silently.
+  useGateSessionGuard('/gate/vehicle')
   const theme = useDomTheme()
   const p = PROP[theme]
   const [plate, setPlate] = useState('')

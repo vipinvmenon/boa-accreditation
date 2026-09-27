@@ -793,3 +793,36 @@ test.describe('the plate index is built by the pull (ACC-153)', () => {
     await expect.poll(() => vehicleOutbox(gate)).toEqual([['cleared', null]])
   })
 })
+
+test.describe('vehicle gate sign-in guard (ACC-165)', () => {
+  test('a phone with nobody signed in is sent to the login page, and comes back to /gate/vehicle', async ({ page }) => {
+    await page.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({ status: 401, contentType: 'application/json', json: { error: 'not_authenticated' } })
+    })
+    await page.goto('/gate/vehicle')
+    await expect(page).toHaveURL(/\/desk\/login\?next=%2Fgate%2Fvehicle$/)
+  })
+
+  test('signed in, the vehicle screen renders normally', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await gate.goto('/gate/vehicle')
+    await expect(gate.getByLabel('Vehicle registration')).toBeVisible()
+    await expect(gate).toHaveURL('/gate/vehicle')
+  })
+
+  test('offline, a phone that already pulled keeps working with the radio off — no redirect', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await gate.goto('/gate')
+    await expect(gate.getByLabel('Pass-code input for hardware scanner')).toBeAttached()
+
+    await gate.context().setOffline(true)
+    // A session check that answered "signed out" would be exactly the
+    // wrong signal offline — this route must never even be reached.
+    await gate.route('**/api/gate/session', async (route: Route) => {
+      await route.fulfill({ status: 401, contentType: 'application/json', json: { error: 'not_authenticated' } })
+    })
+    await gate.goto('/gate/vehicle')
+    await expect(gate.getByLabel('Vehicle registration')).toBeVisible()
+    await expect(gate).toHaveURL('/gate/vehicle')
+  })
+})
