@@ -472,7 +472,7 @@ test.describe('gate aeroplane mode', () => {
     // And the identity is the person signed in, not the hardcoded "VI/Vipin/
     // Administrator" every issuer's phone used to show.
     await page.getByRole('button', { name: 'Operator menu' }).click()
-    await expect(page.getByText('Vipin Menon')).toBeVisible()
+    await expect(page.locator('#gate-profile-menu').getByText('Vipin Menon')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Manage users' })).toBeVisible()
   })
 
@@ -496,7 +496,7 @@ test.describe('gate aeroplane mode', () => {
     await expect(nav.getByRole('link', { name: 'Master list' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Operator menu' }).click()
-    await expect(page.getByText('Meera Joseph')).toBeVisible()
+    await expect(page.locator('#gate-profile-menu').getByText('Meera Joseph')).toBeVisible()
     // A desk link a volunteer taps and gets refused is a trap, not security.
     await expect(page.getByRole('link', { name: 'Manage users' })).toHaveCount(0)
   })
