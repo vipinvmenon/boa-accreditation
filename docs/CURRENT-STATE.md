@@ -78,6 +78,12 @@ Phase R (ACC-140–147).
   is still open; commit the masters as `design/assets-source/bands/<tier>.png`
   and `build` (or `corepack pnpm assets:bands`) uses them. Verified in a browser at 390 and 1440 against live crew, stage and
   AAA passes; not yet seen on a real phone outdoors.
+- **Pass redesigned as a ticket, 28 Sep 2026 (ADR-025 amendment, round 6).**
+  Poster behind, glass ticket, band as its top edge, zones in zone-map
+  colours, no ID/time qualifiers, one screen at 390×706. Verified in a browser
+  on live Stage and AAA passes and at 1440; `test:e2e` 56/56. **Not yet seen
+  inside the real WhatsApp in-app browser or on a phone outdoors.** Sign-in,
+  footer and the WhatsApp image header are still proposals, not built.
 
 
 ## In one line
