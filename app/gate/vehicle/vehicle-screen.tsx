@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { gateDb } from '@/gate/db'
 import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
@@ -157,18 +158,23 @@ export function VehicleScreen() {
   const cleared = result?.outcome === 'cleared'
   const outcome = cleared ? 'ok' : result ? 'bad' : undefined
   return (
-    <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0} bmsPending={14}>
+    // ACC-190: bmsPending has no Dexie source (the gate is Dexie/outbox only,
+    // no new network path) — D7 forbids hardcoding a proposal number, so the
+    // "N not in BMS" pill is left off this screen rather than faked.
+    <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0}>
       <div className="r10 vehicle-screen">
-        <header className="vehicle-head">
-          <span className="label-sm gold">Vehicle entrance</span>
-          <h1 className="display-lg">Sticker and band. Both.</h1>
-          <p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside.</p>
-        </header>
+        {/* r8-vehicle.html opens with this segmented control, not a v2-style
+            hero header (no "Vehicle entrance" tag, no h1, no lede) — the
+            gate's own nav island already names the screen. */}
+        <nav className="segmented" aria-label="Check in people or vehicles">
+          <Link href="/gate">People</Link>
+          <Link href="/gate/vehicle" aria-current="page">Vehicles</Link>
+        </nav>
 
         <div className="veh-stack">
           <section className="veh-panel veh-entry">
             <label className="field" htmlFor="vehicle-plate">
-              <span className="label-sm">Enter registration</span>
+              <span className="label-sm">Vehicle registration</span>
               <input
                 id="vehicle-plate"
                 className="input input-mono"
@@ -240,9 +246,12 @@ export function VehicleScreen() {
       </div>
 
       <style jsx global>{`
-        .r10 .vehicle-screen { padding-block: var(--s-10) var(--s-20); }
-        .r10 .vehicle-head { margin-bottom: var(--s-8); }
-        .r10 .vehicle-head h1 { margin: var(--s-2) 0 0; }
+        /* Compound, not descendant: .r10 and .vehicle-screen sit on the same
+           root element, so ".r10 .vehicle-screen" (a space) never matches. */
+        .r10.vehicle-screen { padding-block: var(--s-6) var(--s-10); }
+        .r10 .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: var(--s-5); }
+        .r10 .segmented a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+        .r10 .segmented a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
         .r10 .veh-stack { display: grid; gap: var(--s-5); max-width: 640px; }
 
         /* Gate surfaces are always solid: no backdrop-filter, on any viewport
@@ -284,7 +293,6 @@ export function VehicleScreen() {
         }
 
         @media (max-width: 700px) {
-          .r10 .vehicle-screen { padding-block: var(--s-6) var(--s-10); }
           .r10 .veh-panel { padding: var(--s-5); }
           .r10 .veh-result { min-height: 0; }
         }
