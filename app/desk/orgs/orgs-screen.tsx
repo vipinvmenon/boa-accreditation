@@ -1,21 +1,21 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { orgRowWithCountsSchema, type OrgRowWithCounts } from '@/lib/schemas/org'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
-import { Button, CountDot, FilterBar, StatusPill } from '@/components/r10/primitives-a'
+import { Button, CountDot, FilterBar } from '@/components/r10/primitives-a'
 import { EmptyState, Skeleton } from '@/components/r10/primitives-b'
 
 /**
- * Not part of the approved design (design/source/boa_design_body.html has no
- * orgs screen — the 7 screens in scripts/visual-check.mjs's SCREENS are the
- * whole pixel contract), so this is built from the design's own tokens
- * (lib/design.ts / app/globals.css / app/desk/login/login-form.tsx's precedent),
- * not a transcription. Not gated by test:visual for the same reason.
+ * r10 (ACC-186): reskinned onto design/source/r10/r8-orgs.html, which is now
+ * this screen's pixel contract (name | people | collected | contact | arrow).
+ * Not yet in `test:visual` — that only runs against references regenerated
+ * from the built app after Vipin signs a screen off (ACC-191), which hasn't
+ * happened for this one.
  *
  * Per docs/ARCHITECTURE.md rule 1, this screen never imports the Supabase
  * client — every read and write goes through app/api/desk/orgs/** (which
@@ -58,12 +58,6 @@ const ORGS_ERROR_OVERRIDES = {
 
 const orgResponseSchema = orgRowWithCountsSchema.array()
 
-function statusKind(status: string): 'ok' | 'wait' | 'bad' | 'mute' {
-  if (status === 'open' || status === 'approved') return 'ok'
-  if (status === 'rejected' || status === 'voided') return 'bad'
-  if (status === 'submitted') return 'wait'
-  return 'mute'
-}
 export function OrgsScreen() {
   const router = useRouter()
   const [orgs, setOrgs] = useState<OrgRowWithCounts[] | null>(null)
@@ -210,7 +204,7 @@ export function OrgsScreen() {
         <div className="orgs-table card" role="table" aria-label="Organisations">
           <div className="orgs-thead" role="row">
             <span role="columnheader">Organisation</span><span role="columnheader">People</span>
-            <span role="columnheader">Status</span><span role="columnheader">Contact</span>
+            <span role="columnheader">Collected</span><span role="columnheader">Contact</span>
             <span role="columnheader"><span className="sr-only">Open</span></span>
           </div>
           <div role="rowgroup">
@@ -221,7 +215,10 @@ export function OrgsScreen() {
                   <span><CountDot label={`${org.submittedCount} sent`}>{org.submittedCount}</CountDot><span>sent</span></span>
                   <span><CountDot label={`${org.approvedCount} approved`}>{org.approvedCount}</CountDot><span>approved</span></span>
                 </span>
-                <span role="cell"><StatusPill className={`st ${statusKind(org.status)}`} status={statusKind(org.status)}>{org.status}</StatusPill></span>
+                <span role="cell" className="orgs-collected">
+                  <span className="body-sm">{org.collectedCount}</span>
+                  <span className="meter" style={{ '--w': org.approvedCount ? Math.min(1, org.collectedCount / org.approvedCount) : 0 } as CSSProperties}><i /></span>
+                </span>
                 <span role="cell" className="org-contact"><span>{org.contact_name}</span><span className="mono ink-2">{org.contact_phone}</span></span>
                 <span role="cell" className="org-arrow"><Icon name="arrow-right" /></span>
               </Link>
@@ -245,6 +242,8 @@ export function OrgsScreen() {
         .r10 .org-row > span:first-child, .r10 .org-contact, .r10 .org-counts { display: grid; gap: var(--s-1); }
         .r10 .org-counts { grid-template-columns: repeat(2, minmax(64px, 1fr)); gap: var(--s-2); }
         .r10 .org-counts > span { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--ink-2); font-size: var(--t-body-sm); }
+        .r10 .orgs-collected { display: grid; gap: var(--s-1); }
+        .r10 .orgs-collected .meter { margin-top: 0; }
         .r10 .org-arrow { justify-self: end; color: var(--ink-3); font-size: 20px; }
         .r10 .org-row:hover .org-arrow, .r10 .org-row:focus-visible .org-arrow { color: var(--ink); }
         .r10 .org-row-skeleton { pointer-events: none; }

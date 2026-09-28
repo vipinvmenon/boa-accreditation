@@ -76,6 +76,13 @@ export const orgRowSchema = z.object({
 export const orgRowWithCountsSchema = orgRowSchema.extend({
   submittedCount: z.number().int().min(0),
   approvedCount: z.number().int().min(0),
+  /**
+   * How many of this org's people have a live wristband checkin (the same
+   * void-aware ledger read as GET /api/desk/master's `bandSerial`), i.e.
+   * physically collected. r10 (design/source/r10/r8-orgs.html) shows this as
+   * its own "Collected" column with a progress meter against `approvedCount`.
+   */
+  collectedCount: z.number().int().min(0),
 })
 
 export type OrgRow = z.infer<typeof orgRowSchema>

@@ -267,7 +267,7 @@
   background: var(--gold);
   box-shadow: 0 0 0 3px var(--bg);
 }
-.timeline .later strong { color: var(--ink-2); }
+.timeline .later .display-sm { color: var(--ink-2); }
 
 .behindList {
   display: grid;

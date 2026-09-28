@@ -33,8 +33,16 @@ function mapError(error: { code?: string; message?: string }): { status: number;
 }
 
 const personOrgStatusSchema = z.object({
+  id: z.string(),
   org_id: z.string(),
   status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'voided']),
+})
+
+const checkinSchema = z.object({
+  id: z.string(),
+  person_id: z.string(),
+  kind: z.enum(['wristband', 'vehicle_sticker', 'void']),
+  voids_checkin_id: z.string().nullable(),
 })
 
 export async function GET() {
@@ -57,32 +65,48 @@ export async function GET() {
   // route for precedent) to compute per-org counts here, in the data layer,
   // rather than adding a new RPC for a count two existing tables already
   // answer with a group-by.
-  const [{ data, error }, { data: personRows, error: personError }] = await Promise.all([
+  const [{ data, error }, { data: personRows, error: personError }, { data: checkinRows, error: checkinError }] = await Promise.all([
     supabase.from('boa_acc_org').select(ORG_COLUMNS).order('created_at', { ascending: false }),
-    supabase.from('boa_acc_person').select('org_id,status'),
+    supabase.from('boa_acc_person').select('id,org_id,status'),
+    // Same void-aware ledger read as GET /api/desk/master, to answer r10's
+    // "Collected" column (design/source/r10/r8-orgs.html) without a new RPC —
+    // a person has collected once their most recent, non-voided checkin here
+    // is a wristband.
+    supabase.from('boa_acc_checkin').select('id,person_id,kind,voids_checkin_id').order('occurred_at', { ascending: true }),
   ])
 
-  if (error || personError) {
+  if (error || personError || checkinError) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
   const rows = orgRowSchema.array().safeParse(data)
   const people = personOrgStatusSchema.array().safeParse(personRows)
-  if (!rows.success || !people.success) {
+  const checkins = checkinSchema.array().safeParse(checkinRows)
+  if (!rows.success || !people.success || !checkins.success) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
-  const countsByOrg = new Map<string, { submittedCount: number; approvedCount: number }>()
+  const voidedIds = new Set(
+    checkins.data.filter((c) => c.kind === 'void' && c.voids_checkin_id).map((c) => c.voids_checkin_id as string),
+  )
+  const latestKindByPerson = new Map<string, string>()
+  for (const c of checkins.data) {
+    if (c.kind === 'void' || voidedIds.has(c.id)) continue
+    latestKindByPerson.set(c.person_id, c.kind)
+  }
+
+  const countsByOrg = new Map<string, { submittedCount: number; approvedCount: number; collectedCount: number }>()
   for (const person of people.data) {
-    const counts = countsByOrg.get(person.org_id) ?? { submittedCount: 0, approvedCount: 0 }
+    const counts = countsByOrg.get(person.org_id) ?? { submittedCount: 0, approvedCount: 0, collectedCount: 0 }
     counts.submittedCount += 1
     if (person.status === 'approved') counts.approvedCount += 1
+    if (latestKindByPerson.get(person.id) === 'wristband') counts.collectedCount += 1
     countsByOrg.set(person.org_id, counts)
   }
 
   const orgs = rows.data.map((org) => ({
     ...org,
-    ...(countsByOrg.get(org.id) ?? { submittedCount: 0, approvedCount: 0 }),
+    ...(countsByOrg.get(org.id) ?? { submittedCount: 0, approvedCount: 0, collectedCount: 0 }),
   }))
 
   const parsedOrgs = orgRowWithCountsSchema.array().safeParse(orgs)
@@ -152,7 +176,7 @@ export async function POST(request: Request) {
 
   // A just-created org has sent nobody yet — no extra read needed for that.
   return NextResponse.json(
-    { org: { ...parsedRow.data, submittedCount: 0, approvedCount: 0 } },
+    { org: { ...parsedRow.data, submittedCount: 0, approvedCount: 0, collectedCount: 0 } },
     { status: 201 },
   )
 }

@@ -204,7 +204,8 @@ export function UsersScreen() {
         .r10 .users-screen { padding-block: var(--s-10) var(--s-20); }
         .r10 .users-head { display:flex; align-items:end; justify-content:space-between; gap:var(--s-8); margin-bottom:var(--s-8); }
         .r10 .users-head h1 { margin:var(--s-2) 0 var(--s-3); }
-        .r10 .users-table { overflow:hidden; }
+        /* clip, not hidden: hidden makes a scroll container and breaks the sticky .thead (design/source/r10/r8/ui.css line 554) */
+        .r10 .users-table { overflow:clip; }
         .r10 .users-table .thead, .r10 .user-row { display:grid; grid-template-columns:minmax(220px,2fr) minmax(140px,1fr) minmax(140px,1fr) 44px; align-items:center; gap:var(--s-4); padding-inline:var(--s-6); }
         .r10 .users-table .thead { min-height:48px; color:var(--ink-3); font:600 var(--t-label)/1.2 var(--f-label); letter-spacing:var(--track-label); text-transform:uppercase; box-shadow:inset 0 -1px 0 var(--hair); }
         .r10 .user-row { min-height:76px; padding-block:var(--s-3); cursor:pointer; box-shadow:inset 0 -1px 0 var(--hair); transition:background-color var(--d-quick) var(--e-hover),transform var(--d-quick) var(--e-hover); }

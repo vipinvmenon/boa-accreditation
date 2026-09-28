@@ -210,8 +210,8 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
               const status = i < timelineNowIndex || timelineNowIndex === -1 ? 'done' : i === timelineNowIndex ? 'now' : 'later'
               return (
                 <li key={item.label} className={status}>
-                  <span className="body-sm ink-3">{item.when}</span>
-                  <strong className="display-sm">{item.label}</strong>
+                  <div className="body-sm ink-3">{item.when}</div>
+                  <div className="display-sm">{item.label}</div>
                 </li>
               )
             })}

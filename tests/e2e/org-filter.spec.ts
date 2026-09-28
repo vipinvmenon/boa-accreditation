@@ -36,13 +36,13 @@ const orgs = {
       id: ORG_A, name: 'Sound', kind: 'vendor', quota: 500, default_type: 'crew',
       contact_name: 'Ramesh K', contact_phone: '+919000000001', status: 'open', notes: null,
       created_at: '2026-09-25T08:00:00.000Z', updated_at: '2026-09-25T08:00:00.000Z',
-      submittedCount: 2, approvedCount: 2,
+      submittedCount: 2, approvedCount: 2, collectedCount: 1,
     },
     {
       id: ORG_B, name: 'Soundcheck Ltd', kind: 'vendor', quota: 500, default_type: 'crew',
       contact_name: 'Priya S', contact_phone: '+919000000002', status: 'open', notes: null,
       created_at: '2026-09-25T08:00:00.000Z', updated_at: '2026-09-25T08:00:00.000Z',
-      submittedCount: 1, approvedCount: 0,
+      submittedCount: 1, approvedCount: 0, collectedCount: 0,
     },
   ],
 }
@@ -91,7 +91,8 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
 
     await expect(page.getByText('Every company sending people. Open one to see them in the Master list.')).toBeVisible()
     await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.nm')).toBeVisible()
-    await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.st.ok')).toHaveText('open')
+    // r10 (r8-orgs.html) replaced the Status column with Collected.
+    await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.orgs-collected .body-sm')).toHaveText('1')
     // The list does NOT show people — that is the whole point of ADR-021.
     await expect(page.getByText('Sound Person One')).toHaveCount(0)
 
