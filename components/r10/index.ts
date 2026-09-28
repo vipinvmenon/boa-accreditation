@@ -8,6 +8,17 @@ export {
   Select,
   StatusPill,
 } from './primitives-a'
+export {
+  Card,
+  CountUp,
+  EmptyState,
+  Sheet,
+  Skeleton,
+  Table,
+  TableCell,
+  TableRow,
+  Toast,
+} from './primitives-b'
 export type {
   ButtonProps,
   ButtonVariant,
@@ -20,3 +31,14 @@ export type {
   SelectProps,
   StatusPillProps,
 } from './primitives-a'
+export type {
+  CardProps,
+  CountUpProps,
+  EmptyStateProps,
+  SheetProps,
+  SkeletonShape,
+  TableColumn,
+  TableProps,
+  TableRowProps,
+  ToastProps,
+} from './primitives-b'
