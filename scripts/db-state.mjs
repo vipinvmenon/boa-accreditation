@@ -37,6 +37,7 @@ const WITNESSES = [
   ['202609221201_boa_acc_gate_session', 'function', 'private.boa_acc_gate_operator'],
   ['202609221400_boa_acc_pass_view', 'function', 'public.boa_acc_pass_view'],
   ['20260928073202_boa_acc_dashboard_gate_feed_voids', 'function', 'public.boa_acc_desk_gate_feed'],
+  ['202609281430_boa_acc_set_operator_role', 'function', 'public.boa_acc_set_operator_role'],
 ]
 
 const t = describeTransport(root)

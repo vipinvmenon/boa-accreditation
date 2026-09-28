@@ -8,14 +8,18 @@ import { Button, Field, Select, StatusPill } from '@/components/r10/primitives-a
 import { EmptyState, Sheet, Skeleton, Table, TableCell, Toast } from '@/components/r10/primitives-b'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
-import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
+import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, setOperatorActiveResultSchema, type OperatorRow } from '@/lib/schemas/operator'
 
 const responseSchema = z.object({ operators: operatorRowSchema.array(), callerId: z.string() })
-const mutationSchema = z.object({ operator: operatorRowSchema })
+const mutationSchema = z.object({ operator: setOperatorActiveResultSchema })
 const errorOverrides = {
   not_authorized: 'Only a lead or admin operator can do this.',
   forbidden: 'Only a lead or admin operator can invite.',
   not_found: 'That operator no longer exists.',
+  cannot_change_own_role: 'You can’t change your own role.',
+  cannot_demote_last_admin: 'The last active admin can’t be moved off admin.',
+  cannot_deactivate_self: 'You can’t deactivate yourself.',
+  cannot_deactivate_last_admin: 'The last active admin can’t be deactivated.',
 }
 type InviteForm = { displayName: string; email: string; role: OperatorRow['role'] }
 const initialInvite: InviteForm = { displayName: '', email: '', role: 'issuer' }
@@ -74,13 +78,21 @@ export function UsersScreen() {
         router.replace(loginHref(window.location.pathname + window.location.search))
         return
       }
-      const parsed = mutationSchema.safeParse(await response.json())
+      const payload: unknown = await response.json().catch(() => null)
+      const parsed = mutationSchema.safeParse(payload)
       if (!response.ok || !parsed.success) {
-        setNotice({ text: copyForError(null, errorOverrides), error: true })
+        setNotice({ text: copyForError(payload, errorOverrides), error: true })
         return
       }
-      setOperators((current) => current?.map((item) => item.user_id === operatorId ? parsed.data.operator : item) ?? null)
-      setSelected(parsed.data.operator)
+      const next = (current: OperatorRow): OperatorRow => ({
+        ...current,
+        role: parsed.data.operator.role,
+        display_name: parsed.data.operator.display_name,
+        active: parsed.data.operator.active,
+        created_at: parsed.data.operator.created_at ?? current.created_at,
+      })
+      setOperators((current) => current?.map((item) => item.user_id === operatorId ? next(item) : item) ?? null)
+      setSelected((current) => current && current.user_id === operatorId ? next(current) : current)
       setConfirming(false)
       setNotice({ text: `${parsed.data.operator.display_name} updated.` })
     } catch {

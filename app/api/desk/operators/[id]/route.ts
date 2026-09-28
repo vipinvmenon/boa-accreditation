@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { setOperatorActiveSchema, setOperatorActiveResultSchema } from '@/lib/schemas/operator'
+import { patchOperatorSchema, setOperatorActiveResultSchema } from '@/lib/schemas/operator'
 
 // ACC-049. public.boa_acc_set_operator_active (202609130900) checks
 // lead/admin internally and grants EXECUTE to `authenticated` — same shape
@@ -18,6 +18,12 @@ function mapError(error: { code?: string; message?: string }): { status: number;
   }
   if (message.includes('cannot_deactivate_last_admin')) {
     return { status: 409, body: { error: 'cannot_deactivate_last_admin' } }
+  }
+  if (message.includes('cannot_change_own_role')) {
+    return { status: 409, body: { error: 'cannot_change_own_role' } }
+  }
+  if (message.includes('cannot_demote_last_admin')) {
+    return { status: 409, body: { error: 'cannot_demote_last_admin' } }
   }
   if (error.code === 'P0002' || message.includes('not found')) {
     return { status: 404, body: { error: 'not_found' } }
@@ -42,15 +48,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     body = {}
   }
 
-  const parsed = setOperatorActiveSchema.safeParse(body)
+  const parsed = patchOperatorSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 })
   }
 
-  const { data, error } = await supabase.rpc('boa_acc_set_operator_active', {
-    p_user_id: id,
-    p_active: parsed.data.active,
-  })
+  const { data, error } = 'role' in parsed.data
+    ? await supabase.rpc('boa_acc_set_operator_role', {
+        p_user_id: id,
+        p_role: parsed.data.role,
+      })
+    : await supabase.rpc('boa_acc_set_operator_active', {
+        p_user_id: id,
+        p_active: parsed.data.active,
+      })
 
   if (error) {
     const mapped = mapError(error)

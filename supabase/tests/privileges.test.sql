@@ -39,7 +39,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(139) as line
+  select 0 as n, plan(142) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -269,6 +269,11 @@ select line from (
   union all select 480, function_privs_are('public', 'boa_acc_double_issues', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_double_issues')
   union all select 481, function_privs_are('public', 'boa_acc_double_issues', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_double_issues')
   union all select 482, function_privs_are('public', 'boa_acc_double_issues', array[]::text[], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_double_issues')
+
+  -- ACC-187: role change is public, lead/admin-checked internally.
+  union all select 490, function_privs_are('public', 'boa_acc_set_operator_role', array['uuid','public.boa_acc_operator_role'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_set_operator_role')
+  union all select 491, function_privs_are('public', 'boa_acc_set_operator_role', array['uuid','public.boa_acc_operator_role'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_set_operator_role')
+  union all select 492, function_privs_are('public', 'boa_acc_set_operator_role', array['uuid','public.boa_acc_operator_role'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_set_operator_role')
 
   union all select 999999, l from finish() l
 ) t

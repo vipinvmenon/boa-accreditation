@@ -69,17 +69,24 @@ export const operatorRowSchema = z.object({
 
 export type OperatorRow = z.infer<typeof operatorRowSchema>
 
-/** Body of PATCH /api/desk/operators/[id] — set_operator_active's p_active. */
+/** Body of PATCH /api/desk/operators/[id] — exactly one mutation. */
 export const setOperatorActiveSchema = z.object({
   active: z.boolean(),
-})
+}).strict()
 
-/** Shape of boa_acc_set_operator_active's returned row. */
+export const setOperatorRoleSchema = z.object({
+  role: operatorRoleSchema,
+}).strict()
+
+export const patchOperatorSchema = z.union([setOperatorActiveSchema, setOperatorRoleSchema])
+
+/** Shape of boa_acc_set_operator_active / boa_acc_set_operator_role. */
 export const setOperatorActiveResultSchema = z.object({
   user_id: z.string(),
   role: operatorRoleSchema,
   display_name: z.string(),
   active: z.boolean(),
+  created_at: z.string().optional(),
 })
 
 /** GET /api/gate/session — the signed-in gate operator (ACC-150). */
