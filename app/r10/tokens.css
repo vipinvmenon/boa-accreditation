@@ -74,11 +74,11 @@
 }
 
 .r10 {
-  --bg: #070808;
+  --bg: #0a0a0a;
   --surface: #101012;
   --surface-solid: #101012;
   --raised: #16161a;
-  --tray: rgb(242 239 226 / 3.5%);
+  --tray: rgb(242 239 226 / 4.5%);
   --ink: #f2efe2;
   --ink-2: rgb(242 239 226 / 74%);
   --ink-3: rgb(242 239 226 / 60%);
@@ -92,12 +92,18 @@
   --ok-tint: rgb(0 245 165 / 12%);
   --wait-tint: rgb(227 187 114 / 14%);
   --bad-tint: rgb(255 107 90 / 14%);
+  --glass: rgb(10 10 10 / 72%);
+  --lift: inset 0 0 0 1px var(--gold-hair), 0 24px 48px -24px rgb(0 0 0 / 60%);
+  --logo-filter: drop-shadow(0 0 16px rgb(0 245 165 / 30%));
   --glass-fill: rgb(22 22 28 / 48%);
   --glass-fill-strong: rgb(26 26 32 / 78%);
   --glass-edge: rgb(255 255 255 / 12%);
   --glass-hi: rgb(255 255 255 / 22%);
+  --glass-sheen: linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(255 255 255 / 2%) 38%, transparent 60%);
   --glass-shadow: 0 30px 60px -30px rgb(0 0 0 / 75%), 0 8px 20px -12px rgb(0 0 0 / 50%);
-  --scrim: rgb(0 0 0 / 42%);
+  --scrim: rgb(0 0 0 / 56%);
+  --ambient-op: .7;
+  --ambient-dim: linear-gradient(180deg, rgb(4 12 9 / 74%), rgb(3 8 6 / 84%));
   --bg-gradient: linear-gradient(160deg, #070808 0%, #090a0a 60%, #0a0f0d 85%, #0c1a14 100%);
   color-scheme: dark;
 }
@@ -106,10 +112,13 @@
   --bg: #edeae1;
   --surface: #f6f4ec;
   --surface-solid: #f6f4ec;
-  --raised: #fff;
+  --raised: #ffffff;
   --tray: rgb(20 20 26 / 4.5%);
   --ink: #14141a;
   --ink-2: rgb(20 20 26 / 78%);
+  /* r10-amended, F-14: rgba(20,20,26,.64) from the source measures ~5.1:1
+     on this background; #55565e measures ~6.1:1, a wider margin for body
+     text at 4.5:1. See scripts/check-design-tokens.mjs R10_AMENDED. */
   --ink-3: #55565e;
   --hair: rgb(20 20 26 / 12%);
   --hair-strong: rgb(20 20 26 / 24%);
@@ -121,12 +130,19 @@
   --ok-tint: rgb(5 96 63 / 10%);
   --wait-tint: rgb(94 70 16 / 10%);
   --bad-tint: rgb(158 31 20 / 9%);
+  --glass: rgb(237 234 225 / 78%);
+  --lift: inset 0 0 0 1px var(--gold-hair), 0 24px 48px -28px rgb(40 34 20 / 35%);
+  --logo-filter: none;
   --glass-fill: rgb(255 255 255 / 42%);
   --glass-fill-strong: rgb(255 255 255 / 82%);
   --glass-edge: rgb(20 20 26 / 8%);
   --glass-hi: rgb(255 255 255 / 90%);
+  --glass-sheen: linear-gradient(160deg, rgb(255 255 255 / 70%), rgb(255 255 255 / 15%) 38%, transparent 60%);
   --glass-shadow: 0 30px 60px -34px rgb(40 34 20 / 35%), 0 8px 20px -14px rgb(40 34 20 / 20%);
+  --glass-blur: 28px;
   --scrim: rgb(20 20 26 / 32%);
+  --ambient-op: .4;
+  --ambient-dim: linear-gradient(180deg, rgb(234 238 232 / 66%), rgb(237 234 225 / 78%));
   --bg-gradient: linear-gradient(160deg, #efece3 0%, #edebe3 60%, #e8ece6 85%, #dee8e0 100%);
   color-scheme: light;
 }

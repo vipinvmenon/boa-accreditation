@@ -58,18 +58,48 @@ for (const [k, v] of want) {
 const R10_AMENDED = {
   'dark.--f-body':
     "ACC-178: Instrument Sans ships from @fontsource-variable, so the family is 'Instrument Sans Variable'; the proposal's --f-body-pick switcher is proposal tooling",
-  // 'light.--ink-3': 'F-14: 4.5:1 on the light ground',
+  'light.--ink-3':
+    'F-14: the source rgba(20,20,26,.64) measures ~5.1:1 on the light --bg; #55565e measures ~6.1:1, a wider margin for body text at the 4.5:1 floor. Found uncommented-but-unwired in review (ACC-179): this entry existed but was never enabled, so the checker was failing on the one token it was written to excuse.',
 }
 const r10Src = 'design/source/r10/r8/tokens.css'
 const r10App = 'app/r10/tokens.css'
 let r10Count = 0
-if (existsSync(join(root, r10App))) {
+// Found in review (ACC-179): app/r10/tokens.css has shipped and is live in
+// production screens, so a missing file is a defect, not "r10 not built
+// yet" — that silent skip predates ACC-180 and must fail loudly now.
+if (!existsSync(join(root, r10App))) {
+  fail(`${r10App} does not exist — r10 screens are shipping without it`)
+} else {
+  // Selector text is matched against everything between the previous `}` and
+  // the next `{`, which includes any `/* comment */` line right above a
+  // block (the source has one above both the dark and light blocks). Strip
+  // comments first, or the selector regex below never matches and this
+  // whole check silently compares zero theme tokens (found in review).
+  const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '')
+  // Values are compared on the colour they resolve to, not on notation: the
+  // r10 source and app/r10/tokens.css legally disagree on hex case, 3- vs
+  // 6-digit hex, and CSS Color 4 `rgb(r g b / a%)` vs legacy `rgba(r,g,b,a)`
+  // — those are the same colour and must not fail this check (found in
+  // review: without this, ~35 of the app's tokens looked "wrong" while
+  // actually matching, drowning the handful of tokens that are genuinely
+  // missing or a different colour).
+  const trimNum = (n) => (Number.isFinite(n) ? n.toString() : String(n))
+  const canonicalColour = (v) => v
+    .replace(/rgba?\(\s*(\d+)\s+(\d+)\s+(\d+)\s*\/\s*([\d.]+)(%?)\s*\)/gi, (_m, r, g, b, a, pct) => (
+      `rgba(${r},${g},${b},${trimNum(pct ? Number(a) / 100 : Number(a))})`
+    ))
+    .replace(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/gi, (_m, r, g, b, a) => (
+      `rgba(${r},${g},${b},${trimNum(a === undefined ? 1 : Number(a))})`
+    ))
+    .replace(/#([0-9a-f])([0-9a-f])([0-9a-f])(?![0-9a-f])/gi, (_m, r, g, b) => `#${r}${r}${g}${g}${b}${b}`.toLowerCase())
+    .replace(/#[0-9a-f]{6}\b/gi, (m) => m.toLowerCase())
+  const normalise = (v) => canonicalColour(v.trim().replace(/\s+/g, ' ')).toLowerCase()
   const blocks = (src, sel) => {
     const out = new Map()
-    for (const m of src.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const m of stripComments(src).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       const theme = sel(m[1].trim())
       if (!theme) continue
-      for (const d of m[2].matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) out.set(`${theme}.${d[1]}`, d[2].trim().replace(/\s+/g, ' '))
+      for (const d of m[2].matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) out.set(`${theme}.${d[1]}`, normalise(d[2]))
     }
     return out
   }
