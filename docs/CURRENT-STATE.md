@@ -1204,6 +1204,14 @@ the existing API/Zod data flow. Verified: typecheck, lint (six existing
 warnings), 294 unit tests, production build, and owned e2e 15/15. Visual
 references remain unavailable until ACC-191.
 
+### 28 Sep 2026 — ACC-183a verified and done
+
+The dashboard now has an authorized ledger feed for IST-day gate counts and
+latest issues, exposed through Zod-validated dashboard data. Verified:
+typecheck, lint (six existing warnings), 297 unit tests, `check:sql`,
+`test:db`, and production build. The migration is applied to the shared
+database; anon privilege assertions and the feed pgTAP assertions pass.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
