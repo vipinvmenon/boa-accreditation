@@ -17,6 +17,7 @@ where the truth lives and what you may not do.
 | [docs/SECURITY.md](docs/SECURITY.md) | Before touching auth, tokens, RLS, or grants |
 | [docs/OFFLINE-SYNC.md](docs/OFFLINE-SYNC.md) | Before touching the gate, the cache, or the outbox |
 | [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md) | Before touching **any** UI |
+| [docs/REDESIGN.md](docs/REDESIGN.md) | Before any Phase RD (r10 redesign) task |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | The BMS loop, the gate runbook, retention |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Before proposing an architecture change |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | To find your task ID and its acceptance criteria |
@@ -39,6 +40,7 @@ git log --oneline -5        # what the last agent actually did
 Then read `docs/CURRENT-STATE.md`.
 
 1. **If something is IN FLIGHT (`[~]`), pick that up.** Do not start a new task.
+   (Phase RD tasks run in parallel, one agent each: see `docs/REDESIGN.md`.)
    `git log` and `git diff` show how far it got.
 2. **Otherwise take the first NEXT UP task.** The roadmap decides the order, not
    you. If the order is wrong, say so — do not quietly reorder it.
@@ -58,11 +60,14 @@ Then read `docs/CURRENT-STATE.md`.
 
 Violating any of these is a defect regardless of how good the reason seemed.
 
-1. **`design/source/boa_design_v2.html` is the pixel contract.** Reproduce it.
-   `boa_design_body.html` and `boa_design_bundle.html` are frozen as the domain
-   and C8 colour record. Their two colour layers disagree on six values
-   **on purpose** — see DESIGN-SYSTEM.md, C8. Reconciling them is the bug, not
-   the fix. See ADR-017 for the deliberate v2 split and its exceptions.
+1. **`design/source/r10/` is the pixel contract (ADR-027)**, written up in
+   `DESIGN.md`. Reproduce it. Screens move to it one at a time under a `.r10`
+   root class (docs/REDESIGN.md); a screen not yet moved still reproduces
+   `design/source/boa_design_v2.html`. `boa_design_body.html` and
+   `boa_design_bundle.html` stay frozen as the domain and C8 colour record.
+   Their two colour layers disagree on six values **on purpose** — see
+   DESIGN-SYSTEM.md, C8. Reconciling them is the bug, not the fix. See ADR-017
+   for the v1 domain split, which ADR-027 keeps.
 2. **The check-in ledger is append-only.** A reissue appends, a void appends.
    Enforced by an `ENABLE ALWAYS` trigger, not by convention.
 3. **Authorisation is enforced in the database.** Client-side checks are a

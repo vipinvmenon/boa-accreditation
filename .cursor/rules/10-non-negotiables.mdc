@@ -7,10 +7,12 @@ alwaysApply: true
 
 Violating any of these is a defect regardless of how good the reason seemed.
 
-1. **`design/source/boa_design_v2.html` is the pixel contract.** Reproduce it.
- `boa_design_body.html` and `boa_design_bundle.html` are frozen as the domain
- and C8 colour record. A visual deviation is a defect, not a preference.
- See ADR-017 for the deliberate v2 split and its exceptions.
+1. **`design/source/r10/` is the pixel contract (ADR-027)**, written up in
+ `DESIGN.md`. Screens move to it one at a time under a `.r10` root class
+ (docs/REDESIGN.md); a screen not yet moved still reproduces
+ `design/source/boa_design_v2.html`. `boa_design_body.html` and
+ `boa_design_bundle.html` stay frozen as the domain and C8 colour record.
+ A visual deviation is a defect, not a preference.
 2. **The check-in ledger is append-only.** A reissue appends, a void appends.
    Enforced by an `ENABLE ALWAYS` trigger, not by convention.
 3. **Authorisation is enforced in the database.** Client-side checks are a

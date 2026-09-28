@@ -59,12 +59,36 @@ const importedWeights = (src) => {
 const declared = declaredWeights(design)
 const imported = importedWeights(layout)
 
+// r10 (ADR-027): the same audit over the frozen r10 CSS, whose font tokens are
+// --f-display, --f-label, --f-body and --f-mono. A variable-font import
+// (@fontsource-variable/<name>) covers every weight of that family.
+const r10Css = ['design/source/r10/r8/tokens.css', 'design/source/r10/r8/ui.css']
+  .map((p) => readFileSync(join(root, p), 'utf8'))
+  .join('\n')
+const r10Aliases = { 'f-display': 'Anton', 'f-label': 'Oswald', 'f-body': 'Instrument Sans', 'f-mono': 'JetBrains Mono' }
+for (const block of r10Css.matchAll(/[^{}]+\{([^{}]*)\}/g)) {
+  const decl = block[1]
+  // Both the longhand and the `font:` shorthand (`font: 500 14px/1.2 var(--f-body)`).
+  const fams = [...decl.matchAll(/font(?:-family)?:[^;]*var\(--(f-[a-z]+)\)/g)].map((x) => r10Aliases[x[1]]).filter(Boolean)
+  const wts = [...decl.matchAll(/font(?:-weight)?:\s*(\d{3})\b/g)].map((x) => x[1])
+  for (const f of fams) {
+    if (!declared.has(f)) declared.set(f, new Set())
+    for (const w of wts.length ? wts : ['400']) declared.get(f).add(w)
+  }
+}
+const variableFamilies = new Set(
+  [...layout.matchAll(/@fontsource-variable\/([a-z-]+)/g)].map((m) =>
+    m[1].split('-').map((p) => p[0].toUpperCase() + p.slice(1)).join(' '),
+  ),
+)
+
 // Anton ships 400 only. A design asking for bold Anton gets synthesis; that is
 // the artefact's own behaviour and is settled by the visual gate, not here.
 const SHIPS_ONLY_400 = new Set(['Anton'])
 
 let failed = false
 for (const [fam, weights] of declared) {
+  if (variableFamilies.has(fam)) continue
   const have = imported.get(fam) ?? new Set()
   const missing = [...weights].filter((w) => !have.has(w) && !(SHIPS_ONLY_400.has(fam) && w !== '400'))
   if (missing.length) {

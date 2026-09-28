@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vehicle entrance · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  .gate-page { padding-top: var(--s-4); }
+  .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: var(--s-5); }
+  .segmented a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+  .segmented a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
+
+  .veh-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; max-width: 640px; }
+  .panel { border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); padding: var(--s-5); }
+  .plate-note { display: flex; gap: var(--s-3); align-items: flex-start; margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); color: var(--ink); }
+  .plate-note .ph { color: var(--gold); font-size: var(--t-display-sm); flex: none; margin-top: 2px; }
+  .plate-note b { display: block; }
+
+  .veh-result { margin-top: var(--s-5); }
+  .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-8) 0; }
+  .veh-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .veh-plate { margin: 0; }
+  .veh-who { margin: 4px 0 0; color: var(--ink-2); }
+  .checks { list-style: none; margin: var(--s-5) 0 0; padding: 0; display: grid; gap: var(--s-3); }
+  .checks li { display: flex; align-items: center; gap: var(--s-3); }
+  .checks .mark { width: 32px; height: 32px; }
+  .checks .mark svg { width: 18px; height: 18px; }
+  .checks .ck-label { font-weight: 600; }
+  .checks .ck-detail { color: var(--ink-3); font-size: var(--t-body-sm); }
+  .turn-reason { margin-top: var(--s-4); }
+  .veh-dock { margin-top: var(--s-5); display: grid; gap: var(--s-3); }
+  .veh-dock .btn { width: 100%; }
+
+  @container app (min-width: 700px) { .veh-dock { grid-auto-flow: column; grid-auto-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame gate-page" id="main">
+    <nav class="segmented" aria-label="Check in people or vehicles">
+      <a href="r8-gate.html">People</a>
+      <a href="r8-vehicle.html" aria-current="page">Vehicles</a>
+    </nav>
+
+    <div class="veh-split">
+      <div class="panel">
+        <label class="field">
+          <span class="label-sm">Vehicle registration</span>
+          <input class="input input-mono" id="plate" placeholder="KA 01 AB 1234" autocomplete="off" autocapitalize="characters" inputmode="text">
+        </label>
+        <button type="button" class="btn btn-primary btn-block btn-gate" id="check-btn" style="margin-top:var(--s-4)">Check plate</button>
+        <div class="plate-note"><i class="ph ph-warning"></i><div><b>Sticker and band. Both.</b>A match on the plate is not a match on the vehicle. Check the sticker against the plate in front of you.</div></div>
+      </div>
+
+      <div class="panel veh-result" id="veh-result">
+        <div class="veh-idle" id="veh-idle"><p class="ink-3">Type a registration and check it.</p></div>
+        <div id="veh-body" hidden></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+R8.shell({ active: 'gate', gate: { online: true, queued: 1, label: 'Gate 1' }, operator: { name: 'Ravi Gowda', role: 'Issuer', initials: 'RG' } })
+const $ = (s) => document.querySelector(s)
+
+// Sync line, matching the gate's own logic
+const sync = { online: true, queued: 1 }
+function renderSync() {
+  const el = $('#sync'); if (!el) return
+  el.dataset.state = sync.online ? 'online' : 'offline'
+  const text = sync.online ? `Synced 2 min ago${sync.queued ? ` · ${sync.queued} waiting` : ''}` : `Offline${sync.queued ? ` · ${sync.queued} waiting` : ''}`
+  const t = el.querySelector('.sync-text'); if (t) t.textContent = text
+}
+renderSync()
+
+// Three real-shape demo plates: cleared, sticker not issued, and (synthetic — this
+// fixture set has no such row, since a sticker implies a collected band) a sticker
+// issued to someone whose band was later voided.
+const PLATES = {
+  'KA45AB3483': { plate: 'KA 45 AB 3483', holder: 'Divya Chandra', org: 'Headbang Radio', tier: 'crew', stickerOk: true, stickerNo: 'S-121', bandOk: true, bandDetail: 'Band #0131, issued 07 Oct' },
+  'KA15KL6728': { plate: 'KA 15 KL 6728', holder: 'Ramya Kamath', org: 'Sentinel Security Services', tier: 'crew', stickerOk: false, bandOk: false, bandDetail: 'No band collected yet' },
+  'KA22NP9040': { plate: 'KA 22 NP 9040', holder: 'Suhas Bhat', org: 'Wildfire Pyro', tier: 'crew', stickerOk: true, stickerNo: 'S-388', bandOk: false, bandDetail: 'Band was voided, 26 Sep' },
+}
+function normalize(v) { return v.toUpperCase().replace(/[^A-Z0-9]/g, '') }
+
+function render(rec) {
+  $('#veh-idle').hidden = true
+  const body = $('#veh-body')
+  body.hidden = false
+  const bothOk = rec.stickerOk && rec.bandOk
+  body.innerHTML = `
+    <div class="veh-head"><h2 class="display-md veh-plate mono">${rec.plate}</h2></div>
+    <p class="veh-who">${rec.holder} · ${TIERS[rec.tier].label} · ${rec.org}</p>
+    <ul class="checks">
+      <li><span class="mark" style="--c:${rec.stickerOk ? 'var(--go)' : 'var(--bad)'}">${R8.markSvg(rec.stickerOk ? 'ok' : 'bad')}</span><div><div class="ck-label">${rec.stickerOk ? `Sticker ${rec.stickerNo} issued` : 'No sticker issued'}</div><div class="ck-detail">${rec.stickerOk ? `Bound to ${rec.plate}` : 'This registration has no sticker on file'}</div></div></li>
+      <li><span class="mark" style="--c:${rec.bandOk ? 'var(--go)' : 'var(--bad)'}">${R8.markSvg(rec.bandOk ? 'ok' : 'bad')}</span><div><div class="ck-label">Holder's band issued</div><div class="ck-detail">${rec.bandDetail}</div></div></li>
+    </ul>
+    <div class="veh-dock">
+      ${bothOk
+        ? `<button type="button" class="btn btn-primary btn-gate" id="clear-btn"><i class="ph ph-check-circle"></i>Log entry and open gate</button>`
+        : `<button type="button" class="btn btn-danger btn-gate" id="turn-btn">Turn away</button>`}
+    </div>
+    ${!bothOk ? `<p class="ink-2 body-sm turn-reason" id="turn-reason">${!rec.stickerOk ? 'No sticker is issued to this plate.' : 'The sticker holder has no active band.'} Not logged.</p>` : ''}`
+  $('#clear-btn')?.addEventListener('click', () => {
+    if (!sync.online) sync.queued += 1
+    renderSync()
+    R8.toast(sync.online ? 'Entry logged · gate open' : 'Entry logged · saved on this phone')
+  })
+  $('#turn-btn')?.addEventListener('click', () => R8.toast('Turned away · logged', { bad: true, icon: 'x-circle' }))
+}
+const TIERS = R8.TIERS
+function checkPlate() {
+  const raw = $('#plate').value
+  const key = normalize(raw)
+  const rec = PLATES[key]
+  if (!rec) { $('#veh-idle').hidden = false; $('#veh-idle').innerHTML = '<p class="label-sm">Not on file</p><p class="ink-2 body-sm" style="margin-top:6px">No sticker or band is on record for this registration.</p>'; $('#veh-body').hidden = true; return }
+  render(rec)
+}
+$('#plate').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase() })
+$('#plate').addEventListener('keydown', (e) => { if (e.key === 'Enter') checkPlate() })
+$('#check-btn').addEventListener('click', checkPlate)
+
+R8.proto([
+  { label: 'Plate: cleared', run: () => { $('#plate').value = 'KA 45 AB 3483'; checkPlate() } },
+  { label: 'Plate: no sticker', run: () => { $('#plate').value = 'KA 15 KL 6728'; checkPlate() } },
+  { label: 'Plate: no band', run: () => { $('#plate').value = 'KA 22 NP 9040'; checkPlate() } },
+  { label: 'Go offline', run: () => { sync.online = false; renderSync() } },
+  { label: 'Go online', run: () => { sync.online = true; renderSync() } },
+])
+</script>
+</body>
+</html>

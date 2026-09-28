@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Users · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  .users { --cols: minmax(200px, 1.4fr) minmax(220px, 1.4fr) 140px 150px 24px; }
+  .form { display: grid; gap: var(--s-5); }
+  .role-note { margin: 0; }
+  .confirm { display: grid; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-md); background: var(--bad-tint); animation: fade-in var(--d-quick) var(--e-out); }
+  .confirm-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .sheet-section { margin-top: var(--s-6); padding-top: var(--s-5); border-top: 1px solid var(--hair); }
+  .sheet-section h3 { margin: 0 0 var(--s-3); color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame" data-states="ready,loading,empty,error">
+    <div class="page-head">
+      <div>
+        <h1 class="display-lg">Users</h1>
+        <p class="lede">Who can sign in to the desk and the gate, and what each of them can do.</p>
+      </div>
+      <button class="btn btn-primary" id="invite">Invite operator<span class="ic"><i class="ph ph-user-plus"></i></span></button>
+    </div>
+
+    <div class="when-ready">
+      <div class="table users" role="table" aria-label="Operators">
+        <div class="thead label-sm" role="row"><span>Name</span><span>Email</span><span>Role</span><span>Status</span><span></span></div>
+        <div id="rows" role="rowgroup"></div>
+      </div>
+    </div>
+    <div class="when-loading" aria-busy="true" aria-label="Loading operators">
+      <div class="table users"><div class="thead label-sm"><span>Name</span><span>Email</span><span>Role</span><span>Status</span><span></span></div>
+        <div id="sk"></div></div>
+    </div>
+    <div class="when-empty"><div class="empty">
+      <i class="ph ph-users-three"></i>
+      <p class="display-sm">Only you so far</p>
+      <p>Invite the desk and the gate issuers. Each gets an email to set a password.</p>
+    </div></div>
+    <div class="when-error"><div class="empty empty-error">
+      <i class="ph ph-warning-circle"></i>
+      <p class="display-sm">Operators didn't load</p>
+      <p>Your connection or the server stopped answering.</p>
+      <button class="btn" onclick="R8.setState('loading');setTimeout(()=>R8.setState('ready'),900)">Try again<span class="ic"><i class="ph ph-arrows-clockwise"></i></span></button>
+    </div></div>
+  </main>
+</div>
+
+<!-- Invite sheet -->
+<aside class="sheet" id="invite-sheet" data-open="false" role="dialog" aria-modal="true" aria-labelledby="inv-h">
+  <div class="grabber"></div>
+  <div class="sheet-head"><h2 class="display-md" id="inv-h">Invite operator</h2><button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button></div>
+  <form class="sheet-body form" id="inv-form" novalidate>
+    <label class="field"><span class="label-sm">Full name</span><input class="input" id="inv-name" autocomplete="off" autofocus><span class="hint">Shown to the team and on gate records.</span></label>
+    <label class="field"><span class="label-sm">Email</span><input class="input" id="inv-email" type="email" autocomplete="off"><span class="error" id="inv-err" hidden>Enter an email address, like name@example.com.</span></label>
+    <label class="field"><span class="label-sm">Role</span>
+      <span class="select"><select class="input" id="inv-role"><option>Issuer</option><option>Approver</option><option>Lead</option><option>Admin</option></select></span>
+      <span class="hint role-note" id="inv-note"></span></label>
+  </form>
+  <div class="sheet-foot"><button class="btn btn-primary" form="inv-form" type="submit">Send invitation<span class="ic"><i class="ph ph-paper-plane-tilt"></i></span></button><button class="btn btn-ghost" data-close-sheet>Cancel</button></div>
+</aside>
+
+<!-- Operator sheet -->
+<aside class="sheet" id="op-sheet" data-open="false" role="dialog" aria-modal="true" aria-labelledby="op-name">
+  <div class="grabber"></div>
+  <div class="sheet-head"><div><h2 class="display-md" id="op-name"></h2><p class="mono ink-2" id="op-email" style="margin:var(--s-2) 0 0"></p></div><button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button></div>
+  <div class="sheet-body" id="op-body"></div>
+</aside>
+
+<script>
+R8.shell({ active: null, badges: { master: 17 }, operator: { name: 'Vipin Menon', role: 'Admin', initials: 'VM' } })
+const ROLES = {
+  Issuer: 'Uses the gate only. Cannot see the desk.',
+  Approver: 'Sees the desk and the Master list. Cannot send passes or manage users.',
+  Lead: 'Runs the desk: passes, Master list, organisations and the gate.',
+  Admin: 'Everything a lead can do, and manages users.',
+}
+const ops = window.R8DATA.operators.map((o) => ({ ...o }))
+const $ = (s) => document.querySelector(s)
+function render() {
+  $('#rows').innerHTML = ops.map((o, i) => `<div class="tr" role="row" tabindex="0" data-i="${i}">
+    <div role="cell"><div class="nm">${o.name}${o.you ? ' <span class="body-sm ink-3" style="text-transform:none;letter-spacing:0;font-family:var(--f-body)">(you)</span>' : ''}</div></div>
+    <div role="cell" class="mono ink-2 hide-s">${o.email}</div>
+    <div role="cell" class="hide-s">${o.role}</div>
+    <div role="cell" class="hide-s">${o.active ? '<span class="pill pill-ok">Active</span>' : '<span class="pill">Deactivated</span>'}</div>
+    <div role="cell" class="hide-s ink-3"><i class="ph ph-caret-right"></i></div>
+    <div class="row2"><span class="body-sm ink-2">${o.role}</span>${o.active ? '<span class="pill pill-ok">Active</span>' : '<span class="pill">Deactivated</span>'}</div>
+  </div>`).join('')
+}
+$('#sk').innerHTML = Array.from({ length: 6 }, (_, i) => `<div class="tr" style="cursor:default"><div><span class="sk sk-line" style="display:block;width:${40 + i * 7}%"></span></div><div class="hide-s"><span class="sk sk-line" style="display:block;width:${55 + i * 4}%"></span></div><div class="hide-s"><span class="sk sk-line" style="display:block;width:56px"></span></div><div class="hide-s"><span class="sk sk-pill" style="display:block"></span></div><div></div></div>`).join('')
+render()
+
+// Invite
+const note = () => ($('#inv-note').textContent = ROLES[$('#inv-role').value])
+$('#inv-role').addEventListener('change', note); note()
+$('#invite').addEventListener('click', () => R8.openSheet('invite-sheet'))
+$('#inv-form').addEventListener('submit', (e) => {
+  e.preventDefault()
+  const email = $('#inv-email').value.trim()
+  const ok = /.+@.+\..+/.test(email)
+  $('#inv-email').setAttribute('aria-invalid', !ok); $('#inv-err').hidden = ok
+  if (!ok) { $('#inv-email').focus(); return }
+  R8.closeSheets(); R8.toast(`Invitation sent to ${email}`, { icon: 'paper-plane-tilt' })
+  ops.push({ name: $('#inv-name').value.trim() || email.split('@')[0], email, role: $('#inv-role').value, active: true }); render()
+  $('#inv-form').reset(); note()
+})
+
+// Operator sheet: change role, deactivate with an inline confirm
+function openOp(i) {
+  const o = ops[i]
+  $('#op-name').textContent = o.name; $('#op-email').textContent = o.email
+  $('#op-body').innerHTML = o.you
+    ? `<dl class="dl body-sm"><dt>Role</dt><dd>${o.role}</dd><dt>Status</dt><dd><span class="pill pill-ok">Active</span></dd></dl><p class="body-sm ink-3" style="margin-top:var(--s-5)">You can't change your own role or status. Ask another admin.</p>`
+    : `<label class="field"><span class="label-sm">Role</span><span class="select"><select class="input" id="op-role">${Object.keys(ROLES).map((r) => `<option ${r === o.role ? 'selected' : ''}>${r}</option>`).join('')}</select></span><span class="hint" id="op-note">${ROLES[o.role]}</span></label>
+       <div style="margin-top:var(--s-4)"><button class="btn" id="op-save" hidden>Save role</button></div>
+       <div class="sheet-section"><h3 class="label">Access</h3>
+         <div id="op-access">${o.active
+           ? `<p class="body-sm ink-2" style="margin:0 0 var(--s-4)">Active. Signs in with their own password.</p><button class="btn btn-danger" id="op-deact">Deactivate</button>`
+           : `<p class="body-sm ink-2" style="margin:0 0 var(--s-4)">Deactivated. Can't sign in.</p><button class="btn" id="op-react">Reactivate</button>`}</div></div>`
+  R8.openSheet('op-sheet')
+  if (o.you) return
+  const sel = $('#op-role')
+  sel.addEventListener('change', () => { $('#op-note').textContent = ROLES[sel.value]; $('#op-save').hidden = sel.value === o.role })
+  $('#op-save').addEventListener('click', () => { o.role = sel.value; $('#op-save').hidden = true; render(); R8.toast(`${o.name} is now ${o.role}`) })
+  $('#op-deact')?.addEventListener('click', () => {
+    $('#op-access').innerHTML = `<div class="confirm" role="alertdialog" aria-label="Confirm deactivation"><p class="body-sm" style="margin:0"><b>Deactivate ${o.name}?</b> They can't sign in until an admin reactivates them.</p>
+      <div class="confirm-actions"><button class="btn btn-danger" id="op-yes">Deactivate</button><button class="btn btn-ghost" id="op-no">Keep active</button></div></div>`
+    $('#op-yes').focus()
+    $('#op-yes').addEventListener('click', () => { o.active = false; render(); R8.closeSheets(); R8.toast(`${o.name} deactivated`) })
+    $('#op-no').addEventListener('click', () => openOp(i))
+  })
+  $('#op-react')?.addEventListener('click', () => { o.active = true; render(); R8.closeSheets(); R8.toast(`${o.name} can sign in again`) })
+}
+$('#rows').addEventListener('click', (e) => { const r = e.target.closest('.tr'); if (r) openOp(+r.dataset.i) })
+$('#rows').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const r = e.target.closest('.tr'); if (r) openOp(+r.dataset.i) } })
+R8.proto([{ label: 'Open invite', run: () => R8.openSheet('invite-sheet') }, { label: 'Open a user', run: () => openOp(3) }])
+</script>
+</body>
+</html>

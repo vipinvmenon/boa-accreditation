@@ -47,6 +47,45 @@ for (const [k, v] of want) {
   else if (got.get(k) !== v) fail(`globals.css ${k} = ${got.get(k)} but the design says ${v}`)
 }
 
+// ── 1b. r10 tokens (ADR-027) ───────────────────────────────────────────────
+// app/r10/tokens.css (ACC-180) must carry the frozen r10 source's values for
+// every token name the source defines. The app's blocks are `.r10` (dark and
+// base) and `[data-theme="light"] .r10`; the source's are `:root` and
+// `:root, [data-theme="dark"]` (dark and base) and `[data-theme="light"]`.
+// New token names are allowed: collapsing the r9 to r10.5 layers turns
+// literals into tokens. A deliberate change to a source value goes in
+// R10_AMENDED with its reason, and nowhere else.
+const R10_AMENDED = {
+  'dark.--f-body':
+    "ACC-178: Instrument Sans ships from @fontsource-variable, so the family is 'Instrument Sans Variable'; the proposal's --f-body-pick switcher is proposal tooling",
+  // 'light.--ink-3': 'F-14: 4.5:1 on the light ground',
+}
+const r10Src = 'design/source/r10/r8/tokens.css'
+const r10App = 'app/r10/tokens.css'
+let r10Count = 0
+if (existsSync(join(root, r10App))) {
+  const blocks = (src, sel) => {
+    const out = new Map()
+    for (const m of src.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const theme = sel(m[1].trim())
+      if (!theme) continue
+      for (const d of m[2].matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) out.set(`${theme}.${d[1]}`, d[2].trim().replace(/\s+/g, ' '))
+    }
+    return out
+  }
+  const srcSel = (s) => (/^:root(, \[data-theme="dark"\])?$/.test(s) ? 'dark' : s === '[data-theme="light"]' ? 'light' : null)
+  const appSel = (s) => (s === '.r10' ? 'dark' : /^\[data-theme="light"\] \.r10$/.test(s) ? 'light' : null)
+  const want10 = blocks(read(r10Src), srcSel)
+  const got10 = blocks(read(r10App), appSel)
+  if (want10.size === 0) fail(`could not parse any tokens out of ${r10Src}`)
+  for (const [k, v] of want10) {
+    r10Count++
+    if (R10_AMENDED[k]) continue
+    if (!got10.has(k)) fail(`${r10App} is missing ${k} (r10 says ${v})`)
+    else if (got10.get(k) !== v) fail(`${r10App} ${k} = ${got10.get(k)} but r10 says ${v}`)
+  }
+}
+
 // ── 2. The PROP layer ──────────────────────────────────────────────────────
 const propFromDesign = (source) => {
   const out = { dark: {}, light: {} }
@@ -82,6 +121,7 @@ const HEX_ALLOWED = new Set([
   'app/globals.css', // the transcribed helmet block
   'app/layout.tsx', // the <body> fallback + themeColor
   'app/v2.css', // v2's fixed light QR plate from the approved source
+  'app/r10/tokens.css', // the r10 token layer (ADR-027); every other r10 file uses tokens
 ])
 const walk = (dir, acc = []) => {
   // A fresh clone does not contain empty scaffold directories: git does not
@@ -117,4 +157,4 @@ if (failed) {
   console.error('not an edit to globals.css. See docs/DESIGN-SYSTEM.md.')
   process.exit(1)
 }
-console.log(`design tokens OK — ${want.size} theme tokens, ${Object.keys(wantProp.dark).length} prop colours, no stray hex`)
+console.log(`design tokens OK — ${want.size} theme tokens, ${r10Count ? `${r10Count} r10 tokens` : 'r10 not built yet'}, ${Object.keys(wantProp.dark).length} prop colours, no stray hex`)

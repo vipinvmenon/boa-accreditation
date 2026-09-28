@@ -46,6 +46,9 @@ import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/600.css'
 import '@fontsource/jetbrains-mono/700.css'
+// r10 body face (ADR-027, ACC-178). Variable: one file covers every weight,
+// and the family name is 'Instrument Sans Variable'.
+import '@fontsource-variable/instrument-sans'
 
 import type { Metadata, Viewport } from 'next'
 import './globals.css'

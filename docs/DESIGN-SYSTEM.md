@@ -1,5 +1,11 @@
 # Design system
 
+> **28 Sep 2026, ADR-027: `design/source/r10/` replaces v2 as the pixel
+> contract.** Its spec is `DESIGN.md` at the repo root; the build plan is
+> `docs/REDESIGN.md`. Screens move one at a time under a `.r10` root class.
+> Everything below describes v2 and the C8 colour record. It still binds
+> every screen not yet migrated, and C8 binds all of them.
+
 The approved pixel design is `design/source/boa_design_v2.html`, committed
 verbatim. The v2 stylesheet and markup are the visual contract. The committed
 `boa_design_body.html` remains frozen as the domain and C8 colour record:

@@ -10,7 +10,12 @@ Read `docs/DESIGN-SYSTEM.md` before touching anything here.
 
 ## Transcribe, do not translate
 
-The v2 design is the pixel contract. Its stylesheet is transcribed into the
+**r10 (`design/source/r10/`, spec in `DESIGN.md`) is the pixel contract
+(ADR-027).** Screens migrate one at a time under a `.r10` root; see
+`docs/REDESIGN.md` and rule `40-redesign.mdc`. What follows is how v2 is
+transcribed, and it still binds every screen not yet migrated.
+
+The v2 design was the pixel contract. Its stylesheet is transcribed into the
 v2 primitive layer and its repeated visual patterns are represented by the
 approved shared primitives and inline icon component. No Tailwind or CSS
 modules. Keep the contract's values verbatim; abstractions must not change the
