@@ -3,13 +3,57 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 27 September 2026 (ACC-151 Meta console session; see WHATSAPP.md)._
+_Last updated: 28 September 2026 (Phase RD status after the Cursor session)._
 
-## Redesign r10 planned, 28 Sep 2026 — ADR-027 accepted, build not started
+## Redesign r10, 28 Sep 2026 evening — the desk has moved, the gate has not
+
+**Done (12 of 18):** ACC-178, 179, 180, 181a, 181b, 182, 183a, 183, 184,
+185, 186, 187. That covers the tokens, the primitives, the desk shell and all
+five desk screens (Control room, Master list, Passes, Organisations and Users).
+Most of this was built in Cursor. Each task's evidence is in its own
+session-log entry below.
+
+**Re-checked by Claude on 28 Sep, on `main` at `1762e5c`:** typecheck clean;
+lint 0 errors and 7 warnings (`<img>`); unit tests 297/297; `check:sql` OK on
+40 migrations; production build OK (61 files precached by the gate SW).
+`db:state` shows both new migrations applied, and their objects exist:
+`202609281250` / `20260928073202` (`boa_acc_desk_gate_feed`) and
+`202609281430` (`boa_acc_set_operator_role`). The re-check did **not** run
+`test:db`, `test:e2e` or `test:visual`. For those, see Cursor's per-task
+entries.
+
+**Not verified by anyone:**
+- **`test:visual` has not run on any r10 screen.** No r10 reference exists
+  until ACC-191, which may generate references only for screens Vipin has
+  signed off. **Vipin has not signed off any r10 screen yet.**
+- **No rd-reviewer pass is recorded** for ACC-179 or ACC-183a, and
+  REDESIGN.md asks for one on both. ACC-183a adds a new RPC over the ledger.
+  Commit `b2ffb57` ("harden dashboard feed") suggests someone reviewed it,
+  but nothing records who, or what they found.
+- **None of the r10 desk screens has been seen on a real phone.**
+- **`main` has not been pushed.** It is 54 commits ahead of `origin/main`, so
+  **production still runs the v2 desk.** `verify:deploy` has not run for any
+  of this work.
+
+**Left in Phase RD:** ACC-188 (reskin sign-in, pass page, 404 and error),
+ACC-189 (gate; **cannot start until ACC-147 is `[x]`**, and ACC-147 is still
+released on its two-issuer phone rehearsal), ACC-190 (vehicle), ACC-191
+(references, after sign-off), ACC-192 (dead CSS; cut first), and ACC-193
+(re-crawl).
+
+**Roadmap overlaps, not reconciled:**
+- **ACC-160 is still `[ ]`.** ACC-185 appears to carry its button half:
+  `passes-screen-r10.tsx` shows the unsent count, filters for "Not sent" and
+  "Failed", and a hold-to-send sheet that names the count. The per-person
+  delivery state still depends on ACC-144.
+- **ACC-166 is also still `[ ]`,** although ACC-190 absorbs it.
+- `corepack pnpm task` therefore still lists both as NEXT UP.
+
+### History: the plan as written that morning
 
 `docs/REDESIGN.md` is the plan: waves, lanes, and the Claude Code and Cursor
 agents with their models (`.claude/agents/rd-*`, `.cursor/agents/cursor-rd-*`).
-Roadmap: Phase RD, ACC-178 to ACC-193. **Nothing is built yet.** ACC-178 is done:
+Roadmap: Phase RD, ACC-178 to ACC-193. At the time this was written, nothing was built yet. ACC-178 is done:
 Vipin accepted ADR-027 on 28 Sep, chose Instrument Sans, and sanctioned the
 baseline regeneration after sign-off. **ACC-179 done 28 Sep:**
 `design/source/r10/` is frozen (all ten pages verified loading every asset in
