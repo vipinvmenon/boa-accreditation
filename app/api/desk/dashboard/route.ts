@@ -42,8 +42,12 @@ export async function GET() {
 
   // ACC-183a: the feed is an optional additive migration. An older deployment
   // can return PGRST202 while the already-working Control room RPC is present;
-  // keep that shell usable until the feed migration is pushed.
-  const parsedFeed = dashboardGateFeedSchema.safeParse(feedError ? {} : feedData ?? {})
+  // keep that shell usable until the feed migration is pushed. But any
+  // failure here — missing migration, a permission error, a timeout, or a
+  // ledger row this schema can't parse (an unmapped boa_acc_type_code, say)
+  // — must read downstream as "the feed is unavailable", not as "zero
+  // events today": the route reports it as `null` (below), never as `[]`.
+  const parsedFeed = feedError ? null : dashboardGateFeedSchema.safeParse(feedData ?? {})
 
   // ACC-115: each tier card prints boa_acc_type.note. The counts stay in the
   // one RPC; the note is copy, read from the table the RPC orders by, so the
@@ -66,7 +70,8 @@ export async function GET() {
 
   const body: DashboardResponse = {
     ...parsed.data,
-    ...(parsedFeed.success ? parsedFeed.data : dashboardGateFeedSchema.parse({})),
+    gateCounts: parsedFeed?.success ? parsedFeed.data.gateCounts : null,
+    latestIssues: parsedFeed?.success ? parsedFeed.data.latestIssues : null,
     types: parsed.data.types.map((type) => ({ ...type, note: noteByCode.get(type.code) ?? null })),
     doubleIssueList,
   }

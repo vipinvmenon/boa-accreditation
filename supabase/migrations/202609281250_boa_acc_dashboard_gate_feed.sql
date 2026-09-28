@@ -7,7 +7,12 @@
 
 begin;
 
-create function public.boa_acc_desk_gate_feed()
+-- `or replace`, not a bare `create`: 20260928073202 (a later corrective
+-- migration, filename sorted before this one — see that file's header) must
+-- be free to run first on a fresh database without a 42723 "already exists"
+-- failure. Both files now create the same function; whichever runs first
+-- creates it, the other replaces it identically. Idempotent either order.
+create or replace function public.boa_acc_desk_gate_feed()
 returns jsonb
 language plpgsql
 volatile

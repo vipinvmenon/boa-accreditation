@@ -126,8 +126,18 @@ export const doubleIssueListSchema = z.array(doubleIssueSchema)
  * What /api/desk/dashboard returns: the RPC's payload, plus the double-issue
  * list, which the route fetches only when `doubleIssues` is non-zero. `null`
  * means the count is known but the list read failed — the screen still warns.
+ *
+ * gateCounts/latestIssues are `null`, not `[]`, when boa_acc_desk_gate_feed()
+ * errored or its payload failed dashboardGateFeedSchema — same shape as
+ * doubleIssueList, for the same reason: an older deployment without the
+ * feed migration, a permission error, or an unmapped tier code must read as
+ * "the feed is unavailable", never silently as "zero events today" (found in
+ * review, ACC-183a: a timeout or a `boa_acc_type_code` TIER_CODES doesn't
+ * cover would otherwise make every gate read zero on show day).
  */
 export const dashboardResponseSchema = dashboardSchema.extend({
+  gateCounts: dashboardGateCountSchema.array().nullable().default([]),
+  latestIssues: dashboardLatestIssueSchema.array().nullable().default([]),
   doubleIssueList: doubleIssueListSchema.nullable().default([]),
 })
 

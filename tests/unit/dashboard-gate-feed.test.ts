@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   dashboardGateCountSchema,
   dashboardLatestIssueSchema,
+  dashboardResponseSchema,
   dashboardSchema,
 } from '@/lib/schemas/dashboard'
 
@@ -26,6 +27,26 @@ describe('dashboard gate feed schema (ACC-183a)', () => {
 
     expect(parsed.gateCounts).toEqual([])
     expect(parsed.latestIssues).toEqual([])
+  })
+
+  it('the response contract distinguishes "feed unavailable" (null) from "no events" ([])', () => {
+    // Found in review (ACC-183a): the route must not fold a feed RPC error,
+    // an old deployment missing the migration, or an unparseable ledger row
+    // into an empty array — that reads as "zero events today" on the
+    // Control room. It reads as null instead, same shape as doubleIssueList.
+    const base = {
+      submittedTotal: 0, submittedOrgs: 0, approvedTotal: 0, pendingTotal: 0,
+      bandsIssued: 0, bandsNotCollected: 0, stickersActive: 0, stickersPending: 0,
+      bmsAdded: 0, bmsPending: 0, aaaStamped: 0, aaaNominatedApproved: 0,
+      types: [], orgs: [], doubleIssueList: [],
+    }
+    const unavailable = dashboardResponseSchema.parse({ ...base, gateCounts: null, latestIssues: null })
+    expect(unavailable.gateCounts).toBeNull()
+    expect(unavailable.latestIssues).toBeNull()
+
+    const quietDay = dashboardResponseSchema.parse({ ...base, gateCounts: [], latestIssues: [] })
+    expect(quietDay.gateCounts).toEqual([])
+    expect(quietDay.latestIssues).toEqual([])
   })
 
   it('accepts a gate count and a typed ledger issue', () => {
