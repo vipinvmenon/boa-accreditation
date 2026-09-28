@@ -1188,6 +1188,17 @@ Verified: typecheck, lint (six existing warnings), 294 unit tests, focused
 primitive tests, and production build. `test:visual` remains unavailable until
 ACC-191 generates references; no shared CSS request remains.
 
+### 28 Sep 2026 — ACC-187 verified and done
+
+The r10 Users screen can change another operator's role. The change is
+`public.boa_acc_set_operator_role`: lead or admin only, a caller cannot change
+their own role, and the last active admin cannot be moved off admin. Anon and
+service_role have no EXECUTE. The migration `202609281430` is applied on the
+shared database. Verified: typecheck, lint (seven existing img warnings), 297
+unit tests, `check:sql`, `test:db` (operator-role 7/7 and privileges 140–142),
+and users e2e 2/2 including the role-change sheet. `test:visual` was not run;
+references stay unavailable until ACC-191.
+
 ### 28 Sep 2026 — ACC-182 verified and done
 
 The r10 desk shell now supplies the desk background, ambient layer, page frame,
