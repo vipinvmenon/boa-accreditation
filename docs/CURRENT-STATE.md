@@ -1160,6 +1160,15 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 28 Sep 2026 — ACC-180 verified and done
+
+The r10 token, base, and primitive foundation now exists under `app/r10/`, with
+the development preview under `app/dev/r10/`. Verified: typecheck, lint (six
+existing warnings), 281 unit tests, `check:sql`, and production build. The
+token checker reports 65 r10 tokens and the light `--ink3` contrast is above
+4.5:1. `test:visual` was not green because reference images do not exist yet;
+reference generation belongs to ACC-191.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
