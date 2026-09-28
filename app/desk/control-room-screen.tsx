@@ -35,8 +35,15 @@ const CONTROL_ROOM_ERROR_OVERRIDES = {
 const MILESTONES = [
   { label: 'links-out', date: '2026-09-20' },
   { label: 'gate live', date: '2026-10-04' },
+  { label: 'build starts', date: '2026-10-05' },
+  { label: 'build ends', date: '2026-10-09' },
   { label: 'show', date: '2026-10-10' },
 ] as const
+
+const GATE_LIVE_DATE = new Date('2026-10-04T00:00:00')
+const BUILD_START_DATE = new Date('2026-10-05T00:00:00')
+const BUILD_END_DATE = new Date('2026-10-09T00:00:00')
+const SHOW_DATE = new Date('2026-10-10T00:00:00')
 
 function nextMilestone(now: Date): { label: string; days: number } | null {
   for (const m of MILESTONES) {
@@ -44,6 +51,47 @@ function nextMilestone(now: Date): { label: string; days: number } | null {
     if (days >= 0) return { label: m.label, days }
   }
   return null
+}
+
+function daysBetween(from: Date, to: Date): number {
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000)
+}
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "Mon 6 Oct" — the live current date, not a hardcoded demo label. */
+function formatWeekdayDate(d: Date): string {
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
+function formatDayMonth(d: Date): string {
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
+/**
+ * The hero-kicker line (r8-control-room.html): "Build week, day 2. The gate
+ * has been live since 4 Oct." Computed from the fixed dates in CLAUDE.md
+ * against the real clock, not written in for one week of the calendar.
+ */
+function heroKickerText(now: Date): string {
+  const sinceGate = `The gate has been live since ${formatDayMonth(GATE_LIVE_DATE)}.`
+  if (now < GATE_LIVE_DATE) {
+    return `${daysBetween(now, GATE_LIVE_DATE)} day${daysBetween(now, GATE_LIVE_DATE) === 1 ? '' : 's'} to gate live.`
+  }
+  if (now < BUILD_START_DATE) {
+    const days = daysBetween(now, BUILD_START_DATE)
+    return `Gate live. Build starts in ${days} day${days === 1 ? '' : 's'}.`
+  }
+  if (now <= BUILD_END_DATE) {
+    const day = daysBetween(BUILD_START_DATE, now) + 1
+    return `Build week, day ${day}. ${sinceGate}`
+  }
+  if (now < SHOW_DATE) {
+    const days = daysBetween(now, SHOW_DATE)
+    return `Show in ${days} day${days === 1 ? '' : 's'}. ${sinceGate}`
+  }
+  return `Show day. ${sinceGate}`
 }
 
 const COUNT_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
@@ -77,7 +125,9 @@ function StatTile({ label, value, detail, width, colour }: {
 }
 
 function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark' | 'light' }) {
-  const milestone = nextMilestone(new Date())
+  const now = new Date()
+  const milestone = nextMilestone(now)
+  const daysToShow = daysBetween(now, SHOW_DATE)
   const issuedRatio = ratio(dash.bandsIssued, dash.approvedTotal)
   const stickerTotal = dash.stickersActive + dash.stickersPending
   const behind = dash.orgs
@@ -93,21 +143,27 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
           <div className={styles['heroArt']} role="img" aria-label="Bangalore Open Air festival poster" />
           <div className={styles['heroInner']}>
             <div className={`glass ${styles['heroPlate']}`}>
-              <p className="label-sm gold">Control room</p>
-              <h1 id="control-room-title" className="display-lg">The room behind the bands</h1>
-              <span className={styles['heroNumber']}>{dash.bandsNotCollected}</span>
+              <h1 id="control-room-title" className="sr-only">Control room</h1>
+              <div className={`${styles['heroKicker']} body-sm`}>
+                <span className={styles['liveDot']} aria-hidden="true" />
+                {heroKickerText(now)}
+              </div>
+              <div className={styles['heroNum']}>
+                <span className={styles['heroBig']}>{dash.bandsNotCollected}</span>
+                <span className={styles['heroUnit']}>still to collect a band</span>
+              </div>
               <p className={styles['heroCopy']}>
-                bands still to collect. {dash.bandsIssued} of {dash.approvedTotal} approved bands have been handed over.
-                {milestone && <> The show is in {milestone.days} day{milestone.days === 1 ? '' : 's'}.</>}
+                {dash.bandsIssued} of {dash.approvedTotal} bands handed over.
+                {daysToShow > 0 && <> The show is in {daysToShow} day{daysToShow === 1 ? '' : 's'}, and everyone collects in person.</>}
               </p>
               <Link href="/desk/master?status=not_collected" className={`btn btn-primary ${styles['heroAction']}`}>
-                See who is waiting <span className="ic"><Icon name="arrow-right" /></span>
+                See who hasn&apos;t collected <span className="ic"><Icon name="arrow-right" /></span>
               </Link>
             </div>
             <div className={`glass ${styles['ringWrap']}`} aria-label={`${Math.round(issuedRatio * 100)} percent of approved bands issued`}>
-              <svg className={styles['ring']} viewBox="0 0 148 148" aria-hidden="true">
-                <circle className={styles['ringTrack']} cx="74" cy="74" r="64" />
-                <circle className={styles['ringValue']} cx="74" cy="74" r="64" pathLength="1" style={{ strokeDasharray: 1, strokeDashoffset: 1 - issuedRatio }} />
+              <svg className={styles['ring']} viewBox="0 0 188 188" aria-hidden="true">
+                <circle className={styles['ringTrack']} cx="94" cy="94" r="80" />
+                <circle className={styles['ringValue']} cx="94" cy="94" r="80" pathLength="1" style={{ strokeDasharray: 1, strokeDashoffset: 1 - issuedRatio }} />
               </svg>
               <div className={styles['ringLabel']}>
                 <strong>{Math.round(issuedRatio * 100)}%</strong>
@@ -121,7 +177,7 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
 
       <div className={styles['bento']}>
         <Card className={styles['week'] ?? ''}>
-          <div className="card-label"><h2 id="week-title" className="label-sm gold">The week</h2><span className="body-sm ink-3">Build week</span></div>
+          <div className="card-label"><h2 id="week-title" className="label-sm gold">The week</h2><span className="body-sm ink-3">{formatWeekdayDate(now)}</span></div>
           <ol className={styles['timeline']}>
             <li className="done"><span className="body-sm ink-3">20 Sep</span><strong className="display-sm">Links out</strong></li>
             <li className="done"><span className="body-sm ink-3">4 Oct</span><strong className="display-sm">Gate live</strong></li>

@@ -186,9 +186,8 @@ export function PassesScreenR10() {
     <main id="main-content" tabIndex={-1} ref={rootRef} className="r10 passes-page">
       <header className="passes-head">
         <div>
-          <span className="tag">The pass</span>
-          <h1 className="display-lg">Pass sheet</h1>
-          <p className="lede">One card per approved person. Open a pass to review its ticket and delivery state.</p>
+          <h1 className="display-lg">Passes</h1>
+          <p className="lede">{passes.length} approved people. {unsent.length} haven&apos;t got their pass yet.</p>
           {sends && !sends.configured && <p className="mono passes-note">WhatsApp is not configured yet. Use each pass&apos;s one-tap link.</p>}
           {notice && <p role="status" className="mono passes-note">{notice}</p>}
         </div>

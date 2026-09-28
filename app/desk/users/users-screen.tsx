@@ -130,9 +130,8 @@ export function UsersScreen() {
     <main id="main-content" tabIndex={-1} className="users-screen">
       <header className="users-head">
         <div>
-          <p className="label gold">Desk access</p>
           <h1 className="display-lg">Users</h1>
-          <p className="lede">Who can sign in to the desk and gate, and what each person can do.</p>
+          <p className="lede">Who can sign in to the desk and the gate, and what each of them can do.</p>
         </div>
         <Button variant="primary" onClick={() => setInviteOpen(true)}>Invite operator <Icon name="plus" /></Button>
       </header>
@@ -147,7 +146,7 @@ export function UsersScreen() {
         </div>
       )}
       {operators?.length === 0 && <EmptyState title="Only you so far" icon={<Icon name="plus" />}>
-        Invite the desk and gate issuers. Each person gets an email to set a password.
+        Invite the desk and the gate issuers. Each gets an email to set a password.
       </EmptyState>}
       {operators && operators.length > 0 && (
         <Table label="Operators" columns={[

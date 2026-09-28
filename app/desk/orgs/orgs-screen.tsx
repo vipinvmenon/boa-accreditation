@@ -158,13 +158,8 @@ export function OrgsScreen() {
       {!loadError && <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>}
       <header className="orgs-head">
         <div>
-          <p className="label gold">Import matching</p>
           <h1 className="display-lg">Organisations</h1>
           <p className="lede">Every company sending people. Open one to see them in the Master list.</p>
-          <p className="body-sm ink-2 orgs-help">
-            Organisations are added from <code>data/orgs.json</code> with <code>scripts/replace-placeholder-orgs.mjs</code>;
-            see <code>docs/ORG-IMPORT.md</code> before you send the form link.
-          </p>
         </div>
         <Button variant="ghost" disabled={!orgs || orgs.length === 0} onClick={() => void handleCopyOrgNames()}>
           <Icon name="paper-plane-tilt" /> Copy names for the form
@@ -238,8 +233,6 @@ export function OrgsScreen() {
         .r10 .orgs-screen { padding-block: var(--s-10) var(--s-20); }
         .r10 .orgs-head { display: flex; align-items: end; justify-content: space-between; gap: var(--s-8); margin-bottom: var(--s-8); }
         .r10 .orgs-head h1 { margin: var(--s-2) 0 var(--s-3); }
-        .r10 .orgs-help { max-width: 700px; margin: var(--s-4) 0 0; }
-        .r10 .orgs-help code { color: var(--ink); }
         .r10 .orgs-filterbar { margin-bottom: var(--s-5); }
         .r10 .orgs-copy-status { color: var(--ink-2); margin: 0 0 var(--s-4); }
         .r10 .orgs-table { overflow: hidden; }

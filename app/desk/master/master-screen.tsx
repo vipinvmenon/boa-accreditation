@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
+import { dashboardResponseSchema } from '@/lib/schemas/dashboard'
 import { tier, tierColour } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
 import { formatMasterBand, formatMasterCollected, masterCountLabel, masterFilterSummary } from '@/lib/format'
@@ -26,6 +27,15 @@ export function MasterScreen() {
   const [loading, setLoading] = useState(true)
   const [visualReady, setVisualReady] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<MasterRow | null>(null)
+  /**
+   * The r8-master.html subtitle is "{N} approved people. {M} more are still
+   * waiting in the response sheet." Neither number is something this
+   * screen's own /api/desk/master read has: that route counts every person
+   * regardless of status (ACC-162's "14 of 612" is unfiltered, not
+   * approved-only). Both come from the same RPC the Control room already
+   * uses (approvedTotal, pendingTotal) rather than being invented here.
+   */
+  const [dashboardCounts, setDashboardCounts] = useState<{ approvedTotal: number; pendingTotal: number } | null>(null)
   const rootRef = useRef<HTMLElement>(null)
   const bmsParam = searchParams.get('in_bms')
   const bmsFilter = bmsParam === 'true' || bmsParam === 'false' ? bmsParam : 'all'
@@ -75,6 +85,24 @@ export function MasterScreen() {
     // The query and filters are the intended inputs; load is stable for this screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, bmsFilter, orgFilter])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadCounts() {
+      try {
+        const response = await fetch('/api/desk/dashboard')
+        if (cancelled || !response.ok) return
+        const parsed = dashboardResponseSchema.safeParse(await response.json())
+        if (cancelled || !parsed.success) return
+        setDashboardCounts({ approvedTotal: parsed.data.approvedTotal, pendingTotal: parsed.data.pendingTotal })
+      } catch {
+        // The subtitle just falls back to the roster's own count; the table
+        // itself does not depend on this read.
+      }
+    }
+    void loadCounts()
+    return () => { cancelled = true }
+  }, [])
 
   const filterSummary = masterFilterSummary({
     orgFiltered: Boolean(orgFilter),
@@ -136,12 +164,15 @@ export function MasterScreen() {
   const countLabel = masterCountLabel(rows.length, total)
 
   return (
-    <main id="main-content" tabIndex={-1} ref={rootRef} data-v2-ready={visualReady ? 'true' : 'false'}>
+    <main id="main-content" tabIndex={-1} ref={rootRef} className="master-screen" data-v2-ready={visualReady ? 'true' : 'false'}>
       <section className="head rv">
         <div>
-          <span className="tag">Master list</span>
-          <h1 className="h1">Everyone accredited</h1>
-          <p className="lede">Append-only. A reissue adds a row, it never overwrites the first. BMS entry is manual, and the flag tracks who is still to be added.</p>
+          <h1 className="display-lg">Master list</h1>
+          <p className="lede">
+            {dashboardCounts
+              ? <>{dashboardCounts.approvedTotal} approved people. {dashboardCounts.pendingTotal > 0 && <>{dashboardCounts.pendingTotal} more {dashboardCounts.pendingTotal === 1 ? 'is' : 'are'} still waiting in the response sheet.</>}</>
+              : <>{total} on the list.</>}
+          </p>
         </div>
       </section>
       {filterSummary && (
