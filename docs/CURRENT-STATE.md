@@ -1230,6 +1230,14 @@ warnings), 294 unit tests, production build, and organisation/users e2e after
 restoring native organisation-link semantics. Visual references remain
 unavailable until ACC-191.
 
+### 28 Sep 2026 — ACC-185 verified and done
+
+The r10 Passes desk now uses live API/Zod-backed rows, preset filters, a ticket
+Sheet, counted hold-confirm bulk sending, and no print action. Verified:
+typecheck, lint (seven existing warnings), 297 unit tests, production build,
+desk-tiers/pass-page e2e 6/6, and the `.pass-item` compatibility marker.
+Visual references remain unavailable until ACC-191.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
