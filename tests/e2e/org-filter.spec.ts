@@ -233,14 +233,13 @@ test.describe('master list semantics and count (ACC-162)', () => {
     }
   })
 
-  test('the column names are for screen readers only — they are not drawn', async ({ page }) => {
+  test('the column names are visible in the sticky header', async ({ page }) => {
     await installDesk(page, [])
     await page.goto('/desk/master')
-    // Present in the accessibility tree, absent from the layout: that is the
-    // whole point, and it is what keeps the passing pixel gate passing.
+    // ACC-184: the r10 master list makes the columns legible to a volunteer.
     await expect(page.getByRole('columnheader', { name: 'Band serial', exact: true })).toHaveCount(1)
-    await expect(page.locator('[role="row"].sr-only')).toHaveCount(1)
-    await expect(page.locator('[role="row"].sr-only')).not.toBeInViewport()
+    await expect(page.locator('[role="row"].master-thead')).toBeVisible()
+    await expect(page.locator('[role="row"].master-thead')).toHaveCSS('position', 'sticky')
   })
 
   test('the table says how much of the roster is on screen, unfiltered and filtered', async ({ page }) => {

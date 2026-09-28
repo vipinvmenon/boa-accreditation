@@ -11,6 +11,8 @@ import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { EmptyState, InlineError } from '@/components/states'
 import { loginHref } from '@/gate/session'
+import { Button, Chip, FilterBar, StatusPill } from '@/components/r10/primitives-a'
+import { Sheet } from '@/components/r10/primitives-b'
 
 export function MasterScreen() {
   const router = useRouter()
@@ -23,6 +25,7 @@ export function MasterScreen() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [visualReady, setVisualReady] = useState(false)
+  const [selectedPerson, setSelectedPerson] = useState<MasterRow | null>(null)
   const rootRef = useRef<HTMLElement>(null)
   const bmsParam = searchParams.get('in_bms')
   const bmsFilter = bmsParam === 'true' || bmsParam === 'false' ? bmsParam : 'all'
@@ -174,19 +177,39 @@ export function MasterScreen() {
           <Link href="/desk/master" className="btn hov-invert-grn">Show everyone</Link>
         </div>
       )}
-      <div className="row rv" style={{ ['--d' as string]: 1, alignItems: 'center' }}>
-        <label className="search" style={{ flex: 1 }}>
-          <Icon name="magnifying-glass" />
-          <input aria-label="Search master list" placeholder="Search name, phone, company or band serial" value={query} onChange={(event) => setQuery(event.target.value)} />
-        </label>
-        <a href={exportHref} download className="btn">
-          Export CSV<span className="ic"><Icon name="download-simple" /></span>
-        </a>
+      <FilterBar
+        className="master-filterbar"
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchLabel="Search the master list"
+        searchPlaceholder="Name, phone, company, plate or band"
+        activeFilters={[
+          ...(orgFilter ? [{ id: 'org', label: `Organisation: ${rows[0]?.orgName ?? 'selected'}`, onRemove: () => router.replace('/desk/master') }] : []),
+          ...(bmsFilter !== 'all' ? [{ id: 'bms', label: bmsFilter === 'true' ? 'BMS: In BMS' : 'BMS: Not in BMS', onRemove: () => router.replace(`/desk/master${orgFilter ? `?org=${orgFilter}` : ''}`) }] : []),
+        ]}
+        onClearAll={() => { setQuery(''); router.replace('/desk/master') }}
+        resultCount={<><strong>{rows.length}</strong> of {total}</>}
+      >
+        <Button variant="ghost" onClick={() => {
+          const next = new URLSearchParams(searchParams.toString())
+          if (bmsFilter === 'false') next.set('in_bms', 'true')
+          else next.set('in_bms', 'false')
+          router.replace(`/desk/master?${next.toString()}`)
+        }}>
+          <Icon name="sort-descending" /> {bmsFilter === 'false' ? 'In BMS' : 'Not in BMS'}
+        </Button>
+        <a href={exportHref} download className="btn">Export CSV <Icon name="download-simple" /></a>
+      </FilterBar>
+      <div className="master-presets" aria-label="Roster presets">
+        <Chip preset onActivate={() => router.replace('/desk/master?in_bms=false')} count={rows.filter((row) => !row.inBms).length}>Not in BMS</Chip>
+        <Chip preset onActivate={() => router.replace('/desk/master?in_bms=true')} count={rows.filter((row) => row.inBms).length}>In BMS</Chip>
+        <Chip preset onActivate={() => setQuery('vehicle')} count={rows.filter((row) => row.vehicleReg).length}>Has a vehicle</Chip>
+        <Chip preset onActivate={() => setQuery('')} count={rows.filter((row) => !row.bandSerial).length}>Not collected</Chip>
       </div>
       <div className="bz rv section" style={{ ['--d' as string]: 2 }}>
         <div className="pl" {...(showTable ? { role: 'table', 'aria-label': `Master list. ${countLabel}.` } : {})}>
           {showTable && (
-            <div role="row" className="sr-only">
+            <div role="row" className="master-thead">
               {COLUMNS.map((column) => <span role="columnheader" key={column}>{column}</span>)}
             </div>
           )}
@@ -233,7 +256,7 @@ export function MasterScreen() {
               : row.bandSerial ? 'ser' : 'ser none'
             const collectedClass = row.status === 'rejected' ? 'when bad' : row.collectedAt ? 'when' : 'when mute'
             return (
-              <div key={row.id} className="mrow" role="row">
+              <div key={row.id} className="mrow" role="row" tabIndex={0} onClick={() => setSelectedPerson(row)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedPerson(row) } }}>
                 <div role="cell">
                   <div className="nm">{row.fullName}</div>
                   <div className="sub">{row.orgName}, {row.phone}</div>
@@ -248,6 +271,56 @@ export function MasterScreen() {
           })}
         </div>
       </div>
+      <PersonSheet person={selectedPerson} onClose={() => setSelectedPerson(null)} />
+      <style jsx global>{`
+        .r10 .master-screen { padding-block: var(--s-10) var(--s-20); }
+        .r10 .master-screen .head { margin-bottom: var(--s-8); }
+        .r10 .master-filterbar { margin-bottom: var(--s-3); }
+        .r10 .master-presets { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-6); }
+        .r10 .master-thead,
+        .r10 .master-screen .mrow { display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(120px, 1fr) 96px minmax(120px, 1fr) 104px minmax(140px, 1.1fr); align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
+        .r10 .master-thead { position: sticky; top: 64px; z-index: 2; min-height: 44px; color: var(--ink-3); background: var(--surface); box-shadow: inset 0 -1px 0 var(--hair); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+        .r10 .master-screen .mrow { min-height: 64px; padding-block: var(--s-3); cursor: pointer; }
+        .r10 .master-screen .mrow:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+        .r10 .master-screen .band { color: var(--c); }
+        .r10 .person-detail { display: grid; gap: var(--s-5); }
+        .r10 .person-detail dl { display: grid; grid-template-columns: 1fr 1.5fr; gap: var(--s-3) var(--s-4); margin: 0; }
+        .r10 .person-detail dt { color: var(--ink-3); }
+        .r10 .person-detail dd { margin: 0; text-align: right; }
+        @media (max-width: 700px) {
+          .r10 .master-screen { padding-top: var(--s-6); }
+          .r10 .master-thead { display: none; }
+          .r10 .master-screen .mrow { grid-template-columns: 1fr; gap: var(--s-2); padding-inline: var(--s-5); }
+          .r10 .master-screen .mrow > .hide-s { display: none; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+          .r10 .person-sheet, .r10 .master-thead { background: var(--surface-solid); backdrop-filter: none; }
+        }
+      `}</style>
     </main>
+  )
+}
+
+function PersonSheet({ person, onClose }: { person: MasterRow | null; onClose: () => void }) {
+  return (
+    <Sheet open={person !== null} onClose={onClose} title={person?.fullName ?? 'Person details'} className="person-sheet">
+      {person && (
+        <div className="person-detail">
+          <div>
+            <p className="label gold">{person.orgName}</p>
+            <p className="body-sm ink-2">{person.phone}</p>
+          </div>
+          <dl>
+            <dt>Tier</dt><dd>{person.typeCode ? tier(person.typeCode).label : 'Not assigned'}</dd>
+            <dt>Pass</dt><dd className="mono">{person.passRef ?? 'Not issued'}</dd>
+            <dt>Band</dt><dd className="mono">{formatMasterBand(person)}</dd>
+            <dt>Vehicle</dt><dd className="mono">{person.vehicleReg ?? 'None'}</dd>
+            <dt>BMS</dt><dd><StatusPill status={person.inBms ? 'ok' : 'wait'}>{person.inBms ? 'In BMS' : 'Not in BMS'}</StatusPill></dd>
+            <dt>Collected</dt><dd>{formatMasterCollected(person)}</dd>
+          </dl>
+          <p className="body-sm ink-3">The history only grows. A reissue or a void adds a line; nothing above it changes.</p>
+        </div>
+      )}
+    </Sheet>
   )
 }
