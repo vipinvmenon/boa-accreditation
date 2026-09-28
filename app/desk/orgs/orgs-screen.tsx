@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { type OrgRowWithCounts } from '@/lib/schemas/org'
-import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
-import { EmptyState, InlineError } from '@/components/states'
+import { orgRowWithCountsSchema, type OrgRowWithCounts } from '@/lib/schemas/org'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
+import { Icon } from '@/components/icon'
+import { Button, CountDot, FilterBar, StatusPill } from '@/components/r10/primitives-a'
+import { EmptyState, Skeleton } from '@/components/r10/primitives-b'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -55,19 +56,20 @@ const ORGS_ERROR_OVERRIDES = {
   not_found: 'That org no longer exists.',
 }
 
-const labelStyle: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono',monospace",
-  fontSize: '9.5px',
-  fontWeight: 700,
-  letterSpacing: '0.13em',
-  textTransform: 'uppercase',
-  color: 'var(--ink3,rgba(242,239,226,0.52))',
+const orgResponseSchema = orgRowWithCountsSchema.array()
+
+function statusKind(status: string): 'ok' | 'wait' | 'bad' | 'mute' {
+  if (status === 'open' || status === 'approved') return 'ok'
+  if (status === 'rejected' || status === 'voided') return 'bad'
+  if (status === 'submitted') return 'wait'
+  return 'mute'
 }
 export function OrgsScreen() {
   const router = useRouter()
   const [orgs, setOrgs] = useState<OrgRowWithCounts[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   const [announcement, setAnnouncement] = useState('Loading organisations.')
   const [reloadKey, setReloadKey] = useState(0)
@@ -91,9 +93,20 @@ export function OrgsScreen() {
           }
           return
         }
-        const body = (await res.json()) as { orgs: OrgRowWithCounts[] }
+        const body: unknown = await res.json()
+        const parsed = typeof body === 'object' && body !== null && 'orgs' in body
+          ? orgResponseSchema.safeParse(body.orgs)
+          : { success: false as const }
+        if (!parsed.success) {
+          const message = copyForError(null, ORGS_ERROR_OVERRIDES)
+          if (!cancelled) {
+            setLoadError(message)
+            setAnnouncement(`Could not load organisations. ${message}`)
+          }
+          return
+        }
         if (cancelled) return
-        setOrgs(body.orgs)
+        setOrgs(parsed.data)
         setLoadError(null)
         setAnnouncement('Organisations loaded.')
       } catch {
@@ -132,107 +145,135 @@ export function OrgsScreen() {
     }
   }
 
+  const visibleOrgs = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase()
+    if (!orgs || !needle) return orgs ?? []
+    return orgs.filter((org) =>
+      [org.name, org.contact_name, org.kind].some((value) => value.toLocaleLowerCase().includes(needle)),
+    )
+  }, [orgs, query])
+
   return (
-    <main id="main-content" tabIndex={-1} className="utility-screen">
-      <div className="utility-inner">
-        {!loadError && (
-          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
-        )}
-        <header className="utility-head"><div><div className="tag">Import matching</div><h1 className="h1">Organisations</h1>
-          <p className="lede">Every company sending crew, and how many they have sent. The importer refuses a row whose Organisation answer is not one of these names. Organisations are added from <code>data/orgs.json</code> with <code>scripts/replace-placeholder-orgs.mjs</code>; see <code>docs/ORG-IMPORT.md</code> before you send the form link. Open one to see its people.</p>
-        </div></header>
+    <main id="main-content" tabIndex={-1} className="orgs-screen">
+      {!loadError && <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>}
+      <header className="orgs-head">
+        <div>
+          <p className="label gold">Import matching</p>
+          <h1 className="display-lg">Organisations</h1>
+          <p className="lede">Every company sending people. Open one to see them in the Master list.</p>
+          <p className="body-sm ink-2 orgs-help">
+            Organisations are added from <code>data/orgs.json</code> with <code>scripts/replace-placeholder-orgs.mjs</code>;
+            see <code>docs/ORG-IMPORT.md</code> before you send the form link.
+          </p>
+        </div>
+        <Button variant="ghost" disabled={!orgs || orgs.length === 0} onClick={() => void handleCopyOrgNames()}>
+          <Icon name="paper-plane-tilt" /> Copy names for the form
+        </Button>
+      </header>
 
-        <section>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px',
-              margin: '0 0 16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: "'JetBrains Mono',monospace",
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.13em',
-                textTransform: 'uppercase',
-                color: 'var(--ink2,rgba(242,239,226,0.72))',
-                margin: 0,
-              }}
-            >
-              All orgs
-            </h2>
-            <button
-              type="button"
-              className="btn hov-invert-grn"
-              disabled={!orgs || orgs.length === 0}
-              onClick={() => void handleCopyOrgNames()}
-              style={{ opacity: !orgs || orgs.length === 0 ? 0.6 : 1 }}
-            >
-              Copy names for the form dropdown
-            </button>
+      <FilterBar
+        className="orgs-filterbar"
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchLabel="Search organisations"
+        searchPlaceholder="Organisation or contact name"
+        onClearAll={() => setQuery('')}
+        resultCount={orgs ? <><strong>{visibleOrgs.length}</strong> of {orgs.length}</> : undefined}
+      />
+
+      {copyStatus && <p className="orgs-copy-status" role="status">{copyStatus}</p>}
+      {loadError && (
+        <EmptyState error title="The list didn’t load" icon={<Icon name="x" />}>
+          <p>{loadError}</p>
+          <Button onClick={() => { setLoadError(null); setOrgs(null); setReloadKey((key) => key + 1) }}>
+            Try again <Icon name="arrow-right" />
+          </Button>
+        </EmptyState>
+      )}
+      {orgs === null && !loadError && (
+        <div className="orgs-table card" role="status" aria-label="Loading organisations" aria-busy="true">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div className="org-row org-row-skeleton" key={index}>
+              <div><Skeleton style={{ width: `${45 + (index % 3) * 15}%` }} /><Skeleton style={{ width: '32%', marginTop: 'var(--s-2)' }} /></div>
+              <Skeleton shape="num" /><Skeleton shape="pill" /><Skeleton style={{ width: '70%' }} /><Skeleton shape="dot" />
+            </div>
+          ))}
+        </div>
+      )}
+      {orgs !== null && orgs.length === 0 && (
+        <EmptyState title="No organisations yet" icon={<Icon name="plus" />}>
+          Organisations appear here as soon as people are imported from the response sheet.
+        </EmptyState>
+      )}
+      {orgs !== null && orgs.length > 0 && visibleOrgs.length === 0 && (
+        <EmptyState title="No organisations match" icon={<Icon name="magnifying-glass" />}>
+          <p>Try the organisation’s name or its contact.</p>
+          <Button variant="ghost" onClick={() => setQuery('')}>Clear search</Button>
+        </EmptyState>
+      )}
+      {orgs !== null && visibleOrgs.length > 0 && (
+        <div className="orgs-table card" role="table" aria-label="Organisations">
+          <div className="orgs-thead" role="row">
+            <span role="columnheader">Organisation</span><span role="columnheader">People</span>
+            <span role="columnheader">Status</span><span role="columnheader">Contact</span>
+            <span role="columnheader"><span className="sr-only">Open</span></span>
           </div>
-          {copyStatus && (
-            <p role="status" style={{ ...labelStyle, margin: '0 0 12px' }}>
-              {copyStatus}
-            </p>
-          )}
-
-          {loadError && (
-            <InlineError
-              className="utility-error"
-              message={loadError}
-              onRetry={() => { setLoadError(null); setOrgs(null); setReloadKey((k) => k + 1) }}
-            />
-          )}
-          {orgs === null && !loadError && (
-            <div role="status" aria-label="Loading organisations"><UtilityScreenSkeleton kind="orgs" /></div>
-          )}
-          {orgs !== null && orgs.length === 0 && (
-            <EmptyState message="No organisations yet. They are loaded in bulk from the list Bhoopesh sends, not typed in one at a time — an admin runs the import." />
-          )}
-
-          <div className="utility-list">
-            {orgs?.map((org) => (
-              /**
-               * ADR-021: the row opens Master list filtered to this company,
-               * rather than a per-org people screen. Master already searches,
-               * filters by BMS state and shows band serials — a second table
-               * would be a third place listing the same rows, which is the
-               * duplication this ADR exists to end. The whole row is the
-               * target, so it works on a phone.
-               */
-              <Link
-                key={org.id}
-                href={`/desk/master?org=${encodeURIComponent(org.id)}`}
-                className="bz"
-                style={{ display: 'block', textDecoration: 'none' }}
-                aria-label={`${org.name} — show their people in the master list`}
-              ><div className="pl pad">
-                <div className="utility-row">
-                  <div>
-                    <p className="nm" style={{ margin: 0 }}>
-                      {org.name}
-                    </p>
-                    <p style={{ ...labelStyle, marginTop: '4px' }}>
-                      {org.kind} · sent {org.submittedCount} · approved {org.approvedCount} ·{' '}
-                      {org.contact_name} · {org.contact_phone}
-                    </p>
-                  </div>
-                  <span className={`st ${org.status === 'open' ? 'ok' : 'wait'}`}>{org.status}</span>
-                  <span style={{ ...labelStyle, whiteSpace: 'nowrap' }} aria-hidden="true">
-                    {org.submittedCount} {org.submittedCount === 1 ? 'person' : 'people'} &rarr;
-                  </span>
-                </div>
-              </div></Link>
+          <div role="rowgroup">
+            {visibleOrgs.map((org) => (
+              <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}`} className="org-row" role="row" aria-label={`${org.name} — show their people in the master list`}>
+                <span role="cell"><strong className="display-sm nm">{org.name}</strong><span className="body-sm ink-2">{org.kind}</span></span>
+                <span role="cell" className="org-counts">
+                  <span><CountDot label={`${org.submittedCount} sent`}>{org.submittedCount}</CountDot><span>sent</span></span>
+                  <span><CountDot label={`${org.approvedCount} approved`}>{org.approvedCount}</CountDot><span>approved</span></span>
+                </span>
+                <span role="cell"><StatusPill className={`st ${statusKind(org.status)}`} status={statusKind(org.status)}>{org.status}</StatusPill></span>
+                <span role="cell" className="org-contact"><span>{org.contact_name}</span><span className="mono ink-2">{org.contact_phone}</span></span>
+                <span role="cell" className="org-arrow"><Icon name="arrow-right" /></span>
+              </Link>
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      )}
+      <style jsx global>{`
+        .r10 .orgs-screen { padding-block: var(--s-10) var(--s-20); }
+        .r10 .orgs-head { display: flex; align-items: end; justify-content: space-between; gap: var(--s-8); margin-bottom: var(--s-8); }
+        .r10 .orgs-head h1 { margin: var(--s-2) 0 var(--s-3); }
+        .r10 .orgs-help { max-width: 700px; margin: var(--s-4) 0 0; }
+        .r10 .orgs-help code { color: var(--ink); }
+        .r10 .orgs-filterbar { margin-bottom: var(--s-5); }
+        .r10 .orgs-copy-status { color: var(--ink-2); margin: 0 0 var(--s-4); }
+        .r10 .orgs-table { overflow: hidden; }
+        .r10 .orgs-thead, .r10 .org-row { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(150px, 1.2fr) minmax(120px, .8fr) minmax(190px, 1.4fr) 44px; align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
+        .r10 .orgs-thead { min-height: 48px; color: var(--ink-3); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; box-shadow: inset 0 -1px 0 var(--hair); }
+        .r10 .org-row { min-height: 72px; padding-block: var(--s-3); color: inherit; text-decoration: none; box-shadow: inset 0 -1px 0 var(--hair); transition: background-color var(--d-quick) var(--e-hover), transform var(--d-quick) var(--e-hover); }
+        .r10 .org-row:last-child { box-shadow: none; }
+        .r10 .org-row:hover { background: var(--raised); transform: translateX(2px); }
+        .r10 .org-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+        .r10 .org-row > span:first-child, .r10 .org-contact, .r10 .org-counts { display: grid; gap: var(--s-1); }
+        .r10 .org-counts { grid-template-columns: repeat(2, minmax(64px, 1fr)); gap: var(--s-2); }
+        .r10 .org-counts > span { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--ink-2); font-size: var(--t-body-sm); }
+        .r10 .org-arrow { justify-self: end; color: var(--ink-3); font-size: 20px; }
+        .r10 .org-row:hover .org-arrow, .r10 .org-row:focus-visible .org-arrow { color: var(--ink); }
+        .r10 .org-row-skeleton { pointer-events: none; }
+        .r10 .org-row-skeleton > :last-child { justify-self: end; }
+        @media (max-width: 700px) {
+          .r10 .orgs-screen { padding-block: var(--s-6) var(--s-10); }
+          .r10 .orgs-head { align-items: start; flex-direction: column; gap: var(--s-5); margin-bottom: var(--s-6); }
+          .r10 .orgs-head .btn { width: 100%; }
+          .r10 .orgs-thead { display: none; }
+          .r10 .org-row { grid-template-columns: 1fr 44px; gap: var(--s-2); padding-inline: var(--s-5); }
+          .r10 .org-row > :nth-child(2), .r10 .org-row > :nth-child(3), .r10 .org-row > :nth-child(4) { grid-column: 1; }
+          .r10 .org-row > :nth-child(2) { grid-row: 2; }
+          .r10 .org-row > :nth-child(3) { grid-row: 3; }
+          .r10 .org-row > :nth-child(4) { grid-row: 4; }
+          .r10 .org-row > :last-child { grid-column: 2; grid-row: 1 / span 4; }
+          .r10 .org-counts { display: flex; flex-wrap: wrap; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+          .r10 .orgs-table { background: var(--surface-solid); backdrop-filter: none; }
+        }
+        @media (prefers-reduced-motion: reduce) { .r10 .org-row { transition: none; } }
+      `}</style>
     </main>
   )
 }
