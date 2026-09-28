@@ -1204,6 +1204,89 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 28 Sep 2026 — ACC-169 verified and done; three review-driven fixes to already-merged work
+
+**ACC-169 (login cleanup, UX-07 to UX-10).** Investigation found ACC-176 (28
+Sep, earlier the same day) had already fixed three of the four audit items:
+one H1 and a legible logo, the password hint scoped to set-password mode
+only, and `noValidate` with inline errors — all already true before this
+task started. The one real gap was UX-10: the login screen didn't read the
+theme the rest of the chrome uses. Fixed by calling `useDomTheme()` (the
+same hook `desk-chrome.tsx`/`gate-chrome.tsx` use) and setting
+`data-theme={theme}` explicitly, rather than relying on silent CSS
+inheritance. Also fixed while there: `--logo-filter` was missing on
+`.auth-logo` (every other 176px mark at this weight gets the dark-theme
+glow; this one didn't), and two rules hardcoded `#0A0A0A` instead of
+`var(--bg)`, silently ignoring light theme regardless of the attribute —
+both real "no raw hex outside tokens" violations, now `var(--bg)`. Removed
+`.auth-brand`/`.auth-brand img`/`.auth-brand span`: dead CSS for a 44px
+wordmark+pill nothing has referenced since ACC-176. Verified: typecheck,
+lint (0 errors), 298 unit tests, `login-return-path.spec.ts` 2/2.
+`test:visual` does not cover `/desk/login` (not one of the 5 screens
+`scripts/visual-check.mjs` checks) — nothing to report. Not done: OS
+`prefers-color-scheme` detection or theme persistence across a hard
+navigation — nothing in the app does either today (`lib/use-theme.ts`'s own
+comment: "no shipped theme toggle yet"), and building it only for login
+would give it a second theme mechanism, the opposite of the task's
+instruction. Flagged as a real, app-wide gap worth its own task, not
+papered over here.
+
+**Three defects found by an `rd-reviewer` audit of ACC-179 and ACC-183a**
+(these had shipped with no review recorded, though REDESIGN.md §5 requires
+one) — fixed the same day, not by the agents who built the originals:
+
+- **The token gate was checking almost nothing.** `check-design-tokens.mjs`
+  matched each theme block's selector against raw text that included the
+  `/* comment */` line the source has directly above both the dark and
+  light blocks; the regex never matched, so the check silently compared
+  zero dark/light tokens — only the un-themed `:root` block (65 names) was
+  ever checked, out of the source's 127. The ACC-180 entry above, written
+  before this was known, is wrong to say the check was "shown to fail on a
+  drifted token" in the dark/light sense — only a `:root` token was ever
+  provably caught. Fixed the checker (strips comments; compares colours by
+  what they resolve to, not exact notation, so `rgba(...)` vs CSS Color 4
+  `rgb(... / ...%)` and hex case/length no longer false-positive; a missing
+  `app/r10/tokens.css` now fails instead of silently skipping). With it
+  actually running, it found and this session fixed real drift in
+  `app/r10/tokens.css`: wrong `--bg`, `--tray`, `--scrim` values, and six
+  tokens simply missing in both themes (`--glass`, `--lift`,
+  `--logo-filter`, `--glass-sheen`, `--ambient-op`, `--ambient-dim`).
+  `light.--ink-3`'s difference from the source is deliberate (the app's
+  `#55565e` measures ~6.1:1 against the light background, the source's own
+  value ~5.1:1 — both clear F-14's 4.5:1 floor, the app's with more margin);
+  an `R10_AMENDED` entry existed for exactly this but was left commented
+  out, now enabled. Checker now reports 127 r10 tokens, was silently 65.
+- **A migration ordering bug that would break a fresh database.**
+  `202609281250_boa_acc_dashboard_gate_feed.sql` used a bare `create
+  function`; its own corrective migration (`20260928073202`, a 14-digit
+  timestamp) sorts before it alphabetically, so a fresh `db:push` would
+  create the function via the corrective migration first, then fail on
+  `202609281250`'s plain `create` (42723, already exists) — aborting the
+  push and leaving everything after it, including
+  `202609281430_boa_acc_set_operator_role`, unapplied. Fixed by making
+  `202609281250` idempotent (`create or replace`); order no longer matters.
+  **Not verified against a real database** — no local Postgres in this
+  environment; reasoned from `scripts/db-push.mjs`'s own sort-then-apply
+  logic and confirmed by resorting the two filenames.
+- **A silent-failure bug in the dashboard route.** Any gate-feed RPC
+  failure (old deployment, permission error, timeout, an unparseable
+  ledger row) became an empty feed — `gateCounts: []`, `latestIssues: []`
+  — indistinguishable from a quiet day. `gateCounts`/`latestIssues` are now
+  `null` on failure, `[]` only on a genuinely empty feed, matching
+  `doubleIssueList`'s existing pattern. No UI reads either field yet
+  (confirmed: no match for `dash.gateCounts` or `dash.latestIssues`
+  anywhere in `app/` or `components/`) — ACC-183a shipped its RPC and API
+  route with no consumer. Flagged to the agent mid-task doing the Control
+  room correction pass (below) to add the missing "at the gates today"
+  card the mockup has.
+
+All three verified: typecheck clean, lint 0 errors/7 pre-existing warnings,
+production build OK, 297-298/298 unit tests (one flaky failure across two
+runs — `assets.test.ts`'s subprocess test timing out under the load of four
+parallel background agents — reproduced the flake, then reran it alone and
+it passed; not a real regression). `check:sql` OK. `test:db` not run (no
+local Postgres). Commits: `d2c340a`, `f61dc78`, `e76f7de`.
+
 ### 28 Sep 2026 — ACC-180 verified and done
 
 The r10 token, base, and primitive foundation now exists under `app/r10/`, with
