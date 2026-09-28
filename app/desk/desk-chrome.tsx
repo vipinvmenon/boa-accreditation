@@ -239,9 +239,10 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={`v2-app ${mobileOpen ? 'menu-open' : ''}`}>
+    <div className={`r10 v2-app ${mobileOpen ? 'menu-open' : ''}`} data-theme={theme}>
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <div className="frame">
+      <div className="ambient" aria-hidden="true" />
+      <div className="app">
         <header className="nav-wrap">
           <nav className="island" aria-label="Desk navigation">
             <Link href="/desk" className="brand" aria-label="BOA Accreditation desk home">
@@ -313,7 +314,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
             closeMobileMenu()
           }}>{item.label}</Link>)}
         </div>
-        {children}
+        <div className="frame page">{children}</div>
         <SiteFooter signedInAs={me ? `${me.display_name} (${ROLE_LABEL[me.role]})` : null} />
       </div>
     </div>

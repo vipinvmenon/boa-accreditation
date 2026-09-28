@@ -57,6 +57,9 @@ import './hover.css'
 import './v2.css'
 import './ticket.css'
 import './phosphor.css'
+import './r10/tokens.css'
+import './r10/base.css'
+import './r10/primitives.css'
 
 export const metadata: Metadata = {
   // ACC-127: every route below sets its own `title` (a plain string), which

@@ -167,12 +167,138 @@
 
 .r10 .footer { border-top: 1px solid var(--gold-hair); background: var(--bg); color: var(--ink-2); }
 
+.r10 .nav-wrap {
+  position: sticky;
+  top: var(--s-3);
+  z-index: var(--z-nav);
+  padding: 0 var(--gutter);
+}
+
+.r10 .island {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  width: min(max-content, 100%);
+  min-height: 60px;
+  margin: 0 auto;
+  padding: var(--s-1);
+  border-radius: var(--r-pill);
+  background: var(--glass-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+}
+
+.r10 .brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--hit);
+  padding: var(--s-1) var(--s-4) var(--s-1) var(--s-3);
+}
+
+.r10 .brand img { width: 104px; height: auto; filter: var(--logo-filter); }
+.r10 .brand span { color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
+.r10 .links { position: relative; display: flex; gap: var(--s-1); }
+.r10 .links a {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font: 600 var(--t-label)/1 var(--f-label);
+  letter-spacing: var(--track-label);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--d-quick) var(--e-hover);
+}
+.r10 .links a:hover { color: var(--ink); }
+.r10 .links a[aria-current="page"] { color: var(--go); }
+.r10 .links .pip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--go) 22%, transparent), color-mix(in srgb, var(--go) 8%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--go) 42%, transparent), inset 0 1px 0 var(--glass-hi);
+  transition: transform var(--d-slow) var(--e-spring);
+}
+
+.r10 .nav-end { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; padding-left: var(--s-1); }
+.r10 .av,
+.r10 .burger {
+  width: var(--hit);
+  height: var(--hit);
+  border: 0;
+  border-radius: 50%;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--hair);
+}
+.r10 .av { display: grid; place-items: center; color: var(--ink); cursor: pointer; font: 600 var(--t-label-sm)/1 var(--f-mono); letter-spacing: .06em; }
+.r10 .av:hover,
+.r10 .av[aria-expanded="true"] { color: var(--go); background: var(--ok-tint); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--go) 42%, transparent); }
+
+.r10 .status {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s-6);
+  width: max-content;
+  max-width: 100%;
+  margin: var(--s-2) auto 0;
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-pill);
+  background: var(--glass-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+  color: var(--ink-3);
+  font: 500 var(--t-mono)/1.2 var(--f-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+}
+
+.r10 .site-footer {
+  border-top: 1px solid var(--gold-hair);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  color: var(--ink-2);
+  font: 400 var(--t-body)/1.55 var(--f-body);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: var(--s-6) var(--s-10); max-width: var(--frame); margin: 0 auto; padding: var(--s-10) var(--gutter) var(--s-6); }
+.r10 .site-footer .sf-brand { display: grid; gap: var(--s-4); }
+.r10 .site-footer .sf-brand img { width: 176px; filter: var(--logo-filter); }
+.r10 .site-footer .sf-date { margin: 0; color: var(--ink); font: 400 var(--t-display-sm)/.9 var(--f-display); text-transform: uppercase; }
+.r10 .site-footer .sf-date span,
+.r10 .site-footer .sf-cols h2 { color: var(--gold); }
+.r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); }
+.r10 .site-footer .sf-cols h2 { margin: 0 0 var(--s-1); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+.r10 .site-footer .sf-cols p { max-width: 32ch; margin: 0; color: var(--ink-2); }
+.r10 .site-footer .sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2) var(--s-4); max-width: calc(var(--frame) - 2 * var(--gutter)); margin: 0 auto; padding: var(--s-4) var(--gutter) var(--s-6); border-top: 1px solid var(--hair); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+.r10 .site-footer .sf-base a { color: inherit; text-decoration: none; }
+.r10 .site-footer .sf-base a:hover { color: var(--ink); }
+
 @media (max-width: 700px) {
   .r10 .frame { padding-inline: var(--s-5); }
   .r10 .page { padding-top: var(--s-6); }
   .r10 .page-head { margin-bottom: var(--s-6); }
   .r10 .nav { padding-inline: var(--s-3); }
   .r10 .nav-frame { margin-inline: 0; }
+  .r10 .nav-wrap { padding-inline: var(--s-3); }
+  .r10 .island { width: 100%; justify-content: space-between; }
+  .r10 .links { display: none; }
+  .r10 .burger { display: block; position: relative; cursor: pointer; }
+  .r10 .brand span { display: none; }
+  .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-6); padding: var(--s-8) var(--s-5) var(--s-5); }
+  .r10 .site-footer .sf-brand img { width: 140px; }
+  .r10 .site-footer .sf-cols { grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  .r10 .site-footer .sf-cols > :last-child { grid-column: 1 / -1; }
+  .r10 .site-footer .sf-base { flex-direction: column; margin: 0 var(--s-5); padding-inline: 0; }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -188,6 +314,13 @@
   .r10 .table::before,
   .r10 .empty::before,
   .r10 .panel::before {
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .r10 .island,
+  .r10 .status,
+  .r10 .site-footer {
     background: var(--surface-solid);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
