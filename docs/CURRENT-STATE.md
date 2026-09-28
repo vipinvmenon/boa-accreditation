@@ -1212,6 +1212,15 @@ typecheck, lint (six existing warnings), 297 unit tests, `check:sql`,
 `test:db`, and production build. The migration is applied to the shared
 database; anon privilege assertions and the feed pgTAP assertions pass.
 
+### 28 Sep 2026 — ACC-186 verified and done
+
+The r10 Organisations screen now uses live Zod-parsed organisation data with
+search, responsive rows, accessible Master-list filter links, and distinct
+loading, empty, and error states. Verified: typecheck, lint (six existing
+warnings), 294 unit tests, production build, and organisation/users e2e after
+restoring native organisation-link semantics. Visual references remain
+unavailable until ACC-191.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
