@@ -165,8 +165,8 @@ async function installDeskFixtures(page, overrides = {}) {
 const ORG_A = 'a1111111-1111-4111-8111-111111111111'
 const ORG_B = 'a2222222-2222-4222-8222-222222222222'
 const DEFAULT_ORGS = [
-  { id: ORG_A, name: 'Chakra Sound & Light', kind: 'vendor', quota: 500, default_type: 'stage', contact_name: 'Ranjith K', contact_phone: '+919886104422', status: 'open', notes: null, created_at: '2026-09-10T08:00:00.000Z', updated_at: '2026-09-10T08:00:00.000Z', submittedCount: 14, approvedCount: 12 },
-  { id: ORG_B, name: 'Sentinel Security Services', kind: 'security', quota: 500, default_type: 'crew', contact_name: 'Faisal M', contact_phone: '+919901288104', status: 'approved', notes: null, created_at: '2026-09-10T08:00:00.000Z', updated_at: '2026-09-10T08:00:00.000Z', submittedCount: 68, approvedCount: 66 },
+  { id: ORG_A, name: 'Chakra Sound & Light', kind: 'vendor', quota: 500, default_type: 'stage', contact_name: 'Ranjith K', contact_phone: '+919886104422', status: 'open', notes: null, created_at: '2026-09-10T08:00:00.000Z', updated_at: '2026-09-10T08:00:00.000Z', submittedCount: 14, approvedCount: 12, collectedCount: 9 },
+  { id: ORG_B, name: 'Sentinel Security Services', kind: 'security', quota: 500, default_type: 'crew', contact_name: 'Faisal M', contact_phone: '+919901288104', status: 'approved', notes: null, created_at: '2026-09-10T08:00:00.000Z', updated_at: '2026-09-10T08:00:00.000Z', submittedCount: 68, approvedCount: 66, collectedCount: 41 },
 ]
 function masterRow(id, fullName, orgName, overrides = {}) {
   return {
