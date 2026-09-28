@@ -6,6 +6,7 @@ import { supabaseBrowser } from '@/lib/supabase-browser'
 import { destinationAfterLogin } from '@/lib/safe-next'
 import { operatorRoleSchema } from '@/lib/schemas/operator'
 import { Skeleton } from '@/components/states/skeleton'
+import { useDomTheme } from '@/lib/use-theme'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -70,6 +71,14 @@ function DeskLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = supabaseBrowser()
+  // UX-10: this screen has its own colours (var(--bg), var(--logo-filter), …)
+  // that already cascade from <html data-theme>, but nothing here read the
+  // DOM back — so a theme flipped in desk/gate chrome (app/desk/desk-chrome.tsx,
+  // app/gate/gate-chrome.tsx) via document.documentElement.setAttribute and
+  // carried here by a client-side `router.replace('/desk/login')` had no
+  // local confirmation, and a stale render could silently disagree with the
+  // attribute. Read the same source the chrome reads, don't track a second one.
+  const theme = useDomTheme()
   const flow = searchParams.get('flow')
   // ACC-150: the gate sends an unauthenticated issuer here with ?next=/gate.
   const next = searchParams.get('next')
@@ -250,7 +259,7 @@ function DeskLoginForm() {
           : 'Sign in'
 
   return (
-    <main className="auth">
+    <main className="auth" data-theme={theme}>
       <div className="auth-art" role="img" aria-label="The Bangalore Open Air 2026 poster" />
       <section className="auth-panel">
         <img className="auth-logo" src="/assets/boa-logo.png" alt="Bangalore Open Air" />
