@@ -1157,6 +1157,13 @@ has received a pass**, because ACC-151 is still open.
 
 ## Session log
 
+### 28 Sep 2026 — ACC-167 verified and done
+
+The public pass now uses tier-neutral accreditation-desk copy and one-line
+fine print. Verified: typecheck, lint (six existing warnings), 281 unit tests,
+and pass-page e2e 3/3. `test:visual` was intentionally not run because this
+was copy-only and did not alter layout. No shared-file request remains.
+
 ### 27 Sep 2026 — ACC-107 diagnosed: half of it is ADR-018, the same as ACC-104
 
 Measured against the **current** reference, so this is not a stale-PNG problem:
