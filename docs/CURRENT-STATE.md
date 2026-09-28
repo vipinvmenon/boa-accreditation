@@ -1155,6 +1155,9 @@ has received a pass**, because ACC-151 is still open.
 
 > **ACC-147 released 2026-09-28 (IST):** Code and automated gates pass; two-issuer real-phone rehearsal and iPhone camera verification remain outstanding
 
+
+> **ACC-180 released 2026-09-28 (IST):** Claude lane out of limits; Cursor taking over r10 tokens and base CSS
+
 ## Session log
 
 ### 28 Sep 2026 — ACC-167 verified and done
