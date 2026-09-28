@@ -87,6 +87,7 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
 
   return (
     <main id="main-content" tabIndex={-1} className={`r10 ${styles['controlRoom']}`}>
+      <h2 className="sr-only">{dash.submittedOrgs} companies on site</h2>
       <Card className={styles['hero'] ?? ''}>
         <div className={styles['heroClip']}>
           <div className={styles['heroArt']} role="img" aria-label="Bangalore Open Air festival poster" />
