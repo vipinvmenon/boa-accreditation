@@ -1,5 +1,5 @@
 import { BAND_ART, ZONE_MAP_HEX, ZONES, bandArtSrc, tier, tierColour, zoneStrip, type TierCode } from '@/lib/design'
-import { dayValidityCopy } from '@/lib/pass-copy'
+import { dayValidityCopy, PUBLIC_PASS_DESK_LINE, PUBLIC_PASS_FINE_PRINT } from '@/lib/pass-copy'
 
 /**
  * ACC-174 (ADR-025, round 6) — the pass as a ticket, shared by the holder's
@@ -54,6 +54,7 @@ export function PassTicket(p: PassTicketProps) {
             <p className="tk-who">
               {p.orgName}, {p.role}
             </p>
+            <p className="tk-desk">{PUBLIC_PASS_DESK_LINE}</p>
           </div>
           <p className="tk-line">
             <span className="tk-tier">{type.label}</span>
@@ -91,7 +92,7 @@ export function PassTicket(p: PassTicketProps) {
           aria-label={`Pass QR code for ${p.fullName}`}
           dangerouslySetInnerHTML={{ __html: p.qrSvg }}
         />
-        <p className="tk-fine">Bring photo ID. One person, one pass, one band.</p>
+        <p className="tk-fine">{PUBLIC_PASS_FINE_PRINT}</p>
         <span className="tk-ref">{p.passRef}</span>
       </div>
     </div>

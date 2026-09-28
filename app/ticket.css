@@ -73,6 +73,7 @@
 }
 .tk--sheet .tk-name { font-size: 32px; }
 .tk-who { margin: 6px 0 0; font-size: 15px; color: var(--tk-ink2); }
+.tk-desk { margin: 8px 0 0; font-size: 14px; color: var(--tk-ink); }
 .tk-line {
   display: flex;
   flex-wrap: wrap;
@@ -94,7 +95,7 @@
 .tk-qr { padding: 13px; border-radius: 14px; background: rgba(242, 239, 226, 1); }
 .tk-qr svg { display: block; width: min(200px, 52vw); height: min(200px, 52vw); }
 .tk--sheet .tk-qr svg { width: 160px; height: 160px; }
-.tk-fine { margin: 0; font-size: 13px; color: var(--tk-ink2); text-align: center; }
+.tk-fine { margin: 0; font-size: 13px; color: var(--tk-ink); text-align: center; }
 .tk-ref { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--tk-ink3); }
 
 /* The light sweep that marks a live pass (React Bits GlareHover, adapted to

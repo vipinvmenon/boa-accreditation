@@ -1,5 +1,8 @@
 import type { DayValidity } from '@/lib/design'
 
+export const PUBLIC_PASS_DESK_LINE = 'Show this at the accreditation desk.'
+export const PUBLIC_PASS_FINE_PRINT = 'Bring photo ID. One person, one pass, one band.'
+
 /**
  * Plain-words day validity with the actual dates, for /p/[passToken] — the
  * one screen a crew member reads unaccompanied, so "Build + show" alone

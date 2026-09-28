@@ -111,6 +111,9 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     // short desk label.
     await expect(page.getByText(/Build \+ show/)).toBeVisible()
     await expect(page.getByText(/5.9 Oct and 10 Oct 2026/)).toBeVisible()
+    await expect(page.getByText('Show this at the accreditation desk.')).toBeVisible()
+    await expect(page.getByText('Bring photo ID. One person, one pass, one band.')).toBeVisible()
+    await expect(page.getByText(/crew check-in/i)).toHaveCount(0)
     // A scannable QR actually rendered, not a placeholder.
     const qr = page.locator('.tk-qr svg')
     await expect(qr).toBeVisible()
@@ -118,7 +121,6 @@ test.describe('/p/[passToken] (ACC-144)', () => {
 
     // ADR-009: no desk chrome on a public pass-token screen.
     await expect(page.locator('.nav-wrap')).toHaveCount(0)
-    await expect(page.getByText(/accred desk/i)).toHaveCount(0)
 
     // Never the phone (non-negotiable #9) — nowhere on this screen, ever.
     await expect(page.getByText(/\+91/)).toHaveCount(0)

@@ -173,10 +173,17 @@ No drift found.
 |---|---|---|---|
 | Eyebrow | "The pass" | identical | identical |
 | Actions | "Send on WhatsApp" / "Print `{n}` passes →" | identical | identical |
-| Card footer | "Bring this and a valid photo ID. Non-transferable. One person = one pass = one physical check-in = one wristband." | identical, verbatim | identical |
+| Desk instruction | "Show it at the accreditation desk with photo ID." | "Show this at the accreditation desk." | rewritten-intentionally — one neutral line serves every printed tier; the fine print separately says to bring photo ID |
+| Card fine print | "Bring photo ID. One person, one pass, one band." | identical, now rendered as one high-contrast line | identical |
 | "Vehicle" chip label | literal | identical | identical |
 
-No drift found.
+The ticket component is shared with the public `/p/[passToken]` page, so its
+desk instruction and fine print cannot drift between the holder's pass and the
+desk sheet. The desk instruction is tier-neutral: it must not say "crew",
+because AAA, Artist, Stage, Photo and the other approved tiers use the same
+accreditation desk. The fine print is one line in `components/pass-ticket.tsx`
+and uses the ticket's full-ink colour, which clears the 4.5:1 contrast target
+against the dark ticket surface.
 
 ### Gate scanner (`/gate`) and Vehicle gate (`/gate/vehicle`)
 
