@@ -269,7 +269,7 @@ export function PassesScreenR10() {
             return (
               <div
                 key={pass.id}
-                className="tr passes-row"
+                className="tr passes-row pass-item"
                 role="row"
                 tabIndex={0}
                 onClick={() => openPass(pass)}

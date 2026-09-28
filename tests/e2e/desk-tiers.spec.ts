@@ -89,13 +89,16 @@ test.describe('desk tiers (ACC-115)', () => {
     })
     await page.route('**/api/desk/passes', (route: Route) => route.fulfill({ json: passes }))
     await page.goto('/desk/passes')
-    const pass = page.locator('article.pass-item')
-    await expect(pass.locator('.tk-tier')).toHaveText('Promoters Lounge')
-    await expect(pass.getByRole('img', { name: 'Promoters Lounge wristband' })).toHaveAttribute('src', '/assets/bands/promoters_lounge.webp')
+    const pass = page.locator('.pass-item')
+    await expect(pass).toHaveCount(1)
+    await pass.click()
+    const ticket = page.locator('.passes-sheet .tk')
+    await expect(ticket.locator('.tk-tier')).toHaveText('Promoters Lounge')
+    await expect(ticket.getByRole('img', { name: 'Promoters Lounge wristband' })).toHaveAttribute('src', '/assets/bands/promoters_lounge.webp')
     // Round 6 (Vipin, 28 Sep): held zones only, no ID or time qualifiers on the pass.
-    await expect(pass.getByRole('list', { name: 'Zones this pass enters' }).getByRole('listitem')).toHaveText([
+    await expect(ticket.getByRole('list', { name: 'Zones this pass enters' }).getByRole('listitem')).toHaveText([
       'Festival Area', 'Promoters Lounge', 'Backstage',
     ])
-    await expect(pass.getByText(/\+ ID|after 22:00/)).toHaveCount(0)
+    await expect(ticket.getByText(/\+ ID|after 22:00/)).toHaveCount(0)
   })
 })
