@@ -107,6 +107,11 @@ function ratio(value: number, total: number): number {
   return total > 0 ? Math.min(1, Math.max(0, value / total)) : 0
 }
 
+/** Asia/Kolkata wall-clock 'HH:MM' — the same convention as lib/format.ts. */
+function formatGateTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
+}
+
 function StatTile({ label, value, detail, width, colour }: {
   label: string
   value: number
@@ -184,6 +189,47 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
             <li className="now"><span className="body-sm ink-3">5 to 9 Oct</span><strong className="display-sm">Build</strong></li>
             <li><span className="body-sm ink-3">10 Oct</span><strong className="display-sm">Show</strong></li>
           </ol>
+        </Card>
+
+        <Card className={styles['feed'] ?? ''}>
+          <div className="card-label">
+            <h2 id="feed-title" className="label-sm gold">At the gates today</h2>
+            <Link href="/desk/master?status=collected" className="btn-link body-sm">All <Icon name="arrow-right" /></Link>
+          </div>
+          {dash.gateCounts === null || dash.latestIssues === null ? (
+            <p className="body-sm ink-2">Today&apos;s gate activity isn&apos;t available right now.</p>
+          ) : dash.latestIssues.length === 0 ? (
+            <p className="body-sm ink-2">No bands or stickers issued yet today.</p>
+          ) : (
+            <>
+              <div className={styles['gates']}>
+                {dash.gateCounts.map((gate) => (
+                  <span key={gate.gateLabel} className="chip">
+                    <b>{gate.gateLabel}</b>
+                    <CountDot>{gate.count}</CountDot>
+                  </span>
+                ))}
+              </div>
+              <ul className={styles['feedList']}>
+                {dash.latestIssues.map((issue) => {
+                  const issueTier = issue.typeCode ? tier(issue.typeCode) : null
+                  const serial = issue.kind === 'wristband'
+                    ? `band ${issue.bandSerial ?? 'not typed'}`
+                    : `sticker ${issue.stickerNo ?? 'not typed'}`
+                  return (
+                    <li key={issue.checkinId} className={styles['feedItem']}>
+                      <i className={styles['feedDot']} style={{ '--c': issueTier ? tierColour(issueTier.code, theme) : 'var(--ink-3)' } as CSSProperties} aria-hidden="true" />
+                      <div>
+                        <div className="label-sm">{issue.fullName}</div>
+                        <p className="body-sm ink-3">{issueTier?.label ?? 'Unlisted tier'} &middot; {serial} &middot; {issue.gateLabel}</p>
+                      </div>
+                      <time className={styles['feedTime']}>{formatGateTime(issue.occurredAt)}</time>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
+          )}
         </Card>
 
         <StatTile label="Approved" value={dash.approvedTotal} detail={`${dash.pendingTotal} awaiting decision`} width={ratio(dash.approvedTotal, dash.submittedTotal)} />
