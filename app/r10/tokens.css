@@ -1,12 +1,8 @@
-/*
- * r10 design tokens.
- * This file is intentionally scoped so r10 and the legacy desk can coexist.
- */
 .r10 {
-  --f-display: "Anton", Impact, sans-serif;
-  --f-label: "Oswald", sans-serif;
+  --f-display: 'Anton', Impact, sans-serif;
+  --f-label: 'Oswald', sans-serif;
   --f-body: "Instrument Sans Variable", "Instrument Sans", system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --t-display-xl: clamp(56px, 6.2vw, 92px);
   --t-display-lg: clamp(38px, 4.4vw, 56px);
@@ -52,91 +48,32 @@
   --e-out: cubic-bezier(.22, 1, .36, 1);
   --e-hover: cubic-bezier(.25, .8, .25, 1);
   --e-spring: linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017 19.4%, 1.05 22.2%, 1.049 25.2%, 1.019 30.9%, .998 37.2%, .995 43.3%, 1.001 57.9%, 1);
+  --t-label-sm: 12px;
+  --e-in-out: cubic-bezier(.65, 0, .35, 1);
+  --blur: 20px;
 
   --z-nav: 40;
   --z-sheet: 60;
   --z-toast: 70;
   --z-menu: 80;
   --glass-blur: 28px;
-  --tier-aaa: #39e639;
-  --tier-artist: #f0169a;
-  --tier-stage: #f07a2a;
-  --tier-promoters: #4371ff;
-  --tier-crew: #a64dff;
-  --tier-photo: #f2d21c;
-  --tier-eddies: #ff4a3d;
-  --tier-ga: #b8b8b8;
-
-  /*
-   * The token checker reads the proposal's dark selector literally. Keep its
-   * compatibility shape nested here while the runtime selector stays scoped.
-   */
-  :root,
-  [data-theme="dark"] {
-    --f-display: "Anton", Impact, sans-serif;
-    --f-label: "Oswald", sans-serif;
-    --f-mono: "JetBrains Mono", ui-monospace, monospace;
-    --t-display-xl: clamp(56px, 6.2vw, 92px);
-    --t-display-lg: clamp(38px, 4.4vw, 56px);
-    --t-display-md: 33px;
-    --t-display-sm: 21px;
-    --t-number: 39px;
-    --t-label: 12px;
-    --t-label-sm: 12px;
-    --t-body: 14px;
-    --t-body-sm: 12.5px;
-    --t-mono: 12px;
-    --track-label: .12em;
-    --s-1: 4px;
-    --s-2: 8px;
-    --s-3: 12px;
-    --s-4: 16px;
-    --s-5: 20px;
-    --s-6: 24px;
-    --s-8: 32px;
-    --s-10: 40px;
-    --s-14: 56px;
-    --s-20: 80px;
-    --r-xs: 4px;
-    --r-sm: 10px;
-    --r-md: 14px;
-    --r-lg: 22px;
-    --r-xl: 30px;
-    --r-pill: 999px;
-    --h-control: 48px;
-    --h-control-gate: 56px;
-    --h-chip: 36px;
-    --hit: 44px;
-    --frame: 1440px;
-    --gutter: 40px;
-    --e-out: cubic-bezier(.22, 1, .36, 1);
-    --e-hover: cubic-bezier(.25, .8, .25, 1);
-    --e-in-out: cubic-bezier(.65, 0, .35, 1);
-    --e-spring: linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017 19.4%, 1.05 22.2%, 1.049 25.2%, 1.019 30.9%, .998 37.2%, .995 43.3%, 1.001 57.9%, 1);
-    --blur: 20px;
-    --z-nav: 40;
-    --z-sheet: 60;
-    --z-toast: 70;
-    --z-menu: 80;
-    --tier-aaa: #39e639;
-    --tier-artist: #f0169a;
-    --tier-stage: #f07a2a;
-    --tier-promoters: #4371ff;
-    --tier-crew: #a64dff;
-    --tier-photo: #f2d21c;
-    --tier-eddies: #ff4a3d;
-    --tier-ga: #b8b8b8;
-    --zone-green: #2fbf4a;
-    --zone-red: #e5383b;
-    --zone-blue: #3d6bff;
-    --zone-yellow: #f2c91c;
-    --zone-purple: #8e4dff;
-    --zone-orange: #f07a2a;
-  }
+  --tier-aaa: #39E639;
+  --tier-artist: #F0169A;
+  --tier-stage: #F07A2A;
+  --tier-promoters: #4371FF;
+  --tier-crew: #A64DFF;
+  --tier-photo: #F2D21C;
+  --tier-eddies: #FF4A3D;
+  --tier-ga: #B8B8B8;
+  --zone-green: #2FBF4A;
+  --zone-red: #E5383B;
+  --zone-blue: #3D6BFF;
+  --zone-yellow: #F2C91C;
+  --zone-purple: #8E4DFF;
+  --zone-orange: #F07A2A;
 }
 
-.r10,
-.r10[data-theme="dark"] {
+.r10 {
   --bg: #070808;
   --surface: #101012;
   --surface-solid: #101012;
@@ -165,7 +102,7 @@
   color-scheme: dark;
 }
 
-.r10[data-theme="light"] {
+[data-theme="light"] .r10 {
   --bg: #edeae1;
   --surface: #f6f4ec;
   --surface-solid: #f6f4ec;
