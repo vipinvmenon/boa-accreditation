@@ -11,8 +11,15 @@ _Last updated: 27 September 2026 (ACC-151 Meta console session; see WHATSAPP.md)
 agents with their models (`.claude/agents/rd-*`, `.cursor/agents/cursor-rd-*`).
 Roadmap: Phase RD, ACC-178 to ACC-193. **Nothing is built yet.** ACC-178 is done:
 Vipin accepted ADR-027 on 28 Sep, chose Instrument Sans, and sanctioned the
-baseline regeneration after sign-off. Next is ACC-179. Until it lands, the
-tooling still reads v2. `DESIGN.md` (repo root)
+baseline regeneration after sign-off. **ACC-179 done 28 Sep:**
+`design/source/r10/` is frozen (all ten pages verified loading every asset in
+Chromium), non-negotiable #1 points at it, the token gate checks
+`app/r10/tokens.css` against it (shown to fail on drift), the font audit
+covers r10 (shown to fail without the import), and `task.mjs` lets Phase RD
+tasks run in parallel (shown: RD plus non-RD allowed, two non-RD refused).
+Added `motion` 13.4.4 and Instrument Sans (variable). The build passed on
+push. `test:visual` was skipped on that push (no screen changed). Not run:
+the rd-reviewer pass on the ACC-179 diff. `DESIGN.md` (repo root)
 describes the r10.5 proposals in `design/proposals/r8*`. The audit behind
 them is `docs/ux-audit-r2.md`. None of it has been verified against a
 running r10 build, because there is none.
