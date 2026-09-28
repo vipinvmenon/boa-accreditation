@@ -36,6 +36,7 @@ test('invite form defaults to issuer and explains every role', async ({ page }) 
 
   await page.goto('/desk/users')
 
+  await page.getByRole('button', { name: 'Invite operator' }).click()
   const role = page.getByLabel('Role')
   await expect(role).toHaveValue('issuer')
   await expect(page.getByText('Check people in, issue wristbands, and log vehicle events; gate only.')).toBeVisible()
@@ -45,4 +46,32 @@ test('invite form defaults to issuer and explains every role', async ({ page }) 
   }
   await role.selectOption('approver')
   await expect(page.getByText('Review and approve people in the desk; cannot use the gate.')).toBeVisible()
+})
+
+test('operator sheet changes a role and requires confirmation before deactivation', async ({ page }) => {
+  const operator = {
+    user_id: 'operator-2',
+    role: 'lead' as const,
+    display_name: 'Gate Lead',
+    active: true,
+    created_at: '2026-09-25T08:00:00.000Z',
+  }
+  await page.route('**/api/desk/dashboard', (route: Route) => route.fulfill({ json: dashboard }))
+  await page.route('**/api/desk/operators', (route: Route) => route.fulfill({
+    json: { callerId: 'operator-1', operators: [{ ...operator, role: 'lead' }, { ...operator, user_id: 'operator-1', display_name: 'Desk Tester', role: 'admin' }] },
+  }))
+  await page.route('**/api/desk/operators/operator-2', async (route) => {
+    const body = route.request().postDataJSON() as { role?: string; active?: boolean }
+    await route.fulfill({ json: { operator: { ...operator, role: body.role ?? operator.role, active: body.active ?? operator.active } } })
+  })
+
+  await page.goto('/desk/users')
+  await page.getByRole('row', { name: /Gate Lead/ }).press('Enter')
+  await expect(page.getByRole('dialog', { name: /Gate Lead/ })).toBeVisible()
+  await page.getByLabel('Role').last().selectOption('approver')
+  await page.getByRole('button', { name: 'Save role' }).click()
+  await expect(page.getByText('Gate Lead updated.')).toBeVisible()
+  await page.getByRole('button', { name: 'Deactivate' }).click()
+  await expect(page.getByRole('alertdialog', { name: /Confirm deactivation/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Keep active' })).toBeVisible()
 })

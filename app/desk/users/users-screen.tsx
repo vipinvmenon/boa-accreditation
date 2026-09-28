@@ -2,390 +2,225 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { OPERATOR_ROLE_COPY, operatorRoleSchema, type InviteOperatorInput, type OperatorRow } from '@/lib/schemas/operator'
-import { UtilityScreenSkeleton } from '@/components/loading-skeleton'
-import { EmptyState, InlineConfirm, InlineError } from '@/components/states'
+import { z } from 'zod'
+import { Icon } from '@/components/icon'
+import { Button, Field, Select, StatusPill } from '@/components/r10/primitives-a'
+import { EmptyState, Sheet, Skeleton, Table, TableCell, Toast } from '@/components/r10/primitives-b'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
+import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 
-/**
- * Not part of the approved design — design/source/boa_design_body.html has no
- * operator-management screen, same reason /desk/login isn't transcribed.
- * ACC-049 supersedes app/desk/operators/page.tsx (ACC-026b, invite-only):
- * that page now redirects here. The roadmap names this path literally
- * (`/desk/users`) and ACC-04B's coming profile menu links to a "Manage
- * users" entry, so this is the page that entry will point at rather than
- * the old /desk/operators.
- *
- * Per docs/ARCHITECTURE.md rule 1, this screen never imports the Supabase
- * client — every read and write goes through app/api/desk/operators/** and
- * the pre-existing app/api/admin/invite-operator (all cookie-session, via
- * lib/supabase-server.ts; the service-role client is never involved here).
- * app/desk/operators/page.tsx's earlier version manually attached a bearer
- * token from supabase.auth.getSession() — unnecessary, since every one of
- * these routes reads the session from cookies, not the Authorization
- * header, and it was the one place in the desk app importing the Supabase
- * client directly. Dropped here.
- *
- * Authorisation is enforced by the database, not this screen (non-negotiable
- * #3): boa_acc_set_operator_active checks lead/admin, self-deactivation and
- * the last-admin guard inside the function body. An approver can load this
- * page — RLS lets them see only their own row in the list (boa_acc_operator's
- * own read policy, 202609110002) — and any activate/deactivate attempt comes
- * back "not authorized" from the server. The self-deactivation disablement
- * below is a usability affordance only; the real guard is the database CHECK
- * inside the RPC.
- */
-// ACC-122: shared with every other desk screen via lib/error-copy.ts; this
-// screen's `not_authorized`, `forbidden`, `rate_limited` and `not_found`
-// wording differ from the default because they name this screen's own
-// actions ("invite", "operator").
-const USERS_ERROR_OVERRIDES = {
+const responseSchema = z.object({ operators: operatorRowSchema.array(), callerId: z.string() })
+const mutationSchema = z.object({ operator: operatorRowSchema })
+const errorOverrides = {
   not_authorized: 'Only a lead or admin operator can do this.',
   forbidden: 'Only a lead or admin operator can invite.',
-  rate_limited: 'Too many invites sent recently. Try again shortly.',
   not_found: 'That operator no longer exists.',
 }
-
-const labelStyle: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono',monospace",
-  fontSize: '9.5px',
-  fontWeight: 700,
-  letterSpacing: '0.13em',
-  textTransform: 'uppercase',
-  color: 'var(--ink3,rgba(242,239,226,0.52))',
-}
-type InviteFormState = {
-  displayName: string
-  email: string
-  role: InviteOperatorInput['role']
-}
-
-const EMPTY_FORM: InviteFormState = { displayName: '', email: '', role: 'issuer' }
+type InviteForm = { displayName: string; email: string; role: OperatorRow['role'] }
+const initialInvite: InviteForm = { displayName: '', email: '', role: 'issuer' }
 
 export function UsersScreen() {
   const router = useRouter()
   const [operators, setOperators] = useState<OperatorRow[] | null>(null)
   const [callerId, setCallerId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<OperatorRow | null>(null)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [invite, setInvite] = useState(initialInvite)
+  const [role, setRole] = useState<OperatorRow['role']>('issuer')
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null)
 
-  const [form, setForm] = useState<InviteFormState>(EMPTY_FORM)
-  const [inviting, setInviting] = useState(false)
-  const [inviteMessage, setInviteMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
-
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [rowError, setRowError] = useState<string | null>(null)
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [announcement, setAnnouncement] = useState('Loading operators.')
-  const [reloadKey, setReloadKey] = useState(0)
+  async function load() {
+    try {
+      const response = await fetch('/api/desk/operators')
+      if (response.status === 401) {
+        router.replace(loginHref(window.location.pathname + window.location.search))
+        return
+      }
+      const parsed = responseSchema.safeParse(await response.json())
+      if (!response.ok || !parsed.success) throw new Error('load')
+      setOperators(parsed.data.operators)
+      setCallerId(parsed.data.callerId)
+      setLoadError(null)
+    } catch {
+      setLoadError(copyForError(null, errorOverrides))
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false
-    async function loadOperators() {
-      try {
-        const res = await fetch('/api/desk/operators')
-        if (cancelled) return
-        if (res.status === 401) {
-          router.replace(loginHref(window.location.pathname + window.location.search))
-          return
-        }
-        if (!res.ok) {
-          const body = await res.json().catch(() => null)
-          const message = copyForError(body, USERS_ERROR_OVERRIDES)
-          if (!cancelled) {
-            setLoadError(message)
-            setAnnouncement(`Could not load operators. ${message}`)
-          }
-          return
-        }
-        const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
-        if (cancelled) return
-        setOperators(body.operators)
-        setCallerId(body.callerId)
-        setLoadError(null)
-        setAnnouncement('Operators loaded.')
-      } catch {
-        if (!cancelled) {
-          const message = copyForError(null, USERS_ERROR_OVERRIDES)
-          setLoadError(message)
-          setAnnouncement(`Could not load operators. ${message}`)
-        }
-      }
-    }
-    void loadOperators()
-    return () => {
-      cancelled = true
-    }
+    const timer = window.setTimeout(() => { void load() }, 0)
+    return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reloadKey])
+  }, [])
 
-  // Reused after a mutation (invite/activate/deactivate) to refresh the
-  // list from the server rather than hand-shaping a row client-side — same
-  // reasoning as devices-screen.tsx's post-mint refetch. Not called from a
-  // useEffect body, so it is a plain event-driven refetch, not an effect.
-  async function refetchOperators() {
-    try {
-      const res = await fetch('/api/desk/operators')
-      if (res.status === 401) {
-        router.replace(loginHref(window.location.pathname + window.location.search))
-        return
-      }
-      if (!res.ok) {
-        const message = copyForError(await res.json().catch(() => null), USERS_ERROR_OVERRIDES)
-        setAnnouncement(`Could not refresh operators. ${message}`)
-        return
-      }
-      const body = (await res.json()) as { operators: OperatorRow[]; callerId: string }
-      setOperators(body.operators)
-      setCallerId(body.callerId)
-    } catch {
-      setAnnouncement(`Could not refresh operators. ${copyForError(null, USERS_ERROR_OVERRIDES)}`)
-    }
+  function openOperator(operator: OperatorRow) {
+    setSelected(operator)
+    setRole(operator.role)
+    setConfirming(false)
   }
 
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault()
-    setInviteMessage(null)
-    setInviting(true)
+  async function mutate(operatorId: string, body: { active: boolean } | { role: OperatorRow['role'] }) {
+    setBusy(true)
     try {
-      const res = await fetch('/api/admin/invite-operator', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: form.email, displayName: form.displayName, role: form.role }),
-      })
-      if (res.status === 401) {
-        router.replace(loginHref(window.location.pathname + window.location.search))
-        return
-      }
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        const message = copyForError(body, USERS_ERROR_OVERRIDES)
-        setInviteMessage({ kind: 'error', text: message })
-        setAnnouncement(`Could not send invitation. ${message}`)
-        return
-      }
-      setInviteMessage({ kind: 'ok', text: `Invitation sent to ${form.email}.` })
-      setAnnouncement(`Invitation sent to ${form.email}.`)
-      setForm(EMPTY_FORM)
-      await refetchOperators()
-    } catch {
-      const message = copyForError(null, USERS_ERROR_OVERRIDES)
-      setInviteMessage({ kind: 'error', text: message })
-      setAnnouncement(`Could not send invitation. ${message}`)
-    } finally {
-      setInviting(false)
-    }
-  }
-
-  // ACC-125: Deactivate is destructive (it locks the operator out immediately
-  // — boa_acc_set_operator_active is the real guard, this is only the
-  // confirmation step) and Activate is not, so only Deactivate goes through
-  // the inline confirm; Activate fires straight away like the rest of the
-  // desk's non-destructive actions.
-  function requestSetActive(userId: string, active: boolean) {
-    if (!active) {
-      setConfirmingId(userId)
-      return
-    }
-    void handleSetActive(userId, active)
-  }
-
-  async function handleSetActive(userId: string, active: boolean) {
-    setRowError(null)
-    setBusyId(userId)
-    setConfirmingId(null)
-    try {
-      const res = await fetch(`/api/desk/operators/${userId}`, {
+      const response = await fetch(`/api/desk/operators/${operatorId}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ active }),
+        body: JSON.stringify(body),
       })
-      if (res.status === 401) {
+      if (response.status === 401) {
         router.replace(loginHref(window.location.pathname + window.location.search))
         return
       }
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        const message = copyForError(body, USERS_ERROR_OVERRIDES)
-        setRowError(message)
-        setAnnouncement(`Could not ${active ? 'activate' : 'deactivate'} operator. ${message}`)
+      const parsed = mutationSchema.safeParse(await response.json())
+      if (!response.ok || !parsed.success) {
+        setNotice({ text: copyForError(null, errorOverrides), error: true })
         return
       }
-      const body = (await res.json()) as { operator: OperatorRow }
-      setOperators((prev) =>
-        (prev ?? []).map((o) => (o.user_id === userId ? { ...o, active: body.operator.active } : o)),
-      )
-      setAnnouncement(`Operator ${active ? 'activated' : 'deactivated'}.`)
+      setOperators((current) => current?.map((item) => item.user_id === operatorId ? parsed.data.operator : item) ?? null)
+      setSelected(parsed.data.operator)
+      setConfirming(false)
+      setNotice({ text: `${parsed.data.operator.display_name} updated.` })
     } catch {
-      const message = copyForError(null, USERS_ERROR_OVERRIDES)
-      setRowError(message)
-      setAnnouncement(`Could not ${active ? 'activate' : 'deactivate'} operator. ${message}`)
+      setNotice({ text: copyForError(null, errorOverrides), error: true })
     } finally {
-      setBusyId(null)
+      setBusy(false)
+    }
+  }
+
+  async function inviteOperator(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setBusy(true)
+    try {
+      const response = await fetch('/api/admin/invite-operator', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(invite),
+      })
+      if (!response.ok) {
+        setNotice({ text: copyForError(await response.json().catch(() => null), errorOverrides), error: true })
+        return
+      }
+      setInvite(initialInvite)
+      setInviteOpen(false)
+      setNotice({ text: `Invitation sent to ${invite.email}.` })
+      await load()
+    } catch {
+      setNotice({ text: copyForError(null, errorOverrides), error: true })
+    } finally {
+      setBusy(false)
     }
   }
 
   return (
-    <main id="main-content" tabIndex={-1} className="utility-screen">
-      <div className="utility-inner">
-        {!inviteMessage && !loadError && !rowError && (
-          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
-        )}
-        <header className="utility-head">
-          <div>
-            <div className="tag">Desk operations</div>
-            <h1 className="h1">Manage users</h1>
-          </div>
-        </header>
+    <main id="main-content" tabIndex={-1} className="users-screen">
+      <header className="users-head">
+        <div>
+          <p className="label gold">Desk access</p>
+          <h1 className="display-lg">Users</h1>
+          <p className="lede">Who can sign in to the desk and gate, and what each person can do.</p>
+        </div>
+        <Button variant="primary" onClick={() => setInviteOpen(true)}>Invite operator <Icon name="plus" /></Button>
+      </header>
 
-        <section className="utility-section bz">
-          <div className="pl pad">
-          <h2
-            style={{
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.13em',
-              textTransform: 'uppercase',
-              color: 'var(--ink2,rgba(242,239,226,0.72))',
-              margin: '0 0 16px',
-            }}
-          >
-            Invite an operator
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--ink3,rgba(242,239,226,0.52))', margin: '0 0 16px' }}>
-            They get an email with a link to set their own password, then sign in at /desk/login.
-          </p>
-          <form onSubmit={(e) => void handleInvite(e)} className="utility-form cols">
-            <label className="utility-label">
-              <span>Full name</span>
-              <input
-                aria-describedby="operator-name-hint"
-                required
-                minLength={2}
-                maxLength={80}
-                value={form.displayName}
-                onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                className="utility-input"
-              />
-              <small id="operator-name-hint" className="utility-hint">Shown to the team and on gate records.</small>
-            </label>
-            <label className="utility-label">
-              <span>Email</span>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="utility-input"
-                placeholder="ranjith@example.com"
-              />
-            </label>
-            <label className="utility-label">
-              <span>Role</span>
-              <select
-                aria-describedby="operator-role-description"
-                value={form.role}
-                onChange={(e) => setForm((f) => ({ ...f, role: operatorRoleSchema.parse(e.target.value) }))}
-                className="utility-input utility-select"
-              >
-                {operatorRoleSchema.options.map((option) => (
-                  <option key={option} value={option}>
-                    {OPERATOR_ROLE_COPY[option].label}
-                  </option>
-                ))}
-              </select>
-              <small id="operator-role-description" className="utility-hint">{OPERATOR_ROLE_COPY[form.role].description}</small>
-            </label>
-            <div className="utility-actions full">
-              <button type="submit" disabled={inviting} className="btn go hov-invert-grn" style={{ opacity: inviting ? 0.6 : 1 }}>
-                {inviting ? 'Sending…' : 'Send invitation'}
-              </button>
-              {inviteMessage && (
-                <p
-                  role={inviteMessage.kind === 'error' ? 'alert' : 'status'}
-                  className={inviteMessage.kind === 'error' ? 'utility-error' : 'utility-ok'}
-                >
-                  {inviteMessage.text}
-                </p>
-              )}
+      {loadError && <EmptyState error title="Operators didn’t load" icon={<Icon name="x" />}>
+        <p>{loadError}</p>
+        <Button onClick={() => { setOperators(null); void load() }}>Try again <Icon name="arrow-right" /></Button>
+      </EmptyState>}
+      {operators === null && !loadError && (
+        <div className="users-table card" role="status" aria-label="Loading operators" aria-busy="true">
+          {Array.from({ length: 5 }, (_, index) => <div className="user-skeleton" key={index}><Skeleton /><Skeleton shape="pill" /></div>)}
+        </div>
+      )}
+      {operators?.length === 0 && <EmptyState title="Only you so far" icon={<Icon name="plus" />}>
+        Invite the desk and gate issuers. Each person gets an email to set a password.
+      </EmptyState>}
+      {operators && operators.length > 0 && (
+        <Table label="Operators" columns={[
+          { key: 'name', label: 'Name' },
+          { key: 'role', label: 'Role' },
+          { key: 'status', label: 'Status' },
+          { key: 'open', label: <span className="sr-only">Open</span> },
+        ]} className="users-table card">
+          {operators.map((operator) => (
+            <div key={operator.user_id} className="user-row" role="row" tabIndex={0} onClick={() => openOperator(operator)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openOperator(operator) } }}>
+              <TableCell><strong className="display-sm">{operator.display_name}{operator.user_id === callerId ? ' (you)' : ''}</strong><span className="mono ink-2">{operator.created_at.slice(0, 10)}</span></TableCell>
+              <TableCell><StatusPill status="mute">{OPERATOR_ROLE_COPY[operator.role].label}</StatusPill></TableCell>
+              <TableCell><StatusPill status={operator.active ? 'ok' : 'mute'}>{operator.active ? 'Active' : 'Deactivated'}</StatusPill></TableCell>
+              <TableCell className="user-arrow"><Icon name="arrow-right" /></TableCell>
             </div>
-          </form>
-          </div>
-        </section>
+          ))}
+        </Table>
+      )}
 
-        <section>
-          <h2
-            style={{
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.13em',
-              textTransform: 'uppercase',
-              color: 'var(--ink2,rgba(242,239,226,0.72))',
-              margin: '0 0 16px',
-            }}
-          >
-            All operators
-          </h2>
+      <Sheet open={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite operator" footer={
+        <><Button variant="primary" type="submit" form="invite-form" disabled={busy}>Send invitation <Icon name="paper-plane-tilt" /></Button><Button variant="ghost" onClick={() => setInviteOpen(false)}>Cancel</Button></>
+      }>
+        <form id="invite-form" onSubmit={(event) => void inviteOperator(event)} className="users-form">
+          <Field label="Full name" required minLength={2} maxLength={80} value={invite.displayName} onChange={(event) => setInvite({ ...invite, displayName: event.target.value })} hint="Shown to the team and on gate records." />
+          <Field label="Email" type="email" required value={invite.email} onChange={(event) => setInvite({ ...invite, email: event.target.value })} />
+          <Select label="Role" value={invite.role} onChange={(event) => setInvite({ ...invite, role: operatorRoleSchema.parse(event.target.value) })} hint={OPERATOR_ROLE_COPY[invite.role].description}>
+            {operatorRoleSchema.options.map((value) => <option key={value} value={value}>{OPERATOR_ROLE_COPY[value].label}</option>)}
+          </Select>
+        </form>
+      </Sheet>
 
-          {loadError && (
-            <InlineError
-              className="utility-error"
-              message={loadError}
-              onRetry={() => { setLoadError(null); setOperators(null); setReloadKey((k) => k + 1) }}
-            />
-          )}
-          {rowError && <p role="alert" className="utility-error">{rowError}</p>}
-          {operators === null && !loadError && (
-            <div role="status" aria-label="Loading operators"><UtilityScreenSkeleton kind="users" /></div>
-          )}
-          {operators !== null && operators.length === 0 && (
-            <EmptyState message="No operators visible to you. Invite one above." />
-          )}
-
-          <div className="utility-list">
-            {operators?.map((o) => {
-              const isSelf = o.user_id === callerId
-              return (
-                <div key={o.user_id} className="bz"><div className="pl pad utility-row">
-                    <div>
-                      <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: '17px', color: 'var(--ink,#F2EFE2)', margin: 0 }}>
-                        {o.display_name}
-                        {isSelf ? ' (you)' : ''}
-                      </p>
-                      <p style={{ ...labelStyle, marginTop: '4px' }}>
-                        {OPERATOR_ROLE_COPY[o.role].label} · {o.active ? 'active' : 'deactivated'}
-                      </p>
-                    </div>
-                    {isSelf ? (
-                      <span style={{ ...labelStyle }}>Cannot change your own status</span>
-                    ) : confirmingId === o.user_id ? (
-                      <InlineConfirm
-                        prompt={`Deactivate ${o.display_name}?`}
-                        confirmLabel="Deactivate"
-                        busy={busyId === o.user_id}
-                        busyLabel="Working…"
-                        onConfirm={() => void handleSetActive(o.user_id, false)}
-                        onCancel={() => setConfirmingId(null)}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={busyId === o.user_id}
-                        onClick={() => requestSetActive(o.user_id, !o.active)}
-                        className={`btn solo ${o.active ? 'bad hov-fill-bad' : 'hov-fill-grn'}`}
-                        style={{ opacity: busyId === o.user_id ? 0.6 : 1 }}
-                      >
-                        {busyId === o.user_id ? 'Working…' : o.active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    )}
-                  </div></div>
-              )
-            })}
-          </div>
-        </section>
-      </div>
+      <Sheet open={selected !== null} onClose={() => setSelected(null)} title={selected?.display_name}>
+        {selected && <div className="users-form">
+          <p className="mono ink-2">Operator access</p>
+          {selected.user_id === callerId ? (
+            <p className="body-sm ink-2">You can’t change your own role or status. Ask another admin.</p>
+          ) : <>
+            <Select label="Role" value={role} onChange={(event) => setRole(operatorRoleSchema.parse(event.target.value))} hint={OPERATOR_ROLE_COPY[role].description}>
+              {operatorRoleSchema.options.map((value) => <option key={value} value={value}>{OPERATOR_ROLE_COPY[value].label}</option>)}
+            </Select>
+            {role !== selected.role && <Button variant="primary" disabled={busy} onClick={() => void mutate(selected.user_id, { role })}>Save role</Button>}
+            <div className="access-section">
+              <p className="label">Access</p>
+              <p className="body-sm ink-2">{selected.active ? 'Active. Signs in with their own password.' : 'Deactivated. Can’t sign in.'}</p>
+              {confirming ? <div className="confirm" role="alertdialog" aria-label={`Confirm deactivation of ${selected.display_name}`}>
+                <strong>Deactivate {selected.display_name}?</strong><span className="body-sm ink-2">They can’t sign in until an admin reactivates them.</span>
+                <div className="confirm-actions"><Button variant="danger" disabled={busy} onClick={() => void mutate(selected.user_id, { active: false })}>Deactivate</Button><Button variant="ghost" onClick={() => setConfirming(false)}>Keep active</Button></div>
+              </div> : <Button variant={selected.active ? 'danger' : 'default'} onClick={() => selected.active ? setConfirming(true) : void mutate(selected.user_id, { active: true })}>{selected.active ? 'Deactivate' : 'Reactivate'}</Button>}
+            </div>
+          </>}
+        </div>}
+      </Sheet>
+      {notice && <Toast message={notice.text} {...(notice.error ? { error: true } : {})} onDismiss={() => setNotice(null)} />}
+      <style jsx global>{`
+        .r10 .users-screen { padding-block: var(--s-10) var(--s-20); }
+        .r10 .users-head { display:flex; align-items:end; justify-content:space-between; gap:var(--s-8); margin-bottom:var(--s-8); }
+        .r10 .users-head h1 { margin:var(--s-2) 0 var(--s-3); }
+        .r10 .users-table { overflow:hidden; }
+        .r10 .users-table .thead, .r10 .user-row { display:grid; grid-template-columns:minmax(220px,2fr) minmax(140px,1fr) minmax(140px,1fr) 44px; align-items:center; gap:var(--s-4); padding-inline:var(--s-6); }
+        .r10 .users-table .thead { min-height:48px; color:var(--ink-3); font:600 var(--t-label)/1.2 var(--f-label); letter-spacing:var(--track-label); text-transform:uppercase; box-shadow:inset 0 -1px 0 var(--hair); }
+        .r10 .user-row { min-height:76px; padding-block:var(--s-3); cursor:pointer; box-shadow:inset 0 -1px 0 var(--hair); transition:background-color var(--d-quick) var(--e-hover),transform var(--d-quick) var(--e-hover); }
+        .r10 .user-row:hover { background:var(--raised); transform:translateX(2px); }
+        .r10 .user-row:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; }
+        .r10 .user-row > [role="cell"]:first-child { display:grid; gap:var(--s-1); }
+        .r10 .user-arrow { justify-self:end; color:var(--ink-3); font-size:20px; }
+        .r10 .users-form { display:grid; gap:var(--s-5); }
+        .r10 .access-section { display:grid; gap:var(--s-3); margin-top:var(--s-3); padding-top:var(--s-5); border-top:1px solid var(--hair); }
+        .r10 .access-section .label { margin:0; color:var(--gold); }
+        .r10 .confirm { display:grid; gap:var(--s-3); padding:var(--s-4); border-radius:var(--r-md); background:var(--bad-tint); }
+        .r10 .confirm-actions { display:flex; flex-wrap:wrap; gap:var(--s-3); }
+        .r10 .user-skeleton { display:flex; justify-content:space-between; align-items:center; min-height:76px; padding:var(--s-4) var(--s-6); box-shadow:inset 0 -1px 0 var(--hair); }
+        @media (max-width:700px) {
+          .r10 .users-screen { padding-block:var(--s-6) var(--s-10); }
+          .r10 .users-head { align-items:start; flex-direction:column; gap:var(--s-5); margin-bottom:var(--s-6); }
+          .r10 .users-head .btn { width:100%; }
+          .r10 .users-table .thead { display:none; }
+          .r10 .user-row { grid-template-columns:1fr 44px; gap:var(--s-2); padding-inline:var(--s-5); }
+          .r10 .user-row > [role="cell"]:nth-child(2), .r10 .user-row > [role="cell"]:nth-child(3) { grid-column:1; }
+          .r10 .user-row > [role="cell"]:nth-child(2) { grid-row:2; }
+          .r10 .user-row > [role="cell"]:nth-child(3) { grid-row:3; }
+          .r10 .user-row > [role="cell"]:last-child { grid-column:2; grid-row:1 / span 3; }
+        }
+        @media (prefers-reduced-transparency:reduce) { .r10 .users-table { background:var(--surface-solid); backdrop-filter:none; } }
+        @media (prefers-reduced-motion:reduce) { .r10 .user-row { transition:none; } }
+      `}</style>
     </main>
   )
 }
