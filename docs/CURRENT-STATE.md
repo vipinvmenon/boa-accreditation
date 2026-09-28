@@ -1196,6 +1196,14 @@ Verified: typecheck, lint (six existing warnings), 294 unit tests, production
 build, and chrome-interactions e2e 6/6. `test:visual` remains unavailable until
 ACC-191 generates references.
 
+### 28 Sep 2026 — ACC-184 verified and done
+
+The r10 Master list now uses shared filters and count presets, removable chips
+with clear-all, sticky headers, and a focus-trapped person sheet while keeping
+the existing API/Zod data flow. Verified: typecheck, lint (six existing
+warnings), 294 unit tests, production build, and owned e2e 15/15. Visual
+references remain unavailable until ACC-191.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
