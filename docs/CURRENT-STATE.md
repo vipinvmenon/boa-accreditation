@@ -1177,6 +1177,8 @@ Verified: typecheck, lint (six existing warnings), 288 unit tests, focused
 primitive tests, and production build. E2E could not complete because the
 Supabase environment is unavailable; `test:visual` remains unavailable until
 ACC-191 generates references.
+Post-review hardening also verified: hold cancellation, actionable preset chips,
+44px chip targets, and Field/Select described-by wiring; 290 unit tests pass.
 
 ### 28 Sep 2026 — ACC-167 verified and done
 
