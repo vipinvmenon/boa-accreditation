@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { supabaseServer } from '@/lib/supabase-server'
 import {
   dashboardSchema,
-  dashboardGateCountSchema,
-  dashboardLatestIssueSchema,
+  dashboardGateFeedSchema,
   dashboardTypeNoteSchema,
   doubleIssueListSchema,
   type DashboardResponse,
@@ -30,8 +28,8 @@ export async function GET() {
     supabase.rpc('boa_acc_desk_gate_feed'),
   ])
 
-  if (error || feedError) {
-    if ([error, feedError].some((candidate) => candidate?.code === '42501')) {
+  if (error) {
+    if (error.code === '42501') {
       return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
     }
     return NextResponse.json({ error: 'internal' }, { status: 500 })
@@ -42,15 +40,10 @@ export async function GET() {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
-  const parsedFeed = z
-    .object({
-      gateCounts: dashboardGateCountSchema.array(),
-      latestIssues: dashboardLatestIssueSchema.array(),
-    })
-    .safeParse(feedData)
-  if (!parsedFeed.success) {
-    return NextResponse.json({ error: 'internal' }, { status: 500 })
-  }
+  // ACC-183a: the feed is an optional additive migration. An older deployment
+  // can return PGRST202 while the already-working Control room RPC is present;
+  // keep that shell usable until the feed migration is pushed.
+  const parsedFeed = dashboardGateFeedSchema.safeParse(feedError ? {} : feedData ?? {})
 
   // ACC-115: each tier card prints boa_acc_type.note. The counts stay in the
   // one RPC; the note is copy, read from the table the RPC orders by, so the
@@ -73,7 +66,7 @@ export async function GET() {
 
   const body: DashboardResponse = {
     ...parsed.data,
-    ...parsedFeed.data,
+    ...(parsedFeed.success ? parsedFeed.data : dashboardGateFeedSchema.parse({})),
     types: parsed.data.types.map((type) => ({ ...type, note: noteByCode.get(type.code) ?? null })),
     doubleIssueList,
   }

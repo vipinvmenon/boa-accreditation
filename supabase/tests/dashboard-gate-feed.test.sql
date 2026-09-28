@@ -29,8 +29,11 @@ declare
   v_person uuid;
   v_device uuid;
   v_operator uuid;
+  v_checkin uuid;
   v_token text;
   v_feed jsonb;
+  v_gate_count integer;
+  v_latest jsonb;
 begin
   insert into public.boa_acc_org (name, kind, quota, contact_name, contact_phone)
   values ('ACC-183a gate feed', 'vendor', 5, 'Feed Contact', '+919855551183')
@@ -89,28 +92,65 @@ begin
   values (
     v_person, 'wristband', gen_random_uuid(), '183A', v_device,
     'ACC-183a Gate', 'ACC-183a Issuer', clock_timestamp()
+  )
+  returning id into v_checkin;
+
+  v_feed := public.boa_acc_desk_gate_feed();
+
+  select (entry ->> 'count')::integer
+  into v_gate_count
+  from jsonb_array_elements(v_feed -> 'gateCounts') as counts(entry)
+  where entry ->> 'gateLabel' = 'ACC-183a Gate';
+
+  select entry
+  into v_latest
+  from jsonb_array_elements(v_feed -> 'latestIssues') as issues(entry)
+  where entry ->> 'checkinId' = v_checkin::text;
+
+  if v_gate_count <> 1
+     or v_latest ->> 'fullName' <> 'ACC183a Feed Person'
+     or v_latest ->> 'kind' <> 'wristband'
+  then
+    raise exception 'gate=% count=% latest=% kind=%',
+      'ACC-183a Gate',
+      coalesce(v_gate_count, 0),
+      coalesce(v_latest ->> 'fullName', '<missing>'),
+      coalesce(v_latest ->> 'kind', '<missing>');
+  end if;
+
+  insert into public.boa_acc_checkin (
+    person_id, kind, idempotency_key, device_id, gate_label,
+    volunteer_name, occurred_at, posted_at, voids_checkin_id
+  )
+  values (
+    v_person, 'void', gen_random_uuid(), v_device, 'ACC-183a Gate',
+    'ACC-183a Issuer', clock_timestamp(), clock_timestamp(), v_checkin
   );
 
   v_feed := public.boa_acc_desk_gate_feed();
 
-  if (v_feed -> 'gateCounts' -> 0 ->> 'gateLabel') <> 'ACC-183a Gate'
-     or (v_feed -> 'gateCounts' -> 0 ->> 'count')::integer <> 1
-     or (v_feed -> 'latestIssues' -> 0 ->> 'fullName') <> 'ACC183a Feed Person'
-     or (v_feed -> 'latestIssues' -> 0 ->> 'kind') <> 'wristband'
-  then
-    raise exception 'gate=% count=% latest=% kind=%',
-      v_feed -> 'gateCounts' -> 0 ->> 'gateLabel',
-      v_feed -> 'gateCounts' -> 0 ->> 'count',
-      v_feed -> 'latestIssues' -> 0 ->> 'fullName',
-      v_feed -> 'latestIssues' -> 0 ->> 'kind';
+  select (entry ->> 'count')::integer
+  into v_gate_count
+  from jsonb_array_elements(v_feed -> 'gateCounts') as counts(entry)
+  where entry ->> 'gateLabel' = 'ACC-183a Gate';
+
+  select entry
+  into v_latest
+  from jsonb_array_elements(v_feed -> 'latestIssues') as issues(entry)
+  where entry ->> 'checkinId' = v_checkin::text;
+
+  if v_gate_count is not null or v_latest is not null then
+    raise exception 'voided gate=% latest=%',
+      coalesce(v_gate_count::text, '0'),
+      coalesce(v_latest ->> 'checkinId', '<missing>');
   end if;
 
-  raise exception 'gate=ACC-183a Gate count=1 latest=ACC183a Feed Person kind=wristband';
+  raise exception 'gate=ACC-183a Gate count=1 latest=ACC183a Feed Person kind=wristband voided=excluded';
 end
 $body$;
 $do$,
 'P0001',
-'gate=ACC-183a Gate count=1 latest=ACC183a Feed Person kind=wristband',
+  'gate=ACC-183a Gate count=1 latest=ACC183a Feed Person kind=wristband voided=excluded',
 'the feed counts today''s gate issue and returns the latest ledger issue'
     )
   )

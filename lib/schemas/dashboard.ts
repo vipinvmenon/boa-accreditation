@@ -57,6 +57,11 @@ export const dashboardLatestIssueSchema = z.object({
   isReissue: z.boolean(),
 })
 
+export const dashboardGateFeedSchema = z.object({
+  gateCounts: dashboardGateCountSchema.array().default([]),
+  latestIssues: dashboardLatestIssueSchema.array().default([]),
+})
+
 /**
  * Shape of `public.boa_acc_desk_dashboard()` (202609120010) —
  * "every Control-room number in one round trip" (DATA-MODEL.md).
@@ -81,8 +86,8 @@ export const dashboardSchema = z.object({
    * what says whether the function exists.
    */
   doubleIssues: z.number().int().nonnegative().default(0),
-  gateCounts: z.array(dashboardGateCountSchema).default([]),
-  latestIssues: z.array(dashboardLatestIssueSchema).default([]),
+  gateCounts: dashboardGateCountSchema.array().default([]),
+  latestIssues: dashboardLatestIssueSchema.array().default([]),
   types: z.array(dashboardTypeSchema),
   orgs: z.array(dashboardOrgSchema),
 })

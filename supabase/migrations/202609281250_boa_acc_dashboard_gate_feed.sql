@@ -45,6 +45,12 @@ begin
       where c.kind in ('wristband', 'vehicle_sticker')
         and c.occurred_at >= v_today_start
         and c.occurred_at < v_tomorrow_start
+        and not exists (
+          select 1
+          from public.boa_acc_checkin v
+          where v.kind = 'void'
+            and v.voids_checkin_id = c.id
+        )
       group by c.gate_label
     ) c
   ) gc
@@ -81,6 +87,12 @@ begin
         c.is_reissue
       from public.boa_acc_checkin c
       where c.kind in ('wristband', 'vehicle_sticker')
+        and not exists (
+          select 1
+          from public.boa_acc_checkin v
+          where v.kind = 'void'
+            and v.voids_checkin_id = c.id
+        )
       order by c.occurred_at desc, c.posted_at desc, c.id desc
       limit 10
     ) c
