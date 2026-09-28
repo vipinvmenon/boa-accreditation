@@ -1169,6 +1169,15 @@ token checker reports 65 r10 tokens and the light `--ink3` contrast is above
 4.5:1. `test:visual` was not green because reference images do not exist yet;
 reference generation belongs to ACC-191.
 
+### 28 Sep 2026 — ACC-181a verified and done
+
+The r10 Button, HoldButton, Field, Select, Chip, FilterBar, StatusPill, and
+CountDot primitives now exist under `components/r10/`, with focused tests.
+Verified: typecheck, lint (six existing warnings), 288 unit tests, focused
+primitive tests, and production build. E2E could not complete because the
+Supabase environment is unavailable; `test:visual` remains unavailable until
+ACC-191 generates references.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
