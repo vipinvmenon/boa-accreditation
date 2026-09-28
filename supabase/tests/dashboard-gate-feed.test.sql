@@ -4,22 +4,24 @@
 -- rows roll back in a subtransaction. No test cleanup ever updates or deletes
 -- boa_acc_checkin.
 
-select plan(3);
+with
+  results as materialized (
+    select 0 as n, plan(3) as line
 
-select is(
-  has_function_privilege('anon', 'public.boa_acc_desk_gate_feed()', 'EXECUTE'),
-  false,
-  'anon cannot execute the dashboard gate feed'
-);
+    union all select 1, is(
+      has_function_privilege('anon', 'public.boa_acc_desk_gate_feed()', 'EXECUTE'),
+      false,
+      'anon cannot execute the dashboard gate feed'
+    )
 
-select throws_ok(
-  'select public.boa_acc_desk_gate_feed()',
-  '42501',
-  'not authorized',
-  'the gate feed refuses a session without an active operator'
-);
+    union all select 2, throws_ok(
+      'select public.boa_acc_desk_gate_feed()',
+      '42501',
+      'not authorized',
+      'the gate feed refuses a session without an active operator'
+    )
 
-select throws_ok(
+    union all select 3, throws_ok(
 $do$
 do $body$
 declare
@@ -110,6 +112,10 @@ $do$,
 'P0001',
 'gate=ACC-183a Gate count=1 latest=ACC183a Feed Person kind=wristband',
 'the feed counts today''s gate issue and returns the latest ledger issue'
-);
-
-select finish();
+    )
+  )
+select line from (
+  select n, line from results
+  union all select 999999, l from finish() l
+) t
+order by n;
