@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gate · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  /* Gate: phone = one panel, two states (scan ⇄ result), in place, no scroll to see the CTA.
+     Desktop (≥1000px): split, viewfinder left / result right (idle state when nothing scanned). */
+  .gate-page { padding-top: var(--s-4); }
+  .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: var(--s-5); }
+  .segmented a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+  .segmented a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
+
+  .gate-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; align-items: start; }
+  .panel { position: relative; border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); padding: var(--s-5); overflow: hidden; }
+
+  /* ── Viewfinder ─────────────────────────────────────────── */
+  .viewfinder { position: relative; aspect-ratio: 1 / 1; max-height: 46vh; border-radius: var(--r-md); background: #000; overflow: hidden; display: grid; place-items: center; }
+  .vf-corner { position: absolute; width: 26px; height: 26px; }
+  .vf-corner.tl { top: var(--s-4); left: var(--s-4); border-top: 3px solid var(--gold); border-left: 3px solid var(--gold); border-radius: var(--r-xs) 0 0 0; }
+  .vf-corner.tr { top: var(--s-4); right: var(--s-4); border-top: 3px solid var(--gold); border-right: 3px solid var(--gold); border-radius: 0 var(--r-xs) 0 0; }
+  .vf-corner.bl { bottom: var(--s-4); left: var(--s-4); border-bottom: 3px solid var(--gold); border-left: 3px solid var(--gold); border-radius: 0 0 0 var(--r-xs); }
+  .vf-corner.br { bottom: var(--s-4); right: var(--s-4); border-bottom: 3px solid var(--gold); border-right: 3px solid var(--gold); border-radius: 0 0 var(--r-xs) 0; }
+  .vf-sweep { position: absolute; left: 0; right: 0; top: 0%; height: 2px; background: linear-gradient(90deg, transparent, var(--go), transparent); opacity: 0; }
+  .viewfinder[data-camera="on"] .vf-sweep { opacity: 1; animation: vf-sweep 2.4s linear infinite; }
+  @keyframes vf-sweep { 0% { top: 4%; } 50% { top: 94%; } 100% { top: 4%; } }
+  @media (prefers-reduced-motion: reduce) { .viewfinder[data-camera="on"] .vf-sweep { animation: none; top: 50%; opacity: .5; } }
+  [data-motion="reduced"] .viewfinder[data-camera="on"] .vf-sweep { animation: none; top: 50%; opacity: .5; }
+  .vf-start { position: absolute; width: 88px; height: 88px; border-radius: 50%; border: 0; background: var(--go); color: var(--on-go); display: grid; place-items: center; font-size: 30px; cursor: pointer; transition: transform var(--d-instant) var(--e-out); }
+  .vf-start:active { transform: scale(.95); }
+  .viewfinder[data-camera="on"] .vf-start { display: none; }
+  .vf-hint { position: absolute; bottom: var(--s-3); left: 0; right: 0; text-align: center; color: var(--ink-3); }
+  .scan-copy { margin-top: var(--s-4); text-align: center; }
+  .scan-copy .label { margin: 0 0 4px; }
+  .scan-copy p { margin: 0; }
+  #search-btn { margin-top: var(--s-5); }
+
+  /* ── Result ─────────────────────────────────────────────── */
+  .panel-result { display: none; }
+  .gate-split[data-resolution] .panel-scan { display: none; }
+  .gate-split[data-resolution] .panel-result { display: block; }
+  .result-idle { display: none; padding: var(--s-14) 0; text-align: center; color: var(--ink-3); }
+  .result-body { display: none; }
+
+  /* Direction A — Flood: colour floods the panel, verdict is the hero */
+  .panel-result[data-direction="a"] { box-shadow: inset 0 0 0 2px var(--c, var(--hair)); background: color-mix(in srgb, var(--c, transparent) 14%, var(--surface)); transition: background-color var(--d-quick) var(--e-out), box-shadow var(--d-quick) var(--e-out); }
+  .panel-result[data-direction="a"] .g-hero { display: grid; justify-items: center; text-align: center; gap: var(--s-3); padding-bottom: var(--s-5); }
+  .panel-result[data-direction="a"] .g-band { order: 3; margin-top: var(--s-4); }
+
+  /* Direction B — Band first: band art is the hero; colour is only the ring + mark */
+  .panel-result[data-direction="b"] { padding: 0; box-shadow: inset 0 0 0 2px var(--c, var(--hair)); }
+  .panel-result[data-direction="b"] .result-body { padding: var(--s-5); }
+  .panel-result[data-direction="b"] .g-hero { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--s-3); padding: var(--s-4) var(--s-5); background: var(--raised); }
+  .panel-result[data-direction="b"] .g-band { order: -1; margin: 0 0 var(--s-4); }
+  .panel-result[data-direction="b"] .g-band img { border-radius: 0; aspect-ratio: 5 / 1; }
+  .panel-result[data-direction="b"] .g-hero .mark { width: 44px; height: 44px; }
+  .panel-result[data-direction="b"] .g-hero .mark svg { width: 24px; height: 24px; }
+
+  .mark { flex: none; }
+  .g-verdict { margin: 0; }
+  .g-sub { margin: 2px 0 0; color: var(--ink-2); }
+  .g-band img { display: block; width: 100%; aspect-ratio: 12 / 1; object-fit: cover; object-position: left center; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px var(--gold-hair); }
+  .g-name { margin: var(--s-4) 0 0; }
+  .g-who { margin: 4px 0 0; color: var(--ink-2); }
+  .g-vehicle { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); }
+  .g-vehicle b { font: 500 var(--t-mono)/1 var(--f-mono); letter-spacing: .04em; }
+  .g-note { margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--raised); color: var(--ink-2); }
+  .g-note.bad { background: var(--bad-tint); color: var(--ink); }
+  .g-field { margin-top: var(--s-4); }
+  .g-dock { display: grid; gap: var(--s-3); margin-top: var(--s-5); }
+
+  .last-issued { margin-top: var(--s-8); }
+  .last-row { display: grid; grid-template-columns: 3px 1fr auto; align-items: center; gap: var(--s-4); min-height: 56px; padding: var(--s-2) 0; }
+  .last-row .bar { align-self: stretch; border-radius: var(--r-pill); background: var(--c, var(--ink-3)); }
+  .last-row .nm { font-weight: 600; }
+  .last-row .sub { color: var(--ink-3); font-size: var(--t-body-sm); }
+  .last-row .tm { color: var(--ink-3); font-size: var(--t-body-sm); text-align: right; white-space: nowrap; }
+
+  .no-roster { display: grid; justify-items: start; gap: var(--s-3); padding: var(--s-14) var(--s-6); border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
+  .no-roster .ph { font-size: 32px; color: var(--gold); }
+
+  @container app (min-width: 1000px) {
+    .gate-split { grid-template-columns: 1fr 1fr; }
+    .gate-split .panel-scan, .gate-split .panel-result { display: block !important; }
+    .gate-split:not([data-resolution]) .result-idle { display: grid; place-items: center; }
+    .gate-split:not([data-resolution]) .result-body { display: none !important; }
+    .gate-split[data-resolution] .result-idle { display: none; }
+    .gate-split[data-resolution] .result-body { display: block; }
+    .viewfinder { max-height: none; }
+  }
+  @container app (max-width: 999px) {
+    .result-idle { display: none !important; }
+    .gate-split[data-resolution] .result-body { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame gate-page" id="main" data-states="ready,empty">
+    <nav class="segmented" aria-label="Check in people or vehicles">
+      <a href="r8-gate.html" aria-current="page">People</a>
+      <a href="r8-vehicle.html">Vehicles</a>
+    </nav>
+    <div class="when-ready">
+      <div class="gate-split" id="split">
+        <div class="panel panel-scan" id="panel-scan">
+          <div class="viewfinder" id="viewfinder" data-camera="off">
+            <i class="vf-corner tl"></i><i class="vf-corner tr"></i><i class="vf-corner bl"></i><i class="vf-corner br"></i>
+            <div class="vf-sweep" aria-hidden="true"></div>
+            <button type="button" class="vf-start" id="start-camera" aria-label="Start camera"><i class="ph ph-scan"></i></button>
+          </div>
+          <div class="scan-copy">
+            <p class="label">Scan a pass</p>
+            <p class="body-sm ink-2" id="cache-count">612 passes on this phone</p>
+          </div>
+          <button type="button" class="btn btn-gate btn-block" id="search-btn"><i class="ph ph-magnifying-glass"></i>Search by name</button>
+        </div>
+
+        <div class="panel panel-result" id="panel-result" data-direction="a" role="status" aria-live="polite" aria-atomic="true">
+          <div class="result-idle">
+            <p class="label-sm">Waiting for a scan</p>
+          </div>
+          <div class="result-body" id="result-body"></div>
+        </div>
+      </div>
+
+      <section class="last-issued">
+        <h2 class="label gold">Last issued at this gate</h2>
+        <div id="last-list"></div>
+      </section>
+    </div>
+
+    <div class="when-empty">
+      <div class="no-roster">
+        <i class="ph ph-wifi-slash"></i>
+        <p class="display-sm">This phone has no list yet</p>
+        <p class="ink-2">Open this page once with signal before your shift. The approved list downloads itself and then works with the radio off.</p>
+        <button class="btn" id="retry-roster">Try again<span class="ic"><i class="ph ph-arrows-clockwise"></i></span></button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Search by name (Sheet) -->
+<aside class="sheet" id="search" data-open="false" role="dialog" aria-modal="true" aria-labelledby="search-title">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <h2 class="display-md" id="search-title">Search by name</h2>
+    <button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="sheet-body">
+    <label class="field">
+      <span class="sr">Search by name</span>
+      <input class="input" id="search-q" type="search" placeholder="Type a name" autofocus autocomplete="off">
+    </label>
+    <div id="search-results" style="margin-top:var(--s-4)"></div>
+  </div>
+</aside>
+
+<script>
+R8.shell({ active: 'gate', gate: { online: true, queued: 3, label: 'Gate 1' }, operator: { name: 'Ravi Gowda', role: 'Issuer', initials: 'RG' } })
+const D = window.R8DATA
+const TIERS = R8.TIERS
+const DAY = { build: 'Build', show: 'Show', build_show: 'Build + show' }
+const $ = (s) => document.querySelector(s)
+
+// ── Sync line: kept in step with the offline/online proto toggles ──────────
+const sync = { online: true, queued: 3 }
+let drainTimer = null
+function renderSync() {
+  const el = $('#sync')
+  if (!el) return
+  el.dataset.state = sync.online ? 'online' : 'offline'
+  const text = sync.online ? `Synced 2 min ago${sync.queued ? ` · ${sync.queued} waiting` : ''}` : `Offline${sync.queued ? ` · ${sync.queued} waiting` : ''}`
+  const t = el.querySelector('.sync-text'); if (t) t.textContent = text
+}
+function setOnline(v) {
+  sync.online = v
+  clearInterval(drainTimer)
+  if (v && sync.queued > 0) {
+    drainTimer = setInterval(() => {
+      sync.queued = Math.max(0, sync.queued - 1)
+      renderSync()
+      if (sync.queued === 0) { clearInterval(drainTimer); R8.toast('Synced') }
+    }, 500)
+  }
+  renderSync()
+}
+
+function vibrate(kind) {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return
+  const pattern = { green: [30], amber: [30, 60, 30], red: [80, 40, 80, 40, 80] }[kind] || []
+  try { navigator.vibrate(pattern) } catch (e) {}
+}
+
+// ── Demo people (deterministic, from R8DATA) ────────────────────────────────
+const GREEN = D.people.find((p) => !p.bandSerial && p.status === 'approved' && p.vehicleReg && !p.stickerNo)
+  || D.people.find((p) => !p.bandSerial && p.status === 'approved')
+const AMBER = D.people.find((p) => p.bandSerial)
+
+let issuedFor = null
+
+function personLine(p) {
+  const day = p.day === 'build_show' ? 'Build + show' : DAY[p.day]
+  return `${p.orgName} · ${p.role} · ${day}`
+}
+
+function renderGreen(direction) {
+  const t = TIERS[GREEN.tier]
+  const stickerDue = GREEN.vehicleReg && !GREEN.stickerNo
+  return `
+    <div class="g-hero">
+      <span class="mark" style="--c:var(--go)">${R8.markSvg('ok')}</span>
+      <div><h2 class="display-md g-verdict">Hand over a ${t.label} band</h2></div>
+    </div>
+    <div class="g-band"><img src="${R8.band(GREEN.tier)}" alt="${t.label} band"></div>
+    <p class="display-md g-name">${GREEN.fullName}</p>
+    <p class="body-sm g-who">${personLine(GREEN)}</p>
+    ${R8.zonesHtml(GREEN.tier)}
+    ${stickerDue ? `<div class="g-vehicle"><span class="label-sm">Sticker due</span><b>${GREEN.vehicleReg}</b></div>` : ''}
+    <label class="field g-field"><span class="label-sm">Band serial</span><input class="input input-mono" id="band-serial" placeholder="OPTIONAL" autocomplete="off"></label>
+    <div class="g-dock">
+      <button type="button" class="btn btn-primary btn-gate" id="issue-btn"><i class="ph ph-check-circle"></i>Issue band</button>
+      <button type="button" class="btn btn-gate" id="next-btn">Next person</button>
+    </div>`
+}
+function renderAmber() {
+  const t = TIERS[AMBER.tier]
+  return `
+    <div class="g-hero">
+      <span class="mark" style="--c:var(--gold)">${R8.markSvg('wait')}</span>
+      <div><h2 class="display-md g-verdict">Already has a band</h2></div>
+    </div>
+    <div class="g-band"><img src="${R8.band(AMBER.tier)}" alt="${t.label} band"></div>
+    <p class="display-md g-name">${AMBER.fullName}</p>
+    <p class="body-sm g-who">${AMBER.collectedAt} · ${AMBER.gate} · band ${AMBER.bandSerial}</p>
+    <div class="g-note"><b>Already collected.</b> A reissue needs a reason before it can be held through.</div>
+    <label class="field g-field"><span class="label-sm">Why?</span><input class="input" id="reissue-why" placeholder="Reason for the reissue" autocomplete="off"></label>
+    <div class="g-dock">
+      <button type="button" class="btn btn-danger btn-gate" id="reissue-btn" disabled><span class="hold-label">Hold to reissue</span></button>
+      <button type="button" class="btn btn-gate" id="next-btn">Next person</button>
+    </div>`
+}
+function renderRed() {
+  return `
+    <div class="g-hero">
+      <span class="mark" style="--c:var(--bad)">${R8.markSvg('bad')}</span>
+      <div><h2 class="display-md g-verdict">Not on the list.</h2></div>
+    </div>
+    <p class="body g-note bad" style="margin-top:var(--s-4)">Do not let them in.</p>
+    <div class="g-dock">
+      <button type="button" class="btn btn-gate" id="next-btn">Next person</button>
+    </div>`
+}
+
+function showResult(kind) {
+  const panel = $('#panel-result')
+  const split = $('#split')
+  panel.style.setProperty('--c', kind === 'green' ? 'var(--go)' : kind === 'amber' ? 'var(--gold)' : 'var(--bad)')
+  const body = $('#result-body')
+  body.innerHTML = kind === 'green' ? renderGreen() : kind === 'amber' ? renderAmber() : renderRed()
+  split.dataset.resolution = kind
+  vibrate(kind)
+  if (kind === 'green') {
+    $('#issue-btn').addEventListener('click', () => {
+      if (issuedFor === GREEN.id) return
+      issuedFor = GREEN.id
+      const btn = $('#issue-btn')
+      btn.disabled = true
+      btn.innerHTML = '<i class="ph ph-check-circle"></i>Band issued'
+      if (!sync.online) sync.queued += 1
+      renderSync()
+      R8.toast(sync.online ? 'Band issued' : 'Band issued · saved on this phone')
+    })
+  }
+  if (kind === 'amber') {
+    const why = $('#reissue-why'), btn = $('#reissue-btn')
+    why.addEventListener('input', () => { btn.disabled = why.value.trim().length === 0 })
+    R8.hold(btn, { ms: 700, onDone: () => { btn.disabled = true; btn.querySelector('.hold-label').textContent = 'Reissued'; R8.toast(sync.online ? 'Band reissued' : 'Band reissued · saved on this phone') } })
+  }
+  body.querySelector('#next-btn')?.addEventListener('click', nextPerson)
+}
+function nextPerson() {
+  const split = $('#split')
+  delete split.dataset.resolution
+  issuedFor = null
+}
+
+$('#start-camera').addEventListener('click', () => { $('#viewfinder').dataset.camera = 'on' })
+$('#search-btn').addEventListener('click', () => R8.openSheet('search'))
+
+// ── Search by name ──────────────────────────────────────────────────────────
+function renderSearch(q) {
+  const needle = q.trim().toLowerCase()
+  const list = !needle ? [] : D.people.filter((p) => p.fullName.toLowerCase().includes(needle)).slice(0, 8)
+  $('#search-results').innerHTML = !needle
+    ? '<p class="ink-3 body-sm">Type at least one letter of a name.</p>'
+    : list.length
+      ? list.map((p) => `<button type="button" class="btn btn-block" data-pick="${p.id}" style="justify-content:space-between;margin-bottom:var(--s-2)"><span>${p.fullName}</span><span class="ink-3 body-sm">${TIERS[p.tier].label}</span></button>`).join('')
+      : '<p class="ink-3 body-sm">No one matches that name.</p>'
+}
+$('#search-q').addEventListener('input', (e) => renderSearch(e.target.value))
+$('#search-results').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pick]'); if (!b) return
+  const p = D.people.find((x) => x.id === b.dataset.pick)
+  R8.closeSheets()
+  showResult(p.bandSerial ? 'amber' : 'green')
+  if (p.bandSerial) Object.assign(AMBER, p); else Object.assign(GREEN, p)
+})
+
+// ── Last issued at this gate ─────────────────────────────────────────────────
+const recent = D.people.filter((p) => p.bandSerial && p.gate === 'Gate 1').slice(0, 5)
+$('#last-list').innerHTML = recent.map((p) => `<div class="last-row"><span class="bar" style="--c:${TIERS[p.tier].c}"></span><div><div class="nm">${p.fullName}</div><div class="sub">Band ${p.bandSerial}</div></div><div class="tm">${p.collectedAt}</div></div>`).join('')
+
+$('#retry-roster').addEventListener('click', () => { R8.setState('loading'); setTimeout(() => R8.setState('ready'), 900) })
+
+renderSync()
+R8.proto([
+  { label: 'Scan: green', run: () => showResult('green') },
+  { label: 'Scan: amber', run: () => showResult('amber') },
+  { label: 'Scan: red', run: () => showResult('red') },
+  { label: 'Next person', run: nextPerson },
+  { label: 'Go offline', run: () => setOnline(false) },
+  { label: 'Go online', run: () => setOnline(true) },
+  { label: 'Direction A', run: () => $('#panel-result').dataset.direction = 'a' },
+  { label: 'Direction B', run: () => $('#panel-result').dataset.direction = 'b' },
+])
+</script>
+</body>
+</html>

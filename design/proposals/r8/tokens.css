@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Hanken+Grotesk:wght@400;500;600&family=Manrope:wght@400;500;600&display=swap');
+/* Proposal only: loaded from Google Fonts. The build self-hosts the chosen face via @fontsource (the gate must work offline). */
+/*
+ * r8 — the ONE token set (DESIGN.md frontmatter, proposed 28 Sep 2026).
+ * Every r8 proposal uses only these. Paths are relative to this file:
+ * design/proposals/r8/ → repo root is ../../../
+ * The poster and band art are build outputs in public/assets (gitignored);
+ * run `corepack pnpm build` or `corepack pnpm assets:bands` once if missing.
+ */
+
+@font-face { font-family: 'Anton'; src: url('../../../node_modules/@fontsource/anton/files/anton-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Oswald'; src: url('../../../node_modules/@fontsource/oswald/files/oswald-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'Oswald'; src: url('../../../node_modules/@fontsource/oswald/files/oswald-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'Archivo'; src: url('../../../node_modules/@fontsource/archivo/files/archivo-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Archivo'; src: url('../../../node_modules/@fontsource/archivo/files/archivo-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'Archivo'; src: url('../../../node_modules/@fontsource/archivo/files/archivo-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-display: block; }
+@font-face { font-family: 'Phosphor-Light'; src: url('../../../public/fonts/phosphor-light.woff2') format('woff2'); font-display: block; }
+
+:root {
+  /* ── Type ─────────────────────────────────────────────── */
+  --f-display: 'Anton', Impact, sans-serif;
+  --f-label: 'Oswald', sans-serif;
+  --f-body: var(--f-body-pick, 'Instrument Sans'), 'Archivo', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --t-display-xl: clamp(56px, 6.2vw, 92px);
+  --t-display-lg: clamp(38px, 4.4vw, 56px);
+  --t-display-md: 33px;
+  --t-display-sm: 21px;
+  --t-number: 39px;
+  --t-label: 12px;
+  --t-label-sm: 12px;
+  --t-body: 14px;
+  --t-body-sm: 12.5px;
+  --t-mono: 12px;
+  --track-label: .12em;
+
+  /* ── Space (4px scale) ───────────────────────────────── */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-14: 56px; --s-20: 80px;
+
+  /* ── Radius ──────────────────────────────────────────── */
+  --r-xs: 4px; --r-sm: 10px; --r-md: 14px; --r-lg: 22px; --r-xl: 30px; --r-pill: 999px;
+
+  /* ── Size ────────────────────────────────────────────── */
+  --h-control: 48px;     /* buttons, fields */
+  --h-control-gate: 56px;
+  --h-chip: 36px;
+  --hit: 44px;           /* minimum hit area everywhere */
+  --frame: 1440px;
+  --gutter: 40px;
+
+  /* ── Motion ──────────────────────────────────────────── */
+  --d-instant: 120ms; --d-quick: 220ms; --d-base: 300ms; --d-slow: 440ms; --d-settle: 700ms;
+  --e-out: cubic-bezier(.22, 1, .36, 1);      /* soft deceleration, no overshoot */
+  --e-hover: cubic-bezier(.25, .8, .25, 1);   /* hover in and out */
+  --e-in-out: cubic-bezier(.65, 0, .35, 1);
+  /* spring (stiffness 420, damping 36) sampled into linear() */
+  --e-spring: linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017 19.4%, 1.05 22.2%, 1.049 25.2%, 1.019 30.9%, .998 37.2%, .995 43.3%, 1.001 57.9%, 1);
+
+  /* ── Elevation ───────────────────────────────────────── */
+  --blur: 20px;
+  --z-nav: 40; --z-sheet: 60; --z-toast: 70; --z-menu: 80;
+
+  /* ── Festival data (from lib/design.ts; data, not chrome) ── */
+  --tier-aaa: #39E639; --tier-artist: #F0169A; --tier-stage: #F07A2A; --tier-promoters: #4371FF;
+  --tier-crew: #A64DFF; --tier-photo: #F2D21C; --tier-eddies: #FF4A3D; --tier-ga: #B8B8B8;
+  --zone-green: #2FBF4A; --zone-red: #E5383B; --zone-blue: #3D6BFF; --zone-yellow: #F2C91C; --zone-purple: #8E4DFF; --zone-orange: #F07A2A;
+}
+
+/* ── Dark (default) ─────────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --bg: #0A0A0A;
+  --surface: #101012;                     /* r10: content sits on solid panels (the existing design) */
+  --raised: #16161A;
+  --surface-solid: #101012;
+  --tray: rgba(242, 239, 226, .045);      /* r10: the glass rim around every card */
+  --ink: #F2EFE2;
+  --ink-2: rgba(242, 239, 226, .74);
+  --ink-3: rgba(242, 239, 226, .60);
+  --hair: rgba(242, 239, 226, .10);
+  --hair-strong: rgba(242, 239, 226, .22);
+  --gold: #E3BB72;
+  --gold-hair: rgba(227, 187, 114, .30);
+  --go: #00F5A5;
+  --on-go: #0A0A0A;
+  --bad: #FF6B5A;
+  --ok-tint: rgba(0, 245, 165, .12);
+  --wait-tint: rgba(227, 187, 114, .14);
+  --bad-tint: rgba(255, 107, 90, .14);
+  --glass: rgba(10, 10, 10, .72);
+  --scrim: rgba(0, 0, 0, .56);
+  --lift: inset 0 0 0 1px var(--gold-hair), 0 24px 48px -24px rgba(0, 0, 0, .6);
+  --logo-filter: drop-shadow(0 0 16px rgba(0, 245, 165, .3));
+  /* Liquid glass (web approximation; Apple's material is platform-only) */
+  --glass-fill: rgba(22, 22, 28, .48);              /* glass: nav, hero plate, floating layers */
+  --glass-fill-strong: rgba(26, 26, 32, .78);       /* overlays only: sheet, menu, popover, toast */
+  --glass-edge: rgba(255, 255, 255, .12);
+  --glass-hi: rgba(255, 255, 255, .22);
+  --glass-sheen: linear-gradient(160deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .02) 38%, transparent 60%);
+  --glass-shadow: 0 30px 60px -30px rgba(0, 0, 0, .75), 0 8px 20px -12px rgba(0, 0, 0, .5);
+  --glass-blur: 28px;
+  --ambient-op: .7;
+  --ambient-dim: linear-gradient(180deg, rgba(4, 12, 9, .74), rgba(3, 8, 6, .84));   /* darker, a little green */
+  color-scheme: dark;
+}
+
+/* ── Light ──────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg: #EDEAE1;
+  --surface: #F6F4EC;
+  --raised: #FFFFFF;
+  --surface-solid: #F6F4EC;
+  --tray: rgba(20, 20, 26, .045);
+  --ink: #14141A;
+  --ink-2: rgba(20, 20, 26, .78);
+  --ink-3: rgba(20, 20, 26, .64);
+  --hair: rgba(20, 20, 26, .12);
+  --hair-strong: rgba(20, 20, 26, .24);
+  --gold: #5E4610;
+  --gold-hair: rgba(94, 70, 16, .28);
+  --go: #05603F;
+  --on-go: #F6F4EC;
+  --bad: #9E1F14;
+  --ok-tint: rgba(5, 96, 63, .10);
+  --wait-tint: rgba(94, 70, 16, .10);
+  --bad-tint: rgba(158, 31, 20, .09);
+  --glass: rgba(237, 234, 225, .78);
+  --scrim: rgba(20, 20, 26, .32);
+  --lift: inset 0 0 0 1px var(--gold-hair), 0 24px 48px -28px rgba(40, 34, 20, .35);
+  --logo-filter: none;
+  --glass-fill: rgba(255, 255, 255, .42);
+  --glass-fill-strong: rgba(255, 255, 255, .82);
+  --glass-edge: rgba(20, 20, 26, .08);
+  --glass-hi: rgba(255, 255, 255, .9);
+  --glass-sheen: linear-gradient(160deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .15) 38%, transparent 60%);
+  --glass-shadow: 0 30px 60px -34px rgba(40, 34, 20, .35), 0 8px 20px -14px rgba(40, 34, 20, .2);
+  --glass-blur: 28px;
+  --ambient-op: .4;
+  --ambient-dim: linear-gradient(180deg, rgba(234, 238, 232, .66), rgba(237, 234, 225, .78));
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --d-instant: 1ms; --d-quick: 1ms; --d-base: 1ms; --d-slow: 1ms; --d-settle: 1ms; }
+}
+[data-motion="reduced"] { --d-instant: 1ms; --d-quick: 1ms; --d-base: 1ms; --d-slow: 1ms; --d-settle: 1ms; }
+
+/* Phosphor Light — the repo's own font file (public/fonts), same codepoints as @phosphor-icons/web 2.1.1 */
+.ph { font-family: 'Phosphor-Light' !important; font-style: normal; font-weight: normal; line-height: 1; display: inline-block; vertical-align: middle; speak: never; -webkit-font-smoothing: antialiased; }
+.ph-scan:before{content:'\ebb6'} .ph-warning:before{content:'\e4e0'} .ph-warning-circle:before{content:'\e4e2'} .ph-whatsapp-logo:before{content:'\e5d0'} .ph-funnel-simple:before{content:'\e268'} .ph-user-plus:before{content:'\e4d0'} .ph-dots-three:before{content:'\e1fe'} .ph-caret-right:before{content:'\e13a'} .ph-caret-left:before{content:'\e138'} .ph-caret-down:before{content:'\e136'} .ph-wifi-slash:before{content:'\e4f2'} .ph-wifi-high:before{content:'\e4ea'} .ph-arrows-clockwise:before{content:'\e094'} .ph-car:before{content:'\e112'} .ph-identification-card:before{content:'\e2c8'} .ph-list:before{content:'\e2f0'} .ph-sliders-horizontal:before{content:'\e434'} .ph-clock:before{content:'\e19a'} .ph-copy:before{content:'\e1ca'} .ph-x-circle:before{content:'\e4f8'} .ph-check-circle:before{content:'\e184'} .ph-arrow-left:before{content:'\e058'} .ph-arrow-right:before{content:'\e06c'} .ph-question:before{content:'\e3e8'} .ph-envelope-simple:before{content:'\e218'} .ph-phone:before{content:'\e3b8'} .ph-users-three:before{content:'\e68e'} .ph-buildings:before{content:'\e102'} .ph-ticket:before{content:'\e490'} .ph-qr-code:before{content:'\e3e6'} .ph-prohibit:before{content:'\e3de'} .ph-seal-check:before{content:'\e606'} .ph-timer:before{content:'\e492'} .ph-shield-check:before{content:'\e40c'} .ph-x:before{content:'\e4f6'} .ph-check:before{content:'\e182'} .ph-plus:before{content:'\e3d4'} .ph-magnifying-glass:before{content:'\e30c'} .ph-download-simple:before{content:'\e20c'} .ph-paper-plane-tilt:before{content:'\e398'} .ph-printer:before{content:'\e3dc'} .ph-sun:before{content:'\e472'} .ph-moon:before{content:'\e330'} .ph-sign-out:before{content:'\e42a'} .ph-arrow-up-right:before{content:'\e092'} .ph-hand-grabbing:before{content:'\e57c'} .ph-cloud-check:before{content:'\e1b0'} .ph-cloud-slash:before{content:'\e1b6'}

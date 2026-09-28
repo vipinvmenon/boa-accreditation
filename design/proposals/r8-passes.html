@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passes · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  /* Passes list: person | tier | whatsapp | action */
+  .passes { --cols: minmax(220px, 2.4fr) minmax(110px, .9fr) minmax(170px, 1.3fr) 120px; }
+  .passes .tr { --c: var(--ink-3); }
+  .wa { display: grid; gap: 2px; }
+  /* local primitive: message-preview card body already uses .card; ticket-only additions below */
+  .tk-vehicle { margin: 0; font-size: var(--t-body-sm); color: var(--tk-ink2); }
+  .tk-vehicle b { font-weight: 500; color: #F2EFE2; }
+  .tk .zones { color: var(--tk-ink2); }
+  /* local primitive: a plain name list for the send-confirm sheet (ui.css has no bare list) */
+  .namelist { list-style: none; margin: 0 0 var(--s-6); padding: 0; display: grid; gap: var(--s-2); }
+  @container app (max-width: 700px) {
+    .filterbar-row .btn-export { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame" id="main" data-states="ready,loading,empty,error">
+    <div class="page-head">
+      <div>
+        <h1 class="display-lg">Passes</h1>
+        <p class="lede"><span id="totalCount">0</span> approved people. <span id="unsentCount">0</span> haven't got their pass yet.</p>
+      </div>
+      <div id="sendAllWrap" hidden>
+        <button class="btn btn-primary" id="sendAllBtn"><span id="sendAllLabel">Send 0 unsent passes</span><span class="ic"><i class="ph ph-paper-plane-tilt"></i></span></button>
+      </div>
+    </div>
+
+    <div class="banner bad" id="failBanner" hidden role="alert">
+      <i class="ph ph-warning-circle" aria-hidden="true"></i>
+      <span id="failText"></span>
+      <button class="btn btn-sm" id="showFailed" style="margin-left:auto">Show them</button>
+    </div>
+
+    <!-- FilterBar -->
+    <div class="filterbar" role="search">
+      <div class="filterbar-row">
+        <label class="search">
+          <i class="ph ph-magnifying-glass"></i>
+          <span class="sr">Search passes</span>
+          <input class="input" id="q" type="search" placeholder="Name, org or pass ref" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <div class="add-wrap">
+          <button class="btn" id="add" aria-haspopup="menu" aria-expanded="false"><i class="ph ph-funnel-simple" style="font-size:18px"></i>Add filter</button>
+          <div class="menu" id="menu" role="menu" hidden></div>
+        </div>
+      </div>
+      <div class="filterbar-row">
+        <div class="chips" id="chips" aria-label="Active filters"></div>
+        <span class="count body-sm" id="count" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="when-ready">
+      <div class="table passes" role="table" aria-label="Passes" id="table">
+        <div class="thead label-sm" role="row">
+          <span role="columnheader">Person</span>
+          <span role="columnheader">Tier</span>
+          <span role="columnheader">WhatsApp</span>
+          <span role="columnheader" class="cell-r"></span>
+        </div>
+        <div id="rows" role="rowgroup"></div>
+      </div>
+      <div class="empty" id="nomatch" hidden>
+        <i class="ph ph-funnel-simple"></i>
+        <p class="display-sm">No one matches</p>
+        <p id="nomatch-text">Try a name or a pass ref, or remove a filter.</p>
+        <button class="btn" id="clear2">Clear filters</button>
+      </div>
+      <div class="more" id="more-wrap" style="display:flex;justify-content:center;padding:var(--s-6) 0 0"><button class="btn btn-ghost" id="more">Show 60 more</button></div>
+    </div>
+
+    <!-- Loading -->
+    <div class="when-loading" aria-busy="true" aria-label="Loading passes">
+      <div class="table passes"><div class="thead label-sm"><span>Person</span><span>Tier</span><span>WhatsApp</span><span class="cell-r"></span></div>
+        <div id="skrows"></div></div>
+    </div>
+
+    <!-- Empty: nobody approved yet -->
+    <div class="when-empty"><div class="empty">
+      <i class="ph ph-ticket"></i>
+      <p class="display-sm">No approved passes yet</p>
+      <p>People appear here as soon as they are approved in the response sheet.</p>
+    </div></div>
+
+    <!-- Error -->
+    <div class="when-error"><div class="empty empty-error">
+      <i class="ph ph-warning-circle"></i>
+      <p class="display-sm">The list didn't load</p>
+      <p>Your connection or the server stopped answering. Nothing you did was lost.</p>
+      <button class="btn" onclick="R8.setState('loading');setTimeout(()=>R8.setState('ready'),900)">Try again<span class="ic"><i class="ph ph-arrows-clockwise"></i></span></button>
+    </div></div>
+  </main>
+</div>
+
+<!-- Pass sheet: the ticket -->
+<aside class="sheet" id="pass" data-open="false" role="dialog" aria-modal="true" aria-labelledby="pass-sr-title">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <h2 class="sr" id="pass-sr-title">Pass</h2>
+    <button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div id="pass-ticket"></div>
+  </div>
+  <div class="sheet-foot" id="pass-actions"></div>
+</aside>
+
+<!-- Send-confirm sheet -->
+<aside class="sheet" id="confirmSend" data-open="false" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <h2 class="display-md" id="confirm-title">Send passes</h2>
+    <button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="sheet-body">
+    <h3 class="label">Who</h3>
+    <ul class="namelist body-sm" id="confirm-list"></ul>
+    <h3 class="label"><i class="ph ph-whatsapp-logo" style="margin-right:6px"></i>Message preview</h3>
+    <div class="card" style="padding:var(--s-4);margin-bottom:var(--s-4)">
+      <p class="body-sm" id="confirm-preview" style="margin:0"></p>
+    </div>
+    <p class="body-sm ink-3">Sent from the festival's WhatsApp number. Each message is personalised.</p>
+  </div>
+  <div class="sheet-foot">
+    <button class="btn btn-primary btn-block hold" id="confirm-hold-btn"><span class="hold-label" id="confirm-hold-label">Hold to send</span><span class="ic"><i class="ph ph-paper-plane-tilt"></i></span></button>
+  </div>
+</aside>
+
+<script>
+R8.shell({ active: 'passes' })
+const D = window.R8DATA
+const TIERS = R8.TIERS
+const DAY = { build: 'Build', show: 'Show', build_show: 'Build + show' }
+const PASSES = D.people.filter((p) => p.status === 'approved')
+const $ = (s) => document.querySelector(s)
+
+const FIELDS = {
+  send: {
+    label: 'WhatsApp',
+    values: () => [['none', 'Not sent'], ['sent', 'Sent'], ['delivered', 'Delivered'], ['read', 'Read'], ['failed', 'Failed']]
+      .map(([k, l]) => [k, l, PASSES.filter((p) => p.send === k).length]).filter((x) => x[2]),
+    test: (p, v) => v.includes(p.send),
+  },
+  tier: {
+    label: 'Tier',
+    values: () => Object.entries(TIERS).map(([k, t]) => [k, t.label, PASSES.filter((p) => p.tier === k).length, t.c]).filter((x) => x[2]),
+    test: (p, v) => v.includes(p.tier),
+  },
+  org: {
+    label: 'Organisation',
+    values: () => D.orgs.map((o) => [o.id, o.name, PASSES.filter((p) => p.orgId === o.id).length]).filter((x) => x[2]),
+    test: (p, v) => v.includes(p.orgId),
+  },
+}
+const PRESETS = [['Not sent', { send: ['none'] }], ['Failed', { send: ['failed'] }]]
+
+function waPill(p) {
+  return { none: ['mute', 'Not sent'], sent: ['wait', 'Sent'], delivered: ['ok', 'Delivered'], read: ['ok', 'Read'], failed: ['bad', 'Failed'] }[p.send]
+}
+function unsentPeople() { return PASSES.filter((p) => p.send === 'none') }
+function failedPeople() { return PASSES.filter((p) => p.send === 'failed') }
+
+// ── State ──
+const params = new URLSearchParams(location.search)
+const filters = {}
+Object.keys(FIELDS).forEach((k) => { if (params.get(k)) filters[k] = params.get(k).split(',') })
+let q = params.get('q') || '', shown = 60
+$('#q').value = q
+
+function syncUrl() {
+  const u = new URLSearchParams()
+  if (q) u.set('q', q)
+  Object.entries(filters).forEach(([k, v]) => v.length && u.set(k, v.join(',')))
+  ;['theme', 'frame', 'state'].forEach((k) => params.get(k) && u.set(k, params.get(k)))
+  history.replaceState(null, '', '?' + u.toString())
+}
+function results() {
+  const needle = q.trim().toLowerCase()
+  return PASSES.filter((p) => (!needle || [p.fullName, p.orgName, p.passRef, p.role].some((x) => x.toLowerCase().includes(needle)))
+    && Object.entries(filters).every(([k, v]) => !v.length || FIELDS[k].test(p, v)))
+}
+function labelFor(k, v) { const m = FIELDS[k].values().find((x) => x[0] === v); return m ? m[1] : v }
+
+function renderChips() {
+  const active = Object.entries(filters).filter(([, v]) => v.length)
+  const box = $('#chips')
+  if (!active.length) {
+    box.innerHTML = PRESETS.map(([l, f], i) => { const n = PASSES.filter((p) => Object.entries(f).every(([k, v]) => FIELDS[k].test(p, v))).length; return `<button class="chip chip-preset" data-preset="${i}">${l} <span class="count-dot">${n}</span></button>` }).join('')
+    return
+  }
+  box.innerHTML = active.map(([k, v]) => `<span class="chip" data-k="${k}"><button class="chip-edit" data-edit="${k}"><b>${FIELDS[k].label}:</b> ${v.map((x) => labelFor(k, x)).join(', ')}</button><button class="chip-x" data-x="${k}" aria-label="Remove ${FIELDS[k].label} filter"><i class="ph ph-x"></i></button></span>`).join('')
+    + (active.length >= 2 ? '<button class="btn btn-ghost btn-sm" id="clearall">Clear all</button>' : '')
+}
+function row(p) {
+  const t = TIERS[p.tier]
+  const [cls, label] = waPill(p)
+  return `<div class="tr" role="row" tabindex="0" data-id="${p.id}" style="--c:${t.c}">
+    <div role="cell"><div class="nm">${p.fullName}</div><div class="sub">${p.orgName} · ${p.role}</div></div>
+    <div role="cell" class="hide-s"><span class="tier" style="--c:${t.c}">${t.label}</span></div>
+    <div role="cell" class="wa hide-s"><span class="pill pill-${cls}" data-wa>${label}</span>${p.send !== 'none' ? `<span class="body-sm ink-3" data-wa-time>${p.lastSent}</span>` : ''}</div>
+    <div role="cell" class="cell-r hide-s"><button class="btn btn-sm row-action" data-id="${p.id}">${p.send === 'none' ? 'Send' : 'Resend'}</button></div>
+    <div class="row2"><span class="tier" style="--c:${t.c}">${t.label}</span><span class="pill pill-${cls}">${label}${p.send !== 'none' ? ` · ${p.lastSent}` : ''}</span></div>
+  </div>`
+}
+function render() {
+  const list = results()
+  const hasFilter = q || Object.values(filters).some((v) => v.length)
+  $('#count').innerHTML = hasFilter ? `<strong>${list.length}</strong> of ${PASSES.length}` : `<strong>${PASSES.length}</strong> people`
+  $('#rows').innerHTML = list.slice(0, shown).map(row).join('')
+  $('#table').hidden = !list.length
+  $('#nomatch').hidden = !!list.length
+  $('#nomatch-text').textContent = q ? `No one matches "${q}". Try a name or a pass ref, or remove a filter.` : 'Remove a filter to see more people.'
+  $('#more-wrap').hidden = list.length <= shown
+  $('#more').textContent = `Show ${Math.min(60, list.length - shown)} more`
+  renderChips(); syncUrl()
+}
+function renderHeader() {
+  const unsent = unsentPeople(), failed = failedPeople()
+  $('#totalCount').textContent = PASSES.length
+  $('#unsentCount').textContent = unsent.length
+  $('#sendAllWrap').hidden = !unsent.length
+  $('#sendAllLabel').textContent = `Send ${unsent.length} unsent passes`
+  $('#failBanner').hidden = !failed.length
+  $('#failText').textContent = `${failed.length} pass${failed.length === 1 ? '' : 'es'} weren't delivered`
+}
+// skeleton rows
+$('#skrows').innerHTML = Array.from({ length: 8 }, (_, i) => `<div class="tr" style="cursor:default">
+  <div><div class="sk sk-line" style="width:${50 + (i * 17) % 35}%"></div><div class="sk sk-line" style="width:${40 + (i * 11) % 30}%;margin-top:8px;height:10px"></div></div>
+  <div class="hide-s" style="display:flex;gap:8px;align-items:center"><span class="sk sk-dot"></span><span class="sk sk-line" style="width:56px"></span></div>
+  <div class="hide-s"><span class="sk sk-pill" style="display:block"></span></div>
+  <div class="cell-r hide-s"><span class="sk sk-line" style="width:64px;display:block;margin-left:auto"></span></div>
+</div>`).join('')
+
+// ── Interactions: search, filters ──
+let debounce
+$('#q').addEventListener('input', (e) => { clearTimeout(debounce); debounce = setTimeout(() => { q = e.target.value; shown = 60; render() }, 120) })
+addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus() } })
+$('#more').addEventListener('click', () => { shown += 60; render() })
+$('#clear2').addEventListener('click', () => { Object.keys(filters).forEach((k) => delete filters[k]); q = ''; $('#q').value = ''; render() })
+$('#chips').addEventListener('click', (e) => {
+  const pre = e.target.closest('[data-preset]'); if (pre) { Object.assign(filters, JSON.parse(JSON.stringify(PRESETS[+pre.dataset.preset][1]))); render(); return }
+  const x = e.target.closest('[data-x]')
+  if (x) { const chip = x.closest('.chip'); chip.classList.add('leaving'); setTimeout(() => { delete filters[x.dataset.x]; render() }, 140); return }
+  const ed = e.target.closest('[data-edit]'); if (ed) { openMenu(ed.dataset.edit); return }
+  if (e.target.id === 'clearall') { Object.keys(filters).forEach((k) => delete filters[k]); render() }
+})
+const menu = $('#menu'), add = $('#add')
+function openMenu(field) {
+  menu.hidden = false; add.setAttribute('aria-expanded', 'true')
+  if (!field) {
+    menu.innerHTML = '<div class="menu-title label-sm">Filter by</div>' + Object.entries(FIELDS).map(([k, f]) => `<button role="menuitem" data-field="${k}">${f.label}${filters[k]?.length ? `<span class="n">${filters[k].length} on</span>` : '<i class="ph ph-caret-right n"></i>'}</button>`).join('')
+  } else {
+    const f = FIELDS[field], on = filters[field] || []
+    menu.innerHTML = `<button class="menu-back" data-back><i class="ph ph-caret-left"></i>${f.label}</button>` + f.values().map(([v, l, n, c]) => `<label><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''} data-f="${field}">${c ? `<span class="swatch" style="--c:${c}"></span>` : ''}${l}<span class="n">${n}</span></label>`).join('')
+  }
+  menu.querySelector('button, input')?.focus()
+}
+function closeMenu() { menu.hidden = true; add.setAttribute('aria-expanded', 'false') }
+add.addEventListener('click', (e) => { e.stopPropagation(); menu.hidden ? openMenu() : closeMenu() })
+menu.addEventListener('click', (e) => {
+  e.stopPropagation()
+  const f = e.target.closest('[data-field]'); if (f) openMenu(f.dataset.field)
+  if (e.target.closest('[data-back]')) openMenu()
+})
+menu.addEventListener('change', (e) => { const k = e.target.dataset.f; const set = new Set(filters[k] || []); e.target.checked ? set.add(e.target.value) : set.delete(e.target.value); filters[k] = [...set]; if (!filters[k].length) delete filters[k]; shown = 60; render() })
+document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('.add-wrap') && !e.target.closest('[data-edit]')) closeMenu() })
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu() })
+$('#showFailed').addEventListener('click', () => { Object.keys(filters).forEach((k) => delete filters[k]); filters.send = ['failed']; shown = 60; render(); $('#table').scrollIntoView({ behavior: 'smooth', block: 'start' }) })
+
+// ── Row send state, updated in place so the pill morphs instead of re-rendering ──
+function updateRowInPlace(p) {
+  const rowEl = document.querySelector(`.tr[data-id="${p.id}"]`)
+  if (!rowEl) return
+  const [cls, label] = waPill(p)
+  const pill = rowEl.querySelector('[data-wa]')
+  if (pill) { pill.className = `pill pill-${cls}`; pill.textContent = label }
+  let timeEl = rowEl.querySelector('[data-wa-time]')
+  const waCell = rowEl.querySelector('.wa')
+  if (!timeEl && waCell) { timeEl = document.createElement('span'); timeEl.className = 'body-sm ink-3'; timeEl.setAttribute('data-wa-time', ''); waCell.appendChild(timeEl) }
+  if (timeEl) timeEl.textContent = p.lastSent
+  const actBtn = rowEl.querySelector('.row-action')
+  if (actBtn) actBtn.textContent = 'Resend'
+  const row2pill = rowEl.querySelector('.row2 .pill')
+  if (row2pill) { row2pill.className = `pill pill-${cls}`; row2pill.textContent = `${label} · ${p.lastSent}` }
+}
+function quickSend(id) {
+  const p = PASSES.find((x) => x.id === id)
+  const wasNone = p.send === 'none'
+  p.send = 'sent'; p.lastSent = 'Just now'
+  updateRowInPlace(p)
+  R8.toast(wasNone ? `Pass sent to ${p.fullName} on WhatsApp` : `Pass resent to ${p.fullName} on WhatsApp`)
+  renderHeader()
+}
+$('#rows').addEventListener('click', (e) => {
+  const actionBtn = e.target.closest('.row-action')
+  if (actionBtn) { e.stopPropagation(); quickSend(actionBtn.dataset.id); return }
+  const r = e.target.closest('.tr'); if (r) openPass(r.dataset.id)
+})
+$('#rows').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.target.closest('.row-action')) { const r = e.target.closest('.tr'); if (r) openPass(r.dataset.id) } })
+
+// ── Pass sheet: the ticket, built from the shared .tk-* classes ──
+function ticketHtml(p) {
+  const t = TIERS[p.tier]
+  return `<div class="tk" style="--c:${t.c}">
+    <div class="tk-top">
+      <img class="tk-band" src="${R8.band(p.tier)}" alt="${t.label} wristband">
+      <div class="tk-body">
+        <div><h2 class="display-md" style="margin:0">${p.fullName}</h2><p class="tk-who">${p.orgName}, ${p.role}</p></div>
+        <p class="tk-line"><span class="tk-tier">${t.label}</span><span class="body-sm" style="color:var(--tk-ink2)">${DAY[p.day]}</span></p>
+        ${R8.zonesHtml(p.tier)}
+        ${p.vehicleReg ? `<p class="tk-vehicle">Vehicle <b>${p.vehicleReg}</b></p>` : ''}
+      </div>
+    </div>
+    <div class="tk-perf" aria-hidden="true"></div>
+    <div class="tk-stub">
+      <div class="tk-qr" role="img" aria-label="Pass code for ${p.fullName}">${R8.fakeQr(p.passRef)}</div>
+      <p class="body-sm" style="color:var(--tk-ink3);margin:0">Bring photo ID. One person, one pass, one band.</p>
+      <span class="tk-ref">${p.passRef}</span>
+    </div>
+  </div>`
+}
+function bindPassActions(p) {
+  const box = $('#pass-actions')
+  function renderDefault() {
+    const already = p.send !== 'none'
+    box.innerHTML = `<button class="btn ${already ? '' : 'btn-primary'} fade-in" id="pass-send-btn">${already ? 'Resend' : 'Send'}<span class="ic"><i class="ph ph-paper-plane-tilt"></i></span></button>
+      <button class="btn btn-ghost" id="pass-copy"><i class="ph ph-copy"></i>Copy WhatsApp link</button>
+      <button class="btn btn-ghost" id="pass-print"><i class="ph ph-printer"></i>Print this pass</button>`
+    $('#pass-send-btn').addEventListener('click', () => { p.send !== 'none' ? renderConfirm() : doSend() })
+    $('#pass-copy').addEventListener('click', () => R8.toast('WhatsApp link copied'))
+    $('#pass-print').addEventListener('click', () => R8.toast('Sent to printer', { icon: 'printer' }))
+  }
+  function renderConfirm() {
+    box.innerHTML = `<div class="fade-in" style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-3);width:100%">
+      <p class="body-sm ink-2" style="margin:0;flex:1 1 220px">Already sent ${p.lastSent}. Send again?</p>
+      <button class="btn btn-sm" id="pass-confirm-yes">Send again</button>
+      <button class="btn btn-sm btn-ghost" id="pass-confirm-no">Cancel</button>
+    </div>`
+    $('#pass-confirm-yes').addEventListener('click', doSend)
+    $('#pass-confirm-no').addEventListener('click', renderDefault)
+  }
+  function doSend() {
+    const wasNone = p.send === 'none'
+    p.send = 'sent'; p.lastSent = 'Just now'
+    updateRowInPlace(p)
+    R8.closeSheets()
+    R8.toast(wasNone ? `Pass sent to ${p.fullName} on WhatsApp` : `Pass resent to ${p.fullName} on WhatsApp`)
+    renderHeader()
+  }
+  renderDefault()
+}
+function openPass(id) {
+  const p = PASSES.find((x) => x.id === id)
+  $('#pass-ticket').innerHTML = ticketHtml(p)
+  bindPassActions(p)
+  R8.openSheet('pass')
+}
+
+// ── Bulk send-confirm sheet ──
+function openConfirmSend() {
+  const unsent = unsentPeople()
+  const first5 = unsent.slice(0, 5)
+  const rest = unsent.length - first5.length
+  $('#confirm-title').textContent = `Send ${unsent.length} unsent passes`
+  $('#confirm-list').innerHTML = first5.map((p) => `<li>${p.fullName} <span class="ink-3">· ${p.orgName}</span></li>`).join('') + (rest > 0 ? `<li class="ink-3">and ${rest} more</li>` : '')
+  const sample = first5[0]
+  $('#confirm-preview').textContent = sample ? `Hi ${sample.fullName}, your Bangalore Open Air pass is approved: ${TIERS[sample.tier].label} band. Show it at the accreditation desk with photo ID. Don't forward it.` : ''
+  $('#confirm-hold-label').textContent = `Hold to send ${unsent.length}`
+  R8.openSheet('confirmSend')
+}
+$('#sendAllBtn').addEventListener('click', openConfirmSend)
+R8.hold($('#confirm-hold-btn'), {
+  ms: 700,
+  onDone: () => {
+    const unsent = unsentPeople()
+    const n = unsent.length
+    unsent.forEach((p) => { p.send = 'sent'; p.lastSent = 'Just now'; updateRowInPlace(p) })
+    R8.closeSheets()
+    R8.toast(`${n} passes queued on WhatsApp`)
+    renderHeader()
+  },
+})
+
+render(); renderHeader()
+R8.proto([{ label: 'Reset sends', run: () => location.search ? (location.href = location.pathname) : location.reload() }])
+</script>
+</body>
+</html>

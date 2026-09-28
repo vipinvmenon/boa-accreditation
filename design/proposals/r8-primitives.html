@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primitives · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  /* Page-local helpers only — everything else is r8/tokens.css + r8/ui.css. */
+  h3.label { margin: var(--s-6) 0 var(--s-3); color: var(--gold); }
+  .replaces { margin: 0 0 var(--s-5); max-width: 70ch; }
+  .demo-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); margin-bottom: var(--s-4); }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-5); margin-bottom: var(--s-4); }
+  .demo-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+  .demo-list-row { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
+  .demo-list-row .sub { color: var(--ink-3); }
+
+  /* StatusPill "mute" — named in DESIGN.md's Status pills row (Bone 3 on Night
+     Raised) but not yet shipped as a class in ui.css. Adding it here. */
+  .pill-mute { background: var(--raised); color: var(--ink-3); }
+
+  /* Tokens section */
+  .swatches { display: flex; flex-wrap: wrap; gap: var(--s-4); margin: 0 0 var(--s-6); }
+  .swatch-item { display: grid; gap: 6px; width: 96px; }
+  .swatch-chip { height: 56px; border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--hair); }
+  .type-scale { display: grid; gap: var(--s-4); margin-bottom: var(--s-6); }
+  .type-row { display: flex; align-items: baseline; gap: var(--s-4); }
+  .type-row .tag-name { width: 130px; flex: none; }
+  .type-row > :last-child { min-width: 0; overflow-wrap: anywhere; }
+  @container app (max-width: 700px) { .type-row { flex-direction: column; gap: var(--s-1); } .type-row .tag-name { width: auto; } }
+  .space-bars { display: grid; gap: var(--s-2); margin-bottom: var(--s-6); }
+  .space-row { display: flex; align-items: center; gap: var(--s-3); }
+  .space-row .tag-name { width: 56px; flex: none; }
+  .space-bar { height: 16px; background: var(--gold); border-radius: var(--r-xs); }
+  .radius-row { display: flex; flex-wrap: wrap; gap: var(--s-5); margin-bottom: var(--s-6); }
+  .radius-sample { width: 64px; height: 64px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); }
+  .swatch-label { display: grid; gap: 6px; justify-items: center; }
+  .elev-row { display: flex; flex-wrap: wrap; gap: var(--s-5); margin-bottom: var(--s-6); }
+  .elev-sample { width: 140px; height: 80px; display: grid; place-items: center; border-radius: var(--r-lg); }
+  .motion-row { display: grid; gap: var(--s-3); margin-bottom: var(--s-2); }
+  .motion-track { position: relative; flex: 1; height: 20px; background: var(--hair); border-radius: var(--r-pill); overflow: hidden; }
+  .motion-dot { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--go); }
+
+  /* Table demo */
+  .demo-table { --cols: minmax(160px, 2fr) 1fr 1fr; }
+
+  /* Skeleton compare */
+  .skel-pair { margin-bottom: var(--s-8); }
+  .skel-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-4); align-items: start; }
+  .stat-card .bleed { height: 6px; border-radius: var(--r-pill); margin: calc(var(--s-6) * -1) calc(var(--s-6) * -1) var(--s-4); }
+  .tk-demo { width: min(280px, 100%); }
+</style>
+</head>
+<body>
+<div class="app">
+<main class="page frame">
+  <div class="page-head">
+    <div>
+      <h1 class="display-lg">Primitives</h1>
+      <p class="lede">The twelve components every r8 desk and gate screen is built from, with every state. One token set, one motion scale, nothing hand-rolled per screen.</p>
+    </div>
+  </div>
+
+  <!-- ── Tokens ─────────────────────────────────────────────── -->
+  <section class="section" id="s-tokens">
+    <div class="section-head"><h2 class="label">Tokens</h2></div>
+    <p class="replaces body-sm ink-3">Replaces &gt;45 distinct type sizes, a spacing scale with no tokens (45+ padding literals), 9 radius literals, 30 hand-rolled shadow strings and 3 un-tokenised motion curves (inventory §1). Toggle Dark/Light below to see both themes.</p>
+
+    <h3 class="label">Colour: theme</h3>
+    <div class="swatches" id="sw-theme"></div>
+
+    <h3 class="label">Colour: festival data (never used for chrome)</h3>
+    <div class="swatches" id="sw-data"></div>
+
+    <h3 class="label">Type scale</h3>
+    <div class="type-scale" id="type-scale"></div>
+
+    <h3 class="label">Spacing (4px scale)</h3>
+    <div class="space-bars" id="space-bars"></div>
+
+    <h3 class="label">Radius</h3>
+    <div class="radius-row" id="radius-row"></div>
+
+    <h3 class="label">Elevation</h3>
+    <div class="elev-row">
+      <div class="elev-sample label-sm ink-2" style="background:var(--surface); box-shadow:inset 0 0 0 1px var(--hair)">Surface / edge</div>
+      <div class="elev-sample label-sm ink-2" style="background:var(--raised); box-shadow:inset 0 0 0 1px var(--hair)">Raised</div>
+      <div class="elev-sample label-sm ink-2" style="background:var(--surface); box-shadow:var(--lift)">Lifted</div>
+    </div>
+
+    <h3 class="label">Motion durations <button class="btn btn-sm" id="replay-motion" style="margin-left:var(--s-3)"><i class="ph ph-arrows-clockwise"></i>&nbsp;Replay</button></h3>
+    <div class="motion-row" id="motion-row"></div>
+  </section>
+
+  <!-- ── Button ─────────────────────────────────────────────── -->
+  <section class="section" id="s-button">
+    <div class="section-head"><h2 class="label">Button</h2></div>
+    <p class="replaces body-sm ink-3">Replaces 14 button class combinations and 11 hover recipes.</p>
+    <div class="demo-row">
+      <button class="btn btn-primary">Primary<span class="ic"><i class="ph ph-arrow-right"></i></span></button>
+      <button class="btn">Secondary</button>
+      <button class="btn btn-danger">Danger</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn-link">Link<i class="ph ph-arrow-right"></i></button>
+      <button class="btn btn-sm">Small</button>
+      <button class="btn btn-primary btn-gate">Gate size (56px)</button>
+      <button class="btn btn-primary" disabled>Disabled</button>
+    </div>
+    <div class="demo-row">
+      <button class="btn btn-danger" id="hold-demo">Hold to void<span class="ic"><i class="ph ph-x"></i></span></button>
+      <span class="body-sm ink-3">Press and hold 700ms: a deliberate gesture, reserved for a reissue or void.</span>
+    </div>
+  </section>
+
+  <!-- ── Field ──────────────────────────────────────────────── -->
+  <section class="section" id="s-field">
+    <div class="section-head"><h2 class="label">Field</h2></div>
+    <p class="replaces body-sm ink-3">Replaces 6 input styles and 3 conflicting focus-ring shapes (inset on :focus, outline on :focus-visible, a non-inset ring).</p>
+    <div class="demo-grid">
+      <label class="field"><span class="label-sm">Default</span><input class="input" placeholder="Type here"></label>
+      <label class="field"><span class="label-sm">With hint</span><input class="input" placeholder="+91 90000 00000"><span class="hint">Include the country code.</span></label>
+      <label class="field"><span class="label-sm">Focus (click to try)</span><input class="input" placeholder="Tab or click into this field"></label>
+      <label class="field"><span class="label-sm">Error</span><input class="input" aria-invalid="true" value="9000"><span class="error">Enter a valid phone number.</span></label>
+    </div>
+  </section>
+
+  <!-- ── Select ─────────────────────────────────────────────── -->
+  <section class="section" id="s-select">
+    <div class="section-head"><h2 class="label">Select</h2></div>
+    <p class="replaces body-sm ink-3">Replaces the one live OS-chrome select and the one custom-styled select that was dead code.</p>
+    <label class="field" style="max-width:280px">
+      <span class="label-sm">Role</span>
+      <div class="select"><select class="input"><option>Issuer</option><option>Approver</option><option>Lead</option><option>Admin</option></select></div>
+    </label>
+  </section>
+
+  <!-- ── Chip ───────────────────────────────────────────────── -->
+  <section class="section" id="s-chip">
+    <div class="section-head"><h2 class="label">Chip</h2></div>
+    <p class="replaces body-sm ink-3">Replaces 5 chip/tag/pill families (.tag, .st, .band, .zones span, .checks .ok) and the Master list's single banner + one "show everyone" link.</p>
+    <div class="demo-row">
+      <span class="chip"><button class="chip-edit"><b>Tier:</b> Crew, Stage</button><button class="chip-x" aria-label="Remove Tier filter"><i class="ph ph-x"></i></button></span>
+      <button class="chip chip-preset">Not in BMS <span class="mono">17</span></button>
+    </div>
+  </section>
+
+  <!-- ── FilterBar ──────────────────────────────────────────── -->
+  <section class="section" id="s-filterbar">
+    <div class="section-head"><h2 class="label">FilterBar</h2></div>
+    <p class="replaces body-sm ink-3">Replaces a single search box with no filter, sort or saved view on 612 rows (F-06). This one runs on the first 20 rows of the same fixture as the Master list.</p>
+    <div class="filterbar" role="search">
+      <div class="filterbar-row">
+        <label class="search"><i class="ph ph-magnifying-glass"></i><span class="sr">Search these 20 rows</span><input class="input" id="pf-q" type="search" placeholder="Name or organisation"></label>
+        <div class="add-wrap">
+          <button class="btn" id="pf-add" aria-haspopup="menu" aria-expanded="false"><i class="ph ph-funnel-simple" style="font-size:18px"></i>Add filter</button>
+          <div class="menu" id="pf-menu" role="menu" hidden></div>
+        </div>
+      </div>
+      <div class="filterbar-row"><div class="chips" id="pf-chips"></div><span class="count body-sm" id="pf-count"></span></div>
+    </div>
+    <ul class="demo-list" id="pf-list"></ul>
+  </section>
+
+  <!-- ── StatusPill ─────────────────────────────────────────── -->
+  <section class="section" id="s-statuspill">
+    <div class="section-head"><h2 class="label">StatusPill</h2></div>
+    <p class="replaces body-sm ink-3">Replaces .st (ok/wait/no/mute) and three inconsistent ways colour was chosen: class variant, inline --c, raw inline style.</p>
+    <div class="demo-row">
+      <span class="pill pill-ok">In BMS</span>
+      <span class="pill pill-wait">Not in BMS</span>
+      <span class="pill pill-bad">Voided</span>
+      <span class="pill pill-mute">No vehicle</span>
+    </div>
+    <h3 class="label">WhatsApp</h3>
+    <div class="demo-row">
+      <span class="pill pill-mute">Not sent</span>
+      <span class="pill pill-wait">Sent</span>
+      <span class="pill pill-wait">Delivered</span>
+      <span class="pill pill-ok">Read</span>
+      <span class="pill pill-bad">Failed</span>
+    </div>
+    <h3 class="label">Colour morph <button class="btn btn-sm" id="pill-cycle" style="margin-left:var(--s-3)">Cycle</button></h3>
+    <div class="demo-row"><span class="pill pill-mute" id="pill-morph">Queued</span></div>
+  </section>
+
+  <!-- ── Card ───────────────────────────────────────────────── -->
+  <section class="section" id="s-card">
+    <div class="section-head"><h2 class="label">Card</h2></div>
+    <p class="replaces body-sm ink-3">Replaces 3 surface systems (bezel, glass, ticket) and hand-rolled hover states.</p>
+    <div class="demo-grid">
+      <div class="card"><p class="card-label label-sm">Static card</p><p class="display-md">612</p><p class="ink-2 body-sm">Approved people</p></div>
+      <a class="card spot" href="#" onclick="return false"><p class="card-label label-sm">Linked · SpotlightCard<i class="ph ph-arrow-right arrow"></i></p><p class="number" data-count="428">0</p><p class="ink-2 body-sm">Not collected</p><div class="meter"><i style="--w:.7"></i></div></a>
+    </div>
+  </section>
+
+  <!-- ── Sheet ──────────────────────────────────────────────── -->
+  <section class="section" id="s-sheet">
+    <div class="section-head"><h2 class="label">Sheet</h2></div>
+    <p class="replaces body-sm ink-3">Replaces the full-page grid of 612 tickets (R-23). A record's detail opens from its row instead, right on desktop, bottom sheet on a phone, drag down to close.</p>
+    <button class="btn" onclick="R8.openSheet('demo-sheet')">Open a sheet</button>
+  </section>
+
+  <!-- ── Table ──────────────────────────────────────────────── -->
+  <section class="section" id="s-table">
+    <div class="section-head"><h2 class="label">Table</h2></div>
+    <p class="replaces body-sm ink-3">Replaces flat divided rows on Master and Control room vs card-per-row on Organisations and Users. One table primitive, with a tier-colour bar that grows in on hover.</p>
+    <div class="table demo-table" id="demo-table">
+      <div class="thead label-sm"><span>Person</span><span>Tier</span><span class="cell-r">Status</span></div>
+      <div id="demo-rows"></div>
+    </div>
+  </section>
+
+  <!-- ── EmptyState ─────────────────────────────────────────── -->
+  <section class="section" id="s-empty">
+    <div class="section-head"><h2 class="label">EmptyState</h2></div>
+    <p class="replaces body-sm ink-3">Already shared and consistent across the app (kept), and now ships an error variant beside the empty one, both from one component.</p>
+    <div class="demo-grid">
+      <div class="empty"><i class="ph ph-users-three"></i><p class="display-sm">No one approved yet</p><p>People appear here as soon as they are approved and imported.</p></div>
+      <div class="empty empty-error"><i class="ph ph-warning-circle"></i><p class="display-sm">The list didn't load</p><p>Your connection or the server stopped answering. Nothing you did was lost.</p></div>
+    </div>
+  </section>
+
+  <!-- ── Skeleton ───────────────────────────────────────────── -->
+  <section class="section" id="s-skeleton">
+    <div class="section-head"><h2 class="label">Skeleton</h2></div>
+    <p class="replaces body-sm ink-3">Replaces the hand-rolled Master list skeleton and four other per-screen loading states with one shape-matched primitive: built from the same boxes as the widget, one shimmer, cross-fades with no layout shift (§3).</p>
+
+    <div class="skel-pair">
+      <h3 class="label">Stat card</h3>
+      <div class="skel-side">
+        <div class="card"><div class="sk sk-line" style="width:70px"></div><div class="sk sk-num" style="margin-top:var(--s-3)"></div><div class="sk" style="height:4px;border-radius:999px;margin-top:var(--s-5)"></div></div>
+        <div class="card"><p class="card-label label-sm">Not collected</p><p class="display-md">428</p><div class="meter"><i style="--w:.7"></i></div></div>
+      </div>
+    </div>
+
+    <div class="skel-pair">
+      <h3 class="label">Tier card</h3>
+      <div class="skel-side">
+        <div class="card stat-card"><div class="sk bleed" style="height:6px"></div><div class="sk sk-line" style="width:56px"></div><div class="sk sk-num" style="margin-top:var(--s-3);width:64px"></div></div>
+        <div class="card stat-card" style="--c:var(--tier-crew)"><div class="bleed" style="background:var(--c)"></div><span class="tier" style="--c:var(--c)">Crew</span><p class="display-md" style="margin-top:var(--s-3)">500</p><p class="ink-3 body-sm">printed</p></div>
+      </div>
+    </div>
+
+    <div class="skel-pair">
+      <h3 class="label">Master list row</h3>
+      <div class="table demo-table">
+        <div id="skel-row"></div>
+        <div id="real-row"></div>
+      </div>
+    </div>
+
+    <div class="skel-pair">
+      <h3 class="label">Ticket</h3>
+      <div class="skel-side">
+        <div class="tk tk-demo">
+          <div class="tk-top">
+            <div class="sk" style="aspect-ratio:12/1"></div>
+            <div class="tk-body">
+              <div class="sk sk-line" style="width:60%"></div>
+              <div class="sk sk-line" style="width:40%;margin-top:8px;height:20px"></div>
+            </div>
+          </div>
+          <div class="tk-perf"></div>
+          <div class="tk-stub"><div class="sk sk-sq" style="width:150px"></div><div class="sk sk-line" style="width:90px"></div></div>
+        </div>
+        <div class="tk tk-demo" id="tk-real">
+          <div class="tk-top">
+            <img class="tk-band" id="tk-band-img" src="../../public/assets/bands/crew.webp" alt="">
+            <div class="tk-body">
+              <p class="tk-who">Aarav Rao</p>
+              <p class="tk-line"><span class="tk-tier" style="--c:var(--tier-crew)">Crew</span><span class="ink-2 body-sm">Build + show</span></p>
+            </div>
+          </div>
+          <div class="tk-perf"></div>
+          <div class="tk-stub"><div class="tk-qr" id="tk-qr"></div><p class="tk-ref">BOA26-1042</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Toast ──────────────────────────────────────────────── -->
+  <section class="section" id="s-toast">
+    <div class="section-head"><h2 class="label">Toast</h2></div>
+    <p class="replaces body-sm ink-3">New. Replaces silent copy/export actions with a confirmation. There is no alert() or confirm() anywhere in the app, and this keeps it that way.</p>
+    <button class="btn" onclick="R8.toast('Phone number copied')">Show a toast</button>
+  </section>
+</main>
+</div>
+
+<!-- Sheet demo -->
+<aside class="sheet" id="demo-sheet" data-open="false" role="dialog" aria-modal="true" aria-labelledby="ds-title">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <div><h2 class="display-md" id="ds-title">Aarav Rao</h2><p class="ink-2" style="margin:var(--s-2) 0 0">Chakra Sound & Light · FOH engineer</p></div>
+    <button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="sheet-body"><p class="body-sm ink-2">A row's own sheet holds whatever detail that row needs: the band, the zones, the ledger. This is a placeholder body for the primitive sheet.</p></div>
+  <div class="sheet-foot"><button class="btn btn-primary">Open pass<span class="ic"><i class="ph ph-ticket"></i></span></button><button class="btn btn-ghost"><i class="ph ph-copy"></i>Copy phone</button></div>
+</aside>
+
+<script>
+R8.shell({ active: null })
+
+// ── Tokens: colour, type, spacing, radius, motion ───────────────────────
+const THEME_TOKENS = [['--bg','Background'],['--surface','Surface'],['--raised','Raised'],['--ink','Ink'],['--ink-2','Ink 2'],['--ink-3','Ink 3'],['--hair','Hairline'],['--gold','Gold'],['--go','Go'],['--bad','Bad']]
+document.getElementById('sw-theme').innerHTML = THEME_TOKENS.map(([v,l]) => `<div class="swatch-item"><div class="swatch-chip" style="background:var(${v})"></div><span class="label-sm ink-2">${l}</span></div>`).join('')
+
+const DATA_TOKENS = [['--tier-aaa','AAA'],['--tier-artist','Artist'],['--tier-stage','Stage'],['--tier-promoters','Promoters'],['--tier-crew','Crew'],['--tier-photo','Photo'],['--tier-eddies',"Eddie's"],['--tier-ga','GA'],['--zone-green','Zone green'],['--zone-red','Zone red'],['--zone-blue','Zone blue'],['--zone-yellow','Zone yellow'],['--zone-purple','Zone purple'],['--zone-orange','Zone orange']]
+document.getElementById('sw-data').innerHTML = DATA_TOKENS.map(([v,l]) => `<div class="swatch-item"><div class="swatch-chip" style="background:var(${v})"></div><span class="label-sm ink-2">${l}</span></div>`).join('')
+
+const TYPE = [['display-xl','Display XL'],['display-lg','Display LG'],['display-md','Display MD'],['display-sm','Display SM'],['number','Number'],['label','Label'],['label-sm','Label SM'],['mono','Mono']]
+document.getElementById('type-scale').innerHTML = TYPE.map(([c,l]) => `<div class="type-row"><span class="label-sm ink-3 tag-name">${l}</span><span class="${c}">Bangalore 2026</span></div>`).join('')
+  + `<div class="type-row"><span class="label-sm ink-3 tag-name">Body</span><span style="font-size:var(--t-body)">Everyone accredited, every band accounted for.</span></div>`
+  + `<div class="type-row"><span class="label-sm ink-3 tag-name">Body SM</span><span class="body-sm">Chakra Sound & Light · Rigger</span></div>`
+
+const SPACE = ['1','2','3','4','5','6','8','10','14','20']
+document.getElementById('space-bars').innerHTML = SPACE.map((k) => {
+  const px = getComputedStyle(document.documentElement).getPropertyValue('--s-' + k).trim()
+  return `<div class="space-row"><span class="mono ink-3 tag-name">s-${k}</span><span class="space-bar" style="width:var(--s-${k})"></span><span class="label-sm ink-3">${px}</span></div>`
+}).join('')
+
+const RADII = [['xs','XS · 4px'],['sm','SM · 10px'],['md','MD · 14px'],['lg','LG · 22px'],['pill','Pill']]
+document.getElementById('radius-row').innerHTML = RADII.map(([k,l]) => `<div class="swatch-label"><div class="radius-sample" style="border-radius:var(--r-${k})"></div><span class="label-sm ink-3">${l}</span></div>`).join('')
+
+const DUR = [['instant','Instant · 100ms'],['quick','Quick · 160ms'],['base','Base · 220ms'],['slow','Slow · 320ms'],['settle','Settle · 700ms']]
+document.getElementById('motion-row').innerHTML = DUR.map(([k,l]) => `<div class="space-row"><span class="label-sm ink-3" style="width:130px;flex:none">${l}</span><div class="motion-track"><span class="motion-dot" data-d="${k}"></span></div></div>`).join('')
+function replayMotion() {
+  document.querySelectorAll('.motion-dot').forEach((d) => {
+    const dur = getComputedStyle(document.documentElement).getPropertyValue('--d-' + d.dataset.d).trim() || '220ms'
+    const track = d.parentElement
+    d.style.transition = 'none'; d.style.transform = 'translateX(0)'
+    void d.offsetWidth
+    d.style.transition = `transform ${dur} var(--e-out)`
+    d.style.transform = `translateX(${Math.max(0, track.clientWidth - 20)}px)`
+  })
+}
+document.getElementById('replay-motion').addEventListener('click', replayMotion)
+setTimeout(replayMotion, 50)
+
+// ── Button: HoldButton demo ──────────────────────────────────────────────
+R8.hold(document.getElementById('hold-demo'), { ms: 700, onDone: () => R8.toast('Voided (demo)', { icon: 'x-circle', bad: true }) })
+
+// ── StatusPill: colour-morph cycle ───────────────────────────────────────
+const MORPH = [['pill-mute', 'Queued'], ['pill-wait', 'Sent'], ['pill-ok', 'Delivered']]
+let morphIdx = 0
+document.getElementById('pill-cycle').addEventListener('click', () => {
+  morphIdx = (morphIdx + 1) % MORPH.length
+  const el = document.getElementById('pill-morph')
+  el.className = 'pill ' + MORPH[morphIdx][0]
+  el.textContent = MORPH[morphIdx][1]
+})
+
+// ── FilterBar: 20 rows, two fields ────────────────────────────────────────
+const D = window.R8DATA
+const TIERS = R8.TIERS
+const PF_ROWS = D.people.slice(0, 20)
+const PF_FIELDS = {
+  tier: { label: 'Tier', values: () => Object.entries(TIERS).map(([k, t]) => [k, t.label, PF_ROWS.filter((p) => p.tier === k).length, t.c]).filter((x) => x[2]), test: (p, v) => v.includes(p.tier) },
+  org: { label: 'Organisation', values: () => { const seen = new Map(); PF_ROWS.forEach((p) => seen.set(p.orgId, p.orgName)); return [...seen].map(([id, name]) => [id, name, PF_ROWS.filter((p) => p.orgId === id).length]) }, test: (p, v) => v.includes(p.orgId) },
+}
+const pfFilters = {}
+let pfQ = ''
+function pfResults() {
+  const needle = pfQ.trim().toLowerCase()
+  return PF_ROWS.filter((p) => (!needle || (p.fullName + ' ' + p.orgName).toLowerCase().includes(needle))
+    && Object.entries(pfFilters).every(([k, v]) => !v.length || PF_FIELDS[k].test(p, v)))
+}
+function pfLabelFor(k, v) { const m = PF_FIELDS[k].values().find((x) => x[0] === v); return m ? m[1] : v }
+function pfRenderChips() {
+  const active = Object.entries(pfFilters).filter(([, v]) => v.length)
+  document.getElementById('pf-chips').innerHTML = active.map(([k, v]) => `<span class="chip"><button class="chip-edit" data-edit="${k}"><b>${PF_FIELDS[k].label}:</b> ${v.map((x) => pfLabelFor(k, x)).join(', ')}</button><button class="chip-x" data-x="${k}" aria-label="Remove ${PF_FIELDS[k].label} filter"><i class="ph ph-x"></i></button></span>`).join('')
+}
+function pfRow(p) {
+  const t = TIERS[p.tier]
+  return `<li class="demo-list-row"><span class="tier" style="--c:${t.c}">${t.label}</span><span>${p.fullName}</span><span class="sub body-sm">${p.orgName}</span></li>`
+}
+function pfRender() {
+  const list = pfResults()
+  document.getElementById('pf-count').innerHTML = `<strong>${list.length}</strong> of ${PF_ROWS.length}`
+  document.getElementById('pf-list').innerHTML = list.map(pfRow).join('') || '<li class="demo-list-row ink-3">No one matches</li>'
+  pfRenderChips()
+}
+document.getElementById('pf-q').addEventListener('input', (e) => { pfQ = e.target.value; pfRender() })
+const pfMenu = document.getElementById('pf-menu'), pfAdd = document.getElementById('pf-add')
+function pfOpenMenu(field) {
+  pfMenu.hidden = false; pfAdd.setAttribute('aria-expanded', 'true')
+  if (!field) {
+    pfMenu.innerHTML = '<div class="menu-title label-sm">Filter by</div>' + Object.entries(PF_FIELDS).map(([k, f]) => `<button role="menuitem" data-field="${k}">${f.label}${pfFilters[k]?.length ? `<span class="n">${pfFilters[k].length} on</span>` : '<i class="ph ph-caret-right n"></i>'}</button>`).join('')
+  } else {
+    const f = PF_FIELDS[field], on = pfFilters[field] || []
+    pfMenu.innerHTML = `<button class="menu-back" data-back><i class="ph ph-caret-left"></i>${f.label}</button>` + f.values().map(([v, l, n, c]) => `<label><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''} data-f="${field}">${c ? `<span class="swatch" style="--c:${c}"></span>` : ''}${l}<span class="n">${n}</span></label>`).join('')
+  }
+}
+function pfCloseMenu() { pfMenu.hidden = true; pfAdd.setAttribute('aria-expanded', 'false') }
+pfAdd.addEventListener('click', (e) => { e.stopPropagation(); pfMenu.hidden ? pfOpenMenu() : pfCloseMenu() })
+pfMenu.addEventListener('click', (e) => {
+  e.stopPropagation()
+  const f = e.target.closest('[data-field]'); if (f) pfOpenMenu(f.dataset.field)
+  if (e.target.closest('[data-back]')) pfOpenMenu()
+})
+pfMenu.addEventListener('change', (e) => {
+  const k = e.target.dataset.f; const set = new Set(pfFilters[k] || [])
+  e.target.checked ? set.add(e.target.value) : set.delete(e.target.value)
+  pfFilters[k] = [...set]; if (!pfFilters[k].length) delete pfFilters[k]
+  pfRender()
+})
+document.getElementById('pf-chips').addEventListener('click', (e) => {
+  const x = e.target.closest('[data-x]'); if (x) { delete pfFilters[x.dataset.x]; pfRender() }
+  const ed = e.target.closest('[data-edit]'); if (ed) pfOpenMenu(ed.dataset.edit)
+})
+document.addEventListener('click', (e) => { if (!pfMenu.hidden && !e.target.closest('#pf-add') && !e.target.closest('#pf-menu')) pfCloseMenu() })
+pfRender()
+
+// ── Table demo: 6 rows ───────────────────────────────────────────────────
+function statusOf(p) { return p.status === 'voided' ? 'voided' : p.status === 'rejected' ? 'rejected' : p.bandSerial ? 'collected' : 'not_collected' }
+document.getElementById('demo-rows').innerHTML = D.people.slice(0, 6).map((p) => {
+  const t = TIERS[p.tier], st = statusOf(p)
+  const pill = st === 'collected' ? '<span class="pill pill-ok">Collected</span>' : st === 'voided' ? '<span class="pill pill-bad">Voided</span>' : st === 'rejected' ? '<span class="pill pill-bad">Rejected</span>' : '<span class="pill pill-wait">Not collected</span>'
+  return `<div class="tr" role="row" tabindex="0" style="--c:${t.c}"><div><div class="nm">${p.fullName}</div><div class="sub">${p.orgName}</div></div><div><span class="tier" style="--c:${t.c}">${t.label}</span></div><div class="cell-r">${pill}</div></div>`
+}).join('')
+
+// ── Skeleton: master-row pair (skeleton shape vs the same real row) ──────
+document.getElementById('skel-row').innerHTML = `<div class="tr" style="cursor:default"><div><div class="sk sk-line" style="width:62%"></div><div class="sk sk-line" style="width:40%;margin-top:8px;height:10px"></div></div><div style="display:flex;gap:8px;align-items:center"><span class="sk sk-dot"></span><span class="sk sk-line" style="width:56px"></span></div><div class="cell-r"><span class="sk sk-pill" style="margin-left:auto"></span></div></div>`
+document.getElementById('real-row').innerHTML = document.getElementById('demo-rows').firstElementChild.outerHTML
+
+// ── Skeleton: ticket ──────────────────────────────────────────────────────
+document.getElementById('tk-band-img').src = R8.band('crew')
+document.getElementById('tk-qr').innerHTML = R8.fakeQr('BOA26-1042')
+
+R8.proto()
+</script>
+</body>
+</html>

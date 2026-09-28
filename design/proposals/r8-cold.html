@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cold screens · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<style>
+  /*
+   * Cold screens: nobody is signed in, so there is no nav/footer chrome to
+   * reuse (R8.shell assumes a desk operator) — instead we reproduce the
+   * approved sign-in layout (ADR-026, app/v2.css .auth*) locally with r8
+   * tokens: poster left, solid panel right; on phones the poster on top and
+   * the panel a sheet rising over it. Local-only classes, prefixed `cold-`.
+   */
+  .cold { display: grid; grid-template-columns: minmax(0, 1fr) 560px; min-height: 100dvh; background: var(--bg); }
+  .cold-art { position: relative; background: #0A0A0A url(../../public/assets/login-poster.webp) 50% 30% / cover no-repeat; animation: cold-settle var(--d-settle) var(--e-out) both; }
+  .cold-art::after { content: ""; position: absolute; inset: 0 0 0 auto; width: 96px; background: linear-gradient(90deg, transparent, var(--bg)); }
+  .cold-panel { display: grid; grid-template-rows: auto 1fr auto; padding: var(--s-14) var(--s-10) var(--s-8); animation: cold-rise var(--d-slow) var(--e-out) both; }
+  .cold-logo { width: 176px; height: auto; filter: var(--logo-filter); }
+  .cold-inner { align-self: center; width: min(100%, 440px); padding: var(--s-8) 0; }
+  .cold-inner h1 { margin: 0 0 var(--s-4); }
+  .cold-inner .lede { margin: 0 0 var(--s-8); max-width: 36ch; }
+  .cold-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+  .cold-ref { margin: var(--s-6) 0 0; }
+  .cold-info { display: grid; gap: 6px; margin: 0; }
+  @keyframes cold-settle { from { transform: scale(1.045); } to { transform: none; } }
+  @keyframes cold-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @media (max-width: 900px) {
+    .cold { display: block; padding-top: 300px; background: #0A0A0A url(../../public/assets/pass-poster.webp) 50% 0 / 118% auto no-repeat; }
+    .cold-art { display: none; }
+    .cold-panel { grid-template-rows: auto auto 1fr; min-height: calc(100dvh - 300px); padding: var(--s-6) var(--s-5) var(--s-6); border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--bg); box-shadow: 0 -1px 0 var(--gold-hair), 0 -30px 60px -20px rgba(0, 0, 0, .6); }
+    .cold-logo { width: 128px; }
+    .cold-inner { align-self: start; width: 100%; padding: var(--s-5) 0 0; }
+    .cold-inner h1 { font-size: 52px; }
+    .cold-actions { flex-direction: column; align-items: stretch; }
+    .cold-actions .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<main class="cold" id="cold">
+  <div class="cold-art" role="img" aria-label="The Bangalore Open Air 2026 poster"></div>
+  <section class="cold-panel">
+    <img class="cold-logo" src="../../public/assets/boa-logo.png" alt="Bangalore Open Air">
+    <div class="cold-inner">
+      <h1 class="display-xl" id="c-h1"></h1>
+      <p class="lede" id="c-lede"></p>
+      <div class="cold-actions" id="c-actions"></div>
+      <p class="mono ink-3 cold-ref" id="c-ref" hidden></p>
+    </div>
+    <p class="cold-info body-sm ink-3">
+      <span>Need help? Message the accreditation desk.</span>
+      <span>Bangalore Open Air, 10 October 2026</span>
+    </p>
+  </section>
+</main>
+
+<script>
+const SCREENS = {
+  'not-found': {
+    h1: "This page doesn't exist",
+    lede: 'Check the address. The page may have moved, or the link was mistyped.',
+    primary: { label: 'Go to the Control room', href: 'r8-control-room.html', icon: 'arrow-right' },
+    secondary: { label: 'Sign in', href: '/desk/login' },
+  },
+  error: {
+    h1: "This screen didn't load",
+    lede: 'Your connection or the server stopped answering. Nothing you did was lost.',
+    primary: { label: 'Try again', action: 'reload', icon: 'arrows-clockwise' },
+    secondary: { label: 'Back to the Control room', href: 'r8-control-room.html' },
+    ref: 'Ref 7F3A · 28 Sep 21:04',
+  },
+  'bad-pass': {
+    h1: "This pass link doesn't work",
+    lede: "It may have been replaced by a newer link, or cancelled. Message the accreditation desk and they'll send you the right one.",
+    primary: { label: 'Message the accreditation desk', href: '#', icon: 'whatsapp-logo', action: 'toast' },
+  },
+  'signed-out': {
+    h1: "You're signed out",
+    lede: 'Your session ended. Sign in again to carry on where you were.',
+    primary: { label: 'Sign in', href: '/desk/login' },
+  },
+}
+
+function actionsHtml(s) {
+  const p = s.primary
+  const isBtn = p.action === 'reload' || p.action === 'toast'
+  const tag = isBtn ? 'button' : 'a'
+  const hrefAttr = !isBtn ? ` href="${p.href}"` : ''
+  const onClick = p.action === 'reload' ? ` onclick="location.reload()"`
+    : p.action === 'toast' ? ` onclick="event.preventDefault();R8.toast('Desk number coming (ACC-173)')"` : ''
+  const icon = p.icon ? `<span class="ic"><i class="ph ph-${p.icon}"></i></span>` : ''
+  let html = `<${tag} class="btn btn-primary"${hrefAttr}${onClick}>${p.label}${icon}</${tag}>`
+  if (s.secondary) html += `<a class="btn" href="${s.secondary.href}">${s.secondary.label}</a>`
+  return html
+}
+
+function render() {
+  const key = (location.hash || '#not-found').slice(1)
+  const s = SCREENS[key] || SCREENS['not-found']
+  document.getElementById('c-h1').textContent = s.h1
+  document.getElementById('c-lede').textContent = s.lede
+  document.getElementById('c-actions').innerHTML = actionsHtml(s)
+  const ref = document.getElementById('c-ref')
+  if (s.ref) { ref.textContent = s.ref; ref.hidden = false } else { ref.hidden = true }
+  document.title = s.h1 + ' · r8 cold screens'
+}
+addEventListener('hashchange', render)
+render()
+
+R8.proto([
+  { label: 'Not found', run: () => { location.hash = 'not-found'; render() } },
+  { label: 'Error', run: () => { location.hash = 'error'; render() } },
+  { label: 'Bad pass', run: () => { location.hash = 'bad-pass'; render() } },
+  { label: 'Signed out', run: () => { location.hash = 'signed-out'; render() } },
+])
+</script>
+</body>
+</html>

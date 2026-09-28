@@ -5,6 +5,18 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 27 September 2026 (ACC-151 Meta console session; see WHATSAPP.md)._
 
+## Redesign r10 planned, 28 Sep 2026 — ADR-027 accepted, build not started
+
+`docs/REDESIGN.md` is the plan: waves, lanes, and the Claude Code and Cursor
+agents with their models (`.claude/agents/rd-*`, `.cursor/agents/cursor-rd-*`).
+Roadmap: Phase RD, ACC-178 to ACC-193. **Nothing is built yet.** ACC-178 is done:
+Vipin accepted ADR-027 on 28 Sep, chose Instrument Sans, and sanctioned the
+baseline regeneration after sign-off. Next is ACC-179. Until it lands, the
+tooling still reads v2. `DESIGN.md` (repo root)
+describes the r10.5 proposals in `design/proposals/r8*`. The audit behind
+them is `docs/ux-audit-r2.md`. None of it has been verified against a
+running r10 build, because there is none.
+
 ## Replan, 22 Sep 2026 — read this before the rest
 
 **The collection flow changed; the rest of this file predates it.** Crew now

@@ -587,6 +587,34 @@ contract — record it in an ADR before shipping, as ACC-156/159/160 did.
 - [x] **ACC-176b** · **A footer that does a job** (§5 B4, UX-18): round 4 of design/proposals. Help link waits on ACC-173 · **C** · due Sat 3 Oct
 - [ ] **ACC-177** · **`Button` and `Field` primitives; one radius and spacing scale** (§5 B5, UX-23), plus `loading.tsx` (UX-24) and the stale PRODUCT.md/COPY.md vocabulary (UX-25) · **C** · *after the show*
 
+## Phase RD — the r10 redesign · Mon 28 Sep → Sat 3 Oct
+
+**Added 28 Sep on Vipin's instruction.** The plan, lanes, agents and models
+are in `docs/REDESIGN.md`. **Read it before claiming any task here.** The
+lane runs beside the critical path, never ahead of it: ACC-144 and ACC-147
+keep priority. RD tasks may be in flight in parallel, one agent each, each in
+its own worktree (ACC-179 teaches `task.mjs` this). The cut order is in
+REDESIGN.md §8. The gate hard stop is **Sat 3 Oct 18:00 IST**.
+
+- [x] **ACC-178** · **Accept ADR-027** (r10 replaces v2 as the pixel contract), **choose the body font** (Instrument Sans, Hanken Grotesk or Manrope), and **sanction one regeneration of `design/reference/` from the built app** (ACC-191). **Done 28 Sep: accepted; Instrument Sans; regeneration sanctioned per screen after sign-off** · **V** · due Mon 28 Sep
+- [ ] **ACC-179** · **Freeze the contract and the tooling.** Copy `design/proposals/r8-*.html` and `r8/` verbatim to `design/source/r10/`; change non-negotiable #1 identically in CLAUDE.md and AGENTS.md; update `.cursor/rules/20-ui.mdc` and the head of DESIGN-SYSTEM.md; `check-design-tokens.mjs` check 1 reads r10 for `app/r10/tokens.css` and v2 for the rest; `task.mjs` allows several `[~]` in Phase RD (still one outside it); add `motion` and the chosen `@fontsource` body font. Acceptance: lint, test and `check-agent-docs` green; `task start` works for two RD tasks at once · **C** · due Mon 28 Sep
+- [ ] **ACC-180** · **r10 tokens and base CSS**: `app/r10/tokens.css`, `base.css` and `primitives.css`, collapsed from the proposal's r9 to r10.5 layers to final values, no `!important`, all nested under `.r10`; light `--ink3` at 4.5:1 or better (F-14); reduced-motion and reduced-transparency fallbacks. Acceptance: a blank `.r10` page matches the proposal's ground, bezel and type at 1440 and 390 · **C** · due Tue 29 Sep
+- [ ] **ACC-181a** · **Primitives A** in `components/r10/`: Button (with HoldButton), Field, Select, Chip, FilterBar (removable chips plus clear-all), StatusPill, CountDot. Vitest for each primitive's states and keyboard behaviour · **C** · due Tue 29 Sep
+- [ ] **ACC-181b** · **Primitives B** in `components/r10/`: Card (Spotlight), Sheet (glass, drag-to-close, focus trap, Escape), Table (sticky header, ADR-023 semantics), EmptyState, Skeleton (shaped per widget), Toast, CountUp (`motion/react`). Vitest for each · **C** · due Tue 29 Sep
+- [ ] **ACC-182** · **Desk shell**: nav island with the green glass pill, the ACC-176b footer on r10 tokens, background and ambient layer, page frame; `desk-chrome.tsx` renders it. Acceptance: `chrome-interactions.spec.ts` green; the pill never animates width · **C** · due Tue 29 Sep
+- [ ] **ACC-183** · **Control room** on r10: poster hero with the glass number plate and progress ring, bento, "Furthest behind", the band shelf. It renders from `/api/desk/dashboard` only; the gate feed card is shown only once ACC-183a lands · **C** · due Wed 30 Sep
+- [ ] **ACC-183a** · **Dashboard: gate counts today and the latest issues.** A read-only RPC or view over the ledger, extended in `dashboardSchema`; pgTAP proves `anon` has no access. Cut first if short of time (REDESIGN.md §8) · **C** · due Wed 30 Sep
+- [ ] **ACC-184** · **Master list** on r10: FilterBar with removable chips and clear-all, preset chips with CountDot, sticky header, person sheet. Acceptance: `org-filter.spec.ts` and `desk-tiers.spec.ts` green; each filter clears on its own (audit §4) · **C** · due Wed 30 Sep
+- [ ] **ACC-185** · **Passes** on r10: preset chips, glass sheet with the ticket, bulk print removed. Carries ACC-160's acceptance (a count and a confirm on "Send all unsent") if ACC-160 is not already done · **C** · due Thu 1 Oct
+- [ ] **ACC-186** · **Organisations** on r10 · **C** · due Wed 30 Sep
+- [ ] **ACC-187** · **Users** on r10, with role change and a deactivate confirm. Acceptance: `users.spec.ts` green, plus one new test for role change · **C** · due Thu 1 Oct
+- [ ] **ACC-188** · **Reskin** sign-in, the pass page, 404, error and invalid pass onto r10 tokens. Layouts, copy and behaviour unchanged (ADR-025, ADR-026). Acceptance: `pass-page.spec.ts` and `login-return-path.spec.ts` green · **C** · due Thu 1 Oct
+- [ ] **ACC-189** · **Gate** on r10: the result in place above the fold at 390 (F-01), no backdrop blur, behaviour frozen, `motion` precached. **Starts only after ACC-147 is `[x]`.** Acceptance: `aeroplane-mode` and `two-phone-sync` green after every commit; `rd-reviewer` finds no defects. Not green by Sat 3 Oct 18:00 IST → cut, and the gate ships unchanged · **C** · due Fri 2 Oct
+- [ ] **ACC-190** · **Vehicle** on r10; absorbs ACC-166 (no overflow at 360/390, 44×44 targets). Same gate rules as ACC-189 · **C** · due Fri 2 Oct
+- [ ] **ACC-191** · **Regenerate the `test:visual` references** from the built app, for screens Vipin has signed off only (sanctioned in ACC-178); 4 variants each; `test:visual` green at ≤0.8% · **C** · due Sat 3 Oct
+- [ ] **ACC-192** · **Remove dead v2 CSS and unused font packages**; the token gate reads r10 only. Cut first; can move to after the show · **C** · due Sat 3 Oct
+- [ ] **ACC-193** · **Re-crawl and review**: `scripts/ux-crawl.mjs` at 1440/390, dark and light, into `docs/ux-audit/screens-r3/`; a critique and accessibility pass against `docs/ux-audit-r2.md`; CURRENT-STATE.md updated with what was verified and what was not · **C** · due Sat 3 Oct
+
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 
 - [x] **ACC-001** · Recover the design from the bundle; commit to `design/source/`

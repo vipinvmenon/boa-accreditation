@@ -110,6 +110,45 @@
         ],
         "createdAt": "2026-09-27T18:46:16.883Z",
         "reason": "agent triage: purple and blue are the printed Crew and Promoters Lounge wristband colours (lib/design.ts TIERS); mint is the existing v2 accent"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "phosphor-light",
+        "createdAt": "2026-09-27T20:23:09.575Z",
+        "reason": "Vipin's brief, 28 Sep: one icon family only, Phosphor, already in the repo (public/fonts/phosphor-light.woff2). It is an icon font, not a text face."
+      },
+      {
+        "rule": "marquee",
+        "value": "*",
+        "files": [
+          "design/proposals/r8*"
+        ],
+        "createdAt": "2026-09-27T20:34:00.841Z",
+        "reason": "Only .sk::after matches: the loading-skeleton shimmer Vipin asked for (28 Sep). It runs only while a skeleton is on screen and stops under reduced motion."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "design/proposals/r8*"
+        ],
+        "createdAt": "2026-09-28T04:27:19.028Z",
+        "reason": "False positive: proposal headings are sized by token classes (display-lg 44-64px, display-sm 24px) the detector does not resolve; it reads every role as 13-16px."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgb(166, 77, 255)",
+        "createdAt": "2026-09-28T04:27:19.042Z",
+        "reason": "Crew tier colour #A64DFF, festival data from lib/design.ts TIERS shown as a swatch on the primitives sheet; DESIGN.md says tier colours are data, not tokens."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "design/proposals/r8*"
+        ],
+        "createdAt": "2026-09-28T05:13:52.466Z",
+        "reason": "Vipin, 28 Sep: 'use these borders' (screenshot of the live app). The existing v2 double bezel (6px tray + inner plate, app/v2.css .bz/.pl) reads as a card in a card to the detector; it is the approved border."
       }
     ]
   }

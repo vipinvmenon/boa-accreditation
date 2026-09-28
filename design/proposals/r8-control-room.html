@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control room · r10</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  /* ── Hero: the poster is the stage, the number sits on glass in front of it ── */
+  .cr { padding-top: var(--s-6); }
+  .hero { position: relative; min-height: 672px; padding: 6px; border-radius: 28px; isolation: isolate; background: rgba(242,239,226,.035); box-shadow: 0 0 0 1px rgba(242,239,226,.08), 0 40px 80px -40px rgba(0,0,0,.75), 0 12px 24px -16px rgba(0,0,0,.6); }
+  .hero-clip { position: relative; min-height: 660px; border-radius: 22px; overflow: hidden; isolation: isolate; box-shadow: inset 0 1px 1px rgba(242,239,226,.07), 0 0 0 1px rgba(242,239,226,.08); }
+  /* the whole poster, full height, on the right; the same art, softened, fills behind it */
+  /* the poster covers the whole widget; the visible band is aimed at crown, face and hands */
+  .hero-art { position: absolute; inset: 0; z-index: -2; background: url('../../public/assets/boa-poster.png') 50% 27% / cover no-repeat; animation: settle 1.6s var(--e-out) both; }
+  .hero-clip::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8,9,9,.7) 0%, rgba(8,9,9,.25) 36%, transparent 55%), linear-gradient(0deg, rgba(8,9,9,.45), transparent 35%); }
+  @keyframes settle { from { transform: scale(1.04); opacity: .3; } }
+  .hero-in { display: grid; grid-template-columns: minmax(0, 440px) 1fr; align-items: end; gap: var(--s-8); min-height: 660px; padding: var(--s-8); }
+  .hero-plate { padding: var(--s-6); border-radius: var(--r-lg); }
+  .hero-kicker { display: flex; align-items: center; gap: var(--s-3); color: var(--ink-2); margin-bottom: var(--s-5); }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--go); }
+  .hero-num { display: flex; align-items: flex-end; gap: var(--s-5); }
+  .hero-num .big { font: 400 clamp(64px, 6.6vw, 102px)/.82 var(--f-display); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .hero-num .unit { padding-bottom: var(--s-2); font: 400 17px/1.05 var(--f-display); text-transform: uppercase; color: var(--ink-2); max-width: 8ch; }
+  .hero-sub { margin: var(--s-4) 0 var(--s-5); color: var(--ink-2); max-width: 42ch; font-size: 14.5px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  /* ring: bands issued of approved */
+  .ring-wrap { justify-self: end; align-self: end; display: grid; justify-items: center; gap: var(--s-2); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); }
+  .ring { width: 132px; height: 132px; }
+  .ring circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+  .ring .track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
+  .ring .val { stroke: var(--go); transition: stroke-dashoffset 1.4s var(--e-out) .3s; }
+  .ring-label { position: relative; margin-top: -96px; margin-bottom: 40px; text-align: center; }
+  .ring-label .number { font-size: 28px; }
+  .ring-label .number { display: block; }
+  .countdown { display: inline-flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-4); border-radius: var(--r-pill); color: var(--ink); }
+
+  /* ── Bento ── */
+  .bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--s-5); margin-top: var(--s-6); }
+  .b-left { grid-column: span 8; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-5); align-content: start; }
+  .b-time { grid-column: 1 / -1; } .b-feed { grid-column: span 4; }
+  .b-stat { grid-column: span 1; } .b-behind { grid-column: 1 / -1; }
+  .tile { display: flex; flex-direction: column; min-height: 188px; }
+  a.card { color: inherit; }
+  .tile .card-label { margin-bottom: var(--s-2); }
+  .tile .number { font-size: 48px; }
+  .tile .sub { margin: var(--s-2) 0 0; color: var(--ink-2); font-size: var(--t-body-sm); }
+  .tile .meter { margin-top: auto; }
+  .gold-num { color: var(--gold); }
+
+  /* timeline */
+  .tl { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-4); margin-top: var(--s-6); }
+  .tl::before { content: ""; position: absolute; left: 6px; right: 6px; top: 6px; height: 2px; background: color-mix(in srgb, var(--ink) 12%, transparent); }
+  .tl::after { content: ""; position: absolute; left: 6px; top: 6px; height: 2px; width: calc(var(--p) * (100% - 12px)); background: linear-gradient(90deg, var(--go), color-mix(in srgb, var(--go) 60%, var(--gold))); transform-origin: left; animation: grow 1.2s var(--e-out) .4s both; }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .tl li { position: relative; list-style: none; padding-top: var(--s-6); }
+  .tl li::before { content: ""; position: absolute; top: 0; left: 0; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 30%, transparent); z-index: 1; }
+  .tl li.done::before { background: var(--go); box-shadow: none; }
+  .tl li.now::before { width: 18px; height: 18px; top: -2px; left: -2px; background: var(--gold); box-shadow: 0 0 0 3px var(--bg); }
+  .tl .when { color: var(--ink-3); font-size: var(--t-body-sm); }
+  .tl .what { font: 400 var(--t-display-sm)/1.05 var(--f-display); text-transform: uppercase; margin-top: var(--s-1); }
+  .tl li.later .what { color: var(--ink-2); }
+  .ol { margin: 0; padding: 0; }
+
+  /* live gate feed */
+  .feed { list-style: none; margin: var(--s-4) 0 0; padding: 0; display: grid; }
+  .feed li { display: grid; grid-template-columns: 10px 1fr auto; gap: var(--s-3); align-items: center; padding: var(--s-3) 0; border-top: 1px solid var(--glass-edge); animation: land var(--d-slow) var(--e-out) both; animation-delay: calc(var(--i) * 40ms + 300ms); }
+  .feed li:first-child { border-top: 0; }
+  @keyframes land { from { opacity: 0; transform: translateY(6px); } }
+  .feed i { width: 10px; height: 10px; border-radius: var(--r-xs); background: var(--c); }
+  .feed .nm { font: 600 13.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; }
+  .feed .sub { color: var(--ink-3); font-size: var(--t-body-sm); margin: 0; }
+  .feed time { color: var(--ink-2); font: 500 var(--t-mono)/1 var(--f-mono); }
+  .gates { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+
+  /* who's behind */
+  .behind { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); margin-top: var(--s-5); }
+  .behind a { display: grid; gap: var(--s-2); padding: var(--s-2) var(--s-4) var(--s-2) 0; border-radius: 0; text-decoration: none; color: inherit; transition: background-color var(--d-quick) var(--e-out), transform var(--d-instant) var(--e-out); }
+  .behind a + a { padding-left: var(--s-4); box-shadow: inset 1px 0 0 var(--glass-edge); } /* dividers, not cards inside a card */
+  @media (hover: hover) { .behind a:hover .nm { color: var(--gold); } }
+  .behind .nm { transition: color var(--d-base) var(--e-hover); }
+  .behind a .meter i { transition: filter var(--d-base) var(--e-hover); }
+  @media (hover: hover) { .behind a:hover .meter i { filter: brightness(1.25); } }
+  .behind a:active { transform: scale(.98); }
+  .behind .nm { font: 600 13.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; }
+  .behind .n { font: 400 31px/1 var(--f-display); color: var(--gold); }
+
+  /* ── Band shelf: the woven bands themselves ── */
+  .shelf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
+  .bandc { padding: 6px !important; }
+  .bandc .art { border-radius: 22px 22px 0 0; }
+  .bandc .art { position: relative; aspect-ratio: 7 / 1; overflow: hidden; } /* 7:1 of a 17:1 band = its first 41%: art, tier name and the rock hand */
+  .bandc .art img { width: 100%; height: 100%; object-fit: cover; object-position: left center; opacity: 1; filter: saturate(1.18) brightness(1.12) contrast(1.05); transition: transform 600ms var(--e-hover); }
+  .bandc .art::after { content: ""; position: absolute; inset: -50%; background: linear-gradient(115deg, transparent 44%, rgba(255,255,255,.22) 50%, transparent 56%); transform: translateX(-70%); transition: transform 1100ms var(--e-hover); pointer-events: none; }
+  @media (hover: hover) { .bandc:hover .art::after { transform: translateX(70%); } .bandc:hover .art img { transform: scale(1.03); } }
+  .bandc .body { padding: var(--s-5) var(--s-6) var(--s-6); display: grid; gap: var(--s-3); }
+  .bandc .row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+  .bandc .issued { font: 400 28px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+  .bandc .of { color: var(--ink-3); font-size: var(--t-body-sm); }
+
+  /* first load: tiles rise once, in order (hierarchy, not decoration) */
+  .rise { animation: rise var(--d-settle) var(--e-out) both; animation-delay: calc(var(--i, 0) * 60ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.985); } }
+  [data-motion="reduced"] .hero-art, [data-motion="reduced"] .tl::after, [data-motion="reduced"] .feed li, [data-motion="reduced"] .rise { animation-duration: 1ms !important; animation-delay: 0ms !important; }
+  @media (prefers-reduced-motion: reduce) { .ring .val { transition: none; } .hero-art, .tl::after, .feed li, .rise { animation-duration: 1ms !important; animation-delay: 0ms !important; } }
+
+  /* skeleton shapes */
+  .sk-hero { height: 560px; border-radius: var(--r-xl); }
+  .sk-tile { height: 196px; border-radius: var(--r-xl); }
+
+  @container app (max-width: 1100px) {
+    .b-left, .b-feed { grid-column: span 12; }
+  }
+  @container app (max-width: 700px) {
+    .hero, .hero-clip, .hero-in { min-height: 0; }
+    .hero-in { grid-template-columns: 1fr; padding: var(--s-4); padding-top: 300px; }
+    .hero-art { background-position: 50% 0; background-size: 100% auto; }
+    .hero-clip::before { background: linear-gradient(0deg, rgba(8,9,9,.9) 30%, transparent 70%); }
+    .hero-clip::before { background: linear-gradient(0deg, var(--bg) 35%, transparent 75%); }
+    .hero-plate { padding: var(--s-6); }
+    .ring-wrap { display: none; }
+    .b-left { grid-template-columns: 1fr 1fr; } .b-stat:last-child { grid-column: 1 / -1; }
+    .tile { min-height: 160px; } .tile .number { font-size: 44px; }
+    .tl { grid-template-columns: 1fr 1fr; row-gap: var(--s-5); } .tl::before, .tl::after { display: none; }
+    .behind { grid-template-columns: 1fr; } .behind a + a { padding-left: 0; box-shadow: inset 0 1px 0 var(--glass-edge); padding-top: var(--s-4); }
+    .shelf { grid-template-columns: 1fr 1fr; } .bandc .body { padding: var(--s-4); } .bandc .issued { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame cr" id="main" data-states="ready,loading,error">
+    <h1 class="sr">Control room</h1>
+
+    <div class="when-ready">
+      <!-- Hero -->
+      <section class="hero rise" aria-label="Collection"><div class="hero-clip">
+        <div class="hero-art" role="img" aria-label="Bangalore Open Air festival poster"></div>
+        <div class="hero-in">
+          <div class="hero-plate glass">
+            <div class="hero-kicker body-sm"><span class="live-dot" aria-hidden="true"></span>Build week, day 2. The gate has been live since 4 Oct.</div>
+            <div class="hero-num"><span class="big" data-count="433" id="h-num">433</span><span class="unit">still to collect a band</span></div>
+            <p class="hero-sub"><span id="h-issued">170</span> of 612 bands handed over. The show is in <b>4 days</b>, and everyone collects in person.</p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="r8-master.html?status=not_collected">See who hasn't collected<span class="ic"><i class="ph ph-arrow-right"></i></span></a>
+            </div>
+          </div>
+          <div class="ring-wrap glass" aria-label="Bands issued: 28 percent">
+            <svg class="ring" viewBox="0 0 188 188" aria-hidden="true"><circle class="track" cx="94" cy="94" r="80"/><circle class="val" id="ring" cx="94" cy="94" r="80" transform="rotate(-90 94 94)"/></svg>
+            <div class="ring-label"><span class="number" id="ring-pct">28%</span><span class="label-sm ink-2">bands issued</span></div>
+            <span class="countdown glass label-sm"><i class="ph ph-clock"></i>Show in 4 days</span>
+          </div>
+        </div>
+      </div></section>
+
+      <!-- Bento -->
+      <div class="bento">
+        <div class="b-left">
+        <section class="card b-time rise" style="--i:1" aria-labelledby="t-h">
+          <div class="card-label"><h2 class="label-sm gold" id="t-h" style="margin:0">The week</h2><span class="body-sm ink-3">Mon 6 Oct</span></div>
+          <ol class="tl ol" style="--p:.46">
+            <li class="done"><div class="when">20 Sep</div><div class="what">Links out</div></li>
+            <li class="done"><div class="when">4 Oct</div><div class="what">Gate live</div></li>
+            <li class="now"><div class="when">5 to 9 Oct</div><div class="what">Build</div></li>
+            <li class="later"><div class="when">10 Oct</div><div class="what">Show</div></li>
+          </ol>
+        </section>
+
+
+        <a class="card spot tile b-stat rise" style="--i:3" href="r8-master.html?bms=out">
+          <span class="card-label body-sm">Not in BookMyShow <i class="ph ph-arrow-up-right arrow"></i></span>
+          <span class="number gold-num" data-count="17">17</span>
+          <p class="sub">approved, still to be entered by hand</p>
+          <div class="meter"><i style="--w:.97;--c:var(--gold)"></i></div>
+        </a>
+        <a class="card spot tile b-stat rise" style="--i:4" href="r8-master.html?vehicle=pending">
+          <span class="card-label body-sm">Vehicle stickers <i class="ph ph-arrow-up-right arrow"></i></span>
+          <span class="number" data-count="11" id="st-n">11</span>
+          <p class="sub" id="st-sub">of 58 vehicles have a sticker</p>
+          <div class="meter"><i id="st-m" style="--w:.19"></i></div>
+        </a>
+        <a class="card spot tile b-stat rise" style="--i:5" href="r8-master.html?tier=aaa">
+          <span class="card-label body-sm">AAA named list <i class="ph ph-arrow-up-right arrow"></i></span>
+          <span class="number" data-count="17">17</span>
+          <p class="sub">approved by Salman · <span id="aaa-c">4</span> collected</p>
+          <div class="meter"><i id="aaa-m" style="--w:.23;--c:var(--tier-aaa)"></i></div>
+        </a>
+
+        <section class="card b-behind b-in rise" style="--i:6" aria-labelledby="b-h">
+          <div class="card-label"><h2 class="label-sm gold" id="b-h" style="margin:0">Furthest behind</h2><a class="btn-link body-sm" href="r8-orgs.html" style="min-height:0">All 38 organisations <i class="ph ph-arrow-right"></i></a></div>
+          <div class="behind" id="behind"></div>
+        </section>
+        </div>
+        <section class="card b-feed rise" style="--i:2" aria-labelledby="f-h">
+          <div class="card-label"><h2 class="label-sm gold" id="f-h" style="margin:0">At the gates today</h2><a class="btn-link body-sm" href="r8-master.html?status=collected" style="min-height:0">All <i class="ph ph-arrow-right"></i></a></div>
+          <div class="gates" id="gates"></div>
+          <ul class="feed" id="feed"></ul>
+        </section>
+      </div>
+
+      <!-- Bands -->
+      <section class="section" aria-labelledby="bands-h">
+        <div class="section-head"><h2 class="label-sm" id="bands-h">Bands</h2><span class="body-sm ink-3">Issued of printed</span></div>
+        <div class="shelf" id="shelf"></div>
+      </section>
+    </div>
+
+    <!-- Loading: the same shapes, empty -->
+    <div class="when-loading" aria-busy="true" aria-label="Loading the control room">
+      <div class="sk sk-hero"></div>
+      <div class="bento">
+        <div class="sk sk-tile b-time"></div><div class="sk b-feed" style="border-radius:var(--r-xl);min-height:408px"></div>
+        <div class="sk sk-tile b-stat"></div><div class="sk sk-tile b-stat"></div><div class="sk sk-tile b-stat"></div>
+      </div>
+    </div>
+
+    <div class="when-error"><div class="empty empty-error">
+      <i class="ph ph-warning-circle"></i>
+      <p class="display-sm">The numbers didn't load</p>
+      <p>Your connection or the server stopped answering. The gate keeps working without the desk.</p>
+      <button class="btn" onclick="R8.setState('loading');setTimeout(()=>R8.setState('ready'),900)">Try again<span class="ic"><i class="ph ph-arrows-clockwise"></i></span></button>
+    </div></div>
+  </main>
+</div>
+<script>
+R8.shell({ active: 'control', badges: { master: 17 } })
+const D = window.R8DATA, T = R8.TIERS
+const approved = D.people.filter((p) => p.status === 'approved')
+const collected = approved.filter((p) => p.bandSerial)
+const notCol = approved.length - collected.length
+const pct = collected.length / approved.length
+document.getElementById('h-num').dataset.count = notCol
+document.getElementById('h-issued').textContent = collected.length
+document.getElementById('ring-pct').textContent = Math.round(pct * 100) + '%'
+const ring = document.getElementById('ring'), len = 2 * Math.PI * 80
+ring.setAttribute('stroke-dasharray', len); ring.setAttribute('stroke-dashoffset', len)
+requestAnimationFrame(() => requestAnimationFrame(() => ring.setAttribute('stroke-dashoffset', len * (1 - pct))))
+// stickers, AAA
+const veh = approved.filter((p) => p.vehicleReg), stick = veh.filter((p) => p.stickerNo)
+document.getElementById('st-n').dataset.count = stick.length
+document.getElementById('st-sub').textContent = `of ${veh.length} vehicles have a sticker`
+document.getElementById('st-m').style.setProperty('--w', stick.length / veh.length)
+const aaa = approved.filter((p) => p.tier === 'aaa'), aaaC = aaa.filter((p) => p.bandSerial).length
+document.getElementById('aaa-c').textContent = aaaC
+document.getElementById('aaa-m').style.setProperty('--w', aaaC / aaa.length)
+// live feed: the latest issues from the ledger
+const recent = [...collected].sort((a, b) => b.collectedAt.localeCompare(a.collectedAt)).slice(0, 8)
+document.getElementById('feed').innerHTML = recent.map((p, i) => `<li style="--i:${i}"><i style="--c:${T[p.tier].c}"></i><div><div class="nm">${p.fullName}</div><p class="sub">${T[p.tier].label} · band ${p.bandSerial} · ${p.gate}</p></div><time>${p.collectedAt.split(', ')[1]}</time></li>`).join('')
+const byGate = {}; collected.forEach((p) => (byGate[p.gate] = (byGate[p.gate] || 0) + 1))
+document.getElementById('gates').innerHTML = Object.entries(byGate).map(([g, n]) => `<span class="chip" style="padding-right:var(--s-1)"><b>${g}</b><span class="count-dot">${n}</span></span>`).join('')
+// furthest behind: organisations with most people yet to collect
+const behind = D.orgs.map((o) => ({ ...o, left: o.approved - o.collected })).sort((a, b) => b.left - a.left).slice(0, 3)
+document.getElementById('behind').innerHTML = behind.map((o) => `<a href="r8-master.html?org=${o.id}&status=not_collected"><span class="n">${o.left}</span><span class="nm">${o.name}</span><span class="body-sm ink-3">${o.collected} of ${o.approved} collected</span><div class="meter" style="margin-top:var(--s-2)"><i style="--w:${o.collected / o.approved};--c:var(--gold)"></i></div></a>`).join('')
+// band shelf
+const counts = {}; approved.forEach((p) => { counts[p.tier] = counts[p.tier] || { a: 0, c: 0 }; counts[p.tier].a++; if (p.bandSerial) counts[p.tier].c++ })
+document.getElementById('shelf').innerHTML = Object.entries(T).filter(([k]) => counts[k]).map(([k, t], i) => `
+  <a class="card bandc rise" style="--i:${7 + i}" href="r8-master.html?tier=${k}">
+    <div class="art"><img src="${R8.band(k)}" alt="${t.label} band"></div>
+    <div class="body">
+      <div class="row"><h3 class="display-sm">${t.label}</h3><span><span class="issued">${counts[k].c}</span> <span class="of">/ ${t.printed ?? 'TBC'}</span></span></div>
+      <div class="meter" style="margin:0"><i style="--w:${t.printed ? counts[k].c / t.printed : 0};--c:${t.c}"></i></div>
+      ${R8.zonesHtml(k)}
+    </div>
+  </a>`).join('')
+R8.proto([{ label: 'Replay entrance', run: () => { try { sessionStorage.removeItem('boa-counted') } catch (e) {} ; location.reload() } }])
+</script>
+</body>
+</html>

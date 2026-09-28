@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master list · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  /* Master list: person | tier | days | band | vehicle | BMS | collected */
+  .master { --cols: minmax(220px, 2.2fr) minmax(120px, 1fr) 96px 88px minmax(120px, 1fr) 104px minmax(140px, 1.1fr); }
+  .master .tr { --c: var(--ink-3); }
+  .more { display: flex; justify-content: center; padding: var(--s-6) 0 0; }
+  .add-wrap { position: relative; }
+  .add-wrap .menu { top: calc(100% + var(--s-2)); right: 0; transform-origin: top right; }
+  .menu-sub { display: grid; }
+  .menu-back { color: var(--ink-3) !important; }
+  .days { color: var(--ink-2); font-size: var(--t-body-sm); }
+  .flagged { color: var(--bad); }
+  .sheet-tier { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-4) 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); margin: var(--s-5) 0; }
+  .sheet-band { width: 100%; aspect-ratio: 12/1; object-fit: cover; object-position: left center; border-radius: var(--r-sm); opacity: .8; }
+  h3.label { margin: var(--s-6) 0 var(--s-3); color: var(--gold); }
+  @container app (max-width: 700px) {
+    .master .tr .tier { font-size: var(--t-label-sm); }
+    .filterbar-row .btn-export { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame" id="main" data-states="ready,loading,empty,error">
+    <div class="page-head">
+      <div>
+        <h1 class="display-lg">Master list</h1>
+        <p class="lede"><span id="total">612</span> approved people. 29 more are still waiting in the response sheet.</p>
+      </div>
+      <a class="btn btn-export" href="#" id="export">Export CSV<span class="ic"><i class="ph ph-download-simple"></i></span></a>
+    </div>
+
+    <!-- FilterBar -->
+    <div class="filterbar" role="search">
+      <div class="filterbar-row">
+        <label class="search">
+          <i class="ph ph-magnifying-glass"></i>
+          <span class="sr">Search the master list</span>
+          <input class="input" id="q" type="search" placeholder="Name, phone, company, plate, band or pass" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <div class="add-wrap">
+          <button class="btn" id="add" aria-haspopup="menu" aria-expanded="false"><i class="ph ph-funnel-simple" style="font-size:18px"></i>Add filter</button>
+          <div class="menu" id="menu" role="menu" hidden></div>
+        </div>
+      </div>
+      <div class="filterbar-row">
+        <div class="chips" id="chips" aria-label="Active filters"></div>
+        <span class="count body-sm" id="count" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="when-ready">
+      <div class="table master" role="table" aria-label="Master list" id="table">
+        <div class="thead label-sm" role="row">
+          <span role="columnheader"><button data-sort="name">Person <i class="ph ph-caret-down"></i></button></span>
+          <span role="columnheader">Tier</span>
+          <span role="columnheader">Days</span>
+          <span role="columnheader">Band</span>
+          <span role="columnheader">Vehicle</span>
+          <span role="columnheader">BMS</span>
+          <span role="columnheader" class="cell-r"><button data-sort="collected">Collected</button></span>
+        </div>
+        <div id="rows" role="rowgroup"></div>
+      </div>
+      <div class="empty" id="nomatch" hidden>
+        <i class="ph ph-funnel-simple"></i>
+        <p class="display-sm">No one matches</p>
+        <p id="nomatch-text">Try a phone number or band serial, or remove a filter.</p>
+        <button class="btn" id="clear2">Clear filters</button>
+      </div>
+      <div class="more" id="more-wrap"><button class="btn btn-ghost" id="more">Show 60 more</button></div>
+    </div>
+
+    <!-- Loading: rows shaped like the real ones -->
+    <div class="when-loading" aria-busy="true" aria-label="Loading the master list">
+      <div class="table master"><div class="thead label-sm"><span>Person</span><span>Tier</span><span>Days</span><span>Band</span><span>Vehicle</span><span>BMS</span><span class="cell-r">Collected</span></div>
+        <div id="skrows"></div></div>
+    </div>
+
+    <!-- Empty: nobody approved yet -->
+    <div class="when-empty"><div class="empty">
+      <i class="ph ph-users-three"></i>
+      <p class="display-sm">No one approved yet</p>
+      <p>People appear here as soon as they are approved in the response sheet and imported.</p>
+    </div></div>
+
+    <!-- Error -->
+    <div class="when-error"><div class="empty empty-error">
+      <i class="ph ph-warning-circle"></i>
+      <p class="display-sm">The list didn't load</p>
+      <p>Your connection or the server stopped answering. Nothing you did was lost.</p>
+      <button class="btn" onclick="R8.setState('loading');setTimeout(()=>R8.setState('ready'),900)">Try again<span class="ic"><i class="ph ph-arrows-clockwise"></i></span></button>
+    </div></div>
+  </main>
+</div>
+
+<!-- Person sheet -->
+<aside class="sheet" id="person" data-open="false" role="dialog" aria-modal="true" aria-labelledby="p-name">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <div><h2 class="display-md" id="p-name"></h2><p class="ink-2" id="p-who" style="margin:var(--s-2) 0 0"></p></div>
+    <button class="sheet-close" aria-label="Close"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="sheet-body" id="p-body"></div>
+  <div class="sheet-foot">
+    <a class="btn" href="r8-passes.html" id="p-pass">Open pass<span class="ic"><i class="ph ph-ticket"></i></span></a>
+    <button class="btn btn-ghost" id="p-copy"><i class="ph ph-copy"></i>Copy phone</button>
+  </div>
+</aside>
+
+<script>
+R8.shell({ active: 'master', badges: { master: 17 } })
+const D = window.R8DATA
+const TIERS = R8.TIERS
+const DAY = { build: 'Build', show: 'Show', build_show: 'Build + show' }
+const FIELDS = {
+  org: { label: 'Organisation', values: () => D.orgs.map((o) => [o.id, o.name, D.people.filter((p) => p.orgId === o.id).length]), test: (p, v) => v.includes(p.orgId) },
+  tier: { label: 'Tier', values: () => Object.entries(TIERS).map(([k, t]) => [k, t.label, D.people.filter((p) => p.tier === k).length, t.c]).filter((x) => x[2]), test: (p, v) => v.includes(p.tier) },
+  status: { label: 'Status', values: () => [['collected', 'Collected'], ['not_collected', 'Not collected'], ['voided', 'Voided'], ['rejected', 'Rejected']].map(([k, l]) => [k, l, D.people.filter((p) => statusOf(p) === k).length]), test: (p, v) => v.includes(statusOf(p)) },
+  bms: { label: 'BMS', values: () => [['in', 'Entered in BMS'], ['out', 'Not in BMS']].map(([k, l]) => [k, l, D.people.filter((p) => (k === 'in') === p.inBms && p.status === 'approved').length]), test: (p, v) => p.status === 'approved' && v.includes(p.inBms ? 'in' : 'out') },
+  vehicle: { label: 'Vehicle', values: () => [['yes', 'Has a vehicle'], ['sticker', 'Sticker issued'], ['pending', 'Sticker pending'], ['no', 'No vehicle']].map(([k, l]) => [k, l, D.people.filter((p) => vehOf(p).includes(k)).length]), test: (p, v) => v.some((x) => vehOf(p).includes(x)) },
+  day: { label: 'Days valid', values: () => Object.entries(DAY).map(([k, l]) => [k, l, D.people.filter((p) => p.day === k).length]), test: (p, v) => v.includes(p.day) },
+  role: { label: 'Role', values: () => { const c = {}; D.people.forEach((p) => (c[p.role] = (c[p.role] || 0) + 1)); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, n]) => [k, k, n]) }, test: (p, v) => v.includes(p.role) },
+}
+const PRESETS = [
+  ['Not in BMS', { bms: ['out'] }], ['Not collected', { status: ['not_collected'] }], ['Has a vehicle', { vehicle: ['yes'] }], ['Voided', { status: ['voided'] }],
+]
+function statusOf(p) { return p.status === 'voided' ? 'voided' : p.status === 'rejected' ? 'rejected' : p.bandSerial ? 'collected' : 'not_collected' }
+function vehOf(p) { return !p.vehicleReg ? ['no'] : ['yes', p.stickerNo ? 'sticker' : 'pending'] }
+
+// ── State, mirrored in the URL (?org=org-1&bms=out&q=…) ──
+const params = new URLSearchParams(location.search)
+const filters = {}
+Object.keys(FIELDS).forEach((k) => { if (params.get(k)) filters[k] = params.get(k).split(',') })
+let q = params.get('q') || '', shown = 60, sort = 'default'
+const $ = (s) => document.querySelector(s)
+$('#q').value = q
+
+function syncUrl() {
+  const u = new URLSearchParams()
+  if (q) u.set('q', q)
+  Object.entries(filters).forEach(([k, v]) => v.length && u.set(k, v.join(',')))
+  ;['theme', 'frame', 'state'].forEach((k) => params.get(k) && u.set(k, params.get(k)))
+  history.replaceState(null, '', '?' + u.toString())
+}
+function results() {
+  const needle = q.trim().toLowerCase()
+  let list = D.people.filter((p) => (!needle || [p.fullName, p.phone, p.orgName, p.vehicleReg || '', p.bandSerial || '', p.passRef, p.role].some((x) => x.toLowerCase().includes(needle)))
+    && Object.entries(filters).every(([k, v]) => !v.length || FIELDS[k].test(p, v)))
+  if (sort === 'name') list = [...list].sort((a, b) => a.fullName.localeCompare(b.fullName))
+  if (sort === 'collected') list = [...list].sort((a, b) => (b.collectedAt || '').localeCompare(a.collectedAt || ''))
+  return list
+}
+function labelFor(k, v) { const m = FIELDS[k].values().find((x) => x[0] === v); return m ? m[1] : v }
+
+function renderChips() {
+  const active = Object.entries(filters).filter(([, v]) => v.length)
+  const box = $('#chips')
+  if (!active.length) {
+    box.innerHTML = PRESETS.map(([l, f], i) => { const n = D.people.filter((p) => Object.entries(f).every(([k, v]) => FIELDS[k].test(p, v))).length; return `<button class="chip chip-preset" data-preset="${i}">${l} <span class="count-dot">${n}</span></button>` }).join('')
+    return
+  }
+  box.innerHTML = active.map(([k, v]) => `<span class="chip" data-k="${k}"><button class="chip-edit" data-edit="${k}"><b>${FIELDS[k].label}:</b> ${v.map((x) => labelFor(k, x)).join(', ')}</button><button class="chip-x" data-x="${k}" aria-label="Remove ${FIELDS[k].label} filter"><i class="ph ph-x"></i></button></span>`).join('')
+    + (active.length >= 2 ? '<button class="btn btn-ghost btn-sm" id="clearall">Clear all</button>' : '')
+}
+function row(p) {
+  const t = TIERS[p.tier]
+  const st = statusOf(p)
+  const band = p.status === 'voided' ? '<span class="flagged label-sm">Voided</span>' : p.status === 'rejected' ? '<span class="flagged label-sm">Rejected</span>' : p.bandSerial ? `<span class="mono">${p.bandSerial}</span>` : '<span class="muted">–</span>'
+  const veh = p.vehicleReg ? `<span class="mono">${p.vehicleReg}</span>${p.stickerNo ? '' : ' <span class="pill pill-wait" style="margin-left:4px">Sticker</span>'}` : '<span class="muted">–</span>'
+  const bms = p.status !== 'approved' ? '<span class="muted">–</span>' : p.inBms ? '<span class="pill pill-ok">In BMS</span>' : '<span class="pill pill-wait">Not in BMS</span>'
+  const col = st === 'collected' ? `<span class="body-sm">${p.collectedAt} · ${p.gate}</span>` : '<span class="muted">–</span>'
+  return `<div class="tr" role="row" tabindex="0" data-id="${p.id}" style="--c:${t.c}">
+    <div role="cell"><div class="nm">${p.fullName}</div><div class="sub">${p.orgName} · ${p.role}</div></div>
+    <div role="cell" class="hide-s"><span class="tier" style="--c:${t.c}">${t.label}</span></div>
+    <div role="cell" class="days hide-s">${DAY[p.day]}</div>
+    <div role="cell" class="hide-s">${band}</div>
+    <div role="cell" class="hide-s">${veh}</div>
+    <div role="cell" class="hide-s">${bms}</div>
+    <div role="cell" class="cell-r hide-s">${col}</div>
+    <div class="row2"><span class="tier" style="--c:${t.c}">${t.label}</span>${p.status === 'approved' ? (p.inBms ? '<span class="pill pill-ok">In BMS</span>' : '<span class="pill pill-wait">Not in BMS</span>') : ''}${st === 'collected' ? `<span class="body-sm ink-2">Collected ${p.collectedAt}</span>` : st === 'not_collected' ? '<span class="body-sm ink-3">Not collected</span>' : band}</div>
+  </div>`
+}
+function render() {
+  const list = results()
+  const hasFilter = q || Object.values(filters).some((v) => v.length)
+  $('#count').innerHTML = hasFilter ? `<strong>${list.length}</strong> of ${D.total}` : `<strong>${D.total}</strong> people`
+  $('#rows').innerHTML = list.slice(0, shown).map(row).join('')
+  $('#table').hidden = !list.length
+  $('#nomatch').hidden = !!list.length
+  $('#nomatch-text').textContent = q ? `No one matches "${q}". Try a phone number or band serial, or remove a filter.` : 'Remove a filter to see more people.'
+  $('#more-wrap').hidden = list.length <= shown
+  $('#more').textContent = `Show ${Math.min(60, list.length - shown)} more`
+  renderChips(); syncUrl()
+}
+// skeleton rows at the real column widths
+$('#skrows').innerHTML = Array.from({ length: 8 }, (_, i) => `<div class="tr" style="cursor:default"><div><div class="sk sk-line" style="width:${50 + (i * 17) % 35}%"></div><div class="sk sk-line" style="width:${40 + (i * 11) % 30}%;margin-top:8px;height:10px"></div></div><div class="hide-s" style="display:flex;gap:8px;align-items:center"><span class="sk sk-dot"></span><span class="sk sk-line" style="width:56px"></span></div><div class="hide-s"><span class="sk sk-line" style="width:64px;display:block"></span></div><div class="hide-s"><span class="sk sk-line" style="width:48px;display:block"></span></div><div class="hide-s"><span class="sk sk-line" style="width:${i % 3 ? 20 : 96}px;display:block"></span></div><div class="hide-s"><span class="sk sk-pill" style="display:block"></span></div><div class="cell-r hide-s"><span class="sk sk-line" style="width:${i % 2 ? 20 : 120}px;display:block"></span></div></div>`).join('')
+
+// ── Interactions ──
+let debounce
+$('#q').addEventListener('input', (e) => { clearTimeout(debounce); debounce = setTimeout(() => { q = e.target.value; shown = 60; render() }, 120) })
+addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus() } })
+$('#more').addEventListener('click', () => { shown += 60; render() })
+$('#clear2').addEventListener('click', () => { Object.keys(filters).forEach((k) => delete filters[k]); q = ''; $('#q').value = ''; render() })
+document.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => { sort = sort === b.dataset.sort ? 'default' : b.dataset.sort; render() }))
+$('#chips').addEventListener('click', (e) => {
+  const pre = e.target.closest('[data-preset]'); if (pre) { Object.assign(filters, JSON.parse(JSON.stringify(PRESETS[+pre.dataset.preset][1]))); render(); return }
+  const x = e.target.closest('[data-x]')
+  if (x) { const chip = x.closest('.chip'); chip.classList.add('leaving'); setTimeout(() => { delete filters[x.dataset.x]; render() }, 140); return }
+  const ed = e.target.closest('[data-edit]'); if (ed) { openMenu(ed.dataset.edit); return }
+  if (e.target.id === 'clearall') { Object.keys(filters).forEach((k) => delete filters[k]); render() }
+})
+// Add-filter menu: field list → value list (multi-select)
+const menu = $('#menu'), add = $('#add')
+function openMenu(field) {
+  menu.hidden = false; add.setAttribute('aria-expanded', 'true')
+  if (!field) {
+    menu.innerHTML = '<div class="menu-title label-sm">Filter by</div>' + Object.entries(FIELDS).map(([k, f]) => `<button role="menuitem" data-field="${k}">${f.label}${filters[k]?.length ? `<span class="n">${filters[k].length} on</span>` : '<i class="ph ph-caret-right n"></i>'}</button>`).join('')
+  } else {
+    const f = FIELDS[field], on = filters[field] || []
+    menu.innerHTML = `<button class="menu-back" data-back><i class="ph ph-caret-left"></i>${f.label}</button>` + f.values().map(([v, l, n, c]) => `<label><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''} data-f="${field}">${c ? `<span class="swatch" style="--c:${c}"></span>` : ''}${l}<span class="n">${n}</span></label>`).join('')
+  }
+  menu.querySelector('button, input')?.focus()
+}
+function closeMenu() { menu.hidden = true; add.setAttribute('aria-expanded', 'false') }
+add.addEventListener('click', (e) => { e.stopPropagation(); menu.hidden ? openMenu() : closeMenu() })
+menu.addEventListener('click', (e) => {
+  e.stopPropagation()
+  const f = e.target.closest('[data-field]'); if (f) openMenu(f.dataset.field)
+  if (e.target.closest('[data-back]')) openMenu()
+})
+menu.addEventListener('change', (e) => { const k = e.target.dataset.f; const set = new Set(filters[k] || []); e.target.checked ? set.add(e.target.value) : set.delete(e.target.value); filters[k] = [...set]; if (!filters[k].length) delete filters[k]; shown = 60; render() })
+document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('.add-wrap') && !e.target.closest('[data-edit]')) closeMenu() })
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu() })
+
+// Row → person sheet
+function openPerson(id) {
+  const p = D.people.find((x) => x.id === id), t = TIERS[p.tier]
+  $('#p-name').textContent = p.fullName
+  $('#p-who').textContent = `${p.orgName} · ${p.role}`
+  const st = statusOf(p)
+  $('#p-body').innerHTML = `
+    <img class="sheet-band" src="${R8.band(p.tier)}" alt="${t.label} band">
+    <div class="sheet-tier"><span class="tier" style="--c:${t.c};font-size:15px">${t.label}</span><span class="ink-2">${DAY[p.day]}</span></div>
+    ${R8.zonesHtml(p.tier)}
+    <h3 class="label">Details</h3>
+    <dl class="dl body-sm"><dt>Phone</dt><dd class="mono">${p.phone}</dd><dt>Pass</dt><dd class="mono">${p.passRef}</dd><dt>Vehicle</dt><dd>${p.vehicleReg ? `<span class="mono">${p.vehicleReg}</span> · ${p.stickerNo ? 'sticker ' + p.stickerNo : 'sticker not issued'}` : 'None'}</dd><dt>BMS</dt><dd>${p.status !== 'approved' ? '–' : p.inBms ? '<span class="pill pill-ok">In BMS</span>' : '<span class="pill pill-wait">Not in BMS</span>'}</dd><dt>WhatsApp</dt><dd>${p.send === 'none' ? 'Not sent' : p.send[0].toUpperCase() + p.send.slice(1) + ' · ' + p.lastSent}</dd></dl>
+    <h3 class="label">History</h3>
+    <ul class="ledger body-sm">
+      ${st === 'collected' ? `<li style="--c:var(--go)"><span><b>Band ${p.bandSerial} issued</b><br><span class="ink-3">${p.collectedAt} · ${p.gate}</span></span></li>` : ''}
+      ${p.status === 'voided' ? '<li style="--c:var(--bad)"><span><b>Pass voided</b><br><span class="ink-3">27 Sep, 16:40 · Salman K</span></span></li>' : ''}
+      <li style="--c:var(--gold)"><span><b>Approved as ${t.label}</b><br><span class="ink-3">22 Sep · imported from the response sheet</span></span></li>
+    </ul>
+    <p class="body-sm ink-3" style="margin-top:var(--s-5)">The history only grows. A reissue or a void adds a line; nothing above it changes.</p>`
+  R8.openSheet('person')
+}
+$('#rows').addEventListener('click', (e) => { const r = e.target.closest('.tr'); if (r) openPerson(r.dataset.id) })
+$('#rows').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const r = e.target.closest('.tr'); if (r) openPerson(r.dataset.id) } })
+$('#p-copy').addEventListener('click', () => R8.toast('Phone number copied'))
+$('#export').addEventListener('click', (e) => { e.preventDefault(); R8.toast(`Exported ${results().length} people as CSV`, { icon: 'download-simple' }) })
+
+render()
+R8.proto([
+  { label: 'Arrive from Organisations', run: () => { Object.keys(filters).forEach((k) => delete filters[k]); filters.org = ['org-1']; render() } },
+])
+</script>
+</body>
+</html>

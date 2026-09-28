@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redesign r8 · index</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<style>
+  .ix { max-width: 1560px; margin: 0 auto; padding: var(--s-10) var(--gutter) var(--s-20); }
+  .ix-head { display: grid; grid-template-columns: 1fr auto; gap: var(--s-6); align-items: end; padding-bottom: var(--s-8); border-bottom: 1px solid var(--gold-hair); }
+  .ix-head img { width: 176px; filter: var(--logo-filter); margin-bottom: var(--s-4); }
+  .ix-head .lede { max-width: 72ch; }
+  .ix-toc { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-6); }
+  .screen { margin-top: var(--s-14); scroll-margin-top: var(--s-6); }
+  .screen-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-3) var(--s-6); margin-bottom: var(--s-4); }
+  .screen-head h2 { margin: 0; }
+  .screen-head p { margin: var(--s-2) 0 0; max-width: 80ch; color: var(--ink-2); }
+  .frames { display: flex; gap: var(--s-6); align-items: start; overflow-x: auto; padding-bottom: var(--s-2); }
+  .shot { flex: none; }
+  .shot figcaption { margin-top: var(--s-2); color: var(--ink-3); }
+  .vp { position: relative; overflow: hidden; border-radius: var(--r-md); box-shadow: var(--lift); background: var(--surface); }
+  .vp iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
+  .vp-desk { width: 880px; height: 550px; } .vp-desk iframe { width: 1440px; height: 900px; transform: scale(.6111); }
+  .vp-phone { width: 254px; height: 550px; border-radius: var(--r-lg); } .vp-phone iframe { width: 390px; height: 844px; transform: scale(.6513); }
+  .approved { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--go); }
+  .rb { width: 100%; border-collapse: collapse; font-size: var(--t-body-sm); }
+  .rb th { text-align: left; color: var(--ink-3); padding: var(--s-3); border-bottom: 1px solid var(--hair); }
+  .rb td { padding: var(--s-3); border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .rb td:first-child { color: var(--ink); }
+  .rb-wrap { overflow-x: auto; }
+  .rb .no { color: var(--ink-3); }
+  .calls { display: grid; gap: var(--s-3); counter-reset: c; padding: 0; list-style: none; }
+  .calls li { counter-increment: c; display: grid; grid-template-columns: 40px 1fr; gap: var(--s-3); padding: var(--s-4) var(--s-5); border-radius: var(--r-md); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
+  .calls li::before { content: counter(c); font: 400 var(--t-display-sm)/1 var(--f-display); color: var(--gold); }
+  @media (max-width: 700px) { .ix { padding: var(--s-6) var(--s-5) var(--s-14); } .ix-head { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="ix">
+  <header class="ix-head">
+    <div>
+      <img src="../../public/assets/boa-logo.png" alt="Bangalore Open Air">
+      <h1 class="display-xl">Redesign r8</h1>
+      <p class="lede">Every desk, gate and cold screen redrawn on one token set taken from the three pieces you already approved: the pass ticket, the poster sign-in and the footer. Each frame below is the live proposal at 1440 and 390. Open one to click through it; the blue bar in the corner switches theme, motion, loading / empty / error states and, where there is a real choice, the two directions. Data is invented (612 people, 38 organisations).</p>
+      <nav class="ix-toc" aria-label="Screens">
+        <a class="btn btn-sm" href="#control">Control room</a><a class="btn btn-sm" href="#master">Master list</a><a class="btn btn-sm" href="#passes">Passes</a><a class="btn btn-sm" href="#orgs">Organisations</a><a class="btn btn-sm" href="#users">Users</a><a class="btn btn-sm" href="#gate">Gate</a><a class="btn btn-sm" href="#vehicle">Vehicle</a><a class="btn btn-sm" href="#cold">Cold screens</a><a class="btn btn-sm" href="#primitives">Primitives</a><a class="btn btn-sm" href="#reactbits">React Bits</a><a class="btn btn-sm" href="#calls">Your calls</a>
+      </nav>
+    </div>
+    <div class="body-sm ink-3" style="text-align:right">28 Sep 2026 · proposal, not built<br>Audit: docs/ux-audit-r2.md<br>Tokens: DESIGN.md</div>
+  </header>
+
+  <div id="screens"></div>
+
+  <section class="screen" id="approved">
+    <div class="screen-head"><div><h2 class="display-sm">Pass and sign-in <span class="approved label-sm"><i class="ph ph-seal-check"></i>Approved, unchanged</span></h2>
+      <p>ADR-025 (the ticket) and ADR-026 (the poster sign-in, the footer) are the reference for everything above; r8 does not change them. The ticket reappears inside the Passes sheet, and the sign-in layout is reused for the cold screens.</p></div>
+      <a class="btn-link" href="ux-directions-r6.html">Round 6 (pass) <i class="ph ph-arrow-right"></i></a></div>
+  </section>
+
+  <section class="screen" id="reactbits">
+    <div class="screen-head"><div><h2 class="display-sm">React Bits, and what each primitive uses</h2>
+      <p>Checked against the registry (<span class="mono">reactbits.dev/r/&lt;Name&gt;-TS-CSS.json</span>) on 28 Sep. The only new dependency is <span class="mono">motion@^12.23.12</span>; nothing pulls three, ogl, WebGL, GSAP, Lucide or Hugeicons. On the gate, <span class="mono">motion</span> ships inside the gate's own JS chunks, which <span class="mono">build-gate-sw.mjs</span> already precaches, so it costs no network at runtime (to be verified by the aeroplane-mode suite in Phase 3).</p></div></div>
+    <div class="rb-wrap"><table class="rb">
+      <thead class="label-sm"><tr><th>Primitive</th><th>Built from</th><th>Dependencies</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>Button</td><td>Hand-built; <b>HoldButton</b> for hold-to-confirm</td><td>none</td><td>"Send 49 unsent passes", gate reissue only</td></tr>
+        <tr><td>Card</td><td><b>SpotlightCard</b> (linked cards only)</td><td>none</td><td>Control room stats and bands</td></tr>
+        <tr><td>Number</td><td><b>CountUp</b>, first load of a session only</td><td>motion</td><td>Control room</td></tr>
+        <tr><td>Status mark</td><td><b>StatusMark</b> (tick / bang / cross drawn once)</td><td>motion</td><td>Gate and vehicle verdicts</td></tr>
+        <tr><td>Ticket glare</td><td><b>GlareHover</b>, adapted (already shipped, ADR-025)</td><td>none</td><td>Live pass only</td></tr>
+        <tr><td>Sheet, Toast, Chip, FilterBar, Table, Field, Select, EmptyState, Skeleton, StatusPill</td><td>Hand-built on <span class="mono">motion/react</span> (layout, AnimatePresence, drag for the phone sheet)</td><td>motion</td><td>Everywhere</td></tr>
+        <tr class="no"><td>Skipped</td><td>ShinyText, GradientText, DecryptedText, RotatingText, StarBorder, PixelCard, TiltedCard, Dock, ClickSpark, Magnet (decorative or looping); FadeContent, AnimatedContent (GSAP, scroll reveal); ElasticSlider (Chakra UI + react-icons); AnimatedList (motion's <span class="mono">layout</span> does the same job with less)</td><td>–</td><td>–</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="screen" id="calls">
+    <div class="screen-head"><div><h2 class="display-sm">What needs your call before Phase 3</h2></div></div>
+    <ol class="calls">
+      <li><div><b>Control room: Direction A (poster hero, one number) or B (run sheet, three numbers)?</b> <span class="ink-2">I recommend A: the desk's one question before gate live is "who hasn't collected", and the poster is the only festival image the desk has.</span></div></li>
+      <li><div><b>Gate result: Direction A (colour flood) or B (band first)?</b> <span class="ink-2">I recommend B: the issuer's next physical action is picking a band from a crate, and the band art is what they match.</span></div></li>
+      <li><div><b>Nav: Gate and Vehicle merge into one "Gate" item with a People | Vehicles switch.</b> <span class="ink-2">Five nav items instead of six; Users stays in the operator menu.</span></div></li>
+      <li><div><b>Master list H1 becomes "Master list", Passes becomes "Passes"</b> <span class="ink-2">so every H1 matches its nav item.</span></div></li>
+      <li><div><b>ADR-027 supersedes ADR-017 and makes DESIGN.md the pixel contract</b> <span class="ink-2">(with CLAUDE.md non-negotiable #1 updated and test:visual references regenerated from the built r8 screens), as you set out on 28 Sep.</span></div></li>
+    </ol>
+  </section>
+</main>
+<script>
+const SCREENS = [
+  ['control', 'Control room', 'r8-control-room.html', 'Two directions. The hero is the number the desk can act on before gate live (433 not collected), not "29 waiting on a decision". Stat cards and tier cards link into the Master list with the matching filter. Held zones only.'],
+  ['master', 'Master list', 'r8-master.html', 'Search plus eight filters as removable chips, clear all, a live count, presets when nothing is filtered, sticky column headers, phone rows that keep tier and BMS, a person sheet with the append-only history. "Arrive from Organisations" in the blue bar shows the org filter as an ordinary chip you can remove.'],
+  ['passes', 'Passes', 'r8-passes.html', 'A list, not 612 tickets. The one primary action is "Send 49 unsent passes": a confirm sheet with the message and a hold-to-send. A row opens the ticket in a sheet with Send / Resend, WhatsApp link and Print this pass. Bulk print is gone.'],
+  ['orgs', 'Organisations', 'r8-orgs.html', 'A table at the same width as every other list. A row opens the Master list filtered to that company. No developer notes, no legacy status pill.'],
+  ['users', 'Users', 'r8-users.html', 'Invite in a sheet; a row opens a sheet where an admin can change the role (new, per your call) or deactivate with an inline confirm.'],
+  ['gate', 'Gate', 'r8-gate.html', 'On a phone the result replaces the viewfinder in place, so the verdict, the band and Issue are on one screen. One sync line. Verdict with no delay, a mark drawn once, haptics. Hold only on a reissue. Two directions for the result.'],
+  ['vehicle', 'Vehicle', 'r8-vehicle.html', 'Reached from a People | Vehicles switch on the gate. The plate, both checks as marks, and one action that fits a 390px screen.'],
+  ['cold', 'Cold screens', 'r8-cold.html', 'Page not found, a crashed screen, a bad pass link and signed out, on the approved sign-in layout: the poster, the logo, one sentence, a way out. A bad pass link offers "Message the accreditation desk".'],
+  ['primitives', 'Primitives and tokens', 'r8-primitives.html', 'The twelve primitives in every state, the per-widget skeletons beside the real widgets, and the token scales. Each section says what it replaces from the audit inventory.'],
+]
+const theme = document.documentElement.dataset.theme
+document.getElementById('screens').innerHTML = SCREENS.map(([id, name, file, note]) => `
+  <section class="screen" id="${id}">
+    <div class="screen-head"><div><h2 class="display-sm">${name}</h2><p>${note}</p></div><a class="btn" href="${file}">Open<span class="ic"><i class="ph ph-arrow-up-right"></i></span></a></div>
+    <div class="frames">
+      <figure class="shot" style="margin:0"><div class="vp vp-desk"><iframe loading="lazy" src="${file}?frame=1&theme=${theme}" title="${name} at 1440"></iframe></div><figcaption class="label-sm">1440</figcaption></figure>
+      <figure class="shot" style="margin:0"><div class="vp vp-phone"><iframe loading="lazy" src="${file}?frame=1&theme=${theme}" title="${name} at 390"></iframe></div><figcaption class="label-sm">390</figcaption></figure>
+    </div>
+  </section>`).join('')
+R8.proto([])
+// theme change re-renders frames in the same theme
+document.querySelector('.proto').addEventListener('click', (e) => { if (e.target.dataset.t) document.querySelectorAll('iframe').forEach((f) => { f.src = f.src.replace(/theme=\w+/, 'theme=' + e.target.dataset.t) }) })
+</script>
+</body>
+</html>

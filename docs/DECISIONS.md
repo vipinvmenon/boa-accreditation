@@ -1081,3 +1081,50 @@ lines of staff policy, which this ADR accepts as a divergence from the v2
 contract on the `test:visual` screens that carry the footer. Help stays
 plain text until ACC-173. The gate's base row shows the operator, not sync
 status: the gate's sync state already lives in its own header strip.
+
+## ADR-027 — r10 replaces v2 as the pixel contract
+
+**Accepted 28 Sep 2026 by Vipin (ACC-178).** Body font: Instrument Sans.
+The baseline regeneration in point 3 is sanctioned once per screen, after his
+side-by-side sign-off. Until ACC-179 lands, the tooling still reads v2.
+
+**Context.** The UX audit (`docs/ux-audit-r2.md`, 28 Sep) scored the v2 build
+at 26/40 and found 37 issues. The worst of them: the gate result falls below
+the fold at 390px (F-01), light-mode text is at 3.3:1 (F-14), and every cold
+screen is a dead end (F-36). Vipin then reviewed the proposals round by
+round (r8 to r10.5) and chose a direction. It keeps v2's bezel border and
+its green active nav, and adds a mild liquid-glass layer, a darker ground
+with a green corner, the poster-led Control room hero, filter chips, and
+glass sheets.
+
+**Decision.**
+1. `design/source/r10/` (frozen from `design/proposals/r8*` by ACC-179)
+   becomes the pixel contract. `DESIGN.md` is its written spec. Non-negotiable
+   #1 in CLAUDE.md and AGENTS.md changes to say so.
+2. The pixel clause of ADR-017 is superseded. Its domain clause is not: v1
+   (`boa_design_body.html`, `boa_design_bundle.html`) stays the authority for
+   `TYPES`, `ALL_ZONES`, the `PROP` literals and the C8 two-layer
+   disagreement. `tests/unit/design-contract.test.ts` keeps reading v1.
+3. `test:visual` becomes a regression gate. Once Vipin signs a screen off, its
+   reference is regenerated from the built app (ACC-191) and held at ≤0.8%.
+   Fidelity to the proposal is judged side by side, at 1440 and 390, by
+   Vipin. The proposal renders invented data, so a script cannot compare the
+   two honestly.
+4. While a screen is migrating, its `test:visual` fails against the old v2
+   reference. That is expected. It is recorded in the commit, and the
+   reference is not edited early.
+5. Screens migrate one at a time under a `.r10` root class. v2 CSS is deleted
+   only after the last screen moves (ACC-192).
+6. ADR-025 (the pass), ADR-026 (sign-in) and ACC-176b (the footer) keep their
+   layouts. They move onto r10 tokens only.
+7. The gate's behaviour is untouched (non-negotiable #7). The gate gets no
+   backdrop blur. If `/gate` is not green by Sat 3 Oct 18:00 IST, it ships on
+   v2, and that is not a failure of this ADR.
+8. New dependencies: `motion`, and the chosen body font from `@fontsource`.
+   React Bits components are copied in as TS-CSS source, not installed. There
+   are no WebGL libraries and no second icon family.
+
+**Consequences.** `check-design-tokens.mjs` check 1 reads two sources while
+screens migrate (v2 for `app/globals.css`, r10 for `app/r10/tokens.css`), and
+only r10 after ACC-192. The plan, lanes and agents are in
+`docs/REDESIGN.md`. Roadmap: Phase RD, ACC-178 to ACC-193.

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Organisations · r8</title>
+<link rel="stylesheet" href="r8/tokens.css">
+<link rel="stylesheet" href="r8/ui.css">
+<script src="r8/ui.js"></script>
+<script src="r8/data.js"></script>
+<style>
+  /* Organisations: name | people | collected | contact | arrow */
+  .orgs { --cols: minmax(220px, 2fr) 120px minmax(150px, 1.2fr) minmax(190px, 1.4fr) 32px; }
+  .orgs .tr { --c: var(--ink-3); }
+  .orgs .row-arrow { justify-self: end; transition: transform var(--d-quick) var(--e-out), color var(--d-quick) var(--e-out); }
+  @media (hover: hover) { .orgs .tr:hover .row-arrow { transform: translateX(3px); color: var(--ink); } }
+  .orgs-collected { display: grid; gap: 6px; }
+  .orgs-collected .meter { margin-top: 0; }
+  @container app (max-width: 700px) {
+    .filterbar-row .btn-copy-names { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="page frame" id="main" data-states="ready,loading,empty,error">
+    <div class="page-head">
+      <div>
+        <h1 class="display-lg">Organisations</h1>
+        <p class="lede">Every company sending people. Open one to see them in the Master list.</p>
+      </div>
+      <button class="btn" id="copy"><i class="ph ph-copy"></i>Copy names for the form</button>
+    </div>
+
+    <div class="filterbar" role="search">
+      <div class="filterbar-row">
+        <label class="search">
+          <i class="ph ph-magnifying-glass"></i>
+          <span class="sr">Search organisations</span>
+          <input class="input" id="q" type="search" placeholder="Organisation or contact name" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+      </div>
+    </div>
+
+    <div class="when-ready">
+      <div class="table orgs" role="table" aria-label="Organisations" id="table">
+        <div class="thead label-sm" role="row">
+          <span role="columnheader"><button data-sort="name">Organisation <i class="ph ph-caret-down"></i></button></span>
+          <span role="columnheader"><button data-sort="people">People <i class="ph ph-caret-down"></i></button></span>
+          <span role="columnheader">Collected</span>
+          <span role="columnheader">Contact</span>
+          <span role="columnheader" class="sr">Open</span>
+        </div>
+        <div id="rows" role="rowgroup"></div>
+      </div>
+      <div class="empty" id="nomatch" hidden>
+        <i class="ph ph-magnifying-glass"></i>
+        <p class="display-sm">No one matches</p>
+        <p id="nomatch-text">Try the organisation's name or its contact.</p>
+        <button class="btn" id="clear">Clear search</button>
+      </div>
+    </div>
+
+    <!-- Loading: rows shaped like the real ones -->
+    <div class="when-loading" aria-busy="true" aria-label="Loading organisations">
+      <div class="table orgs"><div class="thead label-sm"><span>Organisation</span><span>People</span><span>Collected</span><span>Contact</span><span class="sr">Open</span></div>
+        <div id="skrows"></div></div>
+    </div>
+
+    <!-- Empty: nobody imported yet -->
+    <div class="when-empty"><div class="empty">
+      <i class="ph ph-buildings"></i>
+      <p class="display-sm">No organisations yet</p>
+      <p>Organisations appear here as soon as their people are imported from the response sheet.</p>
+    </div></div>
+
+    <!-- Error -->
+    <div class="when-error"><div class="empty empty-error">
+      <i class="ph ph-warning-circle"></i>
+      <p class="display-sm">The list didn't load</p>
+      <p>Your connection or the server stopped answering. Nothing you did was lost.</p>
+      <button class="btn" onclick="R8.setState('loading');setTimeout(()=>R8.setState('ready'),900)">Try again<span class="ic"><i class="ph ph-arrows-clockwise"></i></span></button>
+    </div></div>
+  </main>
+</div>
+
+<script>
+R8.shell({ active: 'orgs', badges: { master: 17 } })
+const D = window.R8DATA
+const $ = (s) => document.querySelector(s)
+
+let q = '', sort = 'name'
+
+function kindLabel(k) { return k[0].toUpperCase() + k.slice(1) }
+
+function results() {
+  const needle = q.trim().toLowerCase()
+  let list = D.orgs.filter((o) => !needle || o.name.toLowerCase().includes(needle) || o.contact.toLowerCase().includes(needle))
+  list = [...list].sort((a, b) => sort === 'people' ? b.approved - a.approved : a.name.localeCompare(b.name))
+  return list
+}
+
+function row(o) {
+  const w = o.approved ? Math.min(1, o.collected / o.approved) : 0
+  return `<div class="tr" role="row" tabindex="0" data-id="${o.id}">
+    <div role="cell"><div class="nm">${o.name}</div><div class="sub">${kindLabel(o.kind)}</div></div>
+    <div role="cell" class="hide-s">${o.approved} of ${o.sent}</div>
+    <div role="cell" class="hide-s"><div class="orgs-collected"><span class="body-sm">${o.collected}</span><div class="meter" style="--w:${w}"><i></i></div></div></div>
+    <div role="cell" class="hide-s"><div class="body-sm">${o.contact}</div><div class="mono ink-2">${o.phone}</div></div>
+    <div role="cell" class="cell-r hide-s"><i class="ph ph-caret-right row-arrow ink-3"></i></div>
+    <div class="row2"><span class="body-sm ink-2">${o.approved} of ${o.sent} approved · ${o.collected} collected</span></div>
+  </div>`
+}
+
+function render() {
+  const list = results()
+  $('#rows').innerHTML = list.map(row).join('')
+  $('#table').hidden = !list.length
+  $('#nomatch').hidden = !!list.length
+  $('#nomatch-text').textContent = q ? `No one matches "${q}". Try the organisation's name or its contact.` : 'Try the organisation’s name or its contact.'
+}
+
+// skeleton rows at the real column widths
+$('#skrows').innerHTML = Array.from({ length: 8 }, (_, i) => `<div class="tr" style="cursor:default">
+  <div><div class="sk sk-line" style="width:${55 + (i * 13) % 30}%"></div><div class="sk sk-line" style="width:${30 + (i * 9) % 25}%;margin-top:8px;height:10px"></div></div>
+  <div class="hide-s"><span class="sk sk-line" style="width:56px;display:block"></span></div>
+  <div class="hide-s" style="display:grid;gap:6px"><span class="sk sk-line" style="width:24px"></span><span class="sk" style="height:4px;border-radius:999px"></span></div>
+  <div class="hide-s"><div class="sk sk-line" style="width:70%"></div><div class="sk sk-line" style="width:50%;margin-top:8px;height:10px"></div></div>
+  <div class="cell-r hide-s"><span class="sk sk-dot"></span></div>
+</div>`).join('')
+
+let debounce
+$('#q').addEventListener('input', (e) => { clearTimeout(debounce); debounce = setTimeout(() => { q = e.target.value; render() }, 120) })
+addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus() } })
+$('#clear').addEventListener('click', () => { q = ''; $('#q').value = ''; render() })
+document.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => { sort = b.dataset.sort; render() }))
+
+function openOrg(id) { location.href = `r8-master.html?org=${id}` }
+$('#rows').addEventListener('click', (e) => { const r = e.target.closest('.tr'); if (r) openOrg(r.dataset.id) })
+$('#rows').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const r = e.target.closest('.tr'); if (r) openOrg(r.dataset.id) } })
+
+$('#copy').addEventListener('click', () => {
+  const names = D.orgs.map((o) => o.name).join('\n')
+  try { navigator.clipboard?.writeText(names) } catch (e) {}
+  R8.toast(`Copied ${D.orgs.length} organisation names`)
+})
+
+render()
+R8.proto([])
+</script>
+</body>
+</html>

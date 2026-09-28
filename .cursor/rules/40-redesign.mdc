@@ -1,0 +1,22 @@
+---
+description: The r10 redesign (Phase RD). Read before building any redesign task.
+globs: ["app/**", "components/**", "DESIGN.md", "design/proposals/r8*", "design/source/r10/**"]
+alwaysApply: false
+---
+
+# Redesign r10
+
+If your task is in **Phase RD** of `docs/ROADMAP.md` (ACC-178 to ACC-193),
+`docs/REDESIGN.md` is your brief. It sets the order, the file ownership, the
+worktree and claim protocol, and which agent and model to use. `DESIGN.md` is
+the spec.
+
+Until ACC-179 is `[x]`, `design/source/boa_design_v2.html` is still the pixel
+contract and rule `20-ui.mdc` applies unchanged. Do not start any RD build
+task before then.
+
+For one RD task, delegate to the subagent named in REDESIGN.md section 4
+(`/cursor-rd-builder`, `/cursor-rd-mechanic`). Run `/cursor-rd-verify` before
+merging, and `/cursor-rd-reviewer` where section 5 says to. The gate tasks,
+ACC-189 and ACC-190, belong to Claude Code: do not take them in Cursor unless
+Claude Code has blocked them with `task block`.
