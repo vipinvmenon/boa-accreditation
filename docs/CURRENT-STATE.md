@@ -1212,6 +1212,15 @@ typecheck, lint (six existing warnings), 297 unit tests, `check:sql`,
 `test:db`, and production build. The migration is applied to the shared
 database; anon privilege assertions and the feed pgTAP assertions pass.
 
+### 28 Sep 2026 — ACC-183 verified and done
+
+The r10 Control room now renders live dashboard metrics through shared r10
+primitives, including the poster hero, progress ring, bento stats, furthest
+behind organisations, and band shelf. Verified: typecheck, lint (seven
+existing warnings), 297 unit tests, production build, and focused e2e after
+restoring the data-driven accessible company count. Visual references remain
+unavailable until ACC-191.
+
 ### 28 Sep 2026 — ACC-186 verified and done
 
 The r10 Organisations screen now uses live Zod-parsed organisation data with
