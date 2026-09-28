@@ -1188,6 +1188,14 @@ Verified: typecheck, lint (six existing warnings), 294 unit tests, focused
 primitive tests, and production build. `test:visual` remains unavailable until
 ACC-191 generates references; no shared CSS request remains.
 
+### 28 Sep 2026 — ACC-182 verified and done
+
+The r10 desk shell now supplies the desk background, ambient layer, page frame,
+glass navigation island, footer integration, and responsive shell styling.
+Verified: typecheck, lint (six existing warnings), 294 unit tests, production
+build, and chrome-interactions e2e 6/6. `test:visual` remains unavailable until
+ACC-191 generates references.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
