@@ -411,6 +411,22 @@ test.describe('gate aeroplane mode', () => {
     await expect(gate.getByRole('option')).toHaveCount(0)
   })
 
+  test('searches by the last four phone digits from the offline cache', async ({ page }) => {
+    const { page: gate, requests } = await installFixture(page, [])
+    await reloadColdOffline(gate)
+
+    await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
+    const box = gate.getByRole('combobox', { name: 'Search approved list' })
+    await box.fill('0003')
+    const option = gate.getByRole('option', { name: /E2E Person 3/ })
+    await expect(option).toContainText('••• 0003')
+    await option.click()
+
+    await expectVerdict(gate, 'Approved')
+    await expect(gate.locator('.person .nm')).toHaveText('E2E Person 3')
+    expect(requests).toEqual([])
+  })
+
   test('a double tap on Issue wristband queues exactly one issue', async ({ page }) => {
     const { page: gate } = await installFixture(page, ['success'])
     await reloadColdOffline(gate)
