@@ -1,9 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
-import { useDomTheme } from '@/lib/use-theme'
-import { PROP } from '@/lib/design'
 import { gateDb } from '@/gate/db'
 import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { normalizePlate, queueVehicleEvent, resolvePlate, type PlateResolution } from '@/gate/vehicle-flow'
@@ -20,7 +17,6 @@ import { SyncStatus } from '../sync-status'
 type Result = {
   outcome: 'cleared' | 'turned_away' | 'blocked'
   text: string
-  colour: string
   stickerNo?: string
   plate?: string
   wristbandDetail?: string
@@ -36,8 +32,6 @@ export function VehicleScreen() {
   // to /desk/login?next=/gate/vehicle instead of rendering the vehicle
   // screen and letting every write fail 401, silently.
   useGateSessionGuard('/gate/vehicle')
-  const theme = useDomTheme()
-  const p = PROP[theme]
   const [plate, setPlate] = useState('')
   const [reason, setReason] = useState('')
   const [askReason, setAskReason] = useState(false)
@@ -107,7 +101,7 @@ export function VehicleScreen() {
     const selectedReason = reason.trim()
     if (intent === 'turn_away' && selectedReason.length === 0) {
       setAskReason(true)
-      setResult({ outcome: 'blocked', text: 'Type the reason, then press Turn away again.', colour: p.bad })
+      setResult({ outcome: 'blocked', text: 'Type the reason, then press Turn away again.' })
       window.setTimeout(() => reasonRef.current?.focus(), 0)
       return
     }
@@ -124,7 +118,6 @@ export function VehicleScreen() {
         setResult({
           outcome: 'blocked',
           text: !stickerOk ? 'No sticker is issued to this plate. Not logged.' : 'The sticker holder has no active wristband. Not logged.',
-          colour: p.bad,
         })
         return
       }
@@ -145,7 +138,6 @@ export function VehicleScreen() {
       setResult({
         outcome,
         text: outcome === 'cleared' ? 'Cleared — entry logged.' : `Turned away — ${selectedReason}`,
-        colour: outcome === 'cleared' ? p.grn : p.bad,
         plate: plate.trim().toUpperCase(),
         ...(facts.stickerNo ? { stickerNo: facts.stickerNo } : {}),
         ...(facts.stickerIssuedAt ? { occurredAt: facts.stickerIssuedAt } : {}),
@@ -166,32 +158,49 @@ export function VehicleScreen() {
   const outcome = cleared ? 'ok' : result ? 'bad' : undefined
   return (
     <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0} bmsPending={14}>
-      <section className="head rv">
-        <div><span className="tag gold">Vehicle entrance</span><h1 className="h1">Sticker and band. Both.</h1><p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside.</p></div>
-      </section>
-      <div className="split">
-        <div className="bz rv" style={{ '--d': 1 } as CSSProperties}><div className="pl pad">
-          <span className="mono">Enter registration</span>
-          <input className="plate-in" id="vehicle-plate" aria-label="Vehicle registration" value={plate} onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }} placeholder="KA01AB1234" autoCapitalize="characters" autoComplete="off" style={{ margin: '14px 0 18px' }} />
-          <div className="note" style={{ '--oc': 'var(--gold)' } as CSSProperties}><span className="mono" style={{ color: p.gold }}>Both or neither</span><br />A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</div>
-          <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
-        </div></div>
-        {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
-            buttons with no click handler — they only ever reflected the recorded outcome,
-            which the verdict heading right below already states in words. Removed rather
-            than kept as fake tabs; the `.r-body` verdict + aria-live on this card carry it. */}
-        <div className="bz result rv" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--d': 2, '--oc': cleared ? p.grn : result ? p.bad : p.grn } as CSSProperties}><div className="pl" style={{ minHeight: 560 }}>
-          <div className="flood" />
-          <div className="r-body">
+      <div className="r10 vehicle-screen">
+        <header className="vehicle-head">
+          <span className="label-sm gold">Vehicle entrance</span>
+          <h1 className="display-lg">Sticker and band. Both.</h1>
+          <p className="lede">Security&apos;s own screen. A sticker without a wristband does not enter. A wristband without a sticker parks outside.</p>
+        </header>
+
+        <div className="veh-stack">
+          <section className="veh-panel veh-entry">
+            <label className="field" htmlFor="vehicle-plate">
+              <span className="label-sm">Enter registration</span>
+              <input
+                id="vehicle-plate"
+                className="input input-mono"
+                aria-label="Vehicle registration"
+                value={plate}
+                onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }}
+                placeholder="KA01AB1234"
+                autoCapitalize="characters"
+                autoComplete="off"
+              />
+            </label>
+            <div className="veh-note">
+              <span className="mono gold">Both or neither</span>
+              <p>A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</p>
+            </div>
+            <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
+          </section>
+
+          {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
+              buttons with no click handler — they only ever reflected the recorded outcome,
+              which the verdict heading right below already states in words. Removed rather
+              than kept as fake tabs; this card's `aria-live` carries it. */}
+          <section className="veh-panel veh-result" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true">
             {result && <>
-            <h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{cleared ? 'Cleared' : result.outcome === 'blocked' ? 'Not cleared' : 'Turned away'}</h2>
-            <p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : result.outcome === 'blocked' ? result.text : `${result.text} ${online ? 'Syncing.' : `Queued offline (${queued}).`}`}</p>
-            <div className="checks stag" style={{ '--i': 2 } as CSSProperties}>{[
+            <h2 className="display-md verdict">{cleared ? 'Cleared' : result.outcome === 'blocked' ? 'Not cleared' : 'Turned away'}</h2>
+            <p className="veh-sub">{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : result.outcome === 'blocked' ? result.text : `${result.text} ${online ? 'Syncing.' : `Queued offline (${queued}).`}`}</p>
+            <ul className="veh-checks">{[
               ['Vehicle sticker', cleared && result?.stickerNo && result.plate ? `${result.stickerNo}, bound to ${result.plate}` : 'Sticker is bound to this registration'],
               ['Crew wristband', cleared && result?.wristbandDetail ? result.wristbandDetail.replaceAll(' · ', ', ') : 'Active wristband required'],
               ['Plate matches sticker', 'Visual check by the officer at the barrier'],
-            ].map(([label, detail]) => <div key={label} className="li"><span aria-hidden="true" className={`ok${cleared ? '' : ' x'}`}><Icon name={cleared ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="sub">{detail}</div></div></div>)}</div>
-            {askReason && <div className="field"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
+            ].map(([label, detail]) => <li key={label}><span aria-hidden="true" className={`veh-mark ${cleared ? 'ok' : 'bad'}`}><Icon name={cleared ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="veh-check-detail">{detail}</div></div></li>)}</ul>
+            {askReason && <div className="field veh-reason"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason" className="input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
             </>}
             {/* ACC-159 / ADR-022 — the officer is told before deciding.
                 Deliberate, ADR'd deviation: the frozen contract draws this panel
@@ -202,31 +211,84 @@ export function VehicleScreen() {
                 move. Both facts come from `resolved`, which is the same
                 `resolvePlate` that `recordEvent` gates on. */}
             {!result && plateFacts && <>
-            <h2 className="g-verdict verdict stag" style={{ '--i': 0 } as CSSProperties}>{plateFacts.stickerOk && plateFacts.wristbandOk ? 'Ready to clear' : 'Will not clear'}</h2>
-            <p className="vsub stag" style={{ '--i': 1 } as CSSProperties}>{plateFacts.holderName
+            <h2 className="display-md verdict">{plateFacts.stickerOk && plateFacts.wristbandOk ? 'Ready to clear' : 'Will not clear'}</h2>
+            <p className="veh-sub">{plateFacts.holderName
               ? `${plateFacts.holderName}${plateFacts.stickerNo ? ` · sticker ${plateFacts.stickerNo}` : ''} · check the sticker against the plate, then decide.`
               : 'Nothing is issued to this registration. Check the plate, or park it outside.'}</p>
-            <div className="checks stag" style={{ '--i': 2 } as CSSProperties}>{([
+            <ul className="veh-checks">{([
               ['Vehicle sticker', plateFacts.stickerOk, plateFacts.stickerOk && plateFacts.stickerNo ? `${plateFacts.stickerNo}, bound to ${plateFacts.plate}` : 'No sticker is issued to this registration'],
               ['Crew wristband', plateFacts.wristbandOk, plateFacts.wristbandOk && plateFacts.wristbandDetail ? plateFacts.wristbandDetail.replaceAll(' · ', ', ') : plateFacts.stickerOk ? 'The sticker holder has no active wristband' : 'Needs a sticker holder first'],
               ['Plate matches sticker', false, 'Yours to check at the barrier — the app cannot see the vehicle'],
-            ] as [string, boolean, string][]).map(([label, ok, detail]) => <div key={label} className="li"><span aria-hidden="true" className={`ok${ok ? '' : ' x'}`}><Icon name={ok ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="sub">{detail}</div></div></div>)}</div>
+            ] as [string, boolean, string][]).map(([label, ok, detail]) => <li key={label}><span aria-hidden="true" className={`veh-mark ${ok ? 'ok' : 'bad'}`}><Icon name={ok ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="veh-check-detail">{detail}</div></div></li>)}</ul>
             </>}
-            {!result && askReason && <div className="field"><label htmlFor="vehicle-reason-first" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason-first" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
+            {!result && askReason && <div className="field veh-reason"><label htmlFor="vehicle-reason-first" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason-first" className="input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
             {/* ACC-131: a disabled button with no explanation just looks broken to the
                 officer at the barrier — title covers pointer users, the note text
                 below covers everyone else (title has no touch/keyboard equivalent). */}
-            <div className="dock stag" style={{ '--i': result ? 3 : 0 } as CSSProperties}><button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn go big hov-invert-grn">{submitting ? 'Queueing…' : 'Log entry and open gate'}<span className="ic"><Icon name="arrow-right" /></span></button><button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn bad wide hov-fill-bad">Turn away and log reason</button></div>
+            <div className="veh-dock">
+              <button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-primary btn-gate btn-block">{submitting ? 'Queueing…' : 'Log entry and open gate'}<Icon name="arrow-right" /></button>
+              <button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-danger btn-gate btn-block">Turn away and log reason</button>
+            </div>
             {/* ACC-159: the disabled buttons' reason as visible text. `title` is a
                 hover affordance with no touch or keyboard equivalent, and this
                 screen is used on a phone at a barrier, so it cannot be the only
                 explanation. It stays for pointer users; these lines are the real one. */}
-            {normalized === null && plate.trim().length > 0 && <p role="status" className="mono" style={{ color: p.bad }}>Not a valid registration format.</p>}
-            {normalized === null && plate.trim().length === 0 && <p role="status" className="mono" style={{ color: p.ink2 }}>Type the registration. The sticker and the wristband show here before you decide.</p>}
-          </div>
-        </div>
+            {normalized === null && plate.trim().length > 0 && <p role="status" className="mono veh-status-bad">Not a valid registration format.</p>}
+            {normalized === null && plate.trim().length === 0 && <p role="status" className="mono ink-2">Type the registration. The sticker and the wristband show here before you decide.</p>}
+          </section>
         </div>
       </div>
+
+      <style jsx global>{`
+        .r10 .vehicle-screen { padding-block: var(--s-10) var(--s-20); }
+        .r10 .vehicle-head { margin-bottom: var(--s-8); }
+        .r10 .vehicle-head h1 { margin: var(--s-2) 0 0; }
+        .r10 .veh-stack { display: grid; gap: var(--s-5); max-width: 640px; }
+
+        /* Gate surfaces are always solid: no backdrop-filter, on any viewport
+           or input mode. Deliberately not the shared .card/.table/.empty/
+           .panel group in app/r10/base.css, which gates its glass overlay to
+           (hover: hover) and (min-width: 900px) rather than dropping it
+           altogether — the gate drops it altogether (DESIGN.md Do's). */
+        .r10 .veh-panel {
+          border-radius: var(--r-lg);
+          background: var(--surface);
+          box-shadow: inset 0 0 0 1px var(--hair);
+          padding: var(--s-6);
+        }
+        .r10 .veh-entry .field { margin-bottom: var(--s-4); }
+        .r10 .veh-note { display: grid; gap: var(--s-1); margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); }
+        .r10 .veh-note p { margin: 0; color: var(--ink-2); font-size: var(--t-body-sm); }
+        /* SyncStatus draws itself into existing whitespace below whatever it is
+           mounted after (own comment, app/gate/sync-status.tsx) rather than
+           taking layout space, so the panel reserves the room itself. */
+        .r10.vehicle-screen .veh-entry { padding-bottom: calc(var(--s-6) + var(--s-5)); }
+
+        .r10 .veh-result { position: relative; min-height: 420px; }
+        .r10 .veh-result .verdict { margin: 0; color: var(--ink); }
+        .r10 .veh-sub { margin: var(--s-2) 0 0; color: var(--ink-2); }
+        .r10 .veh-checks { list-style: none; margin: var(--s-6) 0 0; padding: 0; display: grid; gap: var(--s-4); }
+        .r10 .veh-checks li { display: flex; align-items: flex-start; gap: var(--s-3); }
+        .r10 .veh-mark { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; }
+        .r10 .veh-mark.ok { background: var(--ok-tint); color: var(--go); }
+        .r10 .veh-mark.bad { background: var(--bad-tint); color: var(--bad); }
+        .r10 .veh-checks .nm { font-family: var(--f-body); font-weight: 600; font-size: var(--t-body); letter-spacing: normal; text-transform: none; color: var(--ink); }
+        .r10 .veh-check-detail { margin-top: 2px; color: var(--ink-3); font-size: var(--t-body-sm); }
+        .r10 .veh-reason { margin-top: var(--s-4); }
+        .r10 .veh-status-bad { color: var(--bad); }
+        .r10 .veh-dock { margin-top: var(--s-6); display: grid; gap: var(--s-3); }
+        .r10 .veh-dock + p { margin-top: var(--s-3); }
+
+        @media (min-width: 560px) {
+          .r10 .veh-dock { grid-auto-flow: column; grid-auto-columns: 1fr; }
+        }
+
+        @media (max-width: 700px) {
+          .r10 .vehicle-screen { padding-block: var(--s-6) var(--s-10); }
+          .r10 .veh-panel { padding: var(--s-5); }
+          .r10 .veh-result { min-height: 0; }
+        }
+      `}</style>
     </GateChrome>
   )
 }

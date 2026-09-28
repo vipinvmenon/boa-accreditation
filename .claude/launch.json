@@ -18,6 +18,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4455", "--bind", "127.0.0.1"],
       "port": 4455
+    },
+    {
+      "name": "acc-190",
+      "runtimeExecutable": "corepack",
+      "runtimeArgs": ["pnpm", "dev", "--port", "3090"],
+      "port": 3090
     }
   ]
 }
