@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -13,6 +16,18 @@ import {
 } from '@/components/r10'
 
 describe('r10 primitives A', () => {
+  it('cancels a hold when the control loses focus', () => {
+    const source = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../components/r10/primitives-a.tsx'), 'utf8')
+    expect(source).toContain('onBlur={(event) => {')
+    expect(source).toContain("window.addEventListener('blur', cancelOnWindowBlur)")
+    expect(source).toContain('if (!event.defaultPrevented) stop(false)')
+  })
+
+  it('expands chip edit controls to the tokenized hit area', () => {
+    const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../app/r10/primitives.css'), 'utf8')
+    expect(css).toContain('inset: calc((var(--h-chip) - var(--hit)) / 2) calc(var(--s-1) * -1)')
+  })
+
   it('renders Button variants and disabled state', () => {
     const markup = renderToStaticMarkup(createElement(
       Fragment,
@@ -35,7 +50,7 @@ describe('r10 primitives A', () => {
     expect(markup).toContain('aria-pressed="false"')
   })
 
-  it('renders Field hints and invalid errors', () => {
+  it('associates Field error content with the input', () => {
     const markup = renderToStaticMarkup(createElement(Field, {
       id: 'phone',
       label: 'Phone',
@@ -45,32 +60,37 @@ describe('r10 primitives A', () => {
     expect(markup).toContain('class="field"')
     expect(markup).toContain('class="input"')
     expect(markup).toContain('aria-invalid="true"')
+    expect(markup).toContain('aria-describedby="phone-error"')
+    expect(markup).toContain('id="phone-error"')
     expect(markup).toContain('role="alert"')
   })
 
-  it('renders Select with the r10 select wrapper', () => {
+  it('associates Select hint content with the control', () => {
     const markup = renderToStaticMarkup(createElement(
       Select,
-      { id: 'role', label: 'Role', defaultValue: 'issuer' },
+      { id: 'role', label: 'Role', hint: 'Choose the access level.', defaultValue: 'issuer' },
       createElement('option', { value: 'issuer' }, 'Issuer'),
     ))
     expect(markup).toContain('class="select"')
     expect(markup).toContain('class="input"')
+    expect(markup).toContain('aria-describedby="role-hint"')
+    expect(markup).toContain('id="role-hint"')
     expect(markup).toContain('value="issuer"')
   })
 
-  it('renders removable and preset Chips', () => {
+  it('renders removable and keyboard-actionable preset Chips', () => {
     const markup = renderToStaticMarkup(createElement(
       Fragment,
       null,
       createElement(Chip, { onEdit: vi.fn(), onRemove: vi.fn(), removeLabel: 'Remove tier' }, 'Tier: Crew'),
-      createElement(Chip, { preset: true, count: 17 }, 'Not in BMS'),
+      createElement(Chip, { preset: true, onActivate: vi.fn(), count: 17 }, 'Not in BMS'),
     ))
     expect(markup).toContain('class="chip"')
     expect(markup).toContain('class="chip-edit"')
     expect(markup).toContain('aria-label="Remove tier"')
-    expect(markup).toContain('class="chip chip-preset"')
+    expect(markup).toContain('type="button" class="chip chip-preset"')
     expect(markup).toContain('class="count-dot"')
+    expect(markup).not.toContain('class="chip chip-preset"><span')
   })
 
   it('renders FilterBar active chips and clear-all control', () => {

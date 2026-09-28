@@ -111,6 +111,7 @@
 .r10 .chip-edit,
 .r10 .chip-x { border: 0; background: none; cursor: pointer; }
 .r10 .chip-edit { position: relative; padding: 0; color: var(--ink); }
+.r10 .chip-edit::after { content: ""; position: absolute; inset: calc((var(--h-chip) - var(--hit)) / 2) calc(var(--s-1) * -1); }
 .r10 .chip-edit b { margin-right: 2px; color: var(--ink-3); font-weight: 500; }
 .r10 .chip-x { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--ink-2); }
 .r10 .chip-x::after { content: ""; position: absolute; inset: -8px; }

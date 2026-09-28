@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useId,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type InputHTMLAttributes,
@@ -92,13 +93,16 @@ export function HoldButton({
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     const update = () => setMotionAllowed(!media.matches)
+    const cancelOnWindowBlur = () => stop(false)
     update()
     media.addEventListener('change', update)
+    window.addEventListener('blur', cancelOnWindowBlur)
     return () => {
       media.removeEventListener('change', update)
+      window.removeEventListener('blur', cancelOnWindowBlur)
       if (timer.current !== null) clearInterval(timer.current)
     }
-  }, [])
+  }, [stop])
 
   return (
     <Button
@@ -123,6 +127,10 @@ export function HoldButton({
       onPointerCancel={(event) => {
         props.onPointerCancel?.(event)
         stop(false)
+      }}
+      onBlur={(event) => {
+        props.onBlur?.(event)
+        if (!event.defaultPrevented) stop(false)
       }}
       onKeyDown={(event) => {
         props.onKeyDown?.(event)
@@ -150,13 +158,18 @@ export type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'className'
     inputClassName?: string
   }
 
-export function Field({ label, hint, error, id, className, inputClassName, 'aria-invalid': ariaInvalid, ...inputProps }: FieldProps) {
+export function Field({ label, hint, error, id, className, inputClassName, 'aria-invalid': ariaInvalid, 'aria-describedby': ariaDescribedBy, ...inputProps }: FieldProps) {
+  const generatedId = useId()
+  const controlId = id ?? `${generatedId}-control`
+  const message = error !== undefined ? error : hint
+  const messageId = message !== undefined ? `${controlId}-${error !== undefined ? 'error' : 'hint'}` : undefined
+  const describedBy = [ariaDescribedBy, messageId].filter(Boolean).join(' ') || undefined
   const invalid = ariaInvalid ?? (error ? true : undefined)
   return (
-    <label className={joinClassNames('field', className)} htmlFor={id}>
+    <label className={joinClassNames('field', className)} htmlFor={controlId}>
       {label !== undefined && <span>{label}</span>}
-      <input {...inputProps} id={id} className={joinClassNames('input', inputClassName)} aria-invalid={invalid} />
-      {error !== undefined ? <span className="error" role="alert">{error}</span> : hint !== undefined ? <span className="hint">{hint}</span> : null}
+      <input {...inputProps} id={controlId} className={joinClassNames('input', inputClassName)} aria-invalid={invalid} aria-describedby={describedBy} />
+      {error !== undefined ? <span id={messageId} className="error" role="alert">{error}</span> : hint !== undefined ? <span id={messageId} className="hint">{hint}</span> : null}
     </label>
   )
 }
@@ -169,17 +182,22 @@ export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'classNa
     inputClassName?: string
   }
 
-export function Select({ label, hint, error, id, className, inputClassName, 'aria-invalid': ariaInvalid, children, ...selectProps }: SelectProps) {
+export function Select({ label, hint, error, id, className, inputClassName, 'aria-invalid': ariaInvalid, 'aria-describedby': ariaDescribedBy, children, ...selectProps }: SelectProps) {
+  const generatedId = useId()
+  const controlId = id ?? `${generatedId}-control`
+  const message = error !== undefined ? error : hint
+  const messageId = message !== undefined ? `${controlId}-${error !== undefined ? 'error' : 'hint'}` : undefined
+  const describedBy = [ariaDescribedBy, messageId].filter(Boolean).join(' ') || undefined
   const invalid = ariaInvalid ?? (error ? true : undefined)
   return (
-    <label className={joinClassNames('field', className)} htmlFor={id}>
+    <label className={joinClassNames('field', className)} htmlFor={controlId}>
       {label !== undefined && <span>{label}</span>}
       <span className="select">
-        <select {...selectProps} id={id} className={joinClassNames('input', inputClassName)} aria-invalid={invalid}>
+        <select {...selectProps} id={controlId} className={joinClassNames('input', inputClassName)} aria-invalid={invalid} aria-describedby={describedBy}>
           {children}
         </select>
       </span>
-      {error !== undefined ? <span className="error" role="alert">{error}</span> : hint !== undefined ? <span className="hint">{hint}</span> : null}
+      {error !== undefined ? <span id={messageId} className="error" role="alert">{error}</span> : hint !== undefined ? <span id={messageId} className="hint">{hint}</span> : null}
     </label>
   )
 }
@@ -187,15 +205,25 @@ export function Select({ label, hint, error, id, className, inputClassName, 'ari
 export type ChipProps = ClassName & {
   children?: ReactNode
   onEdit?: () => void
+  onActivate?: () => void
   onRemove?: () => void
   removeLabel?: string
   preset?: boolean
   count?: ReactNode
 }
 
-export function Chip({ children, onEdit, onRemove, removeLabel = 'Remove filter', preset = false, count, className }: ChipProps) {
+export function Chip({ children, onEdit, onActivate, onRemove, removeLabel = 'Remove filter', preset = false, count, className }: ChipProps) {
+  if (preset) {
+    return (
+      <button type="button" className={joinClassNames('chip', 'chip-preset', className)} onClick={onActivate}>
+        {children}
+        {count !== undefined && <CountDot>{count}</CountDot>}
+      </button>
+    )
+  }
+
   return (
-    <span className={joinClassNames('chip', preset && 'chip-preset', className)}>
+    <span className={joinClassNames('chip', className)}>
       {onEdit ? (
         <button type="button" className="chip-edit" onClick={onEdit}>{children}</button>
       ) : (
