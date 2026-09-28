@@ -220,7 +220,7 @@ export function OrgsScreen() {
           </div>
           <div role="rowgroup">
             {visibleOrgs.map((org) => (
-              <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}`} className="org-row" role="row" aria-label={`${org.name} — show their people in the master list`}>
+              <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}`} className="org-row" aria-label={`${org.name} — show their people in the master list`}>
                 <span role="cell"><strong className="display-sm nm">{org.name}</strong><span className="body-sm ink-2">{org.kind}</span></span>
                 <span role="cell" className="org-counts">
                   <span><CountDot label={`${org.submittedCount} sent`}>{org.submittedCount}</CountDot><span>sent</span></span>
