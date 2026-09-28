@@ -1152,6 +1152,9 @@ has received a pass**, because ACC-151 is still open.
 
 > **ACC-109 released 2026-09-27 (IST):** Blocked on Vipin: one sanctioned regeneration of design/reference/ from the current frozen source. Diagnosis complete and bisected (26 Sep) - the app is not what fails. References were captured 20 Sep at 2d4d6e0; the frozen source moved at 418b416 and 052bf93, so the PNGs are two commits behind the contract. Against a reference regenerated from the current frozen source, Gate measures 0.31/0.32/0.38/0.37% and Vehicle 0.40/0.40/0.25/0.26% with no application-code change. Vipin's call because it also rebases ACC-104/106/107.
 
+
+> **ACC-147 released 2026-09-28 (IST):** Code and automated gates pass; two-issuer real-phone rehearsal and iPhone camera verification remain outstanding
+
 ## Session log
 
 ### 27 Sep 2026 — ACC-107 diagnosed: half of it is ADR-018, the same as ACC-104
