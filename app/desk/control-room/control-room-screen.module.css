@@ -4,14 +4,14 @@
 
 .hero {
   position: relative;
-  min-height: 560px;
+  min-height: 672px;
   overflow: hidden;
   padding: 6px;
 }
 
 .heroClip {
   position: relative;
-  min-height: 548px;
+  min-height: 660px;
   overflow: hidden;
   border-radius: var(--r-lg);
   isolation: isolate;
@@ -36,15 +36,14 @@
 
 .heroInner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 440px) 1fr;
   align-items: end;
   gap: var(--s-8);
-  min-height: 548px;
+  min-height: 660px;
   padding: var(--s-8);
 }
 
 .heroPlate {
-  max-width: 520px;
   padding: var(--s-8);
   border-radius: var(--r-lg);
 }
@@ -95,10 +94,12 @@
 }
 
 .ringWrap {
+  justify-self: end;
+  align-self: end;
   display: grid;
   justify-items: center;
   gap: var(--s-2);
-  padding: var(--s-5);
+  padding: var(--s-4) var(--s-5);
   border-radius: var(--r-lg);
 }
 
@@ -206,6 +207,7 @@
 }
 
 .timeline {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--s-4);
@@ -214,27 +216,58 @@
   list-style: none;
 }
 
+/* The grey track, full width, under every dot. */
+.timeline::before {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  content: "";
+}
+
+/* The green fill, only as far as real progress — one continuous line, not
+   four independent segments (found in review: the app rendered four
+   separately-coloured borders with no connecting line at all). */
+.timeline::after {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  height: 2px;
+  width: calc(var(--progress, 0) * (100% - 12px));
+  background: linear-gradient(90deg, var(--go), color-mix(in srgb, var(--go) 60%, var(--gold)));
+  content: "";
+}
+
 .timeline li {
   position: relative;
-  padding-top: var(--s-5);
-  border-top: 2px solid var(--hair-strong);
+  padding-top: var(--s-6);
 }
 
 .timeline li::before {
   position: absolute;
-  top: -7px;
+  top: 0;
   left: 0;
-  width: 12px;
-  height: 12px;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--hair-strong);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 30%, transparent);
   content: "";
 }
 
-.timeline .done { border-color: var(--go); }
-.timeline .done::before { background: var(--go); }
-.timeline .now { border-color: var(--gold); }
-.timeline .now::before { background: var(--gold); }
+.timeline .done::before { background: var(--go); box-shadow: none; }
+.timeline .now::before {
+  top: -2px;
+  left: -2px;
+  width: 18px;
+  height: 18px;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+.timeline .later strong { color: var(--ink-2); }
 
 .behindList {
   display: grid;

@@ -40,10 +40,31 @@ const MILESTONES = [
   { label: 'show', date: '2026-10-10' },
 ] as const
 
+const LINKS_OUT_DATE = new Date('2026-09-20T00:00:00')
 const GATE_LIVE_DATE = new Date('2026-10-04T00:00:00')
 const BUILD_START_DATE = new Date('2026-10-05T00:00:00')
 const BUILD_END_DATE = new Date('2026-10-09T00:00:00')
 const SHOW_DATE = new Date('2026-10-10T00:00:00')
+
+/**
+ * "The week" card (r8-control-room.html's `.tl`): four milestones on one
+ * continuous line, not four independent segments. `doneAt` is when each
+ * phase is considered finished — Build's is its last day, not its first,
+ * so the card doesn't call a five-day build "done" on day one.
+ */
+const TIMELINE = [
+  { when: '20 Sep', label: 'Links out', doneAt: LINKS_OUT_DATE },
+  { when: '4 Oct', label: 'Gate live', doneAt: GATE_LIVE_DATE },
+  { when: '5 to 9 Oct', label: 'Build', doneAt: BUILD_END_DATE },
+  { when: '10 Oct', label: 'Show', doneAt: SHOW_DATE },
+] as const
+
+/** 0 to 1 across the whole links-out-to-show span, for the timeline's fill line. */
+function timelineProgress(now: Date): number {
+  const total = SHOW_DATE.getTime() - LINKS_OUT_DATE.getTime()
+  const elapsed = now.getTime() - LINKS_OUT_DATE.getTime()
+  return Math.min(1, Math.max(0, elapsed / total))
+}
 
 function nextMilestone(now: Date): { label: string; days: number } | null {
   for (const m of MILESTONES) {
@@ -133,6 +154,7 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
   const now = new Date()
   const milestone = nextMilestone(now)
   const daysToShow = daysBetween(now, SHOW_DATE)
+  const timelineNowIndex = TIMELINE.findIndex((t) => now < t.doneAt)
   const issuedRatio = ratio(dash.bandsIssued, dash.approvedTotal)
   const stickerTotal = dash.stickersActive + dash.stickersPending
   const behind = dash.orgs
@@ -183,11 +205,16 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
       <div className={styles['bento']}>
         <Card className={styles['week'] ?? ''}>
           <div className="card-label"><h2 id="week-title" className="label-sm gold">The week</h2><span className="body-sm ink-3">{formatWeekdayDate(now)}</span></div>
-          <ol className={styles['timeline']}>
-            <li className="done"><span className="body-sm ink-3">20 Sep</span><strong className="display-sm">Links out</strong></li>
-            <li className="done"><span className="body-sm ink-3">4 Oct</span><strong className="display-sm">Gate live</strong></li>
-            <li className="now"><span className="body-sm ink-3">5 to 9 Oct</span><strong className="display-sm">Build</strong></li>
-            <li><span className="body-sm ink-3">10 Oct</span><strong className="display-sm">Show</strong></li>
+          <ol className={styles['timeline']} style={{ '--progress': timelineProgress(now) } as CSSProperties}>
+            {TIMELINE.map((item, i) => {
+              const status = i < timelineNowIndex || timelineNowIndex === -1 ? 'done' : i === timelineNowIndex ? 'now' : 'later'
+              return (
+                <li key={item.label} className={status}>
+                  <span className="body-sm ink-3">{item.when}</span>
+                  <strong className="display-sm">{item.label}</strong>
+                </li>
+              )
+            })}
           </ol>
         </Card>
 
