@@ -24,9 +24,15 @@ export type ButtonVariant = 'default' | 'primary' | 'danger' | 'ghost' | 'sm' | 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> &
   ClassName & {
     variant?: ButtonVariant
+    /**
+     * A trailing icon, wrapped in the mock's circular `.ic` badge
+     * (design/source/r10/r8/ui.css:108-110) rather than sitting bare next to
+     * the label. Pass an <Icon /> here instead of adding it to `children`.
+     */
+    icon?: ReactNode
   }
 
-export function Button({ variant = 'default', className, type = 'button', children, ...props }: ButtonProps) {
+export function Button({ variant = 'default', className, type = 'button', icon, children, ...props }: ButtonProps) {
   return (
     <button
       {...props}
@@ -34,6 +40,7 @@ export function Button({ variant = 'default', className, type = 'button', childr
       className={joinClassNames('btn', variant === 'default' ? undefined : `btn-${variant}`, className)}
     >
       {children}
+      {icon !== undefined && <span className="ic" aria-hidden="true">{icon}</span>}
     </button>
   )
 }
@@ -269,6 +276,25 @@ export function FilterBar({
   className,
 }: FilterBarProps) {
   const hasSearch = onSearchChange !== undefined
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // r10-foundation: the mock's search field always carries a `/` shortcut
+  // hint and a matching global listener (design/source/r10/r8-master.html:49,
+  // 213; design/source/r10/r8/ui.css:161). Skip when focus is already in a
+  // text field so `/` still types normally there.
+  useEffect(() => {
+    if (!hasSearch) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return
+      event.preventDefault()
+      searchRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [hasSearch])
+
   return (
     <div className={joinClassNames('filterbar', className)} role="search">
       <div className="filterbar-row">
@@ -276,6 +302,7 @@ export function FilterBar({
           <label className="search">
             <span className="sr-only">{searchLabel}</span>
             <input
+              ref={searchRef}
               className="input"
               type="search"
               value={searchValue ?? ''}
@@ -283,6 +310,7 @@ export function FilterBar({
               placeholder={searchPlaceholder}
               aria-label={searchLabel}
             />
+            <kbd aria-hidden="true">/</kbd>
           </label>
         )}
         {children}

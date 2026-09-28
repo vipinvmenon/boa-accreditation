@@ -13,7 +13,6 @@ import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { z } from 'zod'
-import { ERROR_COPY } from '@/lib/error-copy'
 
 const ROLE_LABEL: Record<OperatorRow['role'], string> = {
   lead: 'Lead',
@@ -40,10 +39,8 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const theme = useDomTheme()
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
-  const [dashboardError, setDashboardError] = useState(false)
   const [me, setMe] = useState<OperatorRow | null>(null)
   const [meError, setMeError] = useState(false)
-  const [statusReloadKey, setStatusReloadKey] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -61,29 +58,21 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           router.replace(loginHref(window.location.pathname + window.location.search))
           return
         }
-        if (!response.ok) {
-          setDashboardError(true)
-          return
-        }
+        if (!response.ok) return
         const parsed = dashboardSchema.safeParse(await response.json())
-        if (cancelled) return
-        if (!parsed.success) {
-          setDashboardError(true)
-          return
-        }
+        if (cancelled || !parsed.success) return
+        // Only feeds the Master list nav badge (F3) — R8.shell has no
+        // status bar to render the rest of this into (ACC-130/foundation).
         setDashboard(parsed.data)
-        setDashboardError(false)
       } catch {
-        // A thrown fetch must not leave the status bar's skeleton spinning
-        // forever with nothing telling the operator it failed.
-        if (!cancelled) setDashboardError(true)
+        // A silent failure just means no badge; nothing else reads this.
       }
     }
     void loadStatus()
     return () => {
       cancelled = true
     }
-  }, [router, statusReloadKey])
+  }, [router])
 
   useEffect(() => {
     let cancelled = false
@@ -121,7 +110,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [router, statusReloadKey])
+  }, [router])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -247,13 +236,26 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           <nav className="island" aria-label="Desk navigation">
             <Link href="/desk" className="brand" aria-label="BOA Accreditation desk home">
               <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
-              <span>Accred<br />desk</span>
             </Link>
             <div className="links" id="desk-links">
               <span className="pip" aria-hidden="true" />
               {DESK_NAV.map((item) => {
                 const active = item.id === activeNav
-                return <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>
+                // F3: R8.shell's nav badge (design/source/r10/r8/ui.js:36,40)
+                // only has a data source for Master (not-in-BMS). This also
+                // carries the "not in BMS" deep link the removed status bar
+                // (F4) used to offer (ACC-154, tests/e2e/org-filter.spec.ts)
+                // — pointing the nav item itself at the filtered list only
+                // while there is something outstanding to flag.
+                const bmsPending = item.id === 'master' ? dashboard?.bmsPending : undefined
+                const hasBadge = typeof bmsPending === 'number' && bmsPending > 0
+                const href = hasBadge ? `${item.href}?in_bms=false` : item.href
+                return (
+                  <Link key={item.id} href={href} aria-current={active ? 'page' : undefined} onClick={rememberPip}>
+                    {item.label}
+                    {hasBadge && <span className="badge" aria-label={`${bmsPending} not in BMS`}>{bmsPending}</span>}
+                  </Link>
+                )
               })}
             </div>
             <div className="nav-end">
@@ -273,7 +275,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                     <button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}>
                       <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                     </button>
-                    <Link href="/desk/users" onClick={closeProfileMenu}>Manage users</Link>
+                    <Link href="/desk/users" onClick={closeProfileMenu}>Users</Link>
                     <button type="button" onClick={() => { closeProfileMenu(); void signOut() }} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
                 </div>
               </div>
@@ -287,27 +289,11 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
               }} aria-label="Menu" aria-controls="desk-menu" aria-expanded={mobileOpen}><i /><i /></button>
             </div>
           </nav>
-          {/* ACC-130: the mock's "Live" pip was always on regardless of whether the dashboard
-              fetch actually succeeded — the dashboard fetch's own error/retry state below is
-              the real signal. */}
-          <div className="status">
-            <span className="hide-s">Build 05-09 Oct, show 10 Oct</span>
-            {dashboardError ? (
-              <span role="alert" className="status-error">
-                <span>{ERROR_COPY.internal}</span>
-                <button type="button" className="status-error-retry" onClick={() => setStatusReloadKey((k) => k + 1)}>Retry</button>
-              </span>
-            ) : dashboard ? (
-              <>
-                <span>{dashboard.bandsIssued} / {dashboard.approvedTotal} bands issued</span>
-                <Link href="/desk/master?in_bms=false" className="warn">{dashboard.bmsPending} not in BMS</Link>
-              </>
-            ) : (
-              <span role="status" aria-label="Loading status">
-                <LoadingSkeleton className="status-skeleton" width="132px" />
-              </span>
-            )}
-          </div>
+          {/* r10-foundation F4: R8.shell (design/source/r10/r8/ui.js) renders
+              only the nav and the footer here — no status bar under the nav
+              on any r8 screen. The build-date / bands-issued / not-in-BMS
+              pill that used to sit here is removed; not-in-BMS now lives in
+              the Master list badge above. */}
         </header>
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
           {DESK_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {

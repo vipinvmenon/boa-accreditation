@@ -56,7 +56,24 @@
 .r10 .ink-2 { color: var(--ink-2); }
 .r10 .ink-3 { color: var(--ink-3); }
 .r10 .gold { color: var(--gold); }
-.r10 .lede { max-width: 60ch; margin: var(--s-3) 0 0; color: var(--ink-2); text-wrap: pretty; }
+.r10 .lede { max-width: 60ch; margin: var(--s-3) 0 0; color: var(--ink-2); font-size: var(--t-body); line-height: 1.55; text-wrap: pretty; }
+
+/* r10-foundation: app/v2.css's bare `main{padding}` and `.lede{font-size}` are
+   frozen for the unmigrated screens (gate, login, pass) and must not be
+   edited there. These rules neutralise the leak onto migrated (.r10) markup
+   instead, without touching v2.css. The `.mrow` rules below do the same for
+   the v2 mobile column-hiding a migrated screen may still reuse the class
+   names of (a screen still owns building its own responsive row, this only
+   stops the v2 selector match). */
+.r10 main { padding: 0; }
+@container app (max-width: 1100px) {
+  .r10 .mrow .plate,
+  .r10 .mrow .bms { display: revert; }
+}
+@container app (max-width: 700px) {
+  .r10 .mrow .band,
+  .r10 .mrow .when { display: revert; }
+}
 
 .r10 .app { min-height: 100dvh; display: flex; flex-direction: column; container: app / inline-size; }
 .r10 .frame { width: 100%; max-width: var(--frame); margin: 0 auto; padding: 0 var(--gutter); }
@@ -83,8 +100,11 @@
   position: relative;
   isolation: isolate;
   border-radius: 28px;
-  background: var(--tray);
-  box-shadow: 0 0 0 1px var(--hair), 0 40px 80px -40px rgb(0 0 0 / 75%), 0 12px 24px -16px rgb(0 0 0 / 60%);
+  /* r10.2 hand-tuned literal (Vipin, 28 Sep): 3.5%/8%, not the --tray/--hair
+     token defaults (4.5%/10%) — expressed as var(--ink) so it still swaps
+     per theme the same way the token would. */
+  background: color-mix(in srgb, var(--ink) 3.5%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 40px 80px -40px rgb(0 0 0 / 75%), 0 12px 24px -16px rgb(0 0 0 / 60%);
 }
 
 .r10 .card::before,
@@ -98,7 +118,15 @@
   pointer-events: none;
   border-radius: var(--r-lg);
   background: color-mix(in srgb, var(--surface) 78%, transparent);
-  box-shadow: inset 0 1px 1px var(--hair-strong), 0 0 0 1px var(--hair);
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.r10[data-theme="light"] .card::before,
+.r10[data-theme="light"] .table::before,
+.r10[data-theme="light"] .empty::before,
+.r10[data-theme="light"] .panel::before {
+  /* r10.2: light theme's plate highlight is a white sheen, not an ink tint. */
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 90%), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .r10 .card,
@@ -125,14 +153,27 @@
   box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
 }
 
-.r10 .glass,
-.r10 .sheet,
+/* r10-foundation: the mock's final cascade gives each floating layer its own
+   blur, not one uniform value — .glass 14px/135%, .nav .frame 16px/140%,
+   .pop/.menu/.toast 24px/160%, .sheet 28px/160% (design/source/r10/r8/ui.css
+   lines 509, 527, 534, 641). */
+.r10 .glass {
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  backdrop-filter: blur(14px) saturate(135%);
+}
 .r10 .pop,
 .r10 .menu,
-.r10 .toast,
-.r10 .nav-frame {
+.r10 .toast {
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+.r10 .sheet {
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   backdrop-filter: blur(28px) saturate(160%);
+}
+.r10 .nav-frame {
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
 }
 
 .r10 .glass { position: relative; overflow: hidden; }
@@ -178,7 +219,11 @@
   display: flex;
   align-items: center;
   gap: var(--s-1);
-  width: min(max-content, 100%);
+  /* r10-foundation F1: the mock's nav pill spans the frame (`.nav .frame`,
+     max-width calc(var(--frame) - 2 * var(--gutter))), it does not
+     shrink-wrap to its content and float centred. */
+  width: 100%;
+  max-width: calc(var(--frame) - 2 * var(--gutter));
   min-height: 60px;
   margin: 0 auto;
   padding: var(--s-1);
@@ -242,24 +287,23 @@
 .r10 .av:hover,
 .r10 .av[aria-expanded="true"] { color: var(--go); background: var(--ok-tint); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--go) 42%, transparent); }
 
-.r10 .status {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--s-6);
-  width: max-content;
-  max-width: 100%;
-  margin: var(--s-2) auto 0;
-  padding: var(--s-2) var(--s-4);
+/* r10-foundation F4: R8.shell (design/source/r10/r8/ui.js) never renders a
+   status bar under the nav — no dashboard numbers live in the shared shell
+   on any r8 screen. The `.status` pill bar (build dates, bands issued, not
+   in BMS) that used to render here on every desk screen is removed. */
+
+.r10 .badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: var(--s-1);
   border-radius: var(--r-pill);
-  background: var(--glass-fill);
-  box-shadow: inset 0 0 0 1px var(--glass-edge);
-  color: var(--ink-3);
-  font: 500 var(--t-mono)/1.2 var(--f-mono);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  background: var(--wait-tint);
+  color: var(--gold);
+  font: 500 var(--t-label-sm)/1 var(--f-mono);
+  letter-spacing: 0;
 }
 
 .r10 .site-footer {
@@ -319,7 +363,6 @@
     backdrop-filter: none;
   }
   .r10 .island,
-  .r10 .status,
   .r10 .site-footer {
     background: var(--surface-solid);
     -webkit-backdrop-filter: none;
