@@ -1,0 +1,325 @@
+.controlRoom {
+  width: 100%;
+}
+
+.hero {
+  position: relative;
+  min-height: 560px;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.heroClip {
+  position: relative;
+  min-height: 548px;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  isolation: isolate;
+}
+
+.heroArt {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url("/assets/boa-poster.png") 50% 27% / cover no-repeat;
+}
+
+.heroClip::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 72%, transparent) 38%, transparent 68%),
+    linear-gradient(0deg, color-mix(in srgb, var(--bg) 78%, transparent), transparent 55%);
+  content: "";
+}
+
+.heroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--s-8);
+  min-height: 548px;
+  padding: var(--s-8);
+}
+
+.heroPlate {
+  max-width: 520px;
+  padding: var(--s-8);
+  border-radius: var(--r-lg);
+}
+
+.heroPlate h1 {
+  max-width: 8ch;
+}
+
+.heroNumber {
+  display: block;
+  margin-top: var(--s-3);
+  font: 400 var(--t-display-xl)/.86 var(--f-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroCopy {
+  max-width: 42ch;
+  margin: var(--s-5) 0 var(--s-6);
+  color: var(--ink-2);
+}
+
+.heroAction {
+  margin-top: var(--s-4);
+}
+
+.ringWrap {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+}
+
+.ring {
+  width: 148px;
+  height: 148px;
+  transform: rotate(-90deg);
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 12;
+}
+
+.ringTrack { stroke: var(--hair); }
+.ringValue {
+  stroke: var(--go);
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--d-settle) var(--e-out);
+}
+
+.ringLabel {
+  display: grid;
+  justify-items: center;
+  margin-top: -104px;
+  margin-bottom: 38px;
+}
+
+.ringLabel strong {
+  font: 400 28px/1 var(--f-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--s-5);
+  margin-top: var(--s-6);
+}
+
+.week {
+  grid-column: span 8;
+}
+
+.stat {
+  grid-column: span 4;
+  min-height: 188px;
+}
+
+.behind {
+  grid-column: 1 / -1;
+}
+
+.tileNumber {
+  display: block;
+  margin-top: var(--s-4);
+  color: var(--gold);
+}
+
+.tileDetail {
+  margin: var(--s-2) 0 0;
+  color: var(--ink-2);
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-4);
+  margin: var(--s-8) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  position: relative;
+  padding-top: var(--s-5);
+  border-top: 2px solid var(--hair-strong);
+}
+
+.timeline li::before {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--hair-strong);
+  content: "";
+}
+
+.timeline .done { border-color: var(--go); }
+.timeline .done::before { background: var(--go); }
+.timeline .now { border-color: var(--gold); }
+.timeline .now::before { background: var(--gold); }
+
+.behindList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-5);
+}
+
+.behindLink {
+  display: grid;
+  gap: var(--s-2);
+  min-height: var(--hit);
+  padding: var(--s-2) var(--s-4) var(--s-2) 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.behindLink + .behindLink {
+  padding-left: var(--s-4);
+  border-left: 1px solid var(--glass-edge);
+}
+
+.behindNumber {
+  color: var(--gold);
+  font: 400 31px/1 var(--f-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+
+.bandCard {
+  padding: 6px;
+}
+
+.bandArt {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 7 / 1;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+.bandArt img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+}
+
+.bandBody {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-5) var(--s-6) var(--s-6);
+}
+
+.bandRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.bandIssued {
+  font: 400 28px/1 var(--f-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.bandOf { color: var(--ink-3); }
+.col { color: var(--ink-2); }
+.zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+.zones span {
+  min-height: 22px;
+  padding: 3px var(--s-2);
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--c, var(--ink)) 16%, transparent);
+  color: var(--ink-2);
+  font-size: var(--t-body-sm);
+}
+.zones span.off {
+  background: var(--hair);
+  color: var(--ink-3);
+}
+.section { margin-top: var(--s-14); }
+
+.error {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-14);
+  text-align: center;
+}
+
+.error p { max-width: 48ch; margin: 0 auto; color: var(--ink-2); }
+.error button { justify-self: center; }
+
+@media (hover: hover) and (min-width: 900px) {
+  .heroPlate,
+  .ringWrap {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .week,
+  .stat {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero { min-height: 0; }
+  .heroClip,
+  .heroInner { min-height: 0; }
+  .heroClip::before {
+    background: linear-gradient(0deg, var(--bg) 30%, color-mix(in srgb, var(--bg) 55%, transparent) 68%, transparent);
+  }
+  .heroInner {
+    grid-template-columns: 1fr;
+    padding: 260px var(--s-4) var(--s-4);
+  }
+  .heroPlate { padding: var(--s-6); }
+  .ringWrap { display: none; }
+  .week,
+  .stat { grid-column: 1 / -1; }
+  .timeline { grid-template-columns: 1fr 1fr; row-gap: var(--s-5); }
+  .behindList,
+  .shelf { grid-template-columns: 1fr; }
+  .behindLink + .behindLink {
+    padding-top: var(--s-4);
+    padding-left: 0;
+    border-top: 1px solid var(--glass-edge);
+    border-left: 0;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .heroPlate,
+  .ringWrap {
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringValue { transition: none; }
+}
