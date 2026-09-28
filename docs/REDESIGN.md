@@ -90,7 +90,7 @@ line in ROADMAP.md.
 
 ```
 Mon 28  W0  ACC-178 (Vipin) ─▶ ACC-179 contract + tooling
-Tue 29  W1  ACC-180 tokens/base ─▶ ACC-181a (X) ║ ACC-181b (C) ─▶ ACC-182 shell
+Tue 29  W1  ACC-180 tokens/base ─▶ ACC-181a (C) ║ ACC-181b (C) ─▶ ACC-182 shell      Cursor: ACC-147, then ACC-188
 Wed 30  W2  ACC-183 Control room (C) ║ ACC-183a data (C) ║ ACC-184 Master (X) ║ ACC-186 Orgs (X)
 Thu  1  W2  ACC-185 Passes (C) ║ ACC-187 Users (X) ║ ACC-188 sign-in, pass, cold screens (X)
 Fri  2  W3  ACC-189 Gate (C, only after ACC-147 is done) ║ ACC-190 Vehicle (C)
@@ -103,7 +103,7 @@ Sat  3  W4  ACC-191 references ─▶ ACC-193 re-crawl + critique  ║  ACC-192 
 | ACC-178 | Accept ADR-027, choose the body font, sanction the reference regeneration | Vipin | — | — |
 | ACC-179 | Freeze the contract, flip non-negotiable #1, re-point the token gate, parallel claims in `task.mjs`, add dependencies | C | `rd-builder` (effort high) | 178 |
 | ACC-180 | `app/r10/` tokens and base CSS, scoped `.r10` | C | `rd-builder` | 179 |
-| ACC-181a | Button, HoldButton, Field, Select, Chip, FilterBar, StatusPill, CountDot | X | `cursor-rd-builder` | 180 |
+| ACC-181a | Button, HoldButton, Field, Select, Chip, FilterBar, StatusPill, CountDot | C | `rd-builder` | 180 |
 | ACC-181b | Card, Sheet, Table, EmptyState, Skeleton, Toast, CountUp | C | `rd-builder` | 180 |
 | ACC-182 | Desk shell: nav island, footer, background, page frame | C | `rd-builder` | 181a, 181b |
 | ACC-183 | Control room | C | `rd-builder` (effort high) | 182 |
@@ -112,19 +112,45 @@ Sat  3  W4  ACC-191 references ─▶ ACC-193 re-crawl + critique  ║  ACC-192 
 | ACC-185 | Passes: preset chips, glass sheet with the ticket, ACC-160's count and confirm | C | `rd-builder` | 182 |
 | ACC-186 | Organisations | X | `cursor-rd-builder` | 182 |
 | ACC-187 | Users, with role change | X | `cursor-rd-builder` | 182 |
-| ACC-188 | Reskin sign-in, pass page, 404, error, invalid pass (layouts unchanged) | X | `cursor-rd-mechanic` | 180 |
+| ACC-188 | Reskin sign-in, pass page, 404, error, invalid pass (layouts unchanged) | X | `cursor-rd-mechanic` | 180, and ACC-147 finished |
 | ACC-189 | Gate: result in place, no glass, behaviour frozen | C | `rd-gate` + `rd-reviewer` | 182, **ACC-147** |
 | ACC-190 | Vehicle (absorbs ACC-166) | C | `rd-gate` + `rd-reviewer` | 182 |
 | ACC-191 | Regenerate `test:visual` references from the built app | C | `rd-mechanic` | 183 to 190 signed off |
 | ACC-192 | Delete dead v2 CSS and unused fonts; the token gate reads r10 only | C | `rd-builder` | 191 |
 | ACC-193 | Re-crawl 1440/390 dark/light; critique and accessibility pass; update CURRENT-STATE | C | `rd-mechanic` crawls, the orchestrator critiques | 191 |
 
-**Why this split:** the gate, the Control room and the data task sit in Claude
-Code because they carry the most risk. The offline invariant, the hero and
-the new RPC need the reviewer, and one owner. Cursor takes screens that are
-mostly filter, table and sheet work, which is the same pattern repeated.
-Either tool can take any task if the other one runs out of limits. The
-roadmap claim is what prevents doubling up.
+**The split is by page (Vipin, 28 Sep).** Each page belongs to exactly one
+tool, for every task that touches it, so the two tools never edit the same
+file. Claude Code owns the foundation that every page uses (tokens,
+primitives, shell), plus the pages with the most risk: the Control room (a new
+RPC), Passes, and the gate and vehicle (the offline invariant). Cursor owns
+the Master list, Organisations, Users, and the reskinned pages whose layouts
+are already approved. If one tool runs out of limits, the other may take its
+page, but only after the owner has run `task block` on it.
+
+### 4.1 Page ownership
+
+| Page | Route | Tool | Tasks | Files only this tool edits |
+|---|---|---|---|---|
+| **Foundation** | (all) | **Claude** | 179 to 182, 191 to 193 | `app/r10/**`, `components/r10/**`, `app/dev/r10/**`, `app/layout.tsx`, `app/desk/desk-chrome.tsx`, `components/site-footer.tsx`, `components/states/**`, `components/loading-skeleton.tsx`, `package.json`, `scripts/**`, `design/reference/**`, `tests/e2e/chrome-interactions.spec.ts` |
+| Control room | `/desk` | **Claude** | 183, 183a | `app/desk/page.tsx`, `app/desk/control-room-screen.tsx`, `app/desk/double-issue-panel.tsx`, `app/api/desk/dashboard/**`, `lib/schemas/dashboard.ts`, new migrations and pgTAP for 183a |
+| Passes | `/desk/passes` | **Claude** | 185 | `app/desk/passes/**`, `app/api/desk/passes/**` |
+| Gate | `/gate` | **Claude** | 189 | `app/gate/*` except `vehicle/`; visual only. Cursor's ACC-147 edits it first and must be `[x]` before 189 starts |
+| Vehicle | `/gate/vehicle` | **Claude** | 190 | `app/gate/vehicle/**` |
+| Master list | `/desk/master` | **Cursor** | 184 | `app/desk/master/**`, `tests/e2e/org-filter.spec.ts`, `tests/e2e/desk-tiers.spec.ts` |
+| Organisations | `/desk/orgs` | **Cursor** | 186 | `app/desk/orgs/**` |
+| Users | `/desk/users` | **Cursor** | 187 | `app/desk/users/**`, `tests/e2e/users.spec.ts` |
+| Sign-in | `/desk/login` | **Cursor** | 188 | `app/desk/login/**`, `tests/e2e/login-return-path.spec.ts` |
+| Pass, 404, errors | `/p/[token]`, not-found, error | **Cursor** | 188 | `app/p/**`, `components/pass-ticket.tsx`, `app/ticket.css`, `app/not-found.tsx`, `app/error.tsx`, `app/global-error.tsx`, `tests/e2e/pass-page.spec.ts` |
+
+Two edges to watch:
+- **The ticket** is Cursor's (`pass-ticket.tsx`, `ticket.css`). Claude's
+  Passes sheet only renders it and styles it from outside, under
+  `.r10 .passes .sheet`. If the sheet needs a prop or class the ticket lacks,
+  Claude asks in the ACC-185 report, and Cursor adds it.
+- **A page that needs a shared file changed** (a primitive, the shell, a
+  token) says so in its task report. It never edits the file. Claude makes
+  the change on main, and the page rebases onto it.
 
 ## 5. Agents and models
 
@@ -175,10 +201,9 @@ carry their own prefix.
 2. **Ports:** each worktree runs `corepack pnpm dev -p 30NN`, where NN is the
    last two digits of the task ID (ACC-184 uses 3084). The main checkout
    keeps 3000.
-3. **File ownership:** a screen task touches only its own `app/desk/<screen>/`
-   folder, its own e2e spec, and new CSS under `.r10 .<screen>`. The shared
-   files (`app/r10/*`, `components/r10/*`, `desk-chrome.tsx`, `layout.tsx`,
-   `package.json`) are changed only by W0/W1 tasks or by the orchestrator.
+3. **File ownership:** §4.1 is the rule. A task edits only the files of the
+   page it owns, and page-specific CSS goes under `.r10 .<page>` in that
+   page's folder. The foundation row belongs to Claude.
 4. **Merging:** the orchestrator merges in wave order. For each branch:
    `git rebase main`, the verifier runs the gates, then fast-forward to main
    and `corepack pnpm task done ACC-nnn`. If two tools finish at once, the
@@ -232,6 +257,9 @@ any screen that shipped (without it, `test:visual` stays red).
   (Passes) touch the same screen. If ACC-160 is not done when ACC-185 starts,
   ACC-185 carries ACC-160's acceptance and both close together.
 - **ACC-166** (vehicle at 390px) is absorbed by ACC-190.
+- **Non-RD tasks follow the page split too:** ACC-160 (Passes) goes to
+  Claude, and ACC-167 (pass copy) goes to Cursor, because it edits `lib/pass-copy.ts` and
+  the pass page.
 - **ACC-177** (primitives after the show) is superseded by ACC-181a/b if
   Phase RD lands.
 - **ACC-144** (WhatsApp send) is unaffected, but it is ahead of this lane in
@@ -250,8 +278,8 @@ any screen that shipped (without it, `test:visual` stays red).
 
 **Cursor, orchestrator** (Agent chat, any model):
 
-> Read `docs/REDESIGN.md`. Take the Cursor-lane tasks in wave Wn that are
-> not claimed. For each one: claim it on main, create its worktree per §6,
+> Read `docs/REDESIGN.md`. Take the Cursor pages in §4.1 whose tasks are
+> unblocked and not claimed. For each one: claim it on main, create its worktree per §6,
 > and delegate it with `/cursor-rd-builder ACC-nnn`. Then run
 > `/cursor-rd-verify ACC-nnn` on the branch. Merge per §6.
 

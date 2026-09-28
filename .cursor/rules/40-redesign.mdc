@@ -18,5 +18,11 @@ task before then.
 For one RD task, delegate to the subagent named in REDESIGN.md section 4
 (`/cursor-rd-builder`, `/cursor-rd-mechanic`). Run `/cursor-rd-verify` before
 merging, and `/cursor-rd-reviewer` where section 5 says to. The gate tasks,
-ACC-189 and ACC-190, belong to Claude Code: do not take them in Cursor unless
-Claude Code has blocked them with `task block`.
+ACC-189 and ACC-190, belong to Claude Code.
+
+**The split is by page (REDESIGN.md §4.1).** Cursor takes only tasks marked
+`[Cursor]`: the Master list (ACC-184), Organisations (186), Users (187), and
+the sign-in, pass and error pages (188). Never edit a file in another row of
+§4.1. That includes the foundation (`app/r10/**`, `components/r10/**`,
+`desk-chrome.tsx`, `layout.tsx`, `package.json`). If you need one changed,
+say so in the task report.
