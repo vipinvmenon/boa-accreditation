@@ -97,7 +97,7 @@ if (!cmd || cmd === 'status') {
   console.log(`\n  BOA Accreditation — ${done.length}/${tasks.length} tasks done\n`)
 
   if (inFlight.length) {
-    console.log('  IN FLIGHT (pick this up first):')
+    console.log('  IN FLIGHT (pick this up first; Phase RD tasks may run in parallel, see docs/REDESIGN.md):')
     for (const t of inFlight) console.log(`    ~ ${t.id}  ${short(t.text)}`)
     console.log(`      git log --oneline -3   # see how far it got`)
   } else {
@@ -124,10 +124,17 @@ if (!cmd || cmd === 'status') {
 if (cmd === 'start') {
   if (!id) { console.error('usage: task start ACC-020'); process.exit(1) }
   const { tasks } = parse()
-  const open = tasks.filter((t) => t.state === '~' && t.id !== id)
+  // One task at a time, per lane. Phase RD (docs/REDESIGN.md) runs parallel
+  // agents, one per task, each in its own worktree, so RD tasks never block
+  // each other and never block the one non-RD task in flight.
+  const isRD = (t) => /^Phase RD\b/.test(t.phase)
+  const self = tasks.find((t) => t.id === id)
+  const open = tasks.filter(
+    (t) => t.state === '~' && t.id !== id && !(self && isRD(self)) && !isRD(t),
+  )
   if (open.length) {
     console.error(`task: ${open.map((t) => t.id).join(', ')} already in flight.`)
-    console.error('One task at a time — CLAUDE.md. Finish or release it first:')
+    console.error('One task at a time outside Phase RD — CLAUDE.md. Finish or release it first:')
     console.error(`  corepack pnpm task block ${open[0].id} "why"`)
     process.exit(1)
   }
