@@ -32,6 +32,31 @@ export const dashboardTypeNoteSchema = z.object({
   note: z.string().nullable(),
 })
 
+const isoDateTime = z.string().datetime({ offset: true })
+
+/** One gate's wristband/sticker issue count for the current IST day. */
+export const dashboardGateCountSchema = z.object({
+  gateLabel: z.string(),
+  count: z.number().int().nonnegative(),
+})
+
+/** One recent physical issue from the append-only check-in ledger. */
+export const dashboardLatestIssueSchema = z.object({
+  checkinId: z.string().uuid(),
+  personId: z.string().uuid(),
+  fullName: z.string(),
+  orgName: z.string(),
+  typeCode: z.enum(ORG_TYPE_CODES).nullable(),
+  kind: z.enum(['wristband', 'vehicle_sticker']),
+  bandSerial: z.string().nullable(),
+  stickerNo: z.string().nullable(),
+  vehicleReg: z.string().nullable(),
+  gateLabel: z.string(),
+  occurredAt: isoDateTime,
+  postedAt: isoDateTime,
+  isReissue: z.boolean(),
+})
+
 /**
  * Shape of `public.boa_acc_desk_dashboard()` (202609120010) —
  * "every Control-room number in one round trip" (DATA-MODEL.md).
@@ -56,11 +81,11 @@ export const dashboardSchema = z.object({
    * what says whether the function exists.
    */
   doubleIssues: z.number().int().nonnegative().default(0),
+  gateCounts: z.array(dashboardGateCountSchema).default([]),
+  latestIssues: z.array(dashboardLatestIssueSchema).default([]),
   types: z.array(dashboardTypeSchema),
   orgs: z.array(dashboardOrgSchema),
 })
-
-const isoDateTime = z.string().datetime({ offset: true })
 
 /**
  * One live wristband row inside a double-issue warning. `issuerName` is the
@@ -107,3 +132,5 @@ export type DoubleIssue = z.infer<typeof doubleIssueSchema>
 export type DoubleIssueBand = z.infer<typeof doubleIssueBandSchema>
 export type DashboardOrg = z.infer<typeof dashboardOrgSchema>
 export type DashboardType = z.infer<typeof dashboardTypeSchema>
+export type DashboardGateCount = z.infer<typeof dashboardGateCountSchema>
+export type DashboardLatestIssue = z.infer<typeof dashboardLatestIssueSchema>

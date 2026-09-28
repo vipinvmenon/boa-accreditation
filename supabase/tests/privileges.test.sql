@@ -39,7 +39,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(136) as line
+  select 0 as n, plan(139) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -149,6 +149,9 @@ select line from (
   -- same shape as boa_acc_create_org, anon gets nothing.
   union all select 46, function_privs_are('public', 'boa_acc_desk_dashboard', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_desk_dashboard')
   union all select 47, function_privs_are('public', 'boa_acc_desk_dashboard', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_desk_dashboard')
+  union all select 483, function_privs_are('public', 'boa_acc_desk_gate_feed', array[]::text[], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_desk_gate_feed')
+  union all select 484, function_privs_are('public', 'boa_acc_desk_gate_feed', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_desk_gate_feed')
+  union all select 485, function_privs_are('public', 'boa_acc_desk_gate_feed', array[]::text[], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_desk_gate_feed')
 
   -- Test-only fixtures (202609120011): the test runner calls these directly
   -- as table owner, bypassing EXECUTE grants entirely, but every client role

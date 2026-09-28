@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { supabaseServer } from '@/lib/supabase-server'
 import {
   dashboardSchema,
+  dashboardGateCountSchema,
+  dashboardLatestIssueSchema,
   dashboardTypeNoteSchema,
   doubleIssueListSchema,
   type DashboardResponse,
@@ -22,10 +25,13 @@ export async function GET() {
     return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
   }
 
-  const { data, error } = await supabase.rpc('boa_acc_desk_dashboard')
+  const [{ data, error }, { data: feedData, error: feedError }] = await Promise.all([
+    supabase.rpc('boa_acc_desk_dashboard'),
+    supabase.rpc('boa_acc_desk_gate_feed'),
+  ])
 
-  if (error) {
-    if (error.code === '42501') {
+  if (error || feedError) {
+    if ([error, feedError].some((candidate) => candidate?.code === '42501')) {
       return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
     }
     return NextResponse.json({ error: 'internal' }, { status: 500 })
@@ -33,6 +39,16 @@ export async function GET() {
 
   const parsed = dashboardSchema.safeParse(data)
   if (!parsed.success) {
+    return NextResponse.json({ error: 'internal' }, { status: 500 })
+  }
+
+  const parsedFeed = z
+    .object({
+      gateCounts: dashboardGateCountSchema.array(),
+      latestIssues: dashboardLatestIssueSchema.array(),
+    })
+    .safeParse(feedData)
+  if (!parsedFeed.success) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
@@ -57,6 +73,7 @@ export async function GET() {
 
   const body: DashboardResponse = {
     ...parsed.data,
+    ...parsedFeed.data,
     types: parsed.data.types.map((type) => ({ ...type, note: noteByCode.get(type.code) ?? null })),
     doubleIssueList,
   }
