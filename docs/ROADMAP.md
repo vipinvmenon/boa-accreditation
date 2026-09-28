@@ -238,7 +238,7 @@ Decided 22 Sep: ACC-140a–d, f, g (above). Vipin owes ACC-151 (Meta setup). Not
       allowed/refused per RPC; aeroplane-mode `test:e2e` green with a logged-in
       issuer; SECURITY.md and ARCHITECTURE.md say what is true · **C** ·
       due Sat 26 Sep
-- [ ] **ACC-147** · The check-in desk, for up to 10 issuers: find a person by
+- [~] **ACC-147** · The check-in desk, for up to 10 issuers: find a person by
       name or phone offline (ACC-131's search), scan the pass, type the band
       serial. Mostly built; acceptance is two issuers doing it on their own
       phones, logged in as themselves · **C/B** · due Wed 30 Sep
