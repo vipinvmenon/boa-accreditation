@@ -22,18 +22,40 @@ lint 0 errors and 7 warnings (`<img>`); unit tests 297/297; `check:sql` OK on
 `test:db`, `test:e2e` or `test:visual`. For those, see Cursor's per-task
 entries.
 
+**28 Sep, later the same evening: an rd-reviewer pass ran on ACC-179 and
+ACC-183a (see the ACC-169 session-log entry below for the full list) and
+found real defects, since fixed** — a migration-ordering bug that would
+break a fresh database rebuild, a dashboard-route failure mode that could
+show "zero" at every gate on show day instead of "unavailable", and a bug
+in the token checker itself that made it silently skip 62 of 127 r10 tokens
+(it was never actually comparing dark/light themes). Fixing the checker
+surfaced real, separate drift already live in `app/r10/tokens.css` —
+wrong `--bg`/`--tray`/`--scrim` values and six tokens missing from both
+themes — also now corrected. **Direct comparison against the r8 mockups
+also found, and a follow-up pass fixed:** the Control room hero had an
+invented heading not in the design and the wrong CTA copy; Master list,
+Passes and Users all had either an invented eyebrow/heading or static
+copy where the mockup gives a data-driven sentence; Organisations was
+showing desk staff a paragraph of internal build instructions
+(`data/orgs.json`, `scripts/replace-placeholder-orgs.mjs`) that leaked
+into the operator-facing screen. ACC-183a's own UI consumer — the "At the
+gates today" card — didn't exist anywhere until this pass either; it does
+now. Commits `d2c340a`, `f61dc78`, `238787a`, `865b82d`; gates (typecheck,
+lint, 298 unit tests, `check:sql`, the five touched e2e specs at 58/58 on
+a clean port) all verified green on `main` after each merge.
+
 **Not verified by anyone:**
 - **`test:visual` has not run on any r10 screen.** No r10 reference exists
   until ACC-191, which may generate references only for screens Vipin has
   signed off. **Vipin has not signed off any r10 screen yet.**
-- **No rd-reviewer pass is recorded** for ACC-179 or ACC-183a, and
-  REDESIGN.md asks for one on both. ACC-183a adds a new RPC over the ledger.
-  Commit `b2ffb57` ("harden dashboard feed") suggests someone reviewed it,
-  but nothing records who, or what they found.
 - **None of the r10 desk screens has been seen on a real phone.**
-- **`main` has not been pushed.** It is 54 commits ahead of `origin/main`, so
-  **production still runs the v2 desk.** `verify:deploy` has not run for any
-  of this work.
+- **`main` has not been pushed.** It is now well over 54 commits ahead of
+  `origin/main`, so **production still runs the v2 desk.** `verify:deploy`
+  has not run for any of this work.
+- **`test:db` has not run** for the ACC-183a migration fix — no local
+  Postgres in this environment. The fix is reasoned from
+  `scripts/db-push.mjs`'s own sort-then-apply logic, not from an actual
+  fresh-database run.
 
 **Left in Phase RD:** ACC-188 (reskin sign-in, pass page, 404 and error),
 ACC-189 (gate; **cannot start until ACC-147 is `[x]`**, and ACC-147 is still
@@ -1286,6 +1308,74 @@ runs — `assets.test.ts`'s subprocess test timing out under the load of four
 parallel background agents — reproduced the flake, then reran it alone and
 it passed; not a real regression). `check:sql` OK. `test:db` not run (no
 local Postgres). Commits: `d2c340a`, `f61dc78`, `e76f7de`.
+
+### 28 Sep 2026 — Control room, Master list, Organisations corrected against the design contract; ACC-183a gets its UI
+
+Follow-up to the ACC-169/review-fixes entry above, same session. A second
+agent, spawned to fix the three defects confirmed above by direct browser
+comparison against `design/source/r10/r8-*.html`, checked Passes and Users
+too and found the same kind of defect on every shipped r10 screen:
+
+- **Control room** (`app/desk/control-room-screen.tsx`): the hero no longer
+  shows an invented heading ("The room behind the bands") or the wrong CTA
+  ("See who is waiting"). It now matches the mockup's structure exactly — a
+  live-status kicker line computed from the real clock against the fixed
+  dates in CLAUDE.md ("Build week, day N. The gate has been live since 4
+  Oct.", with distinct phases before gate-live, during build, and on show
+  day), the big number with an inline unit label, and "See who hasn't
+  collected". The `h1` is now `sr-only` rather than removed, so the section
+  keeps an accessible heading. "The week" card shows the live current date
+  instead of a hardcoded "Build week" string. The progress ring is resized
+  to the mockup's measurements (188 viewBox, r=80). **New: the "At the gates
+  today" card** — gate counts and a timeline of the ten latest physical
+  issues, reading `dash.gateCounts`/`dash.latestIssues` — did not exist in
+  any form before this; ACC-183a shipped an RPC and an API route with no
+  consumer. It renders three states correctly: an explicit "isn't available
+  right now" message when either field is `null` (feed failed to load, per
+  the contract fixed earlier this session), a "no bands or stickers issued
+  yet today" empty state when both are `[]`, and the real list otherwise.
+- **Master list** (`app/desk/master/master-screen.tsx`): the heading was a
+  static tagline, "Everyone accredited", with old lede copy under it. Now
+  "Master list" with a data-driven subtitle, "{N} approved people. {M} more
+  are still waiting in the response sheet." — N and M come from
+  `/api/desk/dashboard`'s `approvedTotal`/`pendingTotal`, since
+  `/api/desk/master`'s own count is every status, not approved-only (noted
+  as an honest substitution, not a literal match: "response sheet" and
+  "awaiting decision" aren't the same thing, but it's the closest real
+  number available). Also found and fixed in passing: the screen's own
+  scoped CSS (sticky header, grid columns, mobile layout, reduced-
+  transparency fallback) was entirely dead — the `master-screen` class its
+  selectors are scoped under was never applied to the root element.
+- **Organisations** (`app/desk/orgs/orgs-screen.tsx`): the "Import
+  matching" label and the paragraph of internal build instructions
+  (`data/orgs.json`, `scripts/replace-placeholder-orgs.mjs`,
+  `docs/ORG-IMPORT.md`) that were rendering directly in the operator-facing
+  screen are gone. The heading and lede already matched the mockup and were
+  left alone.
+- **Passes** (`app/desk/passes/passes-screen-r10.tsx`): an invented eyebrow
+  ("The pass") and heading ("Pass sheet") with a static lede replaced with
+  the mockup's "Passes" and a data-driven "{N} approved people. {M} haven't
+  got their pass yet."
+- **Users** (`app/desk/users/users-screen.tsx`): an invented eyebrow ("Desk
+  access") removed; lede and empty-state copy corrected to the mockup's
+  exact wording. **Not fixed, flagged for a follow-up task:** the table is
+  missing the "Email" column the mockup shows (`operatorRowSchema` already
+  carries `email`, so it is a real gap, not a data limitation) — left out of
+  this pass because it is a structural table change, not a copy fix, and
+  risks the `users.spec.ts` selectors.
+
+One e2e assertion (`tests/e2e/org-filter.spec.ts`) updated: it had been
+asserting the leaked dev-note text was visible, which was itself testing
+the bug.
+
+Verified: typecheck clean, lint 0 errors/7 pre-existing warnings, 298 unit
+tests, and all five touched e2e specs (`chrome-interactions`, `desk-tiers`,
+`org-filter`, `users`, `pass-page`) 58/58 green — the first run showed 29
+failures from a Playwright port collision with another agent's concurrent
+e2e run on the same machine (`http://127.0.0.1:4173` already in use), not
+from this diff; a rerun on a dedicated port (`PLAYWRIGHT_PORT=4183`)
+confirmed all 58 pass. `test:visual` not run: expected red/unavailable
+until ACC-191, untouched. Commits `238787a`, `865b82d`.
 
 ### 28 Sep 2026 — ACC-180 verified and done
 
