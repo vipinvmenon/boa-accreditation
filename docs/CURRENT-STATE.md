@@ -1180,6 +1180,14 @@ ACC-191 generates references.
 Post-review hardening also verified: hold cancellation, actionable preset chips,
 44px chip targets, and Field/Select described-by wiring; 290 unit tests pass.
 
+### 28 Sep 2026 — ACC-181b verified and done
+
+The remaining r10 Card, Spotlight, Sheet, Table, EmptyState, Skeleton, Toast,
+and CountUp primitives now exist under `components/r10/`, with focused tests.
+Verified: typecheck, lint (six existing warnings), 294 unit tests, focused
+primitive tests, and production build. `test:visual` remains unavailable until
+ACC-191 generates references; no shared CSS request remains.
+
 ### 28 Sep 2026 — ACC-167 verified and done
 
 The public pass now uses tier-neutral accreditation-desk copy and one-line
