@@ -115,3 +115,11 @@ console.log('ambient-40         copied')
 // out of git; this approved cut is the committed source. Copied verbatim.
 copyFileSync(join(root, 'design/assets-source/control-room-art.webp'), join(root, 'public/assets/control-room-art.webp'))
 console.log('control-room-art   copied')
+
+// The invite email's logo and banner (docs/email-templates/invite-operator.html).
+// Mail clients cannot render WebP (Outlook) and fetch these from the live site,
+// so they are a PNG and a JPEG. Copied verbatim.
+for (const f of ['email-logo.png', 'email-banner.jpg']) {
+  copyFileSync(join(root, 'design/assets-source', f), join(root, 'public/assets', f))
+  console.log(`${f.padEnd(18)} copied`)
+}

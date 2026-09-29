@@ -1,0 +1,71 @@
+<!--
+  Supabase Auth > Email Templates > Invite user
+  (config/auth: mailer_templates_invite_content; subject: mailer_subjects_invite)
+
+  Suggested subject: You're on the BOA accreditation desk
+
+  The link is NOT {{ .ConfirmationURL }}. It goes to our own /auth/confirm with
+  the token hash, which verifies server-side (ADR-011). Keep {{ .SiteURL }},
+  {{ .TokenHash }} and the `type=invite` exactly as written. `next` must stay an
+  in-app path. Images are served from the app's own /assets, so SiteURL must be
+  the production origin (NEXT_PUBLIC_SITE_URL).
+
+  Built on the r10 tokens (app/r10/tokens.css), flattened for email: no CSS
+  variables, no glass, no webfonts. Anton and Oswald are named first and fall
+  back to Impact and Arial Narrow where a client won't load them.
+  Colours: bg #0a0a0a, surface #101012, ink #f2efe2, gold #e3bb72, go #00f5a5.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
+    <title>You're on the BOA accreditation desk</title>
+  </head>
+  <body style="margin:0;padding:0;background:#0a0a0a;color:#f2efe2;font-family:'Instrument Sans',Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      Bangalore Open Air has added you to the accreditation desk. Set a password to sign in.
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#0a0a0a;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#101012;border:1px solid #2a2a26;border-radius:22px;overflow:hidden;">
+            <tr>
+              <td style="padding:28px 28px 24px;text-align:center;background:#0a0a0a;">
+                <img src="{{ .SiteURL }}/assets/email-logo.png" width="200" alt="Bangalore Open Air" style="display:block;width:200px;max-width:70%;height:auto;margin:0 auto;border:0;">
+              </td>
+            </tr>
+            <tr>
+              <td style="border-bottom:1px solid #e3bb724d;">
+                <img src="{{ .SiteURL }}/assets/email-banner.jpg" width="560" alt="" style="display:block;width:100%;height:auto;border:0;">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:36px 32px 34px;">
+                <p style="margin:0 0 12px;color:#e3bb72;font-family:Oswald,'Arial Narrow',Arial,sans-serif;font-size:12px;line-height:18px;letter-spacing:1.5px;text-transform:uppercase;font-weight:bold;">Accreditation desk</p>
+                <h1 style="margin:0 0 16px;color:#f2efe2;font-family:Anton,Impact,'Arial Narrow',sans-serif;font-size:38px;line-height:42px;font-weight:400;letter-spacing:.5px;text-transform:uppercase;">You're on the desk</h1>
+                <p style="margin:0 0 28px;color:#f2efe2bd;font-size:16px;line-height:25px;">Bangalore Open Air has added you to the accreditation desk. Set a password to sign in.</p>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="border-radius:999px;background:#00f5a5;">
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/desk/login" style="display:inline-block;padding:15px 28px;color:#0a0a0a;font-size:14px;line-height:20px;font-weight:700;letter-spacing:1.4px;text-decoration:none;text-transform:uppercase;border-radius:999px;">Set your password</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:26px 0 0;color:#f2efe299;font-size:13px;line-height:20px;">The link works once. You'll be asked to press Continue on the next page, then choose a password. If you weren't expecting this, ignore it and nothing happens.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 32px;border-top:1px solid #f2efe21a;background:#0a0a0a;">
+                <p style="margin:0;color:#f2efe299;font-family:Oswald,'Arial Narrow',Arial,sans-serif;font-size:12px;line-height:18px;letter-spacing:1.5px;text-transform:uppercase;">Bangalore Open Air · Accreditation</p>
+              </td>
+            </tr>
+          </table>
+          <p style="max-width:560px;margin:18px auto 0;color:#f2efe299;font-size:12px;line-height:18px;text-align:center;">Button not working? Paste this into your browser:<br><span style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;word-break:break-all;color:#f2efe299;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/desk/login</span></p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

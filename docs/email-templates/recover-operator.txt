@@ -1,0 +1,9 @@
+Reset your BOA accreditation password
+
+Someone asked to reset the password for your accreditation desk sign-in.
+Use this link to choose a new one:
+
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/desk/login
+
+The link works once. Press Continue on the next page, then choose a new password.
+If you didn't ask for this, ignore it. Your password stays as it is.

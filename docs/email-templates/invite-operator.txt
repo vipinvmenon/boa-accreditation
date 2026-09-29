@@ -1,0 +1,9 @@
+You're on the BOA accreditation desk
+
+Bangalore Open Air has added you to the accreditation desk.
+Set a password to sign in:
+
+{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/desk/login
+
+The link works once. Press Continue on the next page, then choose a password.
+If you weren't expecting this, ignore it.
