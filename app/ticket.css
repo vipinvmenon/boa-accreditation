@@ -18,6 +18,10 @@
   filter: drop-shadow(0 24px 34px rgba(0, 0, 0, .55));
 }
 .tk--sheet { --tk-surface: rgba(17, 17, 19, 1); filter: none; }
+/* A CSS filter on an ancestor makes it the backdrop root, so backdrop-filter
+   inside it blurs nothing: the live ticket must have no filter (no drop
+   shadow; the dark poster does not need one). */
+.tk--live { filter: none; }
 
 .tk-top, .tk-stub {
   position: relative;
