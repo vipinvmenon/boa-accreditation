@@ -162,8 +162,43 @@
 .r10 input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .4; }
 .r10 .input-mono { min-height: 64px; text-align: center; font: 500 22px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
 .r10 .select { position: relative; }
-.r10 .select select { appearance: none; padding-right: var(--s-10); cursor: pointer; }
-.r10 .select::after { content: "\e136"; position: absolute; top: 50%; right: var(--s-4); color: var(--ink-2); font: 16px/1 "Phosphor-Light"; pointer-events: none; transform: translateY(-50%); }
+.r10 .select-trigger { display: flex; align-items: center; padding-right: var(--s-10); text-align: left; cursor: pointer; }
+.r10 .select-trigger:disabled { cursor: not-allowed; opacity: .5; }
+.r10 .select::after { content: "\e136"; position: absolute; top: 50%; right: var(--s-4); color: var(--ink-2); font: 16px/1 "Phosphor-Light"; pointer-events: none; transform: translateY(-50%); transition: transform var(--d-quick) var(--e-out); }
+.r10 .select[data-open="true"]::after { transform: translateY(-50%) rotate(180deg); }
+
+/* The listbox under a .select. Solid-ish surface, not the overlay glass: it
+   floats over a sheet that is already blurred, and nested blur reads muddy. */
+.r10 .select-list {
+  position: absolute;
+  z-index: var(--z-menu);
+  top: calc(100% + var(--s-2));
+  left: 0;
+  right: 0;
+  max-height: 264px;
+  overflow: auto;
+  padding: var(--menu-pad);
+  border-radius: calc(var(--r-md) + var(--menu-pad));
+  background: var(--surface-solid);
+  box-shadow: var(--edge), var(--glass-shadow);
+  transform-origin: top center;
+  animation: select-in var(--d-quick) var(--e-out);
+}
+.r10 .select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: var(--hit);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  cursor: pointer;
+}
+.r10 .select-option[data-active="true"] { background: var(--gl-fill-hover, var(--raised)); }
+.r10 .select-option[aria-selected="true"] { color: var(--go); }
+.r10 .select-option[aria-disabled="true"] { color: var(--ink-3); cursor: not-allowed; }
+@keyframes select-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
 
 /* app/v2.css ships an unscoped .search (flex pill, background, box-shadow,
    padding) that still applies here since it isn't overridden property-by-
@@ -303,8 +338,8 @@
 .r10 .tr .sub { margin-top: 2px; font-size: var(--t-body-sm); }
 .r10 .cell-r { text-align: right; justify-self: end; }
 
-.r10 .scrim { position: fixed; inset: 0; z-index: var(--z-sheet); background: var(--scrim); opacity: 0; visibility: hidden; transition: opacity var(--d-base) var(--e-out); }
-.r10 .scrim[data-open="true"] { opacity: 1; visibility: visible; }
+.r10 .scrim { position: fixed; inset: 0; z-index: var(--z-sheet); background: var(--scrim); opacity: 0; visibility: hidden; /* Sheet (motion) owns the opacity; CSS only holds visibility until the exit ends. */ transition: visibility 0s linear .26s; }
+.r10 .scrim[data-open="true"] { opacity: 1; visibility: visible; transition-delay: 0s; }
 .r10 .sheet {
   position: fixed;
   top: var(--s-3);
@@ -317,9 +352,16 @@
   border-radius: var(--r-xl);
   transform: translateX(calc(100% + 24px));
   visibility: hidden;
-  transition: transform var(--d-slow) var(--e-spring);
+  /* motion (components/r10/primitives-b.tsx) drives transform and opacity.
+     A CSS transform transition here fought it every frame and read as lag.
+     Only visibility is transitioned, held until the exit animation finishes. */
+  will-change: transform, opacity;
+  transition: visibility 0s linear .32s;
 }
-.r10 .sheet[data-open="true"] { transform: none; visibility: visible; }
+.r10 .sheet[data-open="true"] { transform: none; visibility: visible; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .r10 .scrim, .r10 .sheet { transition-delay: 0s; }
+}
 .r10 .sheet-head { display: flex; align-items: start; justify-content: space-between; gap: var(--s-4); padding: var(--s-6) var(--s-6) var(--s-4); }
 .r10 .sheet-body { flex: 1; overflow: auto; padding: 0 var(--s-6) var(--s-6); }
 .r10 .sheet-foot { display: flex; flex-wrap: wrap; gap: var(--s-3); padding: var(--s-4) var(--s-6) var(--s-6); box-shadow: inset 0 1px 0 var(--hair); }

@@ -102,11 +102,13 @@ export function Sheet({
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const sheet = sheetRef.current
     const focusable = () => sheet
-      ? Array.from(sheet.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+      ? Array.from(sheet.querySelectorAll<HTMLElement>('button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'))
         .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
       : []
     const first = focusable()[0]
-    first?.focus()
+    // preventScroll: focusing a control inside the still-translated panel must
+    // not scroll the page or force a layout mid-slide.
+    first?.focus({ preventScroll: true })
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()

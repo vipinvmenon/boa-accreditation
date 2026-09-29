@@ -72,10 +72,11 @@ describe('r10 primitives A', () => {
       createElement('option', { value: 'issuer' }, 'Issuer'),
     ))
     expect(markup).toContain('class="select"')
-    expect(markup).toContain('class="input"')
+    expect(markup).toContain('class="input select-trigger"')
+    expect(markup).toContain('role="combobox"')
     expect(markup).toContain('aria-describedby="role-hint"')
     expect(markup).toContain('id="role-hint"')
-    expect(markup).toContain('value="issuer"')
+    expect(markup).toContain('>Issuer<')
   })
 
   it('renders removable and keyboard-actionable preset Chips', () => {

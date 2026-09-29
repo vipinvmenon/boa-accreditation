@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Icon } from '@/components/icon'
 import { Button, Field, Select, StatusPill } from '@/components/r10/primitives-a'
-import { EmptyState, Sheet, Skeleton, SkeletonText, Table, TableCell, Toast } from '@/components/r10/primitives-b'
+import { EmptyState, Sheet, Skeleton, SkeletonText, Table, TableCell } from '@/components/r10/primitives-b'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, setOperatorActiveResultSchema, type OperatorRow } from '@/lib/schemas/operator'
@@ -31,6 +31,18 @@ const USER_COLUMNS = [
   { key: 'open', label: <span className="sr-only">Open</span> },
 ]
 
+type UsersNote = { scope: string; text: string; error?: boolean } | null
+
+/** Inline confirmation or error, shown beside the control that was pressed. */
+function Note({ note, scope }: { note: UsersNote; scope: string }) {
+  if (!note || note.scope !== scope) return null
+  return (
+    <p className={note.error ? 'users-note bad' : 'users-note'} role={note.error ? 'alert' : 'status'}>
+      <Icon name={note.error ? 'x' : 'check'} />{note.text}
+    </p>
+  )
+}
+
 export function UsersScreen() {
   const router = useRouter()
   const [operators, setOperators] = useState<OperatorRow[] | null>(null)
@@ -42,7 +54,15 @@ export function UsersScreen() {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null)
+  const [sent, setSent] = useState(false)
+  // Feedback lives inside the sheet, beside the control that was pressed.
+  const [note, setNote] = useState<{ scope: 'role' | 'access' | 'invite'; text: string; error?: boolean } | null>(null)
+
+  useEffect(() => {
+    if (!note || note.error) return
+    const timer = window.setTimeout(() => setNote(null), 3200)
+    return () => window.clearTimeout(timer)
+  }, [note])
 
   async function load() {
     try {
@@ -71,10 +91,13 @@ export function UsersScreen() {
     setSelected(operator)
     setRole(operator.role)
     setConfirming(false)
+    setNote(null)
   }
 
   async function mutate(operatorId: string, body: { active: boolean } | { role: OperatorRow['role'] }) {
+    const scope = 'role' in body ? 'role' : 'access'
     setBusy(true)
+    setNote(null)
     try {
       const response = await fetch(`/api/desk/operators/${operatorId}`, {
         method: 'PATCH',
@@ -88,7 +111,7 @@ export function UsersScreen() {
       const payload: unknown = await response.json().catch(() => null)
       const parsed = mutationSchema.safeParse(payload)
       if (!response.ok || !parsed.success) {
-        setNotice({ text: copyForError(payload, errorOverrides), error: true })
+        setNote({ scope, text: copyForError(payload, errorOverrides), error: true })
         return
       }
       const next = (current: OperatorRow): OperatorRow => ({
@@ -101,9 +124,9 @@ export function UsersScreen() {
       setOperators((current) => current?.map((item) => item.user_id === operatorId ? next(item) : item) ?? null)
       setSelected((current) => current && current.user_id === operatorId ? next(current) : current)
       setConfirming(false)
-      setNotice({ text: `${parsed.data.operator.display_name} updated.` })
+      setNote({ scope, text: 'role' in body ? 'Role saved.' : parsed.data.operator.active ? 'Reactivated.' : 'Deactivated.' })
     } catch {
-      setNotice({ text: copyForError(null, errorOverrides), error: true })
+      setNote({ scope, text: copyForError(null, errorOverrides), error: true })
     } finally {
       setBusy(false)
     }
@@ -112,6 +135,7 @@ export function UsersScreen() {
   async function inviteOperator(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
+    setNote(null)
     try {
       const response = await fetch('/api/admin/invite-operator', {
         method: 'POST',
@@ -119,15 +143,18 @@ export function UsersScreen() {
         body: JSON.stringify(invite),
       })
       if (!response.ok) {
-        setNotice({ text: copyForError(await response.json().catch(() => null), errorOverrides), error: true })
+        setNote({ scope: 'invite', text: copyForError(await response.json().catch(() => null), errorOverrides), error: true })
         return
       }
-      setInvite(initialInvite)
-      setInviteOpen(false)
-      setNotice({ text: `Invitation sent to ${invite.email}.` })
+      // The button itself confirms ("Invitation sent"), then the sheet closes.
+      setSent(true)
       await load()
+      await new Promise((resolve) => window.setTimeout(resolve, 1100))
+      setInviteOpen(false)
+      setInvite(initialInvite)
+      setSent(false)
     } catch {
-      setNotice({ text: copyForError(null, errorOverrides), error: true })
+      setNote({ scope: 'invite', text: copyForError(null, errorOverrides), error: true })
     } finally {
       setBusy(false)
     }
@@ -140,7 +167,7 @@ export function UsersScreen() {
           <h1 className="display-lg">Users</h1>
           <p className="lede">Who can sign in to the desk and the gate, and what each of them can do.</p>
         </div>
-        <Button variant="primary" onClick={() => setInviteOpen(true)}>Invite operator <Icon name="plus" /></Button>
+        <Button variant="primary" onClick={() => { setNote(null); setInviteOpen(true) }}>Invite operator <Icon name="plus" /></Button>
       </header>
 
       {loadError && <EmptyState error title="Operators didn’t load" icon={<Icon name="x" />}>
@@ -180,7 +207,7 @@ export function UsersScreen() {
       )}
 
       <Sheet open={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite operator" footer={
-        <><Button variant="primary" type="submit" form="invite-form" disabled={busy}>Send invitation <Icon name="paper-plane-tilt" /></Button><Button onClick={() => setInviteOpen(false)}>Cancel</Button></>
+        <><Button variant="primary" type="submit" form="invite-form" disabled={busy || sent}>{sent ? <>Invitation sent <Icon name="check" /></> : <>Send invitation <Icon name="paper-plane-tilt" /></>}</Button><Button onClick={() => setInviteOpen(false)}>Cancel</Button></>
       }>
         <form id="invite-form" onSubmit={(event) => void inviteOperator(event)} className="users-form">
           <Field label="Full name" required minLength={2} maxLength={80} value={invite.displayName} onChange={(event) => setInvite({ ...invite, displayName: event.target.value })} hint="Shown to the team and on gate records." />
@@ -188,6 +215,7 @@ export function UsersScreen() {
           <Select label="Role" value={invite.role} onChange={(event) => setInvite({ ...invite, role: operatorRoleSchema.parse(event.target.value) })} hint={OPERATOR_ROLE_COPY[invite.role].description}>
             {operatorRoleSchema.options.map((value) => <option key={value} value={value}>{OPERATOR_ROLE_COPY[value].label}</option>)}
           </Select>
+          <Note note={note} scope="invite" />
         </form>
       </Sheet>
 
@@ -205,19 +233,20 @@ export function UsersScreen() {
             <Select label="Role" value={role} onChange={(event) => setRole(operatorRoleSchema.parse(event.target.value))} hint={OPERATOR_ROLE_COPY[role].description}>
               {operatorRoleSchema.options.map((value) => <option key={value} value={value}>{OPERATOR_ROLE_COPY[value].label}</option>)}
             </Select>
-            {role !== selected.role && <Button variant="primary" disabled={busy} onClick={() => void mutate(selected.user_id, { role })}>Save role</Button>}
+            {role !== selected.role && <Button variant="primary" disabled={busy} onClick={() => void mutate(selected.user_id, { role })}>{busy ? 'Saving…' : 'Save role'}</Button>}
+            <Note note={note} scope="role" />
             <div className="access-section">
               <p className="label">Access</p>
               <p className="body-sm ink-2">{selected.active ? 'Active. Signs in with their own password.' : 'Deactivated. Can’t sign in.'}</p>
               {confirming ? <div className="confirm" role="alertdialog" aria-label={`Confirm deactivation of ${selected.display_name}`}>
                 <strong>Deactivate {selected.display_name}?</strong><span className="body-sm ink-2">They can’t sign in until an admin reactivates them.</span>
                 <div className="confirm-actions"><Button variant="danger" disabled={busy} onClick={() => void mutate(selected.user_id, { active: false })}>Deactivate</Button><Button onClick={() => setConfirming(false)}>Keep active</Button></div>
-              </div> : <Button variant={selected.active ? 'danger' : 'default'} onClick={() => selected.active ? setConfirming(true) : void mutate(selected.user_id, { active: true })}>{selected.active ? 'Deactivate' : 'Reactivate'}</Button>}
+              </div> : <Button variant={selected.active ? 'danger' : 'default'} disabled={busy} onClick={() => selected.active ? setConfirming(true) : void mutate(selected.user_id, { active: true })}>{selected.active ? 'Deactivate' : 'Reactivate'}</Button>}
+              <Note note={note} scope="access" />
             </div>
           </>}
         </div>}
       </Sheet>
-      {notice && <Toast message={notice.text} {...(notice.error ? { error: true } : {})} onDismiss={() => setNotice(null)} />}
       <style jsx global>{`
         /* No padding-block here: this <main> already sits inside desk-chrome's
            .page, which pads padding-top: var(--s-10) and padding-bottom:
@@ -243,6 +272,9 @@ export function UsersScreen() {
         .r10 .access-section { display:grid; gap:var(--s-3); margin-top:var(--s-3); padding-top:var(--s-5); border-top:1px solid var(--hair); }
         .r10 .access-section .label { margin:0; color:var(--gold); }
         .r10 .confirm { display:grid; gap:var(--s-3); padding:var(--s-4); border-radius:var(--r-md); background:var(--bad-tint); }
+        .r10 .users-note { display:flex; align-items:center; gap:var(--s-2); margin:0; font-size:var(--t-body-sm); color:var(--go); animation:note-in var(--d-quick) var(--e-out); }
+        .r10 .users-note.bad { color:var(--bad); }
+        @keyframes note-in { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
         .r10 .confirm-actions { display:flex; flex-wrap:wrap; gap:var(--s-3); }
         .r10 .user-row.user-row-skeleton { cursor:default; pointer-events:none; }
         @media (max-width:700px) {

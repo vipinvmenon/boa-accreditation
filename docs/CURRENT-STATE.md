@@ -5,6 +5,44 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
+## Styled Select, inline feedback, smoother sheet, 29 Sep 2026
+
+- **What (Vipin):** "add proper dropdown styles" (the native macOS select popup),
+  "this updation toast looks really bad… update where the user clicks", and
+  "fix the overlay open transition… it looks laggy… all over the app".
+- **`Select` (`components/r10/primitives-a.tsx`, `.select-*` in
+  `app/r10/primitives.css`):** now a custom combobox/listbox, not a native
+  `<select>`. Same props (`<option>` children, `value`/`defaultValue`,
+  `onChange` with `event.target.value`), so `users-screen.tsx` call sites did
+  not change. Arrow/Home/End/Enter/Space/type-ahead; Escape closes only the
+  list, not the sheet. The list uses `--edge` + `--glass-shadow` on a solid
+  `--surface-solid`, no blur (it opens over an already-blurred sheet); an
+  earlier `--lift` shadow put a gold ring on it. Opens downward only, so a
+  select near the bottom of a short screen could be clipped. The unit test's
+  expected markup changed (`class="input select-trigger"`, `role="combobox"`).
+  `Sheet`'s focus trap now skips `input[type=hidden]`.
+- **Users screen feedback (`app/desk/users/users-screen.tsx`):** the `Toast`
+  is gone from this screen. Save role shows "Saving…" then an inline
+  "Role saved."; deactivate/reactivate shows an inline note under the button;
+  Send invitation turns into "Invitation sent ✓" and the sheet closes ~1.1s
+  later. Errors show inline and stay until the next action. `Toast` itself is
+  unchanged and other screens may still use it; the Toast renders in page flow
+  under the table, which is why it looked broken — not investigated further.
+- **Sheet lag:** `.sheet` and `.scrim` had CSS transitions on transform and
+  opacity while Motion also animated them inline; they fought every frame.
+  CSS now transitions `visibility` only (held until the exit ends, so the exit
+  animation shows), plus `will-change: transform, opacity` on `.sheet`. Focus
+  on open uses `preventScroll`. No `backdrop-filter` value was changed.
+- **Verified:** `typecheck`, `lint` (0 errors, the 8 existing `<img>`
+  warnings), `test` (295/295).
+- **Not verified:** any of this in a browser. The desk needs a login and none
+  was available here, so the dropdown, the borders, the inline notes and the
+  smoothness of the slide have not been seen running. `test:e2e` and
+  `test:visual` were not run. If the sheet still stutters, the next suspect is
+  its 28px backdrop blur on a moving layer.
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction** (same `main .num`
+  control-room timeout, ACC-191 / ACC-090a gap).
+
 ## Sheet focus fix and transition, 29 Sep 2026
 
 - **What (Vipin):** in the Invite operator sheet, "I need to click on input

@@ -33,6 +33,7 @@
 .r10 .table::before,
 .r10 .empty::before,
 .r10 .panel::before,
+.r10 .gate-screen .panel.panel,
 .r10 .gate-empty .no-roster.no-roster,
 .r10 .input,
 .r10 .gate-screen .name-search input[type="search"],
@@ -87,7 +88,7 @@
 .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
 .r10 .sk,
 .r10 .g-note.g-note:not(.bad),
-.r10 .segmented.segmented .seg-pip {
+.r10 .segmented.segmented a[aria-current="page"] {
   background: var(--gl-fill-soft);
 }
 
@@ -100,9 +101,7 @@
   .r10 .profile-menu button:hover,
   .r10 .profile-menu a:hover,
   .r10 .master-screen .menu.menu button:hover,
-  .r10 .master-screen .menu.menu label:hover,
-  .r10 .passes-menu.passes-menu button:hover,
-  .r10 .passes-menu.passes-menu label:hover {
+  .r10 .master-screen .menu.menu label:hover {
     background: var(--gl-fill-hover);
   }
 }
@@ -157,7 +156,7 @@
   background: rgb(12 12 16 / 62%);
   /* The island's inset edges (base.css) paint under this layer, so the layer
      carries the same two insets; the island keeps its outer drop shadow. */
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 0%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 20%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   backdrop-filter: blur(16px) saturate(140%);
 }
@@ -174,6 +173,7 @@
   .r10 .table::before,
   .r10 .empty::before,
   .r10 .panel::before,
+  .r10 .gate-screen .panel.panel,
   .r10 .gate-empty .no-roster.no-roster,
   .r10 .input,
   .r10 .gate-screen .name-search input[type="search"],
@@ -201,7 +201,7 @@
   .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
   .r10 .sk,
   .r10 .g-note.g-note:not(.bad),
-  .r10 .segmented.segmented .seg-pip {
+  .r10 .segmented.segmented a[aria-current="page"] {
     background: var(--raised);
   }
 
