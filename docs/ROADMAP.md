@@ -636,6 +636,7 @@ REDESIGN.md §8. The gate hard stop is **Sat 3 Oct 18:00 IST**.
 - [ ] **ACC-192** · [Claude] **Remove dead v2 CSS and unused font packages**; the token gate reads r10 only. Cut first; can move to after the show · **C** · due Sat 3 Oct
 - [ ] **ACC-193** · [Claude] **Re-crawl and review**: `scripts/ux-crawl.mjs` at 1440/390, dark and light, into `docs/ux-audit/screens-r3/`; a critique and accessibility pass against `docs/ux-audit-r2.md`; CURRENT-STATE.md updated with what was verified and what was not · **C** · due Sat 3 Oct
 - [x] **ACC-194** · **Roster import creates new organisations and forgives typos and punctuation** (Vipin, 29 Sep; reverses the "never guess" half of ACC-142). An Organisation answer that matches no org or alias is matched loosely (case, punctuation, "&"/"and", a leading "The", a trailing "Pvt Ltd", one typo in a long name); a genuinely new name becomes a new org (quota 500, no quotas per ACC-140g, contact = its first person). Ambiguous names are refused, never guessed. Every merge and creation is printed; `--no-create-orgs` restores the old rule; the daily dry-run only lists what it would do · **C** · due Wed 30 Sep
+- [x] **ACC-195** · **Phone numbers from any country** (Vipin, 29 Sep; ADR-029). E.164 in the database, the import and the org contact; a `+91` number stays an Indian mobile; the app's Send skips non-Indian numbers (sent by hand, one-tap) · **C** · done 29 Sep. Open: the live Google Form's validation
 
 ## Phase 0 — Foundation · 10–11 Sep — ✅ DONE
 

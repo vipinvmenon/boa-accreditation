@@ -5,6 +5,25 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
+## Phone numbers from any country (ACC-195), 29 Sep 2026
+
+- **What (Vipin):** "add all international numbers as well"; foreign passes are
+  sent by hand. ADR-029 records the rule.
+- **True now:** the database accepts E.164 from any country for people, org
+  contacts and AAA nominees (migration `202609291000`, **applied to the live
+  database**); a `+91` number must still be an Indian mobile. The import reads
+  `+971…`, `00971…` and bare `971…`. The app's Send skips non-Indian numbers
+  and "Send all unsent" no longer lists them; they go by the desk's one-tap
+  `wa.me` link.
+- **Verified:** typecheck, 306 unit tests, `test:db` green with the new
+  `international-phones.test.sql` (11 checks), and a real roster load: 38 rows
+  valid, 0 refused, one `+971` person approved.
+- **Not verified:** a WhatsApp message to a foreign number; the gate's phone
+  search on one.
+- **Open:** the live Google Form's validation still rejects `+` numbers (only
+  the builder script changed). The 4 people approved in today's load, and the
+  rest, have not been sent passes.
+
 ## Import creates organisations and forgives typos (ACC-194), 29 Sep 2026
 
 - **What (Vipin):** new organisations should be added automatically, with

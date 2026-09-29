@@ -56,8 +56,11 @@ describe('buildTemplateMessage', () => {
     const msg = buildTemplateMessage(config, { ...input, firstName: ' A\n\tsha  ' })
     expect(msg.template.components[0].parameters[0].text).toBe('A sha')
   })
-  it('refuses a number that is not an Indian mobile', () => {
-    expect(() => toWhatsAppNumber('+15551234567')).toThrow()
+  it('takes any international number as digits, and refuses one that is not E.164', () => {
+    expect(toWhatsAppNumber('+971501234567')).toBe('971501234567')
+    expect(toWhatsAppNumber('+15551234567')).toBe('15551234567')
+    expect(() => toWhatsAppNumber('+0551234567')).toThrow()
+    expect(() => toWhatsAppNumber('+12345')).toThrow()
   })
 })
 

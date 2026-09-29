@@ -7,6 +7,7 @@ import {
   sendPassTemplate,
   splitNumber,
   templateText,
+  INTERNATIONAL_REASON,
   type InteraktConfig,
 } from '@/lib/interakt'
 
@@ -116,10 +117,17 @@ describe('sendPassTemplate', () => {
 
   it('refuses an invalid recipient or pass token without calling out', async () => {
     const fetchImpl = vi.fn()
-    expect(await sendPassTemplate(config, { ...input, to: '+14155550100' }, fetchImpl))
+    expect(await sendPassTemplate(config, { ...input, to: '+0155550100' }, fetchImpl))
       .toEqual({ ok: false, reason: 'invalid send input (phone or pass token)' })
     expect(await sendPassTemplate(config, { ...input, passToken: 'sh rt' }, fetchImpl))
       .toEqual({ ok: false, reason: 'invalid send input (phone or pass token)' })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('does not call Interakt for an international number: it says to send by hand', async () => {
+    const fetchImpl = vi.fn()
+    const result = await sendPassTemplate(config, { ...input, to: '+971501234567' }, fetchImpl)
+    expect(result).toEqual({ ok: false, reason: INTERNATIONAL_REASON })
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 

@@ -9,7 +9,7 @@ export type SendStatus = z.infer<typeof sendStatusSchema>
 
 export const personSendSchema = z.object({
   personId: z.string().uuid(),
-  phone: z.string().regex(/^\+91[6-9]\d{9}$/),
+  phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
   attempts: z.number().int().nonnegative(),
   live: z.boolean(),
   last: z
@@ -72,7 +72,7 @@ export type SendResponse = z.infer<typeof sendResponseSchema>
 export const sendBeginSchema = z.object({
   sendId: z.string().uuid(),
   personId: z.string().uuid(),
-  phone: z.string().regex(/^\+91[6-9]\d{9}$/),
+  phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
   firstName: z.string(),
   passToken: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/),
 })

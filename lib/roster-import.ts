@@ -96,8 +96,9 @@ export const DAYS_ANSWERS = {
 
 export type DayValidity = (typeof DAYS_ANSWERS)[keyof typeof DAYS_ANSWERS]
 
-// The database CHECKs on boa_acc_person, verbatim.
-export const PHONE_E164 = /^\+91[6-9][0-9]{9}$/
+// The database CHECK on boa_acc_person, verbatim (ACC-195): E.164 from any
+// country, and a +91 number must still be an Indian mobile.
+export const PHONE_E164 = /^\+(?:91[6-9][0-9]{9}|(?!91)[1-9][0-9]{7,14})$/
 export const PLATE = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/
 
 /** What the RPC receives per row. Mirrors boa_acc_import_approve's jsonb shape. */
@@ -242,14 +243,27 @@ export function parseFormTimestamp(raw: string): string | null {
 }
 
 /**
- * The form asks 10 digits starting 6–9, no +91. Read as a STRING: the sheet
- * stores it as a number, so never let a spreadsheet tool round-trip it first.
- * Spaces and dashes are tolerated; anything else is refused, not repaired.
+ * Read as a STRING: the sheet stores it as a number, so never let a spreadsheet
+ * tool round-trip it first. Spaces, dashes, dots and brackets are tolerated.
+ *
+ *  - 10 digits starting 6–9 → an Indian mobile (+91).
+ *  - "+…" or "00…" → international, as typed.
+ *  - 11–15 bare digits → a country code is already in front ("971501234567").
+ *  - any other 10 digits are ambiguous (a US number typed without +1 looks like
+ *    a wrong Indian one), so they are refused, not guessed.
  */
 export function normalisePhone(raw: string): string | null {
-  const digits = raw.trim().replace(/[\s-]/g, '')
-  if (/^[6-9][0-9]{9}$/.test(digits)) return `+91${digits}`
-  if (PHONE_E164.test(digits)) return digits
+  const t = raw.trim().replace(/[\s\-().]/g, '')
+  if (/^[6-9][0-9]{9}$/.test(t)) return `+91${t}`
+  if (PHONE_E164.test(t)) return t
+  if (/^00[1-9][0-9]{7,14}$/.test(t)) {
+    const c = `+${t.slice(2)}`
+    return PHONE_E164.test(c) ? c : null
+  }
+  if (/^[1-9][0-9]{10,14}$/.test(t)) {
+    const c = `+${t}`
+    return PHONE_E164.test(c) ? c : null
+  }
   return null
 }
 
@@ -403,7 +417,7 @@ export function validateRoster(csv: string): Validation {
     if (full_name.length < 2 || full_name.length > 80) errors.push('Full name must be 2–80 characters')
 
     const phone = normalisePhone(phoneRaw)
-    if (!phone) errors.push('WhatsApp number must be 10 digits starting 6–9')
+    if (!phone) errors.push('WhatsApp number must be a 10-digit Indian mobile (starts 6–9), or an international number starting + and the country code')
 
     const crewType = normaliseCrewType(crewRaw)
     if (crewType.length === 0) errors.push('Crew type is empty')

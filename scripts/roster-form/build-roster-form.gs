@@ -126,13 +126,15 @@ function questionSpecs_() {
       pattern: '^.{2,80}$', patternHelp: 'Between 2 and 80 characters.',
     },
     {
-      // Ten digits only. The importer adds +91. Renamed from "Mobile number" by
-      // Vipin, 21 Sep; the former titles are adopted so the rename is in place.
+      // Ten digits for an Indian number (the importer adds +91), or + and the
+      // country code for any other country (ACC-195). Renamed from "Mobile
+      // number" by Vipin, 21 Sep; the former titles are adopted so the rename
+      // is in place.
       key: 'PHONE', type: 'TEXT', title: Q.PHONE, required: true,
       legacyTitles: ['Mobile number', 'WhatsApp Number'],
-      help: '10 digits, no +91, no spaces. Example: 9876543210',
-      pattern: '^[6-9][0-9]{9}$',
-      patternHelp: 'Enter a 10-digit Indian WhatsApp number starting with 6, 7, 8 or 9. No +91, no spaces.',
+      help: 'India: 10 digits, no +91. Any other country: start with + and the country code, e.g. +971501234567. No spaces.',
+      pattern: '^([6-9][0-9]{9}|\\+[1-9][0-9]{7,14})$',
+      patternHelp: 'India: 10 digits starting 6, 7, 8 or 9. Other countries: + then the country code and number, no spaces.',
     },
     {
       // Multiple choice, not a dropdown: Google Forms only offers a write-in

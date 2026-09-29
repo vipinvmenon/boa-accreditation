@@ -1186,3 +1186,48 @@ and a real load on 29 Sep that created two orgs ("Reflections of Darkness",
 "German Embassy") through `boa_acc_create_org` as the operator and loaded their
 rows. "BOA" was added to `data/org-aliases.json` by hand (an abbreviation).
 
+## ADR-029 — Phone numbers from any country; the app sends to Indian numbers only
+
+**Accepted 29 Sep 2026, on Vipin's instruction** ("add all international
+numbers as well; there will be more foreign members"). It ends the Indian-only
+phone rule that sat in the schema from `202609110001`. Row 32 of the live
+response sheet was a `+971` number the loader refused for that reason alone.
+
+**The rule.** A phone is E.164: `+`, then 8–15 digits, no leading zero. A `+91`
+number must still be an Indian mobile (6–9, then nine digits), so a mistyped
+Indian number is refused exactly as before. Enforced by the `CHECK` on
+`boa_acc_person.phone`, `boa_acc_org.contact_phone` and
+`boa_acc_aaa_nomination.phone`, and by the phone test inside
+`boa_acc_import_approve`, `boa_acc_import_roster` and `boa_acc_nominate_aaa`
+(migration `202609291000`). Existing rows stay valid.
+
+**Reading a sheet value** (`normalisePhone`, `lib/roster-import.ts`): 10 digits
+starting 6–9 → `+91`; `+…` or `00…` → international as typed; 11–15 bare digits →
+a country code is already in front (`971501234567` → `+971501234567`). **Any
+other 10-digit number is refused, not guessed**: a US number typed without `+1`
+looks exactly like a wrong Indian one.
+
+**Sending.** The app's WhatsApp send goes through Interakt, which wants the
+country code split out (ADR-024); splitting an arbitrary number correctly needs
+a library and a real foreign test number, neither of which exists yet. So
+**Send skips non-Indian numbers**: `sendPassTemplate` returns "International
+number: send this pass by hand (one-tap link)" without calling Interakt, and
+`boa_acc_pass_send_unsent` no longer lists them, so "Send all unsent" never
+touches them. The desk's one-tap `wa.me` link works for any country and is how
+these passes are sent (Vipin: "we'll send the pass to foreign numbers manually").
+
+**Alternatives.** Add `libphonenumber-js` and send everywhere through Interakt:
+rejected for now, no way to test it. A hand-made calling-code table: rejected,
+wrong splits are silent.
+
+**Verified:** typecheck; 306 unit tests (number reading, the send guard, the
+form pattern); the migration in a rolled-back dry run, then applied; `test:db`
+green, including the new `supabase/tests/international-phones.test.sql` (11
+checks: international accepted for person/org/nominee, bad `+91` and
+leading-zero refused, unsent excludes international); a real load in which the
+sheet's `+971` row is now an approved person. **Not verified:** a WhatsApp
+message to any foreign number, and the gate's phone search on one (it matches
+trailing digits, so it should work). **The live Google Form still refuses `+`
+numbers**: `build-roster-form.gs` was changed but the live form was not; it is
+edited by hand or the script re-run.
+

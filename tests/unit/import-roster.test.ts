@@ -192,6 +192,22 @@ describe('field rules', () => {
     expect(normalisePhone('987654321')).toBeNull()
   })
 
+  it('reads international numbers (ACC-195): +, 00, or bare digits with the country code', () => {
+    expect(normalisePhone('+971 50 123 4567')).toBe('+971501234567')
+    expect(normalisePhone('00971501234567')).toBe('+971501234567')
+    expect(normalisePhone('971501234567')).toBe('+971501234567') // row 32 of the live sheet
+    expect(normalisePhone('+44 (7911) 123456')).toBe('+447911123456')
+    expect(normalisePhone('12125551234')).toBe('+12125551234')
+  })
+
+  it('still refuses what is ambiguous or wrong', () => {
+    expect(normalisePhone('2125551234')).toBeNull() // 10 digits, not Indian: a US number without +1
+    expect(normalisePhone('+915876543210')).toBeNull() // +91 must be an Indian mobile
+    expect(normalisePhone('+0501234567')).toBeNull()
+    expect(normalisePhone('+97150')).toBeNull()
+    expect(normalisePhone('9715012345678901')).toBeNull() // 16 digits
+  })
+
   it('upper-cases the plate, removes spaces, checks the database pattern', () => {
     expect(normalisePlate('ka01 ab 1234')).toEqual({ ok: true, value: 'KA01AB1234' })
     expect(normalisePlate('   ')).toEqual({ ok: true, value: null })

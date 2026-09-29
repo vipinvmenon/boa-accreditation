@@ -38,7 +38,7 @@ export const orgCreateSchema = z.object({
   contactPhone: z
     .string()
     .trim()
-    .regex(/^\+91[6-9][0-9]{9}$/, 'Enter a 10-digit Indian mobile number'),
+    .regex(/^\+(?:91[6-9][0-9]{9}|(?!91)[1-9][0-9]{7,14})$/, 'Enter an Indian mobile number as +91…, or an international number starting +'),
   defaultType: requestableTierCodeSchema.optional(),
 })
 

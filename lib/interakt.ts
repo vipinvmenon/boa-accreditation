@@ -90,10 +90,12 @@ export function templateText(value: string): string {
 
 // ── Sending ──────────────────────────────────────────────────────────────────
 
+export const INTERNATIONAL_REASON = 'International number: send this pass by hand (one-tap link)'
+
 export const passTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/)
 
 export const sendInputSchema = z.object({
-  to: z.string().regex(/^\+91[6-9]\d{9}$/),
+  to: z.string().regex(/^\+[1-9]\d{7,14}$/),
   firstName: z.string(),
   passToken: passTokenSchema,
 })
@@ -165,6 +167,9 @@ export async function sendPassTemplate(
 ): Promise<SendResult> {
   const valid = sendInputSchema.safeParse(input)
   if (!valid.success) return { ok: false, reason: 'invalid send input (phone or pass token)' }
+  // ACC-195: the send splits an Indian number for Interakt; international
+  // people are sent their pass by hand (the desk's one-tap link).
+  if (!valid.data.to.startsWith('+91')) return { ok: false, reason: INTERNATIONAL_REASON }
 
   let response: Response
   try {

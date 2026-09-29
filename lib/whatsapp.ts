@@ -65,10 +65,10 @@ export function whatsappConfig(env: Env = process.env): WhatsAppConfig | null {
 
 // ── Numbers and names ────────────────────────────────────────────────────────
 
-/** The schema stores +91XXXXXXXXXX. The Cloud API and wa.me take digits only. */
+/** The schema stores E.164 (ACC-195). The Cloud API and wa.me take digits only. */
 export function toWhatsAppNumber(e164: string): string {
   const digits = e164.replace(/\D/g, '')
-  if (!/^91[6-9]\d{9}$/.test(digits)) throw new Error('not an Indian mobile number')
+  if (!/^[1-9]\d{7,14}$/.test(digits)) throw new Error('not a valid international number')
   return digits
 }
 
@@ -86,7 +86,7 @@ export function templateText(value: string): string {
 export const passTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/)
 
 export const sendInputSchema = z.object({
-  to: z.string().regex(/^\+91[6-9]\d{9}$/),
+  to: z.string().regex(/^\+[1-9]\d{7,14}$/),
   firstName: z.string(),
   passToken: passTokenSchema,
 })
