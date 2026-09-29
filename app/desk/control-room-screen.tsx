@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { dashboardResponseSchema, type DashboardResponse } from '@/lib/schemas/dashboard'
-import { tier, tierColour, zoneStrip, ZONES, ZONE_MAP_HEX } from '@/lib/design'
+import { tier, tierColour, zoneStrip, TIERS, ZONES, ZONE_MAP_HEX } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
-import { Button, Card, CountDot, EmptyState, Skeleton } from '@/components/r10'
+import { Button, Card, CountDot, EmptyState, Skeleton, SkeletonText } from '@/components/r10'
 import { copyForError, ERROR_COPY } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import styles from './control-room/control-room-screen.module.css'
@@ -112,7 +112,7 @@ function showCountdown(days: number): string {
 /** One `card spot tile b-stat` from the mockup: body-sm label with a trailing arrow, number, sub, meter. */
 function StatTile({ label, value, detail, width, numberColour, meterColour, href }: {
   label: string
-  value: number
+  value: number | null
   detail: ReactNode
   width: number
   numberColour?: string
@@ -122,29 +122,44 @@ function StatTile({ label, value, detail, width, numberColour, meterColour, href
   return (
     <Card href={href} spotlight className={styles['tile'] ?? ''}>
       <span className="card-label body-sm">{label} <span className="arrow"><Icon name="arrow-up-right" /></span></span>
-      <span className="number" style={numberColour ? { color: numberColour } : undefined}>{value}</span>
+      <span className="number" style={numberColour ? { color: numberColour } : undefined}>{value ?? <SkeletonText w="2.4ch" />}</span>
       <p className={styles['tileSub']}>{detail}</p>
       <div className="meter" aria-hidden="true"><i style={{ '--w': width, ...(meterColour ? { '--c': meterColour } : {}) } as CSSProperties} /></div>
     </Card>
   )
 }
 
-function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark' | 'light' }) {
-  const now = new Date()
-  const daysToShow = daysBetween(now, SHOW_DATE)
-  const timelineNowIndex = TIMELINE.findIndex((t) => now < t.doneAt)
-  const issuedRatio = ratio(dash.bandsIssued, dash.approvedTotal)
+/**
+ * `dash` is null while /api/desk/dashboard is in flight. The screen still
+ * renders its real cards, poster, timeline and band shelf, with only the
+ * values as <SkeletonText>, so nothing moves when the numbers land.
+ *
+ * `now` is null on the server and through hydration: this screen is now
+ * server-rendered in its loading state, and the server's clock (UTC) would
+ * put the wrong day on the desk's IST labels. Until the client's clock is
+ * read, the date-dependent text is a skeleton too.
+ */
+function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; now: Date | null; theme: 'dark' | 'light' }) {
+  const daysToShow = now ? daysBetween(now, SHOW_DATE) : null
+  const timelineNowIndex = now ? TIMELINE.findIndex((t) => now < t.doneAt) : null
+  const issuedRatio = dash ? ratio(dash.bandsIssued, dash.approvedTotal) : 0
   const issuedPct = Math.round(issuedRatio * 100)
-  const vehicles = dash.stickersActive + dash.stickersPending
-  const behind = dash.orgs
-    .map((org) => ({ ...org, remaining: Math.max(org.quota - org.used, 0) }))
-    .sort((a, b) => b.remaining - a.remaining)
-    .slice(0, 3)
+  const vehicles = dash ? dash.stickersActive + dash.stickersPending : null
+  const behind = dash
+    ? dash.orgs
+      .map((org) => ({ ...org, remaining: Math.max(org.quota - org.used, 0) }))
+      .sort((a, b) => b.remaining - a.remaining)
+      .slice(0, 3)
+    : null
+  // Every boa_acc_type row comes back, in sort_order (the dashboard RPC's
+  // `types` aggregate) — TIERS is that order, so the shelf is laid out
+  // before the counts arrive.
+  const types = dash ? dash.types : TIERS.map((t) => ({ code: t.code, count: null, note: null }))
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles['controlRoom']}>
+    <main id="main-content" tabIndex={-1} className={styles['controlRoom']} aria-busy={dash ? undefined : true}>
       <h1 className="sr-only">Control room</h1>
-      <h2 className="sr-only">{dash.submittedOrgs} companies on site</h2>
+      {dash ? <h2 className="sr-only">{dash.submittedOrgs} companies on site</h2> : <p className="sr-only" role="status">Loading the control room</p>}
 
       <section className={styles['hero']} aria-label="Collection">
         <div className={styles['heroClip']}>
@@ -153,15 +168,17 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
             <div className={`glass ${styles['heroPlate']}`}>
               <div className={`${styles['heroKicker']} body-sm`}>
                 <span className={styles['liveDot']} aria-hidden="true" />
-                {heroKickerText(now)}
+                {now ? heroKickerText(now) : <SkeletonText w="18ch" />}
               </div>
               <div className={styles['heroNum']}>
-                <span className={styles['heroBig']}>{dash.bandsNotCollected}</span>
+                <span className={styles['heroBig']}>{dash ? dash.bandsNotCollected : <SkeletonText w="2.6ch" />}</span>
                 <span className={styles['heroUnit']}>still to collect a band</span>
               </div>
               <p className={styles['heroSub']}>
-                {dash.bandsIssued} of {dash.approvedTotal} bands handed over.
-                {daysToShow > 0 && <> The show is in <b>{daysToShow} day{daysToShow === 1 ? '' : 's'}</b>, and everyone collects in person.</>}
+                {dash ? dash.bandsIssued : <SkeletonText w="3ch" />} of {dash ? dash.approvedTotal : <SkeletonText w="3ch" />} bands handed over.
+                {daysToShow === null
+                  ? <> The show is in <b><SkeletonText w="2ch" /> days</b>, and everyone collects in person.</>
+                  : daysToShow > 0 && <> The show is in <b>{daysToShow} day{daysToShow === 1 ? '' : 's'}</b>, and everyone collects in person.</>}
               </p>
               <div className={styles['heroActions']}>
                 <Link href="/desk/master?status=not_collected" className="btn btn-primary">
@@ -169,16 +186,16 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
                 </Link>
               </div>
             </div>
-            <div className={`glass ${styles['ringWrap']}`} aria-label={`Bands issued: ${issuedPct} percent`}>
+            <div className={`glass ${styles['ringWrap']}`} aria-label={dash ? `Bands issued: ${issuedPct} percent` : undefined}>
               <svg className={styles['ring']} viewBox="0 0 188 188" aria-hidden="true">
                 <circle className={styles['ringTrack']} cx="94" cy="94" r="80" />
                 <circle className={styles['ringValue']} cx="94" cy="94" r="80" transform="rotate(-90 94 94)" pathLength="1" style={{ strokeDasharray: 1, strokeDashoffset: 1 - issuedRatio }} />
               </svg>
               <div className={styles['ringLabel']}>
-                <span className="number">{issuedPct}%</span>
+                <span className="number">{dash ? `${issuedPct}%` : <SkeletonText w="2.2ch" />}</span>
                 <span className="label-sm ink-2">bands issued</span>
               </div>
-              <span className={`glass label-sm ${styles['countdown']}`}><Icon name="clock" />{showCountdown(daysToShow)}</span>
+              <span className={`glass label-sm ${styles['countdown']}`}><Icon name="clock" />{daysToShow === null ? <SkeletonText w="12ch" /> : showCountdown(daysToShow)}</span>
             </div>
           </div>
         </div>
@@ -187,10 +204,11 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
       <div className={styles['bento']}>
         <div className={styles['bLeft']}>
           <Card className={styles['week'] ?? ''}>
-            <div className="card-label"><h2 className="label-sm gold" style={{ margin: 0 }}>The week</h2><span className="body-sm ink-3">{formatWeekdayDate(now)}</span></div>
-            <ol className={styles['timeline']} style={{ '--p': timelineProgress(now) } as CSSProperties}>
+            <div className="card-label"><h2 className="label-sm gold" style={{ margin: 0 }}>The week</h2><span className="body-sm ink-3">{now ? formatWeekdayDate(now) : <SkeletonText w="9ch" />}</span></div>
+            {/* Keyed so the fill's grow animation plays once the clock is read. */}
+            <ol key={now ? 'dated' : 'undated'} className={styles['timeline']} style={{ '--p': now ? timelineProgress(now) : 0 } as CSSProperties}>
               {TIMELINE.map((item, i) => {
-                const status = i < timelineNowIndex || timelineNowIndex === -1 ? 'done' : i === timelineNowIndex ? 'now' : 'later'
+                const status = timelineNowIndex === null ? 'later' : i < timelineNowIndex || timelineNowIndex === -1 ? 'done' : i === timelineNowIndex ? 'now' : 'later'
                 return (
                   <li key={item.label} className={styles[status]}>
                     <div className={styles['when']}>{item.when}</div>
@@ -203,25 +221,25 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
 
           <StatTile
             label="Not in BookMyShow"
-            value={dash.bmsPending}
+            value={dash ? dash.bmsPending : null}
             detail="approved, still to be entered by hand"
-            width={ratio(dash.bmsAdded, dash.approvedTotal)}
+            width={dash ? ratio(dash.bmsAdded, dash.approvedTotal) : 0}
             numberColour="var(--gold)"
             meterColour="var(--gold)"
             href="/desk/master?in_bms=false"
           />
           <StatTile
             label="Vehicle stickers"
-            value={dash.stickersActive}
-            detail={`of ${vehicles} vehicles have a sticker`}
-            width={ratio(dash.stickersActive, vehicles)}
+            value={dash ? dash.stickersActive : null}
+            detail={<>of {vehicles ?? <SkeletonText w="2ch" />} vehicles have a sticker</>}
+            width={dash && vehicles !== null ? ratio(dash.stickersActive, vehicles) : 0}
             href="/desk/master?vehicle=pending"
           />
           <StatTile
             label="AAA named list"
-            value={dash.aaaNominatedApproved}
-            detail={`approved by Salman · ${dash.aaaStamped} collected`}
-            width={ratio(dash.aaaStamped, dash.aaaNominatedApproved)}
+            value={dash ? dash.aaaNominatedApproved : null}
+            detail={<>approved by Salman · {dash ? dash.aaaStamped : <SkeletonText w="2ch" />} collected</>}
+            width={dash ? ratio(dash.aaaStamped, dash.aaaNominatedApproved) : 0}
             meterColour={tierColour('aaa', theme)}
             href="/desk/master?tier=aaa"
           />
@@ -229,16 +247,23 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
           <Card className={styles['behind'] ?? ''}>
             <div className="card-label">
               <h2 className="label-sm gold" style={{ margin: 0 }}>Furthest behind</h2>
-              <Link href="/desk/orgs" className="btn-link body-sm" style={{ minHeight: 0 }}>All {dash.orgs.length} organisations <Icon name="arrow-right" /></Link>
+              <Link href="/desk/orgs" className="btn-link body-sm" style={{ minHeight: 0 }}>All {dash ? dash.orgs.length : <SkeletonText w="2ch" />} organisations <Icon name="arrow-right" /></Link>
             </div>
             <div className={styles['behindList']}>
-              {behind.map((org) => (
+              {behind ? behind.map((org) => (
                 <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}&status=not_collected`} className={styles['behindLink']}>
                   <span className={styles['behindN']}>{org.remaining}</span>
                   <span className={styles['nm']}>{org.name}</span>
                   <span className="body-sm ink-3">{org.used} of {org.quota} collected</span>
                   <div className="meter" style={{ marginTop: 'var(--s-2)' }} aria-hidden="true"><i style={{ '--w': ratio(org.used, org.quota), '--c': 'var(--gold)' } as CSSProperties} /></div>
                 </Link>
+              )) : [18, 14, 16].map((w, i) => (
+                <div key={i} className={styles['behindLink']} aria-hidden="true">
+                  <span className={styles['behindN']}><SkeletonText w="2ch" /></span>
+                  <span className={styles['nm']}><SkeletonText w={`${w}ch`} /></span>
+                  <span className="body-sm ink-3"><SkeletonText w="13ch" /></span>
+                  <div className="meter" style={{ marginTop: 'var(--s-2)' }}><i style={{ '--w': 0 } as CSSProperties} /></div>
+                </div>
               ))}
             </div>
           </Card>
@@ -249,7 +274,22 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
             <h2 className="label-sm gold" style={{ margin: 0 }}>At the gates today</h2>
             <Link href="/desk/master?status=collected" className="btn-link body-sm" style={{ minHeight: 0 }}>All <Icon name="arrow-right" /></Link>
           </div>
-          {dash.gateCounts === null || dash.latestIssues === null ? (
+          {/* The card stretches to the left column's height, so however many
+              rows land here, nothing around it moves. */}
+          {!dash ? (
+            <ul className={styles['feedList']} aria-hidden="true">
+              {[15, 12, 17, 13].map((w, i) => (
+                <li key={i} className={styles['feedItem']} style={{ animation: 'none' }}>
+                  <Skeleton shape="dot" />
+                  <div>
+                    <div className={styles['nm']}><SkeletonText w={`${w}ch`} /></div>
+                    <p className={styles['feedSub']}><SkeletonText w="24ch" /></p>
+                  </div>
+                  <span className={styles['feedTime']}><SkeletonText w="5ch" /></span>
+                </li>
+              ))}
+            </ul>
+          ) : dash.gateCounts === null || dash.latestIssues === null ? (
             <p className={styles['feedSub']}>Today&apos;s gate activity isn&apos;t available right now.</p>
           ) : dash.latestIssues.length === 0 ? (
             <p className={styles['feedSub']}>No bands or stickers issued yet today.</p>
@@ -257,7 +297,7 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
             <>
               <div className={styles['gates']}>
                 {dash.gateCounts.map((gate) => (
-                  <span key={gate.gateLabel} className="chip" style={{ paddingRight: 'var(--s-1)' }}>
+                  <span key={gate.gateLabel} className="chip">
                     <b>{gate.gateLabel}</b>
                     <CountDot>{gate.count}</CountDot>
                   </span>
@@ -289,7 +329,7 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
       <section className="section" aria-labelledby="bands-title">
         <div className="section-head"><h2 id="bands-title" className="label-sm">Bands</h2><span className="body-sm ink-3">Issued of printed</span></div>
         <div className={styles['shelf']}>
-          {dash.types.map((item) => {
+          {types.map((item) => {
             const currentTier = tier(item.code)
             const colour = tierColour(item.code, theme)
             return (
@@ -298,9 +338,9 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
                 <div className={styles['bandBody']}>
                   <div className={styles['bandRow']}>
                     <h3 className="display-sm">{currentTier.label}</h3>
-                    <span><span className={styles['bandIssued']}>{item.count}</span> <span className={styles['bandOf']}>/ {currentTier.printQty ?? 'TBC'}</span></span>
+                    <span><span className={styles['bandIssued']}>{item.count ?? <SkeletonText w="2ch" />}</span> <span className={styles['bandOf']}>/ {currentTier.printQty ?? 'TBC'}</span></span>
                   </div>
-                  <div className="meter" style={{ margin: 0 }} aria-label={`${item.count} issued`}><i style={{ '--w': currentTier.printQty ? ratio(item.count, currentTier.printQty) : 0, '--c': colour } as CSSProperties} /></div>
+                  <div className="meter" style={{ margin: 0 }} aria-label={item.count === null ? undefined : `${item.count} issued`}><i style={{ '--w': item.count !== null && currentTier.printQty ? ratio(item.count, currentTier.printQty) : 0, '--c': colour } as CSSProperties} /></div>
                   {item.note && <p className={styles['feedSub']}>{item.note}</p>}
                   {/* Held zones only, dot + name, like the pass ticket and the mockup's zonesHtml(). */}
                   <ul className={styles['zones']}>
@@ -324,12 +364,19 @@ function ControlRoomR10({ dash, theme }: { dash: DashboardResponse; theme: 'dark
   )
 }
 
+const subscribeNever = () => () => {}
+
 export function ControlRoomScreen() {
   const theme = useDomTheme()
   const [dash, setDash] = useState<DashboardResponse | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const router = useRouter()
+  // The client's clock, and only after hydration (see ControlRoomR10): the
+  // server snapshot is false, so the server render and hydration agree.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false)
+  const [clientNow] = useState(() => new Date())
+  const now = hydrated ? clientNow : null
 
   useEffect(() => {
     let cancelled = false
@@ -368,12 +415,5 @@ export function ControlRoomScreen() {
       </main>
     )
   }
-  if (!dash) return (
-    <main id="main-content" tabIndex={-1}>
-      <div role="status" aria-label="Loading control room">
-        <Card as="div" className={styles['loading'] ?? ''}><Skeleton shape="hero" /></Card>
-      </div>
-    </main>
-  )
-  return <ControlRoomR10 dash={dash} theme={theme} />
+  return <ControlRoomR10 dash={dash} now={now} theme={theme} />
 }

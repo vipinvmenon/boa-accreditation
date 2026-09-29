@@ -83,6 +83,8 @@ export const FORM_CREW_TYPES = [
   'Sponsor',
   'Special Tickets Crew',
   'BOA Internal Crew',
+  'Family & Friends',
+  'Media / Photo',
 ] as const
 
 /** The form's "Days on site" answers → boa_acc_day_validity. One-to-one. */

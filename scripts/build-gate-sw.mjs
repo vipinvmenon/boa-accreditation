@@ -118,6 +118,9 @@ const PRECACHE = [
   // file even if it did. Missing entries here silently turn offline icons
   // off; explicit, like the logo above.
   '/fonts/phosphor-light.woff2',
+  // The tier band artwork on the result card: the volunteer matches it to
+  // the physical band they hand over, so it has to show with the radio off.
+  ...readdirSync(join(root, 'public/assets/bands')).filter((f) => f.endsWith('.webp')).sort().map((f) => `/assets/bands/${f}`),
   ...new Set([...scripts, ...css, ...fonts, ...wasm]),
   ...localWasm,
 ]

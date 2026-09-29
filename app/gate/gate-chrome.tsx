@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { DESK_NAV, GATE_NAV } from '@/lib/design'
 import { useGateOperator, initialsOf, type GateOperator } from '@/gate/use-operator'
@@ -10,6 +10,7 @@ import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { loginHref } from '@/gate/session'
+import { readDeskNav, rememberDeskNav, subscribeNoop } from '@/lib/nav-memory'
 
 /**
  * Only the three roles that can stand at a gate reach this chrome; the desk's
@@ -53,7 +54,13 @@ export function GateChrome({
    * volunteer never sees desk links flash past on a slow boot.
    */
   const operator = useGateOperator()
-  const isDeskOperator = operator !== null && operator.role !== 'issuer'
+  // Until the session answers, draw the nav this tab last drew (lib/nav-memory.ts),
+  // so a desk operator crossing over keeps the desk links from the first frame.
+  const rememberedDeskNav = useSyncExternalStore(subscribeNoop, readDeskNav, () => false)
+  const isDeskOperator = operator === null ? rememberedDeskNav : operator.role !== 'issuer'
+  useEffect(() => {
+    if (operator !== null) rememberDeskNav(operator.role !== 'issuer')
+  }, [operator])
   const nav = isDeskOperator ? DESK_NAV : GATE_NAV
   const active = pathname.startsWith('/gate') ? 'gate' : nav.find((item) => item.href === pathname)?.id
 
@@ -75,6 +82,7 @@ export function GateChrome({
     if (signingOut) return
     setSigningOut(true)
     await supabaseBrowser().auth.signOut()
+    rememberDeskNav(false)
     // Back to the gate after the next sign-in: this is an issuer's whole app
     // (ACC-150). Queued work stays in the outbox and syncs once they are in.
     router.replace(loginHref())

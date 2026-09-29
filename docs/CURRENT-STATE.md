@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 29 September 2026 (all five desk screens matched to r10 mockups by screenshot)._
+_Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
 ## Dead code removed, 29 Sep 2026
 
@@ -41,6 +41,301 @@ _Last updated: 29 September 2026 (all five desk screens matched to r10 mockups b
   and it fails the same way on this commit alone in a clean worktree.
   That is the known ACC-191 gap (no r10 references), not this change. The
   hook's build still ran. The push also carries `f600b4c` and `500291b`.
+
+## Sign-in, set password and reset password on r10, 29 Sep 2026
+
+- **What (Vipin):** "redesign the login, create password and other auth
+  pages to r10; use the new poster, this one has low clarity", then "use the
+  bg poster completely, increase opacity, login form on a glassmorphic
+  component in the center".
+- **Overlaps ACC-188**, which ROADMAP shows Cursor holding `[~]`. Done here
+  at Vipin's request; ACC-188 is not ticked (its pass page, 404, error and
+  invalid-pass reskins are untouched). Whoever holds ACC-188 should rebase on
+  this.
+- **Layout change, Vipin's decision:** the poster fills the page at full
+  strength (a soft corner vignette only) and the form is a centred glass card
+  (`--gl-overlay` + its blur, `--edge`, `--glass-shadow`, 30px radius). This
+  replaces ADR-026's poster-left / solid-panel-right layout, and r8-cold.html's
+  copy of it. **DECISIONS.md has no entry for this yet**; one is owed.
+- **Poster:** `control-room-art.webp` (2400px), not `login-poster.webp`
+  (1600px, soft when scaled). `login-poster.webp` is still the desk's
+  `.ambient`.
+- **Toned down (Vipin: "it is flashy"):** the control room's own treatment
+  of the same art, `saturate(.65)` and a uniform shade (52% there; 64% here
+  after "a bit darker"),
+  with a lighter corner vignette over it. The two-line titles ("Reset your
+  password", "Choose a new password") touched at `.display-xl`'s .86 line
+  height; the auth heading is .98 with a 20px gap to the lede. Checked in
+  the browser pane, dark and light.
+- **Show/hide is an eye inside the field** (Vipin), on sign-in, new and
+  confirm password (`PasswordField` in login-form.tsx). Its name ("Show
+  password" / "Hide password") is visually hidden text, not an aria-label, so
+  `getByLabel('Password')` still finds only the input. `eye` (\e220) and
+  `eye-slash` (\e224) are added to app/phosphor.css, copied verbatim from
+  @phosphor-icons/web@2.1.1's light style.css (its `check` and `caret-left`
+  match the vendored values; both glyphs are in the vendored font). Footer:
+  "Trouble signing in? Contact the accreditation desk." and "© Bangalore
+  Open Air". `login-return-path.spec.ts` 2/2 after this change.
+- **Form:** r10 `Field`/`Button`/`.error`/`.btn-link`, so the fields are the
+  desk's pills with `--edge` and the `--go` focus ring. The skeleton is the
+  same form with `SkeletonText` labels and `sk-btn` fields. New:
+  `.r10 .input:-webkit-autofill` keeps autofilled fields on theme.
+- **Every flow kept** (`app/desk/login/login-form.tsx`, logic unchanged):
+  sign-in (+ show password, inline error), forgot password (+ sent note),
+  set password (invite), choose a new password (recovery), expired link,
+  gate sign-in copy. Styles: `app/desk/login/login.module.css`. v2's dead
+  `.auth*` block is removed from `app/v2.css`.
+- **Verified:** screenshots of sign-in, sign-in error, forgot, forgot sent,
+  expired link, set password and choose a new password (via stubbed
+  `/auth/v1/*`) in dark and light at 1440 and dark at 390, no horizontal
+  overflow. `tests/e2e/login-return-path.spec.ts` 2/2 (against a production
+  build). `typecheck`, `lint`, `test` 295/295.
+- **Not verified:** the skeleton frame (holding the auth call without a
+  session did not delay anything), a real Supabase invite or reset email end
+  to end, light theme at 390.
+
+## One edge for buttons, fields and chips, 29 Sep 2026
+
+- **What (Vipin):** "consistent button styles; inconsistent input styles; no
+  borders like other components".
+- **Cause:** `design/source/r10/r8/ui.css:401-404` (the contract's final
+  cascade) gives `.input`, `.chip` and `.btn` the glass edge plus a 1px top
+  highlight, and the primary a highlight and drop. `app/r10/primitives.css`
+  never took those rules. Fields and chips had a 10% hairline, outline
+  buttons a 22% ring, primary nothing, and danger a full-strength red ring.
+  In `glass.css`, `.btn:not(.btn-primary)` also replaced danger's red hover
+  wipe with a glass tint.
+- **Now:** `--edge` / `--edge-hover` / `--edge-focus` on `.r10`
+  (primitives.css) are drawn by `.input` (so every field, select and search),
+  `.chip`, `.sheet-close`, `.av`, `.burger`, the gate/vehicle tabs, and the
+  gate name search and its results. `.btn` draws the same edge through
+  `--btn-ring`/`--btn-hi`/`--btn-drop`, so each variant sets colours only:
+  primary has a transparent ring, the 45% highlight and the drop; danger has
+  a 50% red ring and a solid red wipe under `--bg` text on hover; disabled
+  has a hairline and no highlight. Fields get the hover edge too.
+- **Second pass (Vipin, same day):**
+  - The contract's 12%/22% edge read heavier than the cards. The edge is now
+    the card plate's own values (`--edge-line`/`--edge-hi`: 8%/12% dark,
+    ink 8%/white light), and the card, table, empty and panel plates in
+    `glass.css` read the same `--edge`, so they cannot drift.
+  - Focus is a 2px `--go` ring (`--edge-focus`), as on sign-in. It had been
+    a 2px `--ink` ring, which is present on every field (measured) but easy
+    to miss on glass.
+  - A count ends its pill: any `.chip` whose last child is a `.count-dot`
+    pads its right by `(--h-chip − 26px) / 2`, so the dot is inset equally on
+    three sides. The control room's inline `paddingRight` is removed.
+  - Every X turns red on hover: `.sheet-close` (sheets and toasts) and
+    `.chip-x`.
+  - The gate's panels were a flat box with a 10% hairline (its own override
+    in `app/gate/page.tsx`, and a glass fill in `glass.css`). Both are gone,
+    so they are the shared `.panel`, the tray and plate the vehicle screen
+    and the desk cards draw. The viewfinder well and the no-roster box use
+    the edge too.
+  - Menus share one radius (Vipin, 29 Sep): the master and passes filter
+    menus and the profile menu (desk and gate) had a 14px container around
+    10px rows. Rows are now pills (`--hit` tall), and the container is
+    `--menu-r` = half a row plus `--menu-pad` = 30px, concentric with them.
+    The three menus, sheets and toasts draw `--edge` under their drop
+    shadow. The passes menu also gets the row hover the other two had.
+  - Checkboxes are round (Vipin: the filter menus still did not match the
+    profile menu). `.r10 input[type="checkbox"]` in primitives.css: 20px
+    circle with the hover edge, ticked it is `--go` with an `--on-go` check.
+    The master and passes menus' native `accent-color` rules are gone.
+  - Focus rings are `--go` and keyboard-only everywhere in r10. The menus
+    drew a 2px `--ink` ring on `label:focus-within`, so a mouse click on a
+    row left a cream outline; it is now `label:has(:focus-visible)`. The
+    global `.r10 :focus-visible` also set `border-radius: 4px`, which squared
+    off any pill it focused; that is removed.
+  - Control room "bands issued" ring: smaller text (Vipin). The percentage
+    is 24px (was 28px). The label is at DESIGN.md's 12px floor already, so
+    its tracking goes .12em → .06em instead (88px → 79px wide inside the
+    ring's ~104px opening). Screenshotted in dark and light at 1440.
+  - **Tab transitions (Vipin: "people and vehicle tab switch is not smooth;
+    the nav's Gate tab has no transition").** Measured by logging the pills'
+    positions every animation frame through each click.
+    - People/Vehicles: each route drew its own `.segmented`, so the active
+      tab jumped. Both now render `GateTabs` (`app/gate/gate-tabs.tsx`): one
+      pill (`.seg-pip`, CSS in primitives.css). A second pass (Vipin: still
+      not smooth): the pill starts sliding on the click, not when the route
+      lands, and the next screen's copy continues that same slide from the
+      point it had reached (Web Animations, negative delay = time since the
+      click). The panels under it fade in over `--d-base`. Measured: the new
+      copy's first frame is already mid-slide (x 81, then on to 142), not a
+      restart from 43. Under `next dev` the main thread is busy for ~100 ms
+      while the route renders, so no frames paint in that window.
+  - **Vehicle panels side by side** (Vipin: "just like person"): `.veh-split`
+    takes `.gate-split`'s rule, two columns from `@container app` 1000px, and
+    the two actions stack in the half column as `.g-dock` does. The result
+    panel's extra `margin-top` (on top of the grid gap) is gone, so the phone
+    gap is single. Screenshotted: 1440 idle / will-not-clear in dark and
+    light, and 390 (stacked, no overflow).
+    - Desk → Gate: `GateChrome` drew the issuer's one-link nav until
+      `/api/gate/session` answered, then swapped in the desk links, and the
+      desk handed over the pill's destination, so it appeared already on
+      Gate. Now `lib/nav-memory.ts` remembers per tab that this is a desk
+      operator (written by `DeskChrome` once the operator loads, cleared on
+      either sign-out), and `GateChrome` draws the desk links from its first
+      frame. Crossing to `/gate`, the desk hands over where the pill is now.
+      Measured: the pill slides Master list → Gate (318 → 644 px) over
+      ~350 ms, and Gate → Master list slides back. Presentation only;
+      authorisation is unchanged.
+- **Verified:** computed `box-shadow` on every visible control on /desk,
+  master, passes, users (invite sheet open), gate and vehicle, with desk and
+  gate API fixtures, in dark and light at 1440 and 390: all share the edge,
+  and nothing overflows at 390. Screenshots of each, plus close-ups of the
+  filter bar at rest and focused, the sheet X hovered and the danger button
+  hovered, in both themes. `typecheck`, `lint`, `test`, and
+  `check-design-tokens` pass.
+- **Also verified:** the three menus open and hovered (master filter and its
+  Status step, passes filter, profile), in dark and light at 1440, and both
+  filter menus with a box ticked by mouse (no ring left behind).
+- **Not verified:** the control room's gate chips with data (the fixture has
+  none), menus at 390, `test:visual` and `test:e2e`.
+- **Not touched:** sign-in (`app/desk/login/login-form.tsx`) still uses v2's
+  `.utility-input` (14px radius, solid, 52px) and `.btn.go`. That is ACC-188,
+  which Cursor has in flight.
+
+## Skeletons that match their screens, no jump on load, 29 Sep 2026
+
+- **What (Vipin):** "proper skeletons throughout; they match the widget
+  styles; no jump on load". Measured with Playwright by holding each desk
+  API response, recording `layout-shift` entries (CLS) through first paint,
+  hydration and data arrival, at 1440 and 390.
+- **Root cause 1, styled-jsx had no registry** (`app/styled-jsx-registry.tsx`,
+  wrapped in `app/layout.tsx`; `styled-jsx@5.1.6` added as a direct
+  dependency, the version Next already aliases). The server HTML carried
+  `jsx-…` classes but no rules, so master, orgs, users, gate and vehicle
+  rendered unstyled until hydration. Shifts before any data: users 0.53,
+  master 0.50, orgs 0.49 → now ≤0.005.
+- **Root cause 2, Anton's fallback swap:** Impact runs ~5% wide of Anton,
+  which wrapped "Master list" past Export at 390 (0.2 shift at ~75 ms). An
+  `@font-face` named `Impact` with size-adjust/ascent/descent overrides in
+  `app/r10/tokens.css`. The token stacks stay the r10 source's
+  (`check-design-tokens` passes). Font blocked vs loaded: no vertical
+  difference on any desk screen.
+- **Skeletons are now the real screen with skeleton values**, via a new
+  `SkeletonText` primitive (a cap-height bar inside the element that will
+  hold the value, so line boxes don't change) and `Skeleton shape="btn"`:
+  - Control room: real poster, plates, ring, timeline, tiles and band shelf
+    (every tier, TIERS order). This replaced one blank card: 0.23 → 0.0002.
+    The date-dependent text (kicker, week date, countdown, timeline state)
+    is client-clock only (`useSyncExternalStore`), because SSR'd in UTC it
+    would put yesterday on the desk after midnight IST.
+  - Master, Passes, Orgs, Users: real table header and row markup, skeleton
+    lede and count, skeleton preset-chip counts. Passes had been showing
+    "0 approved people" and "0" chips while loading.
+- **Result (CLS on data arrival, 1440 / 390):** control room 0.0002 / 0.0005,
+  master 0.0006 / 0.0001, passes 0.014 / 0.0007, orgs 0 / 0.003,
+  users 0 / 0.04. The remaining non-zero values come from the row count:
+  the footer moves when fewer rows land than the skeleton drew.
+- **Also, 29 Sep (Vipin):**
+  - **Passes black background:** its `<main>` was a second `.r10` root,
+    repainting opaque `--bg` at 100dvh over the desk's glow. The class and
+    its isolation workaround are removed.
+  - **Control room art:** `public/assets/control-room-art.webp`, a 2400px
+    q84 WebP (1.1 MB) of the 8640px artwork. After a first pass at a lighter
+    scrim, Vipin found it too flashy. It now has a uniform 52% shade under
+    the left and bottom falloff, on desktop and phone, and
+    `filter: saturate(.65)`, so the poster's mint does not compete with
+    `--go`.
+  - **Gate** (`app/gate/page.tsx`):
+    - The result panel shows the person as their pass does: `GateTicket` in
+      `components/pass-ticket.tsx`, the pass's own face factored out as
+      `TicketFace` so the two cannot drift. It carries the band, name,
+      org/role, tier and days, and **only the zones held** (the struck-out
+      zones are gone). The vehicle line carries a "Sticker due" tag. There is
+      no QR, stub or desk line, and the band is at full strength. The old
+      band image, `.person`, `.zones` and `.g-vehicle` markup and CSS are
+      removed. The pass sheet on /desk/passes was screenshotted after the
+      refactor and is unchanged.
+    - The band images are precached by `scripts/build-gate-sw.mjs`.
+    - The viewfinder is a see-through well, not `#000`.
+    - The top-right viewfinder corner (class `tr`) was matching the table-row
+      primitive `.r10 .tr` (64px, hairline). It is overridden.
+  - **Inputs are pills** like `.btn`: `.r10 .input` (every field and select)
+    and the gate's name search. Seen on the Users invite sheet.
+  - **Gate worker is off in dev** (`app/gate/register-sw.tsx`).
+    `public/gate/sw.js` is built from production output and serves
+    `/_next/static/*` and `/gate` navigations cache-first. Under `next dev`
+    that pinned the gate to stale code: the tab and spacing edits never
+    showed, and stale client code likely caused the flash Vipin saw
+    clicking Gate. In dev it is now not registered, and an existing one is
+    unregistered with its `boa-gate-*` caches. A browser still controlled by
+    the old worker needs one hard reload of /gate to reach the new code.
+    Production and `test:e2e` (`next start`) are unchanged.
+  - **Gate loading frame:** before the Dexie snapshot is read, /gate draws
+    its tabs, viewfinder, idle "Ready" panel and a disabled search button,
+    with `SkeletonText` for the roster count, sync line and gate/volunteer
+    line. It had been an empty 60vh box.
+  - **Not fixed:** desk ↔ gate still swaps `DeskChrome` for `GateChrome`,
+    so the nav island remounts on crossing over; only the pip position (and,
+    since 29 Sep, which links to draw: `lib/nav-memory.ts`) is handed over,
+    via sessionStorage. Keeping one nav across both needs a
+    shared layout (route group), which is an ARCHITECTURE.md change.
+- **Verified:**
+  - CLS numbers above.
+  - No hydration errors on `/desk`, `/desk/master` or `/desk/passes`.
+  - `typecheck` clean, `lint` 0 errors, `test` 295/295.
+- **Not verified:**
+  - `/gate` did not render (no gate session here). The band card and
+    viewfinder were only seen in an injected harness at 1440.
+  - `build-gate-sw` was not re-run, so offline band images are unconfirmed
+    until the next build.
+  - `test:visual` was not run; its references will differ for the Control
+    room art and Passes.
+  - Light theme was not checked.
+- **Open:**
+  - Oswald (nav, buttons) still swaps from a ~22% wider system fallback.
+    This is horizontal only, with no vertical jump. Matching it needs a
+    token-stack change, which is Vipin's call.
+  - ~~"2 tabs alignment"~~ done. People/Vehicles are equal width (one
+    2-column grid) with centred labels, on /gate and /gate/vehicle. Both
+    screens now get the desk's `.page` top space (40px, 24px ≤700px). The
+    sticky nav (top 12px) had been overlapping the old 16px, leaving the
+    tabs about 4px under it. Tab widths were measured equal (97/97) in a
+    harness; the gate itself was not seen.
+
+## See-through blurred backgrounds on every surface, 29 Sep 2026
+
+- **What (Vipin):** every r10 surface's background is now see-through with
+  a backdrop blur (`rgb(16 16 20 / 40%)`, `blur(24px) saturate(160%)`)
+  instead of a solid `--surface`/`--raised` fill or the 78% plate. This
+  covers card, table, empty and panel plates, fields, search, chips, outline
+  buttons, the avatar, the gate panels, notes and search results, the
+  segmented control, the footer and the 700–900px menu. Neutral pills, `kbd`,
+  skeletons and row/menu hovers get a see-through tint with no blur.
+- **Overlays:** sheets, menus, toasts and the operator popover go from the
+  78% fill to `rgb(16 16 20 / 48%)` with `blur(28px) saturate(160%)`. The
+  scrim goes from 56% to 40% black.
+- **Operator popover blur fix:** the popover sits inside the nav island,
+  which carried its own `backdrop-filter`. A backdrop-filter cannot see past
+  an ancestor that has one, so the poster showed through the popover sharp.
+  The island's fill and blur now paint on `.island::before`, with identical
+  values and edges on the island. The popover now blurs the page. Verified
+  by screenshot over the hero. The layer also carries the island's two inset
+  edges, which it would otherwise cover (Vipin caught the missing nav
+  border). Edge pixels match the earlier screenshot within 1/255.
+- **Only `background` and `backdrop-filter` change.** Borders, rings, the
+  tray/plate bezel, shadows, layout and type are untouched. Everything is in
+  one file, `app/r10/glass.css`, imported last in `app/layout.tsx`.
+- **Overrides D6 at Vipin's request:** the blur runs on phones and at the
+  gate too. Its scroll cost on low-end Android is not measured.
+- **Tried and rejected by Vipin the same day:** a poster backdrop behind
+  every page (Vipin wanted the dark stage with only the small green corner),
+  and a tinted, mottled fill with the tray removed ("made it worse").
+- **Departs from DESIGN.md**, which reserves glass for plates, nav and
+  sheets. DESIGN.md is not updated.
+- **Verified:**
+  - Screenshots at 1440 of `/desk` (scrolled), `/desk/master`, the open
+    operator popover and the open person sheet.
+  - `glass.css` sets no `box-shadow`, `border` or `padding`.
+  - `typecheck` clean, `lint` 0 errors, `test` 295/295.
+- **Not verified:**
+  - `/gate`, `/gate/vehicle` and `/desk/orgs` need a session, so the gate
+    selectors were not seen rendering.
+  - Light theme was not screenshotted.
+  - `test:visual` was not run: it needs `corepack pnpm build`, and another
+    session's dev server was using `.next`.
 
 ## Master list and Passes full parity, persistent navs, 29 Sep 2026
 

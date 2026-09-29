@@ -98,6 +98,26 @@
 .tk-fine { margin: 0; font-size: 13px; color: var(--tk-ink); text-align: center; }
 .tk-ref { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--tk-ink3); }
 
+/* The gate's result panel (GateTicket): the ticket's face as one whole card,
+   no tear line, sitting on the panel's own glass rather than floating. The
+   band at full strength: it is what the volunteer matches. */
+.tk--gate { width: 100%; filter: none; --tk-surface: rgba(12, 12, 14, .55); }
+.tk--gate .tk-top { border-radius: 14px; -webkit-mask: none; mask: none; }
+.tk--gate .tk-band { opacity: 1; filter: none; }
+.tk--gate .tk-body { gap: 14px; padding: 18px 20px 20px; }
+.tk--gate .tk-name { font-size: 40px; }
+.tk-vehicle-note {
+  margin-left: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(227, 187, 114, .16);
+  color: rgba(227, 187, 114, 1);
+  font-family: var(--f-label, var(--display));
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 /* The light sweep that marks a live pass (React Bits GlareHover, adapted to
    run on its own: phones have no hover). A screenshot cannot reproduce it. */
 .tk-glare::after {

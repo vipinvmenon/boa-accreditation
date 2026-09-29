@@ -41,7 +41,7 @@
 .r10 select,
 .r10 textarea { font: inherit; color: inherit; }
 .r10 img { display: block; max-width: 100%; }
-.r10 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: var(--r-xs); }
+.r10 :focus-visible { outline: 2px solid var(--go); outline-offset: 3px; }
 .r10 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .r10 .display-xl { margin: 0; font: 400 var(--t-display-xl)/.86 var(--f-display); text-transform: uppercase; }
@@ -176,7 +176,7 @@
 .r10 .menu,
 .r10 .toast {
   background: var(--glass-fill-strong);
-  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  box-shadow: var(--edge), var(--glass-shadow);
 }
 
 /* r10-foundation: the mock's final cascade gives each floating layer its own
@@ -341,11 +341,11 @@
   border: 0;
   border-radius: 50%;
   background: var(--raised);
-  box-shadow: inset 0 0 0 1px var(--hair);
+  box-shadow: var(--edge);
 }
 .r10 .av { display: grid; place-items: center; color: var(--ink); cursor: pointer; font: 600 var(--t-label-sm)/1 var(--f-label); letter-spacing: .06em; }
 .r10 .av { transition: box-shadow var(--d-quick) var(--e-out); }
-.r10 .av:hover { box-shadow: inset 0 0 0 1px var(--hair-strong); }
+.r10 .av:hover { box-shadow: var(--edge-hover); }
 
 /* Operator popover — mock `.pop` (ui.css:87-91) on the desk's .profile-menu */
 .r10 .profile-wrap { position: relative; }
@@ -356,17 +356,17 @@
   left: auto;
   z-index: var(--z-menu);
   min-width: 240px;
-  padding: var(--s-2);
-  border-radius: var(--r-md);
+  padding: var(--menu-pad);
+  border-radius: var(--menu-r);
   background: var(--glass-fill-strong);
-  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  box-shadow: var(--edge), var(--glass-shadow);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
   transform-origin: top right;
   animation: r10-pop-in var(--d-quick) var(--e-out);
 }
 .r10 .profile-menu[hidden] { display: none; }
-.r10 .profile-menu .profile-head { display: block; padding: var(--s-3); margin-bottom: var(--s-1); border-bottom: 1px solid var(--hair); }
+.r10 .profile-menu .profile-head { display: block; padding: var(--s-3) var(--s-4); margin-bottom: var(--s-1); border-bottom: 1px solid var(--hair); }
 .r10 .profile-menu .profile-head strong { display: block; color: var(--ink); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
 .r10 .profile-menu .profile-head span { display: block; color: var(--ink-3); font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: normal; text-transform: none; }
 .r10 .profile-menu button,
@@ -376,9 +376,9 @@
   gap: var(--s-3);
   width: 100%;
   min-height: var(--hit);
-  padding: 0 var(--s-3);
+  padding: 0 var(--s-4);
   border: 0;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-pill);
   background: none;
   color: var(--ink-2);
   font: 400 var(--t-body)/1.55 var(--f-body);

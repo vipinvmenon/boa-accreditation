@@ -8,7 +8,7 @@ import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
 import { Button, FilterBar } from '@/components/r10/primitives-a'
-import { EmptyState, Skeleton } from '@/components/r10/primitives-b'
+import { EmptyState, Skeleton, SkeletonText } from '@/components/r10/primitives-b'
 
 /**
  * r10 (ACC-186): reskinned onto design/source/r10/r8-orgs.html, which is now
@@ -65,6 +65,26 @@ function kindLabel(kind: string) {
 }
 
 type OrgsSort = 'name' | 'people'
+
+/** The table header, shared by the loading table so both are the same height. */
+function OrgsHead({ sort, onSort, disabled = false }: { sort: OrgsSort; onSort: (sort: OrgsSort) => void; disabled?: boolean }) {
+  return (
+    <div className="orgs-thead" role="row">
+      <span role="columnheader">
+        <button type="button" className="orgs-sort" aria-pressed={sort === 'name'} disabled={disabled} onClick={() => onSort('name')}>
+          Organisation <Icon name="caret-down" />
+        </button>
+      </span>
+      <span role="columnheader">
+        <button type="button" className="orgs-sort" aria-pressed={sort === 'people'} disabled={disabled} onClick={() => onSort('people')}>
+          People <Icon name="caret-down" />
+        </button>
+      </span>
+      <span role="columnheader">Collected</span><span role="columnheader">Contact</span>
+      <span role="columnheader"><span className="sr-only">Open</span></span>
+    </div>
+  )
+}
 
 export function OrgsScreen() {
   const router = useRouter()
@@ -194,13 +214,25 @@ export function OrgsScreen() {
         </EmptyState>
       )}
       {orgs === null && !loadError && (
+        // The loaded table's own header and row markup, values as skeletons,
+        // so the rows are their real height and nothing moves on load.
         <div className="orgs-table table" role="status" aria-label="Loading organisations" aria-busy="true">
-          {Array.from({ length: 6 }, (_, index) => (
-            <div className="org-row org-row-skeleton" key={index}>
-              <div><Skeleton style={{ width: `${45 + (index % 3) * 15}%` }} /><Skeleton style={{ width: '32%', marginTop: 'var(--s-2)' }} /></div>
-              <Skeleton style={{ width: '56px' }} /><Skeleton shape="pill" /><Skeleton style={{ width: '70%' }} /><Skeleton shape="dot" />
-            </div>
-          ))}
+          <OrgsHead sort={sort} onSort={setSort} disabled />
+          <div aria-hidden="true">
+            {[22, 16, 19, 14, 20, 17].map((w, index) => (
+              <div className="org-row org-row-skeleton" key={index}>
+                <span><strong className="nm"><SkeletonText w={`${w}ch`} /></strong><span className="sub"><SkeletonText w="6ch" /></span></span>
+                <span className="org-people"><SkeletonText w="7ch" /></span>
+                <span className="orgs-collected">
+                  <span className="body-sm"><SkeletonText w="2ch" /></span>
+                  <span className="meter" style={{ '--w': 0 } as CSSProperties}><i /></span>
+                </span>
+                <span className="org-contact"><span className="body-sm"><SkeletonText w="11ch" /></span><span className="mono ink-2"><SkeletonText w="15ch" /></span></span>
+                <span className="org-arrow"><Skeleton shape="dot" /></span>
+                <span className="org-row2 body-sm ink-2"><SkeletonText w="28ch" /></span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {orgs !== null && orgs.length === 0 && (
@@ -216,20 +248,7 @@ export function OrgsScreen() {
       )}
       {orgs !== null && visibleOrgs.length > 0 && (
         <div className="orgs-table table" role="table" aria-label="Organisations">
-          <div className="orgs-thead" role="row">
-            <span role="columnheader">
-              <button type="button" className="orgs-sort" aria-pressed={sort === 'name'} onClick={() => setSort('name')}>
-                Organisation <Icon name="caret-down" />
-              </button>
-            </span>
-            <span role="columnheader">
-              <button type="button" className="orgs-sort" aria-pressed={sort === 'people'} onClick={() => setSort('people')}>
-                People <Icon name="caret-down" />
-              </button>
-            </span>
-            <span role="columnheader">Collected</span><span role="columnheader">Contact</span>
-            <span role="columnheader"><span className="sr-only">Open</span></span>
-          </div>
+          <OrgsHead sort={sort} onSort={setSort} />
           <div role="rowgroup">
             {visibleOrgs.map((org) => (
               <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}`} className="org-row" aria-label={`${org.name} — show their people in the master list`}>
@@ -285,6 +304,7 @@ export function OrgsScreen() {
         .r10 .org-arrow { justify-self: end; color: var(--ink-3); font-size: 20px; }
         .r10 .org-row:hover .org-arrow, .r10 .org-row:focus-visible .org-arrow { color: var(--ink); }
         .r10 .org-row-skeleton { pointer-events: none; }
+        .r10 .orgs-thead .orgs-sort:disabled { cursor: default; }
         .r10 .org-row-skeleton > :last-child { justify-self: end; }
         .r10 .org-row2 { display: none; }
         @media (max-width: 700px) {

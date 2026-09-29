@@ -61,6 +61,7 @@ import './r10/tokens.css'
 import './r10/base.css'
 import './r10/primitives.css'
 import './r10/glass.css'
+import { StyledJsxRegistry } from './styled-jsx-registry'
 
 export const metadata: Metadata = {
   // ACC-127: every route below sets its own `title` (a plain string), which
@@ -101,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           color: 'var(--ink2, rgba(242,239,226,0.72))',
         }}
       >
-        {children}
+        <StyledJsxRegistry>{children}</StyledJsxRegistry>
       </body>
     </html>
   )

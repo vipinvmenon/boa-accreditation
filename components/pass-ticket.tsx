@@ -6,7 +6,7 @@ import { dayValidityCopy, PUBLIC_PASS_DESK_LINE, PUBLIC_PASS_FINE_PRINT } from '
  * own page (/p/[passToken]) and the desk's pass sheet (/desk/passes) so the
  * two can never drift apart. Styles live in app/ticket.css.
  *
- * `variant`:
+ * `variant` (PassTicket; GateTicket below is the gate's face-only form):
  * - `live`  — the holder's screen: dark glass over the poster the page draws
  *             behind it, plus the light sweep that marks a live pass.
  * - `sheet` — the desk grid and print: a solid dark ticket, no sweep (a grid
@@ -29,61 +29,76 @@ export type PassTicketProps = {
   variant: 'live' | 'sheet'
 }
 
-export function PassTicket(p: PassTicketProps) {
+type TicketFaceProps = Pick<PassTicketProps, 'fullName' | 'orgName' | 'role' | 'typeCode' | 'dayValidity' | 'vehicleReg'>
+
+/**
+ * The top of the ticket: band, name, who, tier and days, held zones only,
+ * vehicle. Shared by the pass and the gate's result panel (GateTicket).
+ */
+function TicketFace(p: TicketFaceProps & { Name: 'h1' | 'h2' | 'h3'; className: string; deskLine: boolean; vehicleNote?: string | undefined }) {
   const type = tier(p.typeCode)
   const zones = zoneStrip(p.typeCode).filter((z) => z.held)
   const allZones = zones.length === ZONES.length
   const validity = dayValidityCopy(p.dayValidity)
+  const Name = p.Name
+
+  return (
+    <div className={p.className}>
+      <img
+        className="tk-band"
+        src={bandArtSrc(type.code)}
+        alt={`${type.label} wristband`}
+        width={BAND_ART.width}
+        height={BAND_ART.height}
+      />
+      <div className="tk-body">
+        <div>
+          <Name className="tk-name">{p.fullName}</Name>
+          <p className="tk-who">
+            {p.orgName}, {p.role}
+          </p>
+          {p.deskLine && <p className="tk-desk">{PUBLIC_PASS_DESK_LINE}</p>}
+        </div>
+        <p className="tk-line">
+          <span className="tk-tier">{type.label}</span>
+          <span className="tk-valid">
+            {validity.label}, {validity.dates}
+          </span>
+        </p>
+        <ul className="tk-zones" aria-label="Zones this pass enters">
+          {allZones ? (
+            <li>All zones</li>
+          ) : (
+            zones.map((z) => {
+              const colour = ZONE_MAP_HEX[ZONES.find((x) => x.code === z.zone)!.mapColour]
+              return (
+                <li key={z.zone}>
+                  <i style={{ background: colour }} aria-hidden="true" />
+                  {z.label}
+                </li>
+              )
+            })
+          )}
+        </ul>
+        {p.vehicleReg && (
+          <p className="tk-vehicle">
+            Vehicle <b>{p.vehicleReg}</b>
+            {p.vehicleNote && <span className="tk-vehicle-note">{p.vehicleNote}</span>}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function PassTicket(p: PassTicketProps) {
   const glare = p.variant === 'live' ? ' tk-glare' : ''
   // The holder's page has no other heading; on the desk sheet each ticket sits under the page's h1.
   const Name = p.variant === 'live' ? 'h1' : 'h2'
 
   return (
-    <div className={`tk tk--${p.variant}`} style={{ '--c': tierColour(type.code, 'dark') } as React.CSSProperties}>
-      <div className={`tk-top${glare}`}>
-        <img
-          className="tk-band"
-          src={bandArtSrc(type.code)}
-          alt={`${type.label} wristband`}
-          width={BAND_ART.width}
-          height={BAND_ART.height}
-        />
-        <div className="tk-body">
-          <div>
-            <Name className="tk-name">{p.fullName}</Name>
-            <p className="tk-who">
-              {p.orgName}, {p.role}
-            </p>
-            <p className="tk-desk">{PUBLIC_PASS_DESK_LINE}</p>
-          </div>
-          <p className="tk-line">
-            <span className="tk-tier">{type.label}</span>
-            <span className="tk-valid">
-              {validity.label}, {validity.dates}
-            </span>
-          </p>
-          <ul className="tk-zones" aria-label="Zones this pass enters">
-            {allZones ? (
-              <li>All zones</li>
-            ) : (
-              zones.map((z) => {
-                const colour = ZONE_MAP_HEX[ZONES.find((x) => x.code === z.zone)!.mapColour]
-                return (
-                  <li key={z.zone}>
-                    <i style={{ background: colour }} aria-hidden="true" />
-                    {z.label}
-                  </li>
-                )
-              })
-            )}
-          </ul>
-          {p.vehicleReg && (
-            <p className="tk-vehicle">
-              Vehicle <b>{p.vehicleReg}</b>
-            </p>
-          )}
-        </div>
-      </div>
+    <div className={`tk tk--${p.variant}`} style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
+      <TicketFace {...p} Name={Name} className={`tk-top${glare}`} deskLine />
       <div className="tk-perf" aria-hidden="true" />
       <div className={`tk-stub${glare}`}>
         <div
@@ -95,6 +110,21 @@ export function PassTicket(p: PassTicketProps) {
         <p className="tk-fine">{PUBLIC_PASS_FINE_PRINT}</p>
         <span className="tk-ref">{p.passRef}</span>
       </div>
+    </div>
+  )
+}
+
+/**
+ * The gate's result panel shows the person as their pass shows them (Vipin,
+ * 29 Sep): the same face, no stub, QR or desk line (they are already at the
+ * gate), the band at full strength because it is what the volunteer matches
+ * to the band in hand. Everything it reads is in the gate's offline roster;
+ * the band art is precached by scripts/build-gate-sw.mjs.
+ */
+export function GateTicket(p: TicketFaceProps & { stickerDue: boolean }) {
+  return (
+    <div className="tk tk--gate" style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
+      <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
     </div>
   )
 }

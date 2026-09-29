@@ -1,12 +1,15 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useId, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { destinationAfterLogin } from '@/lib/safe-next'
 import { operatorRoleSchema } from '@/lib/schemas/operator'
-import { Skeleton } from '@/components/states/skeleton'
+import { Button, Field, Skeleton, SkeletonText } from '@/components/r10'
+import { Icon } from '@/components/icon'
 import { useDomTheme } from '@/lib/use-theme'
+import styles from './login.module.css'
 
 /**
  * Not part of the approved design (design/source/boa_design_body.html has no
@@ -22,6 +25,11 @@ import { useDomTheme } from '@/lib/use-theme'
  * sentence saying who this is for, the form, and a help line. It replaced a
  * floating card with a pill tag and a micro-wordmark that read as a generic
  * admin template — the audit's UX-06/UX-07.
+ *
+ * ACC-188 (Vipin, 29 Sep): reskinned onto r10. The layout is
+ * design/source/r10/r8-cold.html's (ADR-026's, unchanged); the form is the
+ * desk's r10 primitives (Field, Button, .error), and the poster is the new
+ * 2400px artwork. Styles: ./login.module.css.
  *
  * Two flows, one page, per docs/ARCHITECTURE.md ("Supabase email + password"):
  *
@@ -44,24 +52,79 @@ import { useDomTheme } from '@/lib/use-theme'
  */
 /**
  * ACC-128: the `checking`/`redirecting` states used to render nothing below
- * the heading — a blank card while `supabase.auth.getUser()` resolves. That
- * reads as broken, not busy. This is a skeleton of the sign-in form (the
- * mode almost everyone lands in), built from the same `Skeleton` primitive
- * and `.utility-skeleton-*` classes (app/v2.css) — not a new loading language, the login card's own shape drawn in placeholder bars.
+ * the heading, a blank card while `supabase.auth.getUser()` resolves. That
+ * reads as broken, not busy. This is the sign-in form (the mode almost
+ * everyone lands in) with skeleton values: the same labels, pill fields and
+ * button at their real sizes, so nothing moves when the form arrives.
  */
 function LoginFormSkeleton() {
   return (
-    <div className="utility-form" aria-hidden="true">
-      <div className="utility-skeleton-field">
-        <Skeleton width="58px" />
-        <Skeleton className="utility-skeleton-input" />
+    <div className={styles['form']} aria-hidden="true">
+      <div className={styles['skField']}>
+        <span className="body-sm"><SkeletonText w="5ch" /></span>
+        <Skeleton shape="btn" style={{ '--sk-w': '100%' } as CSSProperties} />
       </div>
-      <div className="utility-skeleton-field">
-        <Skeleton width="82px" />
-        <Skeleton className="utility-skeleton-input" />
+      <div className={styles['skField']}>
+        <span className="body-sm"><SkeletonText w="8ch" /></span>
+        <Skeleton shape="btn" style={{ '--sk-w': '100%' } as CSSProperties} />
       </div>
-      <Skeleton className="utility-skeleton-button" />
+      <Skeleton shape="btn" className="btn-block" style={{ '--sk-w': '100%' } as CSSProperties} />
     </div>
+  )
+}
+
+/**
+ * A password input with its show/hide toggle inside the pill (Vipin, 29 Sep).
+ * The toggle's name is visually hidden text, not an aria-label, so the input
+ * stays the only thing labelled "Password" (tests/e2e/login-return-path.spec.ts
+ * finds it with getByLabel('Password')).
+ */
+function PasswordField({ id, label, value, onChange, autoComplete, hint }: {
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  autoComplete: 'current-password' | 'new-password'
+  hint?: string
+}) {
+  const [visible, setVisible] = useState(false)
+  const hintId = hint ? `${id}-hint` : undefined
+  return (
+    <div className="field">
+      <label htmlFor={id} className={styles['pwLabel']}>{label}</label>
+      <div className={styles['pw']}>
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="input"
+          aria-describedby={hintId}
+        />
+        <button
+          type="button"
+          className={styles['eye']}
+          aria-pressed={visible}
+          aria-controls={id}
+          onClick={() => setVisible((shown) => !shown)}
+        >
+          {/* The icon shows the field's state: crossed out while hidden (Vipin). */}
+          <Icon name={visible ? 'eye' : 'eye-slash'} />
+          <span className="sr-only">{visible ? 'Hide password' : 'Show password'}</span>
+        </button>
+      </div>
+      {hint && <span id={hintId} className="hint">{hint}</span>}
+    </div>
+  )
+}
+
+function FormError({ children }: { children: string }) {
+  return (
+    <p role="alert" className={`error ${styles['alert']}`}>
+      <Icon name="warning-circle" />
+      {children}
+    </p>
   )
 }
 
@@ -88,7 +151,6 @@ function DeskLoginForm() {
   const [mode, setMode] = useState<'checking' | 'redirecting' | 'set-password' | 'sign-in' | 'forgot-password'>('checking')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(
@@ -257,160 +319,115 @@ function DeskLoginForm() {
           : 'Sign in'
 
   return (
-    <main className="auth" data-theme={theme}>
-      <div className="auth-art" role="img" aria-label="The Bangalore Open Air 2026 poster" />
-      <section className="auth-panel">
-        <img className="auth-logo" src="/assets/boa-logo.png" alt="Bangalore Open Air" />
-        <div className="auth-inner">
-        {!error && (
-          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusAnnouncement}</div>
-        )}
-        <h1 className="h1">{heading}</h1>
-        {(mode === 'sign-in' || mode === 'checking' || mode === 'redirecting') && (
-          <p className="auth-lede">
-            {forGate
-              ? 'Sign in while you have signal. The gate keeps working offline after that.'
-              : 'Staff access to BOA accreditation. Crew and partners don\u2019t sign in here. Your pass comes to you on WhatsApp.'}
-          </p>
-        )}
+    <main className={`r10 ${styles['auth']}`} data-theme={theme}>
+      <div className={styles['art']} role="img" aria-label="The Bangalore Open Air 2026 poster" />
+      <section className={styles['card']}>
+        <img className={styles['logo']} src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+        <div className={styles['inner']}>
+          {!error && (
+            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusAnnouncement}</div>
+          )}
+          <h1 className="display-xl">{heading}</h1>
+          {(mode === 'sign-in' || mode === 'checking' || mode === 'redirecting') && (
+            <p className="lede">
+              {forGate
+                ? 'Sign in while you have signal. The gate keeps working offline after that.'
+                : 'Staff access to BOA accreditation. Crew and partners don\u2019t sign in here. Your pass comes to you on WhatsApp.'}
+            </p>
+          )}
 
-        {(mode === 'checking' || mode === 'redirecting') && <LoginFormSkeleton />}
+          {(mode === 'checking' || mode === 'redirecting') && <LoginFormSkeleton />}
 
-        {mode === 'sign-in' && (
-          <form onSubmit={handleSignIn} className="utility-form" noValidate>
-            <div className="utility-label">
-              <label htmlFor={emailId}><span>Email</span></label>
-              <input
+          {mode === 'sign-in' && (
+            <form onSubmit={handleSignIn} className={styles['form']} noValidate>
+              <Field
                 id={emailId}
+                label="Email"
                 type="email"
                 autoComplete="username"
                 inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="utility-input"
               />
-            </div>
-            <div className="utility-label">
-              <div className="auth-field-head">
-                <label htmlFor={passwordId}><span>Password</span></label>
-                <button
-                  type="button"
-                  className="linkbtn hov-text-grn auth-reveal"
-                  aria-pressed={showPassword}
-                  aria-controls={passwordId}
-                  onClick={() => setShowPassword((visible) => !visible)}
-                >
-                  {showPassword ? 'Hide password' : 'Show password'}
-                </button>
-              </div>
-              <input
-                id={passwordId}
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="utility-input"
-              />
-            </div>
-            {error && <p role="alert" className="utility-error">{error}</p>}
-            <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
-              {busy ? 'Signing in…' : 'Sign in'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setResetSent(false)
-                setMode('forgot-password')
-              }}
-              className="linkbtn hov-text-grn"
-              style={{ minHeight: '44px', justifySelf: 'start' }}
-            >
-              Forgot password?
-            </button>
-          </form>
-        )}
+              <PasswordField id={passwordId} label="Password" autoComplete="current-password" value={password} onChange={setPassword} />
+              {error && <FormError>{error}</FormError>}
+              <Button variant="primary" type="submit" disabled={busy} className="btn-block" icon={busy ? undefined : <Icon name="arrow-right" />}>
+                {busy ? 'Signing in…' : 'Sign in'}
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setResetSent(false)
+                  setMode('forgot-password')
+                }}
+                className={`btn-link ${styles['back']}`}
+              >
+                Forgot password?
+              </button>
+            </form>
+          )}
 
-        {mode === 'forgot-password' && (
-          <form onSubmit={(e) => void handleForgotPassword(e)} className="utility-form" noValidate>
-            {resetSent ? (
-              <p className="lede">
-                If that email has desk access, a reset link is on its way. Check your inbox.
-              </p>
-            ) : (
-              <>
-                <p className="utility-copy">
-                  Enter the email you were invited with. We&apos;ll send a link to set a new password.
+          {mode === 'forgot-password' && (
+            <form onSubmit={(e) => void handleForgotPassword(e)} className={styles['form']} noValidate>
+              {resetSent ? (
+                <p className={styles['note']} role="status">
+                  <Icon name="check" />
+                  If that email has desk access, a reset link is on its way. Check your inbox.
                 </p>
-                <label className="utility-label">
-                  <span>Email</span>
-                  <input
+              ) : (
+                <>
+                  <p className="lede" style={{ margin: 0 }}>
+                    Enter the email you were invited with. We&apos;ll send a link to set a new password.
+                  </p>
+                  <Field
+                    label="Email"
                     type="email"
-                        autoComplete="username"
+                    autoComplete="username"
+                    inputMode="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="utility-input"
                   />
-                </label>
-                {error && <p role="alert" className="utility-error">{error}</p>}
-                <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
-                  {busy ? 'Sending…' : 'Send reset link'}
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setMode('sign-in')
-              }}
-              className="linkbtn hov-text-grn"
-              style={{ minHeight: '44px', justifySelf: 'start' }}
-            >
-              Back to sign in
-            </button>
-          </form>
-        )}
+                  {error && <FormError>{error}</FormError>}
+                  <Button variant="primary" type="submit" disabled={busy} className="btn-block" icon={busy ? undefined : <Icon name="paper-plane-tilt" />}>
+                    {busy ? 'Sending…' : 'Send reset link'}
+                  </Button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setMode('sign-in')
+                }}
+                className={`btn-link ${styles['back']}`}
+              >
+                <Icon name="caret-left" />
+                Back to sign in
+              </button>
+            </form>
+          )}
 
-        {mode === 'set-password' && (
-          <form onSubmit={handleSetPassword} className="utility-form" noValidate>
-            <p className="utility-copy">
-              {flow === 'recovery'
-                ? 'Choose a new password for your desk account.'
-                : 'This is your first sign-in. Choose a password for future visits.'}
-            </p>
-            <label className="utility-label">
-              <span>New password</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="utility-input"
-              />
-              <small className="utility-hint">Minimum 8 characters.</small>
-            </label>
-            <label className="utility-label">
-              <span>Confirm password</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="utility-input"
-              />
-            </label>
-            {error && <p role="alert" className="utility-error">{error}</p>}
-            <button type="submit" disabled={busy} className="btn go wide hov-invert-grn">
-              {busy ? 'Setting password…' : 'Set password and continue'}
-            </button>
-          </form>
-        )}
+          {mode === 'set-password' && (
+            <form onSubmit={handleSetPassword} className={styles['form']} noValidate>
+              <p className="lede" style={{ margin: 0 }}>
+                {flow === 'recovery'
+                  ? 'Choose a new password for your desk account.'
+                  : 'This is your first sign-in. Choose a password for future visits.'}
+              </p>
+              <PasswordField id={`${passwordId}-new`} label="New password" autoComplete="new-password" value={password} onChange={setPassword} hint="Minimum 8 characters." />
+              <PasswordField id={`${passwordId}-confirm`} label="Confirm password" autoComplete="new-password" value={confirmPassword} onChange={setConfirmPassword} />
+              {error && <FormError>{error}</FormError>}
+              <Button variant="primary" type="submit" disabled={busy} className="btn-block" icon={busy ? undefined : <Icon name="arrow-right" />}>
+                {busy ? 'Setting password…' : 'Set password and continue'}
+              </Button>
+            </form>
+          )}
         </div>
         {/* ACC-173 decides the desk's help number; until then this is plain text, not a dead link. */}
-        <p className="auth-info">
-          <span>Trouble signing in? Ask the accreditation desk.</span>
-          <span>Bangalore Open Air, 10 October 2026</span>
+        <p className={`body-sm ink-3 ${styles['info']}`}>
+          <span>Trouble signing in? Contact the accreditation desk.</span>
+          <span>© Bangalore Open Air</span>
         </p>
       </section>
     </main>

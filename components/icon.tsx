@@ -24,6 +24,8 @@ export type IconName =
   | 'check'
   | 'clock'
   | 'copy'
+  | 'eye'
+  | 'eye-slash'
   | 'download-simple'
   | 'funnel-simple'
   | 'magnifying-glass'

@@ -1,0 +1,188 @@
+/*
+ * Sign-in, set password, reset password (Vipin, 29 Sep): the poster is the
+ * whole page, at full strength, and the form is a glass card in the centre.
+ * This replaces ADR-026's poster-left / solid-panel-right layout and
+ * design/source/r10/r8-cold.html's copy of it, at Vipin's request.
+ *
+ * The card is the desk's overlay glass (glass.css: --gl-overlay and its blur,
+ * the shared --edge, --glass-shadow), and the form inside is the desk's own
+ * r10 primitives (.field, .input, .btn), so it draws the same pill, edge and
+ * focus as every desk screen.
+ *
+ * The poster is the new artwork (control-room-art.webp, 2400px), not
+ * login-poster.webp (1600px), which went soft at this size.
+ */
+
+.auth {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  /* app/v2.css pads every bare <main> (0 32px 64px); this page sets its own. */
+  padding: var(--s-10) var(--s-5);
+  background: var(--bg);
+}
+
+.art {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/control-room-art.webp") 50% 30% / cover no-repeat;
+  /* The control room's treatment of the same art (Vipin found it flashy at
+     full strength there, and here, 29 Sep): colour down to 65%... */
+  filter: saturate(.65);
+  animation: settle var(--d-settle) var(--e-out) both;
+}
+
+/* ...and a uniform shade, darker than the control room's 52% (Vipin asked
+   for a darker page, 29 Sep), with the corners settling a little further so
+   the card's edge reads against them. */
+.art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 50%, rgb(0 0 0 / 40%) 100%),
+    rgb(8 9 9 / 64%);
+}
+
+.card {
+  position: relative;
+  display: grid;
+  gap: var(--s-8);
+  width: min(100%, 460px);
+  padding: var(--s-10) var(--s-10) var(--s-8);
+  border-radius: var(--r-xl);
+  background: var(--gl-overlay);
+  -webkit-backdrop-filter: var(--gl-overlay-blur);
+  backdrop-filter: var(--gl-overlay-blur);
+  box-shadow: var(--edge), var(--glass-shadow);
+  animation: rise var(--d-slow) var(--e-out) both;
+}
+
+.logo {
+  width: 152px;
+  height: auto;
+  filter: var(--logo-filter);
+}
+
+.inner h1:global(.display-xl) {
+  margin: 0 0 var(--s-5);
+  font-size: clamp(48px, 5vw, 72px);
+  /* .display-xl's .86 is set for one line; the two-line titles ("Reset your
+     password", "Choose a new password") touched. */
+  line-height: .98;
+  text-wrap: balance;
+}
+
+.inner :global(.lede) { margin: 0 0 var(--s-6); max-width: 38ch; }
+
+.form {
+  display: grid;
+  gap: var(--s-5);
+}
+
+.form :global(.btn-block) { margin-top: var(--s-2); }
+
+/* Same face as the Field labels (.r10 .field > span), over v2's unscoped
+   `.field label` (13px, 600, --ink). */
+.form .pwLabel { color: var(--ink-2); font-size: var(--t-body); font-weight: 400; }
+
+/* Show/hide sits inside the pill, on the right. */
+.pw { position: relative; }
+.pw :global(.input) { padding-right: 56px; }
+
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-3);
+  font-size: 20px;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color var(--d-base) var(--e-hover), background-color var(--d-base) var(--e-hover);
+}
+
+.eye[aria-pressed="true"] { color: var(--ink); }
+.eye:focus-visible { outline: 2px solid var(--go); outline-offset: -2px; }
+/* 44px hit area around the 40px circle. */
+.eye::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
+
+@media (hover: hover) {
+  .eye:hover { color: var(--ink); background: var(--gl-fill-hover); }
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.alert :global(i) { flex: none; margin-top: 2px; }
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  margin: 0;
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--ok-tint);
+  box-shadow: var(--edge);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.note :global(i) { flex: none; margin-top: 3px; color: var(--go); }
+
+.back { justify-self: start; }
+
+.info {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-top: var(--s-5);
+  box-shadow: inset 0 1px 0 var(--hair);
+}
+
+.skField { display: grid; gap: var(--s-2); }
+
+@keyframes settle { from { transform: scale(1.045); } to { transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 700px) {
+  .auth { padding: var(--s-6) var(--s-4); }
+  .card { gap: var(--s-6); padding: var(--s-8) var(--s-6) var(--s-6); }
+  .logo { width: 128px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art::before,
+  .card { animation: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card {
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

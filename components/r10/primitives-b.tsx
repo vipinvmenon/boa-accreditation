@@ -215,10 +215,22 @@ export function EmptyState({ title, children, icon, error = false, className }: 
   )
 }
 
-export type SkeletonShape = 'line' | 'num' | 'pill' | 'dot' | 'sq' | 'hero'
+/**
+ * `text` stands in for a value inside the element that will hold it: a
+ * cap-height bar on the baseline, sized in `ch` of that element's own font,
+ * so the line box — and everything below it — is the same height before and
+ * after the data lands. Prefer it to a free-standing `line` wherever the real
+ * element can be rendered around it.
+ */
+export type SkeletonShape = 'line' | 'text' | 'btn' | 'num' | 'pill' | 'dot' | 'sq' | 'hero'
 
 export function Skeleton({ shape = 'line', className, style }: ClassName & { shape?: SkeletonShape; style?: CSSProperties }) {
   return <span className={joinClassNames('sk', `sk-${shape}`, className)} aria-hidden="true" style={style} />
+}
+
+/** A value still loading, inside the element that will hold it: `w` is its width in `ch` (or any CSS length) of that element's font. */
+export function SkeletonText({ w }: { w: string }) {
+  return <Skeleton shape="text" style={{ '--sk-w': w } as CSSProperties} />
 }
 
 export type ToastProps = ClassName & {

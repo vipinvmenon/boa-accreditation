@@ -28,7 +28,7 @@ import {
 import { Icon } from '@/components/icon'
 import { loginHref } from '@/gate/session'
 import { Button, Chip, FilterBar } from '@/components/r10/primitives-a'
-import { EmptyState, Sheet, Skeleton } from '@/components/r10/primitives-b'
+import { EmptyState, Sheet, Skeleton, SkeletonText } from '@/components/r10/primitives-b'
 
 const PAGE = 60
 type SortKey = 'default' | 'name' | 'collected'
@@ -52,6 +52,9 @@ export function MasterScreen() {
    * same RPC the Control room uses (approvedTotal, pendingTotal).
    */
   const [dashboardCounts, setDashboardCounts] = useState<{ approvedTotal: number; pendingTotal: number } | null>(null)
+  // The lede holds a skeleton line while the counts are in flight, so the
+  // header does not grow when they land; a failed read drops it entirely.
+  const [countsLoading, setCountsLoading] = useState(true)
 
   // ── Filters live in the URL (?tier=crew&status=not_collected&in_bms=false…) ──
   // The Control room and Organisations link here with them, and a filtered
@@ -138,6 +141,8 @@ export function MasterScreen() {
         setDashboardCounts({ approvedTotal: parsed.data.approvedTotal, pendingTotal: parsed.data.pendingTotal })
       } catch {
         // The subtitle is simply left out; the table does not depend on it.
+      } finally {
+        if (!cancelled) setCountsLoading(false)
       }
     }
     void loadCounts()
@@ -240,9 +245,13 @@ export function MasterScreen() {
       <div className="page-head">
         <div>
           <h1 className="display-lg">Master list</h1>
-          {dashboardCounts && (
+          {dashboardCounts ? (
             <p className="lede">
               {dashboardCounts.approvedTotal} approved people.{dashboardCounts.pendingTotal > 0 && <> {dashboardCounts.pendingTotal} more {dashboardCounts.pendingTotal === 1 ? 'is' : 'are'} still waiting in the response sheet.</>}
+            </p>
+          ) : countsLoading && (
+            <p className="lede" aria-hidden="true">
+              <SkeletonText w="3ch" /> approved people. <SkeletonText w="2ch" /> more are still waiting in the response sheet.
             </p>
           )}
         </div>
@@ -309,7 +318,7 @@ export function MasterScreen() {
         <div className="chips" aria-label="Active filters">
           {activeKeys.length === 0
             ? MASTER_PRESETS.map((preset, index) => (
-              <Chip key={preset.label} preset count={presetCounts[index] ?? 0} onActivate={() => changeFilters(presetFilters(preset.filters))}>
+              <Chip key={preset.label} preset count={loading ? <SkeletonText w="1ch" /> : presetCounts[index] ?? 0} onActivate={() => changeFilters(presetFilters(preset.filters))}>
                 {preset.label}
               </Chip>
             ))
@@ -331,9 +340,11 @@ export function MasterScreen() {
               </>
             )}
         </div>
-        {!loading && !error && (
+        {!error && (
           <span className="count body-sm" aria-live="polite">
-            {hasFilter ? <><strong>{list.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
+            {loading
+              ? <><strong><SkeletonText w="3ch" /></strong> people</>
+              : hasFilter ? <><strong>{list.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
           </span>
         )}
       </div>
@@ -348,20 +359,28 @@ export function MasterScreen() {
       )}
 
       {loading && !error && (
+        // The loaded table's own header and row markup with the values as
+        // skeletons, so every row is its real height and nothing moves on load.
         <div className="table master" aria-busy="true" aria-label="Loading the master list">
           <div className="thead" aria-hidden="true">
-            <span>Person</span><span>Tier</span><span>Days</span><span>Band</span><span>Vehicle</span><span>BMS</span><span className="cell-r">Collected</span>
+            <span><button type="button" disabled tabIndex={-1}>Person <Icon name="caret-down" /></button></span>
+            <span>Tier</span><span>Days</span><span>Band</span><span>Vehicle</span><span>BMS</span>
+            <span className="cell-r"><button type="button" disabled tabIndex={-1}>Collected</button></span>
           </div>
-          <div>
-            {Array.from({ length: 8 }, (_, index) => (
-              <div className="tr" key={index} style={{ cursor: 'default' }}>
-                <div><Skeleton style={{ width: `${50 + (index * 17) % 35}%` }} /><Skeleton style={{ width: `${40 + (index * 11) % 30}%`, marginTop: '8px', height: '10px' }} /></div>
-                <div className="hide-s master-sk-tier"><Skeleton shape="dot" /><Skeleton style={{ width: '56px' }} /></div>
-                <div className="hide-s"><Skeleton style={{ width: '64px', display: 'block' }} /></div>
-                <div className="hide-s"><Skeleton style={{ width: '48px', display: 'block' }} /></div>
-                <div className="hide-s"><Skeleton style={{ width: index % 3 ? '20px' : '96px', display: 'block' }} /></div>
-                <div className="hide-s"><Skeleton shape="pill" style={{ display: 'block' }} /></div>
-                <div className="cell-r hide-s"><Skeleton style={{ width: index % 2 ? '20px' : '120px', display: 'block' }} /></div>
+          <div aria-hidden="true">
+            {[15, 12, 17, 11, 14, 16, 13, 12].map((w, index) => (
+              <div className="tr master-row-skeleton" key={index}>
+                <div><div className="nm"><SkeletonText w={`${w}ch`} /></div><div className="sub"><SkeletonText w={`${w + 14}ch`} /></div></div>
+                <div className="hide-s"><span className="tier"><SkeletonText w="5ch" /></span></div>
+                <div className="days hide-s"><SkeletonText w="8ch" /></div>
+                <div className="hide-s"><span className="mono"><SkeletonText w="5ch" /></span></div>
+                <div className="hide-s"><span className="mono"><SkeletonText w={index % 3 ? '2ch' : '13ch'} /></span></div>
+                <div className="hide-s"><Skeleton shape="pill" /></div>
+                <div className="cell-r hide-s"><span className="body-sm"><SkeletonText w={index % 2 ? '2ch' : '14ch'} /></span></div>
+                <div className="row2">
+                  <span className="tier"><SkeletonText w="5ch" /></span>
+                  <Skeleton shape="pill" />
+                </div>
               </div>
             ))}
           </div>
@@ -454,7 +473,8 @@ export function MasterScreen() {
         .r10 .master-screen .flagged { color: var(--bad); }
         .r10 .master-screen .mono { font: 500 var(--t-mono)/1.3 var(--f-mono); letter-spacing: .04em; color: var(--ink); }
         .r10 .master-screen .tr .pill-sticker { margin-left: 4px; }
-        .r10 .master-screen .master-sk-tier { display: flex; gap: 8px; align-items: center; }
+        .r10 .master-screen .master-row-skeleton { cursor: default; }
+        .r10 .master-screen .thead button:disabled { cursor: default; }
         .r10 .master-screen .tr .row2 { display: none; }
 
         .r10 .master-screen .more { display: flex; justify-content: center; padding: var(--s-6) 0 0; }
@@ -467,25 +487,24 @@ export function MasterScreen() {
         .r10 .master-screen .master-add-ic { display: inline-flex; font-size: 18px; }
         .r10 .master-screen .menu {
           position: absolute; inset: auto; top: calc(100% + var(--s-2)); right: 0; left: auto; z-index: var(--z-menu);
-          display: block; width: auto; min-width: 260px; max-height: 420px; overflow: auto; padding: var(--s-2);
-          border-radius: var(--r-md); opacity: 1; pointer-events: auto; transform-origin: top right;
+          display: block; width: auto; min-width: 260px; max-height: 420px; overflow: auto; padding: var(--menu-pad);
+          border-radius: var(--menu-r); opacity: 1; pointer-events: auto; transform-origin: top right;
           animation: master-menu-in var(--d-quick) var(--e-out);
         }
         @keyframes master-menu-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } }
-        .r10 .master-screen .menu-title { padding: var(--s-2) var(--s-3); color: var(--ink-3); }
+        .r10 .master-screen .menu-title { padding: var(--s-2) var(--s-4); color: var(--ink-3); }
         .r10 .master-screen .menu button,
         .r10 .master-screen .menu label {
-          display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: var(--hit); padding: 0 var(--s-3);
-          border: 0; border-radius: var(--r-sm); background: none; text-align: left; cursor: pointer;
+          display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: var(--hit); padding: 0 var(--s-4);
+          border: 0; border-radius: var(--r-pill); background: none; text-align: left; cursor: pointer;
           font: 400 var(--t-body)/1.3 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink);
           opacity: 1; transform: none; transition: background-color var(--d-quick) var(--e-out);
         }
         @media (hover: hover) { .r10 .master-screen .menu button:hover, .r10 .master-screen .menu label:hover { background: var(--raised); } }
         .r10 .master-screen .menu button:focus-visible,
-        .r10 .master-screen .menu label:focus-within { outline: 2px solid var(--ink); outline-offset: -2px; }
+        .r10 .master-screen .menu label:has(:focus-visible) { outline: 2px solid var(--go); outline-offset: -2px; }
         .r10 .master-screen .menu .menu-back { color: var(--ink-3); }
         .r10 .master-screen .menu .n { display: inline-flex; margin-left: auto; color: var(--ink-3); font: 500 var(--t-label-sm)/1 var(--f-mono); }
-        .r10 .master-screen .menu input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--go); margin: 0; }
         .r10 .master-screen .swatch { width: 12px; height: 12px; border-radius: var(--r-xs); background: var(--c, var(--ink-3)); flex: none; }
 
         @media (max-width: 700px) {

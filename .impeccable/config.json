@@ -149,6 +149,21 @@
         ],
         "createdAt": "2026-09-28T05:13:52.466Z",
         "reason": "Vipin, 28 Sep: 'use these borders' (screenshot of the live app). The existing v2 double bezel (6px tray + inner plate, app/v2.css .bz/.pl) reads as a card in a card to the detector; it is the approved border."
+      },
+      {
+        "rule": "overused-font",
+        "value": "instrument sans",
+        "createdAt": "2026-09-29T14:37:13.434Z",
+        "reason": "Instrument Sans is the r10 body face (--f-body in app/r10/tokens.css, ADR-027 pixel contract), not a free choice"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "docs/email-templates/invite-operator.html"
+        ],
+        "createdAt": "2026-09-29T14:37:13.466Z",
+        "reason": "Uppercase is only on the short Anton headline, the Oswald labels and the button, as the r10 design uses them; the body paragraphs are sentence case"
       }
     ]
   }

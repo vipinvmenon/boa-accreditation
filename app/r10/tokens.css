@@ -1,3 +1,17 @@
+/* The design's own Anton fallback, metric-matched. The webfonts land a
+   frame or two after first paint; until then headlines set in the next face
+   in --f-display, Impact, which runs ~5% wide of Anton on mixed-case bold
+   headings. That was enough to wrap "Master list" past the Export button at
+   390 and jump the page 50px when Anton swapped in (0.2 layout shift).
+   An @font-face named Impact shadows the system Impact inside this document
+   only, and only as Anton's fallback (nothing else names Impact). size-adjust
+   is measured in Chromium against Anton; the overrides are Anton's own
+   ascent/descent over it, so line boxes keep their height. Where Impact is
+   not installed (Android) the face fails and the stack falls through to
+   sans-serif as before. The token stacks themselves are the r10 source's,
+   unchanged (scripts/check-design-tokens.mjs). */
+@font-face { font-family: 'Impact'; src: local('Impact'), local('Impact Regular'); size-adjust: 95%; ascent-override: 124.2%; descent-override: 34.7%; line-gap-override: 0%; }
+
 .r10 {
   --f-display: 'Anton', Impact, sans-serif;
   --f-label: 'Oswald', sans-serif;

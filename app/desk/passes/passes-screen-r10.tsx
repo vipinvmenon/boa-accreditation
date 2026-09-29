@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useRouter } from 'next/navigation'
 import { TIERS, tier, tierColour } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
-import { Button, Chip, EmptyState, HoldButton, Sheet, Skeleton, Table, TableCell } from '@/components/r10'
+import { Button, Chip, EmptyState, HoldButton, Sheet, Skeleton, SkeletonText, Table, TableCell } from '@/components/r10'
 import { Icon } from '@/components/icon'
 import { PassTicket } from '@/components/pass-ticket'
 import { passesResponseSchema, type Pass } from '@/lib/schemas/pass'
@@ -25,6 +25,14 @@ type PassWithQr = Pass & { qrSvg: string }
 type ToastState = { id: number; text: string; bad: boolean; icon: 'check-circle' | 'warning-circle' }
 
 const PAGE = 60
+const PASS_COLUMNS = [
+  { key: 'person', label: 'Person' },
+  { key: 'tier', label: 'Tier' },
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'action', label: '', className: 'cell-r' },
+]
+/** Name widths, in ch, for the loading rows: uneven so they read as names. */
+const PASS_SKELETON_NAMES = [15, 11, 17, 13, 16, 12, 14, 10]
 const FIELD_KEYS: FieldKey[] = ['send', 'tier', 'org']
 const FIELD_LABEL: Record<FieldKey, string> = { send: 'WhatsApp', tier: 'Tier', org: 'Organisation' }
 const PRESETS: Array<{ label: string; filters: Filters }> = [
@@ -353,14 +361,23 @@ export function PassesScreenR10() {
   const unsentLabel = `Send ${unsent.length} unsent passes`
 
   return (
-    <main id="main-content" tabIndex={-1} ref={rootRef} className="r10 passes-page">
+    <main id="main-content" tabIndex={-1} ref={rootRef} className="passes-page">
       <header className="passes-head">
         <div>
           <h1 className="display-lg">Passes</h1>
-          <p className="lede">{passes.length} approved people. {unsent.length} haven&apos;t got their pass yet.</p>
+          {loading
+            ? <p className="lede" aria-hidden="true"><SkeletonText w="3ch" /> approved people. <SkeletonText w="3ch" /> haven&apos;t got their pass yet.</p>
+            : <p className="lede">{passes.length} approved people. {unsent.length} haven&apos;t got their pass yet.</p>}
           {sends && !sends.configured && <p className="passes-note">WhatsApp isn&apos;t set up yet, so passes can&apos;t be sent from here. Copy a pass&apos;s WhatsApp link from its sheet instead.</p>}
         </div>
-        {unsent.length > 0 && (
+        {/* Held open while loading: until everyone has their pass there is
+            always a send action here, and at 390 it wraps onto its own row. */}
+        {loading && (
+          <div className="passes-actions" aria-hidden="true">
+            <Skeleton shape="btn" style={{ '--sk-w': '212px' } as CSSProperties} />
+          </div>
+        )}
+        {!loading && unsent.length > 0 && (
           <div className="passes-actions">
             <Button
               variant="primary"
@@ -457,7 +474,7 @@ export function PassesScreenR10() {
                 <Chip
                   key={preset.label}
                   preset
-                  count={passes.filter((pass) => matches(pass, preset.filters)).length}
+                  count={loading ? <SkeletonText w="1ch" /> : passes.filter((pass) => matches(pass, preset.filters)).length}
                   onActivate={() => changeFilters(structuredClone(preset.filters))}
                 >
                   {preset.label}
@@ -477,15 +494,30 @@ export function PassesScreenR10() {
             {activeFields.length >= 2 && <Button variant="ghost" className="btn-sm" onClick={() => changeFilters({})}>Clear all</Button>}
           </div>
           <span className="count body-sm" aria-live="polite">
-            {hasFilter ? <><strong>{filteredPasses.length}</strong> of {passes.length}</> : <><strong>{passes.length}</strong> people</>}
+            {loading
+              ? <><strong><SkeletonText w="3ch" /></strong> people</>
+              : hasFilter ? <><strong>{filteredPasses.length}</strong> of {passes.length}</> : <><strong>{passes.length}</strong> people</>}
           </span>
         </div>
       </div>
 
       {loading && (
-        <section className="passes-loading" aria-busy="true" aria-label="Loading passes">
-          {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} shape="line" className="passes-loading-line" />)}
-        </section>
+        <div className="passes-table-wrap" aria-busy="true">
+          <Table label="Loading passes" className="passes-table" columns={PASS_COLUMNS}>
+            {PASS_SKELETON_NAMES.map((w, index) => (
+              <div key={index} className="tr passes-row passes-row-skeleton" role="row" aria-hidden="true">
+                <TableCell><div className="nm"><SkeletonText w={`${w}ch`} /></div><div className="sub"><SkeletonText w={`${w + 12}ch`} /></div></TableCell>
+                <TableCell className="passes-tier hide-s"><span><SkeletonText w="6ch" /></span></TableCell>
+                <TableCell className="passes-wa hide-s"><Skeleton shape="pill" /></TableCell>
+                <TableCell className="cell-r hide-s"><Skeleton shape="btn" style={{ '--sk-w': '62px', height: '36px' } as CSSProperties} /></TableCell>
+                <div className="row2">
+                  <span className="passes-tier"><span><SkeletonText w="6ch" /></span></span>
+                  <Skeleton shape="pill" />
+                </div>
+              </div>
+            ))}
+          </Table>
+        </div>
       )}
       {!loading && error && (
         <EmptyState title="The list didn't load" error>
@@ -506,12 +538,7 @@ export function PassesScreenR10() {
       )}
       {!loading && !error && filteredPasses.length > 0 && (
         <div ref={tableRef} className="passes-table-wrap">
-          <Table label="Passes" className="passes-table" columns={[
-            { key: 'person', label: 'Person' },
-            { key: 'tier', label: 'Tier' },
-            { key: 'whatsapp', label: 'WhatsApp' },
-            { key: 'action', label: '', className: 'cell-r' },
-          ]}>
+          <Table label="Passes" className="passes-table" columns={PASS_COLUMNS}>
             {filteredPasses.slice(0, shown).map((pass) => {
               const sendState = sendByPerson.get(pass.id)
               const sendStatus = statusFor(sendState?.last?.status)
@@ -645,22 +672,16 @@ export function PassesScreenR10() {
         .passes-funnel { font-size: 18px; }
         /* v2.css leaks unscoped .search/.menu/.pop; the add-filter menu therefore uses its own class. */
         .passes-add-wrap { position: relative; }
-        .passes-menu { position: absolute; z-index: var(--z-menu); top: calc(100% + var(--s-2)); left: 0; min-width: 260px; max-height: 420px; overflow: auto; padding: var(--s-2); border-radius: var(--r-md); background: var(--glass-fill-strong); box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); transform-origin: top left; animation: passes-menu-in var(--d-quick) var(--e-out); }
+        .passes-menu { position: absolute; z-index: var(--z-menu); top: calc(100% + var(--s-2)); left: 0; min-width: 260px; max-height: 420px; overflow: auto; padding: var(--menu-pad); border-radius: var(--menu-r); background: var(--glass-fill-strong); box-shadow: var(--edge), var(--glass-shadow); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); transform-origin: top left; animation: passes-menu-in var(--d-quick) var(--e-out); }
         @keyframes passes-menu-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } }
-        .passes-menu-title { padding: var(--s-2) var(--s-3); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-        .passes-menu button, .passes-menu label { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: var(--hit); padding: 0 var(--s-3); border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+        .passes-menu-title { padding: var(--s-2) var(--s-4); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+        .passes-menu button, .passes-menu label { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: var(--hit); padding: 0 var(--s-4); border: 0; border-radius: var(--r-pill); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
         .passes-menu .n { margin-left: auto; color: var(--ink-3); font: 500 var(--t-label-sm)/1 var(--f-mono); }
-        .passes-menu input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--go); }
-        .passes-menu button:focus-visible, .passes-menu label:focus-within { outline: 2px solid var(--ink); outline-offset: -2px; }
+        .passes-menu button:focus-visible, .passes-menu label:has(:focus-visible) { outline: 2px solid var(--go); outline-offset: -2px; }
         .passes-swatch { width: 12px; height: 12px; border-radius: var(--r-xs); background: var(--c, var(--ink-3)); flex: none; }
         .passes-banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-bottom: var(--s-6); padding: var(--s-4) var(--s-5); border-radius: var(--r-md); background: var(--bad-tint); color: var(--ink); }
         .passes-banner .ph-light { color: var(--bad); font-size: 20px; }
         .passes-banner-btn { margin-left: auto; }
-        .r10.passes-page { isolation: auto; }
-        /* r10-foundation: the sheet sits inside .r10 .passes-page, which re-declares isolation:isolate on top of
-           the DeskChrome wrapper's own .r10 isolation; that nested stacking context capped the sheet's z-index
-           and the header avatar painted over its close button (confirmed with elementFromPoint). Cancelling the
-           redundant isolation lets the sheet's own z-index compare against the header again. */
         .passes-table { --cols: minmax(220px, 2.4fr) minmax(110px, .9fr) minmax(170px, 1.3fr) 120px; }
         .passes-table-wrap { min-width: 0; }
         .passes-row { cursor: pointer; --c: var(--ink-3); }
@@ -674,8 +695,7 @@ export function PassesScreenR10() {
         .passes-stamp { color: var(--ink-3); }
         .passes-row .row2 { display: none; }
         .passes-more { display: flex; justify-content: center; padding: var(--s-6) 0 0; }
-        .passes-loading { display: grid; gap: var(--s-4); padding: var(--s-6); }
-        .passes-loading-line { width: 100%; height: 56px; border-radius: var(--r-sm); }
+        .passes-row-skeleton { cursor: default; }
         .passes-ticket { margin-bottom: var(--s-6); }
         .passes-sheet-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); width: 100%; }
         .passes-sheet-confirm p { flex: 1 1 220px; margin: 0; color: var(--ink-2); }

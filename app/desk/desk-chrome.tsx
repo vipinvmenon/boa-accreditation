@@ -8,6 +8,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
+import { rememberDeskNav } from '@/lib/nav-memory'
 import { Icon } from '@/components/icon'
 import { Skeleton } from '@/components/states/skeleton'
 import { z } from 'zod'
@@ -68,9 +69,11 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
         // ACC-150 (ADR-020): an issuer has no desk. Every desk RPC refuses them
         // in the database; this only saves them looking at empty screens.
         if (own.role === 'issuer') {
+          rememberDeskNav(false)
           router.replace('/gate')
           return
         }
+        rememberDeskNav(true)
         setMe(own)
         setMeError(false)
       } catch {
@@ -183,8 +186,17 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
 
   // DeskChrome remounts on every route, so the pill glides to the clicked link now and
   // the next page mounts it already there, rather than sliding after that page loads.
-  function glidePip(target: HTMLElement) {
-    const pip = document.getElementById('desk-links')?.querySelector<HTMLElement>('.pip')
+  function glidePip(target: HTMLAnchorElement) {
+    const links = document.getElementById('desk-links')
+    // /gate mounts GateChrome in place of this one, which cut a glide started here
+    // short: the pill appeared already at Gate (Vipin, 29 Sep). Hand over where the
+    // pill is now, and GateChrome slides it across once it mounts.
+    if (target.pathname.startsWith('/gate')) {
+      const current = links?.querySelector<HTMLElement>('[aria-current="page"]')
+      if (current) window.sessionStorage.setItem('boa-pip', JSON.stringify({ left: current.offsetLeft, width: current.offsetWidth }))
+      return
+    }
+    const pip = links?.querySelector<HTMLElement>('.pip')
     const geometry = { left: target.offsetLeft, width: target.offsetWidth }
     if (pip) {
       pip.style.width = `${geometry.width}px`
@@ -197,6 +209,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     if (signingOut) return
     setSigningOut(true)
     await supabaseBrowser().auth.signOut()
+    rememberDeskNav(false)
     router.replace('/desk/login')
   }
 

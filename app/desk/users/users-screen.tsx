@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Icon } from '@/components/icon'
 import { Button, Field, Select, StatusPill } from '@/components/r10/primitives-a'
-import { EmptyState, Sheet, Skeleton, Table, TableCell, Toast } from '@/components/r10/primitives-b'
+import { EmptyState, Sheet, Skeleton, SkeletonText, Table, TableCell, Toast } from '@/components/r10/primitives-b'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, setOperatorActiveResultSchema, type OperatorRow } from '@/lib/schemas/operator'
@@ -23,6 +23,13 @@ const errorOverrides = {
 }
 type InviteForm = { displayName: string; email: string; role: OperatorRow['role'] }
 const initialInvite: InviteForm = { displayName: '', email: '', role: 'issuer' }
+
+const USER_COLUMNS = [
+  { key: 'name', label: 'Name' },
+  { key: 'role', label: 'Role' },
+  { key: 'status', label: 'Status' },
+  { key: 'open', label: <span className="sr-only">Open</span> },
+]
 
 export function UsersScreen() {
   const router = useRouter()
@@ -141,20 +148,26 @@ export function UsersScreen() {
         <Button onClick={() => { setOperators(null); void load() }}>Try again <Icon name="arrow-right" /></Button>
       </EmptyState>}
       {operators === null && !loadError && (
-        <div className="users-table card" role="status" aria-label="Loading operators" aria-busy="true">
-          {Array.from({ length: 5 }, (_, index) => <div className="user-skeleton" key={index}><Skeleton /><Skeleton shape="pill" /></div>)}
+        // The loaded table's header and row markup with skeleton values, so
+        // each row is its real height and the header does not appear late.
+        <div role="status" aria-label="Loading operators" aria-busy="true">
+          <Table label="Loading operators" columns={USER_COLUMNS} className="users-table card">
+            {[16, 12, 18, 14].map((w, index) => (
+              <div key={index} className="user-row user-row-skeleton" role="row" aria-hidden="true">
+                <TableCell><strong className="users-nm"><SkeletonText w={`${w}ch`} /></strong><span className="mono ink-2"><SkeletonText w="10ch" /></span></TableCell>
+                <TableCell><SkeletonText w="9ch" /></TableCell>
+                <TableCell><Skeleton shape="pill" /></TableCell>
+                <TableCell className="user-arrow"><Skeleton shape="dot" /></TableCell>
+              </div>
+            ))}
+          </Table>
         </div>
       )}
       {operators?.length === 0 && <EmptyState title="Only you so far" icon={<Icon name="plus" />}>
         Invite the desk and the gate issuers. Each gets an email to set a password.
       </EmptyState>}
       {operators && operators.length > 0 && (
-        <Table label="Operators" columns={[
-          { key: 'name', label: 'Name' },
-          { key: 'role', label: 'Role' },
-          { key: 'status', label: 'Status' },
-          { key: 'open', label: <span className="sr-only">Open</span> },
-        ]} className="users-table card">
+        <Table label="Operators" columns={USER_COLUMNS} className="users-table card">
           {operators.map((operator) => (
             <div key={operator.user_id} className="user-row" role="row" tabIndex={0} onClick={() => openOperator(operator)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openOperator(operator) } }}>
               <TableCell><strong className="users-nm">{operator.display_name}{operator.user_id === callerId && <span className="users-you"> (you)</span>}</strong><span className="mono ink-2">{operator.created_at.slice(0, 10)}</span></TableCell>
@@ -231,7 +244,7 @@ export function UsersScreen() {
         .r10 .access-section .label { margin:0; color:var(--gold); }
         .r10 .confirm { display:grid; gap:var(--s-3); padding:var(--s-4); border-radius:var(--r-md); background:var(--bad-tint); }
         .r10 .confirm-actions { display:flex; flex-wrap:wrap; gap:var(--s-3); }
-        .r10 .user-skeleton { display:flex; justify-content:space-between; align-items:center; min-height:76px; padding:var(--s-4) var(--s-6); box-shadow:inset 0 -1px 0 var(--hair); }
+        .r10 .user-row.user-row-skeleton { cursor:default; pointer-events:none; }
         @media (max-width:700px) {
           .r10 .users-head { align-items:start; flex-direction:column; gap:var(--s-5); margin-bottom:var(--s-6); }
           .r10 .users-head .btn { width:100%; }

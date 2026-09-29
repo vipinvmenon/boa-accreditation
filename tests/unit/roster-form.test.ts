@@ -228,6 +228,8 @@ describe('roster form — what it asks', () => {
       'Sponsor',
       'Special Tickets Crew',
       'BOA Internal Crew',
+      'Family & Friends',
+      'Media / Photo',
     ])
   })
 

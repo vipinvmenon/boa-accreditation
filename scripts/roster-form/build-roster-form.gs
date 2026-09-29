@@ -73,7 +73,7 @@ var Q = {
 };
 
 /** As given by Salman, 21 Sep 2026, plus an "Other" write-in, Special Tickets
- *  Crew and BOA Internal Crew (all Vipin, same day). Add a type here, not in the
+ *  Crew and BOA Internal Crew (all Vipin, same day), then Family & Friends and Media / Photo (Vipin, 29 Sep). Add a type here, not in the
  *  form editor, so it stays recorded. */
 var CREW_TYPES = [
   'Security',
@@ -89,6 +89,8 @@ var CREW_TYPES = [
   'Sponsor',
   'Special Tickets Crew',
   'BOA Internal Crew',
+  'Family & Friends',
+  'Media / Photo',
 ];
 
 /** Mirrors the boa_acc_day_validity enum: build / show / build_show. */

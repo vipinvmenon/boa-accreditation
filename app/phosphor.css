@@ -63,3 +63,7 @@
 .ph-light.ph-ticket:before { content: '\e490'; }
 .ph-light.ph-users-three:before { content: '\e68e'; }
 .ph-light.ph-warning-circle:before { content: '\e4e2'; }
+/* Password show/hide on sign-in (29 Sep), from @phosphor-icons/web@2.1.1
+   src/light/style.css, verbatim; glyphs uniE220 / uniE224 are in the font. */
+.ph-light.ph-eye:before { content: '\e220'; }
+.ph-light.ph-eye-slash:before { content: '\e224'; }

@@ -14,6 +14,7 @@ export {
   EmptyState,
   Sheet,
   Skeleton,
+  SkeletonText,
   Table,
   TableCell,
   TableRow,

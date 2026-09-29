@@ -54,6 +54,7 @@
     "qrcode": "1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "styled-jsx": "5.1.6",
     "zod": "^4.1.8",
     "zxing-wasm": "^2.1.0"
   },

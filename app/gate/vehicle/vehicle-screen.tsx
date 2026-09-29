@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { gateDb } from '@/gate/db'
 import { normalizePlate, queueVehicleEvent, resolvePlate, type PlateResolution } from '@/gate/vehicle-flow'
@@ -8,6 +7,7 @@ import { Icon } from '@/components/icon'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { useGateSessionGuard } from '@/gate/use-session-guard'
 import { SyncStatus } from '../sync-status'
+import { GateTabs } from '../gate-tabs'
 
 /**
  * 'blocked' = "Log entry" was pressed but a system check failed. Nothing is
@@ -156,10 +156,7 @@ export function VehicleScreen() {
         {/* r8-vehicle.html opens with this segmented control, not a v2-style
             hero header (no "Vehicle entrance" tag, no h1, no lede) — the
             gate's own nav island already names the screen. */}
-        <nav className="segmented" aria-label="Check in people or vehicles">
-          <Link href="/gate">People</Link>
-          <Link href="/gate/vehicle" aria-current="page">Vehicles</Link>
-        </nav>
+        <GateTabs />
 
         <div className="veh-split">
           <section className="panel veh-entry">
@@ -240,10 +237,9 @@ export function VehicleScreen() {
       <style jsx global>{`
         /* Compound, not descendant: .r10 and .vehicle-screen sit on the same
            root element, so ".r10 .vehicle-screen" (a space) never matches. */
-        .r10 .vehicle-screen { padding-block: var(--s-6) var(--s-10); }
-        .r10 .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: var(--s-5); }
-        .r10 .segmented a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-        .r10 .segmented a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
+        /* Same top space and equal-width tabs as /gate (app/gate/page.tsx). */
+        .r10 .vehicle-screen { padding-block: var(--s-10) var(--s-10); }
+        @media (max-width: 700px) { .r10 .vehicle-screen { padding-top: var(--s-6); } }
         .r10 .veh-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; max-width: 640px; }
         /* .panel (app/r10/base.css) supplies the r10 tray, bezel and 34px
            padding; the gate keeps it solid on phones (no backdrop-filter). */
@@ -256,7 +252,6 @@ export function VehicleScreen() {
            taking layout space, so the panel reserves the room itself. */
         .r10 .vehicle-screen .veh-entry { padding-bottom: calc(34px + var(--s-5)); }
 
-        .r10 .veh-result { margin-top: var(--s-5); }
         .r10 .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-6) 0; }
         .r10 .veh-idle p { margin: 0; }
         .r10 .veh-result .verdict { margin: 0; color: var(--ink); }
@@ -273,6 +268,14 @@ export function VehicleScreen() {
 
         @media (min-width: 700px) {
           .r10 .veh-dock { grid-auto-flow: column; grid-auto-columns: 1fr; }
+        }
+
+        /* Side by side, like /gate's scan and result panels (Vipin, 29 Sep):
+           the same container width as .gate-split's two columns. In a half
+           column the two actions stack, as the gate's .g-dock does. */
+        @container app (min-width: 1000px) {
+          .r10 .veh-split { grid-template-columns: 1fr 1fr; align-items: start; max-width: none; }
+          .r10 .veh-dock { grid-auto-flow: row; }
         }
       `}</style>
     </>

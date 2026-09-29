@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
@@ -10,12 +9,15 @@ import { enqueueIssue, pullGate, readGateSnapshot, type GateSnapshot } from '@/g
 import { GATE_PATH, loginHref, redirectIfSignedOut } from '@/gate/session'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { scanFrame } from '@/gate/scanner'
-import { DAY_VALIDITY, tierColour } from '@/lib/design'
+import { tierColour } from '@/lib/design'
 import { gateBandCard } from '@/gate/band-card'
 import { formatRecentLedgerRow } from '@/lib/format'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
+import { GateTicket } from '@/components/pass-ticket'
+import { SkeletonText } from '@/components/r10'
 import { PersonSearch } from './person-search'
+import { GateTabs } from './gate-tabs'
 import { SyncStatus } from './sync-status'
 
 export default function GatePage() {
@@ -258,7 +260,6 @@ export default function GatePage() {
   const verdict = resolution?.status === 'green' ? 'Approved' : resolution?.status === 'amber' ? 'Collected' : resolution?.status === 'red' ? 'Refuse' : 'Ready'
   const outcome = resolution?.status === 'green' ? 'ok' : resolution?.status === 'amber' ? 'col' : resolution?.status === 'red' ? 'bad' : undefined
   const person = resolution?.status === 'red' ? null : resolution?.person
-  const card = person ? gateBandCard(person.typeCode) : null
   const stickerDue = resolution?.status === 'green' ? resolution.stickerDue : false
   const issued = resolution?.status === 'green' && issuedTo === resolution.person.passToken
   const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
@@ -275,7 +276,41 @@ export default function GatePage() {
     if (!resolution && !searchOpen) scannerInputRef.current?.focus()
   }, [resolution, searchOpen])
 
-  if (!snapshot) return <div style={{ minHeight: '60vh' }} />
+  // While this phone's list is read from Dexie (a few frames), draw the
+  // gate itself: the tabs, the viewfinder, the idle result panel, with
+  // skeletons only where the phone's own data goes. It had been an empty
+  // 60vh box, so the whole screen popped in after arriving (Vipin, 29 Sep).
+  if (!snapshot) {
+    return (
+      <>
+        <div className="gate-screen" aria-busy="true">
+          <GateTabs />
+          <div className="gate-split">
+            <div className="panel panel-scan">
+              <div className="viewfinder" data-camera="off">
+                <i className="vf-corner tl" /><i className="vf-corner tr" /><i className="vf-corner bl" /><i className="vf-corner br" />
+              </div>
+              <div className="scan-copy" aria-hidden="true">
+                <h3 className="label">Scan a pass</h3>
+                <p className="body-sm ink-2"><SkeletonText w="17ch" /></p>
+                <p className="mono"><SkeletonText w="18ch" /></p>
+              </div>
+              <div className="scan-meta mono" aria-hidden="true">
+                <span><SkeletonText w="26ch" /></span>
+              </div>
+              <button type="button" className="btn btn-gate btn-block" disabled>
+                <Icon name="magnifying-glass" />Can&apos;t scan? Search by name
+              </button>
+            </div>
+            <div className="panel panel-result">
+              <div className="result-idle"><span className="label-sm">Waiting for a scan</span><h2 className="display-md verdict">Ready</h2><p className="ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>
+            </div>
+          </div>
+        </div>
+        <style jsx global>{GATE_CSS}</style>
+      </>
+    )
+  }
 
   // No approved list on this phone: never a scanner, which would answer
   // "Refuse" to every real pass. The list loads itself once, with signal,
@@ -305,7 +340,7 @@ export default function GatePage() {
         </section>
         <style jsx global>{`
           .r10 .gate-empty { display: grid; place-items: center; padding: var(--s-6) var(--gutter); }
-          .r10 .gate-empty .no-roster { display: grid; justify-items: start; gap: var(--s-3); width: 100%; max-width: 560px; padding: var(--s-10) var(--s-6); border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
+          .r10 .gate-empty .no-roster { display: grid; justify-items: start; gap: var(--s-3); width: 100%; max-width: 560px; padding: var(--s-10) var(--s-6); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--edge); }
           .r10 .gate-empty .no-roster > h1, .r10 .gate-empty .no-roster > p { margin: 0; }
           .r10 .gate-empty .no-roster > .btn { margin-top: var(--s-3); }
         `}</style>
@@ -321,10 +356,7 @@ export default function GatePage() {
       <div className="gate-screen">
         {/* r8-gate.html opens with this segmented control, not a hero header:
             the nav island above already names the screen. */}
-        <nav className="segmented" aria-label="Check in people or vehicles">
-          <Link href="/gate" aria-current="page">People</Link>
-          <Link href="/gate/vehicle">Vehicles</Link>
-        </nav>
+        <GateTabs />
         <div className="gate-split" data-resolution={resultKey}>
           <div className="panel panel-scan">
             <div className="viewfinder" data-camera={cameraActive ? 'on' : 'off'}>
@@ -370,10 +402,9 @@ export default function GatePage() {
                   <p className="body-sm g-sub">{issued ? 'Band issued · send them through' : resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</p>
                 </div>
               </div>
-              {person && card && <div className="gband" style={{ '--c': tierColour(person.typeCode, theme) } as CSSProperties}><b>{card.label}</b><small>{card.handOver}</small></div>}
-              {person && card && <div className="person"><div className="nm display-md g-name">{person.fullName}</div><p className="body-sm g-who">{person.orgName} · {person.roleText} · {person.dayValidity === 'build_show' ? 'Build + show day' : DAY_VALIDITY[person.dayValidity]}</p></div>}
-              {person && card && <div className="zones">{card.zones.map((zone) => <span key={zone.zone} className={zone.held ? undefined : 'off'} style={{ '--c': ZONE_COLOUR[zone.zone] } as CSSProperties}>{zone.text}</span>)}</div>}
-              {stickerDue && person && <div className="g-vehicle"><span className="label-sm">Sticker due</span><b>{person.vehicleReg}</b></div>}
+              {/* The person as their pass shows them: band, name, tier and
+                  days, and only the zones they may enter (Vipin, 29 Sep). */}
+              {person && <GateTicket fullName={person.fullName} orgName={person.orgName} role={person.roleText} typeCode={person.typeCode} dayValidity={person.dayValidity} vehicleReg={person.vehicleReg ?? null} stickerDue={stickerDue} />}
               {resolution.status === 'amber' && <div className="g-note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
               {resolution.status === 'red' && <div className="g-note bad"><b>Do not let them in.</b> This token is not on the approved list.</div>}
               <div className="g-dock">
@@ -417,26 +448,19 @@ export default function GatePage() {
   )
 }
 
-/** The zone squares of the printed map (r8-gate.html's `R8.ZONES`), by zone code. */
-const ZONE_COLOUR: Record<string, string> = {
-  festival_area: 'var(--zone-green)',
-  eddies_lounge: 'var(--zone-red)',
-  promoters_lounge: 'var(--zone-blue)',
-  photo_pit: 'var(--zone-yellow)',
-  backstage: 'var(--zone-purple)',
-  main_stage: 'var(--zone-orange)',
-}
-
 const GATE_CSS = `
-  .r10 .gate-screen { padding-block: var(--s-4) var(--s-10); }
-  .r10 .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: var(--s-5); }
-  .r10 .segmented a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-  .r10 .segmented a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
+  /* Equal-width tabs, and the desk's own .page top space (40px, 24px on a
+     phone): the nav is sticky at top 12px, so it overlaps its slot by 12px
+     and the old 16px left the tabs 4px under it (Vipin, 29 Sep). The two
+     tabs share one grid, columns the width of the wider label. */
+  .r10 .gate-screen { padding-block: var(--s-10) var(--s-10); }
+  @media (max-width: 700px) { .r10 .gate-screen { padding-top: var(--s-6); } }
 
   .r10 .gate-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; align-items: start; }
-  /* Gate surfaces are always solid: no backdrop-filter, on any viewport. */
-  .r10 .gate-screen .panel { position: relative; border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); padding: calc(6px + 28px); overflow: hidden; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .r10 .gate-screen .panel::before, .r10 .gate-screen .panel::after { content: none; }
+  /* The gate's panels are the shared .panel (base.css): the tray and glass
+     plate the vehicle screen and the desk cards draw. A flat box with its own
+     hairline here read as a different component (Vipin, 29 Sep). */
+  .r10 .gate-screen .panel { overflow: hidden; }
 
   /* Phone: one panel, two states (scan or result), in place. The scan panel is
      clipped, not display:none, so the camera keeps decoding behind a result. */
@@ -445,9 +469,15 @@ const GATE_CSS = `
   .r10 .gate-split[data-resolution] .panel-result { display: block; }
   .r10 .result-idle { display: none; }
 
-  .r10 .viewfinder { position: relative; aspect-ratio: 1 / 1; max-height: 46vh; margin-inline: auto; border-radius: var(--r-md); background: #000; overflow: hidden; display: grid; place-items: center; }
+  /* Not the mockup's #000 (Vipin, 29 Sep): a dark see-through well that
+     belongs to the glass panel around it. The camera feed covers it once on. */
+  .r10 .viewfinder { position: relative; aspect-ratio: 1 / 1; max-height: 46vh; margin-inline: auto; border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 55%, transparent); box-shadow: inset 0 0 0 1px var(--edge-line); overflow: hidden; display: grid; place-items: center; }
   .r10 .vf-video { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; }
   .r10 .vf-corner { position: absolute; z-index: 1; width: 26px; height: 26px; }
+  /* The top-right corner's class is "tr", which the table-row primitive
+     (.r10 .tr) also matches: 64px min-height, padding and a hairline, so that
+     corner drew longer than the other three with a stray line under it. */
+  .r10 .viewfinder .vf-corner.vf-corner { display: block; min-height: 0; padding: 0; background: none; box-shadow: none; }
   .r10 .vf-corner.tl { top: var(--s-4); left: var(--s-4); border-top: 3px solid var(--gold); border-left: 3px solid var(--gold); border-radius: var(--r-xs) 0 0 0; }
   .r10 .vf-corner.tr { top: var(--s-4); right: var(--s-4); border-top: 3px solid var(--gold); border-right: 3px solid var(--gold); border-radius: 0 var(--r-xs) 0 0; }
   .r10 .vf-corner.bl { bottom: var(--s-4); left: var(--s-4); border-bottom: 3px solid var(--gold); border-left: 3px solid var(--gold); border-radius: 0 0 0 var(--r-xs); }
@@ -473,11 +503,11 @@ const GATE_CSS = `
   .r10 .name-search { display: grid; gap: var(--s-3); margin-top: var(--s-4); }
   .r10 .name-search .field { display: grid; gap: var(--s-2); }
   .r10 .name-search .field > span { color: var(--ink-2); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-  .r10 .name-search input[type="search"] { width: 100%; min-height: var(--h-control); padding: 0 var(--s-4); border: 0; border-radius: var(--r-md); background: var(--raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); font: 400 var(--t-body)/1.2 var(--f-body); }
-  .r10 .name-search input[type="search"]:focus { outline: 0; box-shadow: inset 0 0 0 2px var(--ink); }
+  .r10 .name-search input[type="search"] { width: 100%; min-height: var(--h-control); padding: 0 var(--s-5); border: 0; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); box-shadow: var(--edge); font: 400 var(--t-body)/1.2 var(--f-body); }
+  .r10 .name-search input[type="search"]:focus { outline: 0; box-shadow: var(--edge-focus); }
   .r10 .name-search .mono { margin: 0; color: var(--ink-3); }
   .r10 .name-search-results { display: grid; gap: var(--s-2); }
-  .r10 .name-search-result { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 56px; padding: var(--s-2) var(--s-4); border-radius: var(--r-md); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); cursor: pointer; }
+  .r10 .name-search-result { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 56px; padding: var(--s-2) var(--s-4); border-radius: var(--r-md); background: var(--raised); box-shadow: var(--edge); cursor: pointer; }
   .r10 .name-search-result[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
   .r10 .name-search-result b { display: block; font-weight: 600; }
   .r10 .name-search-result small { display: block; color: var(--ink-3); font-size: var(--t-body-sm); }
@@ -488,19 +518,6 @@ const GATE_CSS = `
   .r10 .mark svg { width: 40px; height: 40px; stroke: var(--c); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
   .r10 .g-verdict, .r10 .result-idle .verdict { margin: 0; color: var(--ink); }
   .r10 .g-sub { margin: 2px 0 0; color: var(--ink-2); }
-  .r10 .gband { display: grid; gap: 2px; padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); background: color-mix(in srgb, var(--c) 30%, var(--surface)); box-shadow: inset 0 0 0 1px var(--gold-hair), inset 4px 0 0 var(--c); }
-  .r10 .gband b { font: 400 var(--t-display-sm)/1 var(--f-display); text-transform: uppercase; letter-spacing: 0; }
-  .r10 .gband small { color: var(--ink-2); font-size: var(--t-body-sm); }
-  .r10 .person { margin-top: var(--s-4); }
-  .r10 .person .nm { margin: 0; font-family: var(--f-display); font-weight: 400; letter-spacing: normal; text-transform: uppercase; color: var(--ink); }
-  .r10 .g-who { margin: 4px 0 0; color: var(--ink-2); }
-  .r10 .zones { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: var(--s-3) 0 0; font-size: var(--t-body-sm); }
-  .r10 .zones span { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .r10 .zones span::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
-  .r10 .zones span.off { color: var(--ink-3); }
-  .r10 .zones span.off::before { background: var(--hair-strong); }
-  .r10 .g-vehicle { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); }
-  .r10 .g-vehicle b { font: 500 var(--t-mono)/1 var(--f-mono); letter-spacing: .04em; }
   .r10 .g-note { margin: var(--s-4) 0 0; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--raised); color: var(--ink-2); }
   .r10 .g-note.bad { background: var(--bad-tint); color: var(--ink); }
   .r10 .panel-scan > .g-note { margin-top: var(--s-4); }
@@ -518,13 +535,7 @@ const GATE_CSS = `
   .r10 .last-row .sub { color: var(--ink-3); font-size: var(--t-body-sm); }
   .r10 .last-meta { display: flex; justify-content: space-between; gap: var(--s-3); margin: var(--s-3) 0 0; color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
 
-  /* app/v2.css's unscoped .zones/.person/.gband/.sub/.name-search* leak into this markup. */
-  .r10 .gate-screen .zones span { padding: 0; border-radius: 0; background: none; box-shadow: none; font: inherit; font-size: var(--t-body-sm); letter-spacing: normal; text-transform: none; color: var(--ink); text-decoration: none; }
-  .r10 .gate-screen .zones span.off { color: var(--ink-3); text-decoration: none; background: none; box-shadow: none; }
-  .r10 .gate-screen .person { padding-top: 0; box-shadow: none; }
-  .r10 .gate-screen .person .nm { font-size: var(--t-display-md); line-height: .95; }
-  .r10 .gate-screen .gband small { font-family: var(--f-body); font-size: var(--t-body-sm); font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--ink-2); }
-  .r10 .gate-screen .gband b { display: block; margin: 0; font-size: var(--t-display-sm); color: var(--ink); }
+  /* app/v2.css's unscoped .sub/.name-search* leak into this markup. */
   .r10 .gate-screen .last-row .sub { margin: 0; font-family: var(--f-body); font-size: var(--t-body-sm); letter-spacing: normal; color: var(--ink-3); }
   .r10 .gate-screen .name-search { margin-top: var(--s-4); padding: 0; border-radius: 0; background: none; box-shadow: none; }
   .r10 .gate-screen .name-search-results { gap: var(--s-2); background: none; }
