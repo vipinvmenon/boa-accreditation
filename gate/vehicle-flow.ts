@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { GateDatabase, LedgerRow, StickerRow } from './db'
+import type { GateDatabase, LedgerRow } from './db'
 import { gateBandCard } from './band-card'
 import {
   vehicleChecksSchema,
@@ -53,10 +53,6 @@ export async function queueVehicleEvent(
     attempts: 0,
   })
   return action
-}
-
-export function stickerForPlate(db: GateDatabase, plate: string): Promise<StickerRow | undefined> {
-  return db.sticker.get(normalizePlate(plate))
 }
 
 /**

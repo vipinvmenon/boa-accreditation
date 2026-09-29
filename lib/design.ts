@@ -55,14 +55,6 @@ export const PROP = {
   },
 } as const satisfies Record<Theme, Record<string, string>>
 
-/** renderVals() line 622. Dark only; light returns 'none'. */
-export const glowFor = (colour: string, theme: Theme): string =>
-  theme === 'dark' ? `0 0 16px ${colour}55, 0 0 38px ${colour}22` : 'none'
-
-/** The approved header logo filter, from renderVals() line 822. */
-export const logoFilterFor = (theme: Theme): string =>
-  theme === 'dark' ? 'drop-shadow(0 0 16px rgba(0,245,165,0.45))' : 'none'
-
 /**
  * The seven zones, in the design's own ALL_ZONES order (line 570).
  * Order is load-bearing: every zone strip renders in this order, with
@@ -194,18 +186,6 @@ export const GATE_NAV = [
  * mobile vs. desktop layout purely through this real breakpoint.
  */
 export const MOBILE_BREAKPOINT_PX = 768
-export const SHELL_MAX_PX = 1280
-
-/** The scan verdicts. Three outcomes, no fourth (renderVals() scanMap). */
-export const SCAN_VERDICTS = ['idle', 'green', 'amber', 'red'] as const
-export type ScanVerdict = (typeof SCAN_VERDICTS)[number]
-
-export const SCAN_COPY: Record<ScanVerdict, { verdict: string; sub: string }> = {
-  idle: { verdict: 'Ready', sub: 'Waiting for a scan' },
-  green: { verdict: 'Approved', sub: 'Not yet collected · issue a band' },
-  amber: { verdict: 'Collected', sub: 'A band was already issued to this person' },
-  red: { verdict: 'Refuse', sub: 'Unknown, rejected or voided token' },
-}
 
 /** Day validity, from the design's SHEET rows ('Build + show' / 'Build day' / 'Show day'). */
 export const DAY_VALIDITY = {

@@ -47,9 +47,7 @@ import { useDomTheme } from '@/lib/use-theme'
  * the heading — a blank card while `supabase.auth.getUser()` resolves. That
  * reads as broken, not busy. This is a skeleton of the sign-in form (the
  * mode almost everyone lands in), built from the same `Skeleton` primitive
- * and `.utility-skeleton-*` classes (app/v2.css) every other desk screen's
- * loading state already uses (components/loading-skeleton.tsx) — not a new
- * loading language, the login card's own shape drawn in placeholder bars.
+ * and `.utility-skeleton-*` classes (app/v2.css) — not a new loading language, the login card's own shape drawn in placeholder bars.
  */
 function LoginFormSkeleton() {
   return (

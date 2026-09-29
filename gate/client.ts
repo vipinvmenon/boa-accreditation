@@ -1,7 +1,6 @@
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb } from './db'
 import { drainOutbox } from './outbox'
-import { hasAuthStoppedEntry } from './outbox-policy'
 import { pullGate, type GateSnapshot } from './roster'
 
 export { drainOutbox, pullGate }
@@ -43,16 +42,4 @@ export async function enqueueIssue(action: GateIssue): Promise<void> {
   })
 }
 
-export async function queuedCount(): Promise<number> {
-  return gateDb.outbox.where('status').anyOf('pending', 'syncing').count()
-}
-
-/**
- * True when queued work is waiting for a login: the last drain was refused
- * with a 401/403 (gate/outbox-policy.ts). Read from Dexie, so it survives a
- * reload with the radio off.
- */
-export async function needsLogin(): Promise<boolean> {
-  return hasAuthStoppedEntry(await gateDb.outbox.where('status').equals('pending').toArray())
-}
 

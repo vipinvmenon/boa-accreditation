@@ -22,10 +22,6 @@ export const REQUESTABLE_TIER_CODES = REQUESTABLE_TIERS.map((t) => t.code) as un
   ...RequestableTierCode[],
 ]
 
-export function isRequestable(code: TierCode): code is RequestableTierCode {
-  return REQUESTABLE_TIERS.some((t) => t.code === code)
-}
-
 /**
  * One chip per zone, all six in sheet order, for the v2 `.zones` strip. An
  * unheld zone keeps its plain label and is struck through by the `.off` class,

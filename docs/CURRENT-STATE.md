@@ -5,6 +5,38 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (all five desk screens matched to r10 mockups by screenshot)._
 
+## Dead code removed, 29 Sep 2026
+
+- **What (Vipin):** "remove all the code which are unnecessary; this
+  shouldn't break any existing functionalities".
+- **Found by:** `npx knip@5`, then each candidate grepped by hand across
+  code, tests, CSS and scripts. Only things with no caller anywhere went.
+- **Deleted files:** `components/states/{empty-state,inline-confirm,
+  inline-error}.tsx` and its `index.ts` (screens use the r10 primitives);
+  `components/loading-skeleton.tsx` (four per-screen skeletons nothing
+  rendered; `desk-chrome.tsx` now imports `Skeleton` from
+  `components/states/skeleton.tsx` directly); `lib/schemas/aaa.ts` and
+  `lib/schemas/submission.ts` (the AAA and `/s` flows they served are
+  gone); `lib/use-reveal.ts`.
+- **Deleted functions:** `queuedCount`/`needsLogin` (`gate/client.ts`),
+  `stickerForPlate` (`gate/vehicle-flow.ts`), `glowFor`, `logoFilterFor`,
+  `SHELL_MAX_PX`, `SCAN_VERDICTS`, `SCAN_COPY` (`lib/design.ts`),
+  `isRequestable` (`lib/desk-tiers.ts`), `formatMasterBand`
+  (`lib/format.ts`). `MOBILE_BREAKPOINT_PX` stays: CSS and scripts cite it.
+- **Deleted CSS (`app/v2.css`, 76 lines):** `.passes-skeleton-*`,
+  `.control-skeleton-*`, `.inline-error*`, `.inline-confirm*`,
+  `.status-skeleton`, and the `.utility-skeleton-*` rules only the deleted
+  skeletons used. Sign-in keeps `-field`, `-input` and `-button`.
+- **Kept on purpose:** `design/**`; hand-run scripts (`ux-crawl.mjs`,
+  `r10-compare.mjs`, `repair-migration-history.mjs`); the Meta send path in
+  `lib/whatsapp.ts`, now reached only by its tests since sends go through
+  Interakt (ADR-024). Dropping it is a decision for Vipin, tied to ACC-151.
+- **Verified:** `typecheck`, `lint` (0 errors, the 8 existing `<img>`
+  warnings), `test` (295/295) and `build` pass.
+- **Not verified:** `test:e2e`, `test:visual`, or the screens in a browser.
+  Everything removed had no caller and every removed class had no element,
+  so no visible change is expected, but that was not looked at.
+
 ## Master list and Passes full parity, persistent navs, 29 Sep 2026
 
 - **Master list (`master-screen.tsx`, the new `lib/master-filter.ts`):**

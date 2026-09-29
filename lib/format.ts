@@ -28,12 +28,6 @@ export function formatMasterCollected(row: MasterRow): string {
   return 'Not collected'
 }
 
-export function formatMasterBand(row: MasterRow): string {
-  if (row.status === 'rejected' || row.status === 'voided') return 'Voided'
-  if (!row.bandSerial) return 'Not issued'
-  return row.bandSerial.startsWith('#') ? row.bandSerial : `#${row.bandSerial}`
-}
-
 /** ACC-148: a ledger time on the desk's clock, e.g. "09 Oct, 10:00". */
 export function formatLedgerTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso))

@@ -10,71 +10,11 @@ button { cursor: pointer; }
 .num { font-variant-numeric: tabular-nums; }
 img { display: block; max-width: 100%; }
 .skeleton { display: block; min-height: 12px; border-radius: 999px; background: linear-gradient(90deg, var(--shell) 20%, var(--hair) 50%, var(--shell) 80%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s var(--ease) infinite; }
-.status-skeleton { display: inline-block; min-height: 10px; vertical-align: middle; }
 @keyframes skeleton-shimmer { to { background-position: -200% 0; } }
-.passes-skeleton { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.passes-skeleton .pass .pl { min-height: 520px; padding: 26px; display: flex; flex-direction: column; gap: 18px; }
-.passes-skeleton-header, .passes-skeleton-band, .passes-skeleton-vehicle { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.passes-skeleton-logo { width: 42px; height: 28px; border-radius: 4px; }
-.passes-skeleton-name { height: 30px; margin-top: 16px; border-radius: 7px; }
-.passes-skeleton-line { height: 14px; }
-.passes-skeleton-band { padding: 14px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--hair); }
-.passes-skeleton-band .skeleton:first-child { height: 22px; }
-.passes-skeleton-band .skeleton:last-child { height: 12px; }
-.passes-skeleton-zones { display: flex; flex-wrap: wrap; gap: 8px 12px; padding-top: 4px; }
-.passes-skeleton-zones .skeleton { height: 11px; }
-.passes-skeleton-qr { width: min(220px, 70%); aspect-ratio: 1; margin: auto; border-radius: 8px; }
-.passes-skeleton-vehicle { padding-top: 12px; border-top: 1px solid var(--hair); }
-.passes-skeleton-vehicle .skeleton { height: 13px; }
-.passes-skeleton-fine { height: 11px; margin-top: auto; }
-.control-skeleton { display: grid; gap: 16px; padding-top: 40px; }
-.control-skeleton-bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
-.control-skeleton-hero { grid-column: span 8; grid-row: span 2; min-height: 360px; padding: 40px; display: flex; flex-direction: column; justify-content: flex-end; gap: 18px; border-radius: var(--r-in); background: var(--panel); box-shadow: 0 0 0 1px var(--hair), var(--lift); }
-.control-skeleton-hero-title { height: clamp(48px, 6.4cqi, 92px); border-radius: 8px; }
-.control-skeleton-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.control-skeleton-actions .skeleton { height: 50px; }
-.control-skeleton-stat { grid-column: span 4; min-height: 170px; padding: 24px; display: flex; flex-direction: column; gap: 12px; border-radius: var(--r-in); background: var(--panel); box-shadow: 0 0 0 1px var(--hair), var(--lift); }
-.control-skeleton-stat-value { height: 48px; margin-top: 8px; border-radius: 7px; }
-.control-skeleton-stat .skeleton { height: 11px; }
-.control-skeleton-stat .control-skeleton-stat-value { height: 48px; }
-.control-skeleton-meter { height: 4px !important; margin-top: auto; }
-.control-skeleton-stat-aaa { grid-column: span 4; }
-.control-skeleton-stat-orgs { grid-column: span 4; }
-.control-skeleton-bands, .control-skeleton-orgs { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; }
-.control-skeleton-section-label { grid-column: 1 / -1; height: 11px !important; margin-top: 42px; }
-.control-skeleton-section-title { grid-column: 1 / -1; height: 32px !important; margin-bottom: 6px; border-radius: 7px; }
-.control-skeleton-band { padding: 26px; display: flex; flex-direction: column; gap: 18px; border-radius: var(--r-in); background: var(--panel); box-shadow: 0 0 0 1px var(--hair), var(--lift); }
-.control-skeleton-stripe { height: 10px; border-radius: 999px; }
-.control-skeleton-zones { display: flex; flex-wrap: wrap; gap: 8px 12px; padding-top: 12px; border-top: 1px solid var(--hair); }
-.control-skeleton-zones .skeleton { height: 10px; }
-.control-skeleton-orgs { grid-template-columns: 1fr; }
-.control-skeleton-list { gap: 0; padding: 0; border-radius: var(--r-in); background: var(--panel); box-shadow: 0 0 0 1px var(--hair), var(--lift); }
-.control-skeleton-list-head, .control-skeleton-list-row { display: grid; grid-template-columns: minmax(0, 1.6fr) 100px 110px 72px; align-items: center; gap: 18px; padding: 18px 24px; }
-.control-skeleton-list-head { border-bottom: 1px solid var(--hair); }
-.control-skeleton-list-head .skeleton { height: 11px; }
-.control-skeleton-list-row { box-shadow: inset 0 1px 0 var(--hair); }
-.control-skeleton-list-row > div:first-child { display: grid; gap: 8px; }
-.control-skeleton-list-row .skeleton { height: 12px; }
-.control-skeleton-subline { height: 10px !important; }
-.utility-skeleton { display: grid; gap: 32px; }
-.utility-skeleton-form { margin-bottom: 0; }
-.utility-skeleton-form .pl { display: grid; gap: 18px; }
-.utility-skeleton-form-title, .utility-skeleton-list-title { height: 13px; margin-bottom: 2px; }
-.utility-skeleton-copy { height: 12px; }
-.utility-skeleton-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
-.utility-skeleton-fields-single { grid-template-columns: 1fr; max-width: 520px; }
 .utility-skeleton-field { display: grid; gap: 8px; }
 .utility-skeleton-field > .skeleton:first-child { height: 10px; }
 .utility-skeleton-input { height: 52px; border-radius: var(--r-sm); }
 .utility-skeleton-button { height: 48px; margin-top: 2px; border-radius: var(--r-sm); }
-.utility-skeleton-list { display: grid; gap: 10px; }
-.utility-skeleton-list-title { margin: 0 0 6px 8px; }
-.utility-skeleton-item .pl { min-height: 92px; }
-.utility-skeleton-item-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-.utility-skeleton-item-row > div:first-child { display: grid; gap: 8px; }
-.utility-skeleton-subline, .utility-skeleton-status { height: 10px !important; }
-.utility-skeleton-status { margin-top: 4px; }
-.utility-skeleton-item-action { height: 42px !important; border-radius: var(--r-sm); }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
 
 /* ── Frame: web = full width, mob = 390 device ────────────────────── */
@@ -373,11 +313,6 @@ main { position: relative; padding: 0 32px 64px; }
 .utility-error { color: var(--bad); font-size: 13px; }
 .utility-ok { color: var(--grn); font-size: 13px; }
 
-/* ACC-122/124/125: components/states — shared loading/empty/error/confirm */
-.inline-error { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--bad); font-size: 13px; margin: 0; }
-.inline-error-retry { font-size: 13px; }
-.inline-confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.inline-confirm-prompt { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--ink2,rgba(242,239,226,0.72)); }
 .utility-input { width: 100%; min-height: 52px; padding: 0 16px; border: 0; border-radius: var(--r-sm); background: var(--bg); box-shadow: inset 0 0 0 1px var(--rule); color: var(--ink); outline: none; }
 .utility-input:focus { box-shadow: inset 0 0 0 2px var(--grn); }
 .utility-select { cursor: pointer; }
@@ -571,17 +506,6 @@ footer span:last-child { color: var(--gold); }
   .pad { padding: 20px; }
   .bento { gap: 10px; padding-top: 20px; }
   .hero, .stat, .quad, .aaa-card { grid-column: span 12; }
-  .control-skeleton { padding-top: 20px; }
-  .control-skeleton-hero { min-height: 320px; padding: 24px; }
-  .control-skeleton-bento { gap: 10px; }
-  .control-skeleton-hero { grid-column: span 12; grid-row: auto; }
-  .control-skeleton-stat, .control-skeleton-stat-aaa, .control-skeleton-stat-orgs { grid-column: span 6; }
-  .control-skeleton-bands { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .control-skeleton-section-label, .control-skeleton-section-title { margin-top: 24px; }
-  .control-skeleton-list-row, .control-skeleton-list-head { grid-template-columns: minmax(0, 1fr) auto; }
-  .control-skeleton-list-row > .skeleton:nth-last-child(-n+2) { display: none; }
-  .utility-skeleton-fields { grid-template-columns: minmax(0, 1fr); }
-  .utility-skeleton-item-row { align-items: flex-start; }
   .hero-art { inset: 0; opacity: calc(var(--poster-op) * .55); }
   .hero-in { padding: 24px; }
   .hero .h1 { font-size: 50px; }

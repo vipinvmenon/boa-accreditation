@@ -1,10 +1,7 @@
 /**
- * The one skeleton primitive every desk screen builds its loading state from
- * (components/loading-skeleton.tsx's per-screen compositions render one of
- * these per placeholder). Kept here, under components/states/, as the ACC-122
- * home for the three loading/empty/error building blocks — loading-skeleton.tsx
- * re-exports this under its old name so the existing per-screen compositions
- * did not need to change.
+ * The v2 skeleton bar (`.skeleton` in app/v2.css), used by the desk chrome's
+ * profile block and the sign-in form. r10 screens use `Skeleton` from
+ * components/r10 instead.
  */
 export type SkeletonProps = {
   className?: string

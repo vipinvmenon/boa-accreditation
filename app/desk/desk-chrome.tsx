@@ -9,7 +9,7 @@ import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
-import { LoadingSkeleton } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/states/skeleton'
 import { z } from 'zod'
 
 const ROLE_LABEL: Record<OperatorRow['role'], string> = {
@@ -234,7 +234,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   {me?.display_name?.slice(0, 2).toUpperCase() ?? 'VI'}
                 </button>
                 <div id="desk-profile-menu" aria-label="Operator menu" className="profile-menu" hidden={!menuOpen}>
-                    <div className="profile-head"><strong>{me ? me.display_name : meError ? 'Operator' : <LoadingSkeleton width="86px" />}</strong><span>{me ? ROLE_LABEL[me.role] : meError ? '—' : <LoadingSkeleton width="52px" />}</span></div>
+                    <div className="profile-head"><strong>{me ? me.display_name : meError ? 'Operator' : <Skeleton width="86px" />}</strong><span>{me ? ROLE_LABEL[me.role] : meError ? '—' : <Skeleton width="52px" />}</span></div>
                     <button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}>
                       <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                     </button>
