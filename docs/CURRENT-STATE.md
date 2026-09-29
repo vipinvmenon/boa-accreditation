@@ -12,13 +12,12 @@ _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room ar
 - **Built:** `reconcileOrganisations` in `lib/roster-import.ts`; the import
   script prints each `[merged]`/`[new org]`/`[refused org]` decision and, on a
   real load, creates the orgs as the operator first. `--no-create-orgs` opts out.
-- **Verified:** typecheck, 45 unit tests, and a dry run on the live sheet
-  (3 orgs would be created). **Not verified:** the create call against the live
-  database; a real load with it.
-- **Open:** the dry run flags "BOA" as a new org; it is almost certainly an
-  abbreviation of Bangalore Open Air and needs an alias, which no agent added.
-  Row 32 is still refused: a `+971` number, held back by the Indian-only phone
-  rule (a separate change, not started).
+- **Verified:** typecheck, 45 unit tests, a dry run, and a real load (as
+  vipinmenon16@gmail.com): 2 orgs created, 2 people inserted, 1 approved, 34
+  unchanged, 0 errors. `BOA` was aliased to Bangalore Open Air by hand.
+- **Open:** row 32 is still refused: a `+971` number, held back by the
+  Indian-only phone rule (a separate change, not started). Rows 33, 38 and 39
+  have no tier, so they wait for Salman.
 - **The daily dry-run task** (`boa-roster-dry-run`) is read-only and now also
   lists the orgs it would create.
 

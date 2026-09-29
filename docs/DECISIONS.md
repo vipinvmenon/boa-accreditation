@@ -1181,8 +1181,8 @@ Air") look like new organisations. They still need a line in
 is visible before it is loaded (`--dry` lists them without writing).
 `--no-create-orgs` restores the old rule.
 
-**Verified:** 45 unit tests (`tests/unit/import-roster.test.ts`) and a dry run
-against the live sheet. **Not verified:** the create call against the live
-database (`boa_acc_create_org` as the operator) — ACC-194 stays in flight until
-the first real load exercises it.
+**Verified:** 45 unit tests (`tests/unit/import-roster.test.ts`), a dry run,
+and a real load on 29 Sep that created two orgs ("Reflections of Darkness",
+"German Embassy") through `boa_acc_create_org` as the operator and loaded their
+rows. "BOA" was added to `data/org-aliases.json` by hand (an abbreviation).
 
