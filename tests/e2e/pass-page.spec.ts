@@ -115,7 +115,7 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     await expect(page.locator('.tk').getByText(/crew check-in/i)).toHaveCount(0)
     // ACC-196: the check-in guide, with both maps links opening Google Maps.
     const guide = page.getByRole('region', { name: 'How to get your access' })
-    await expect(guide.getByRole('listitem')).toHaveCount(3)
+    await expect(guide.locator('.cg-steps li')).toHaveCount(3)
     await expect(guide.getByText('11:00 AM – 9:00 PM')).toBeVisible()
     await expect(guide.getByText('11:00 AM – 5:00 PM')).toBeVisible()
     const maps = guide.getByRole('link', { name: /Open in Maps/ })

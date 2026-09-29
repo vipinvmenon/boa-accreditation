@@ -34,17 +34,22 @@ export const CHECKIN_GUIDE = {
   eyebrow: 'Bangalore Open Air 2026 · 14th edition',
   heading: 'How to get your access',
   steps: [
-    { lead: 'Bring this pass', rest: 'to your check-in. On your phone is fine.' },
+    { icon: 'device-mobile', lead: 'Bring this pass', rest: 'to your check-in. On your phone is fine.' },
     {
+      icon: 'identification-card',
       lead: 'Bring a valid photo ID:',
       rest: 'Aadhaar, driving licence, passport or voter ID, so we can confirm it is you.',
     },
     {
+      icon: 'watch',
       lead: 'Collect your band',
       rest: 'at the desk. Wear it where it can be seen, everywhere on site. It is personal: do not lend it.',
     },
   ],
-  tips: 'Bring a water bottle: refill it at the drinking water stations on site. Crew: closed shoes on build and load-out days.',
+  tips: [
+    { icon: 'drop', text: 'Bring a water bottle: refill it at the drinking water stations on site.' },
+    { icon: 'sneaker', text: 'Crew: closed shoes on build and load-out days.' },
+  ],
   crew: {
     label: 'Crew',
     heading: 'Crew check-in',
@@ -53,7 +58,7 @@ export const CHECKIN_GUIDE = {
     warning: 'No crew check-in on Saturday 10 October.',
     place: 'Shri Vidya Niketan School',
     address: ['Essel Gardens, Bileshivale', 'Bengaluru, Karnataka 560077'],
-    note: 'Plus Code 3M7C+G52: type it into Google Maps to find the gate.',
+    notes: [{ icon: 'map-pin', text: 'Plus Code 3M7C+G52: type it into Google Maps to find the gate.' }],
     mapUrl:
       'https://www.google.com/maps/search/?api=1&query=Shri+Vidya+Niketan+School%2C+Essel+Gardens%2C+Bileshivale%2C+Bengaluru',
   },
@@ -64,7 +69,10 @@ export const CHECKIN_GUIDE = {
     hours: '11:00 AM – 5:00 PM',
     place: 'At the festival venue: BITS Club',
     address: ['Doddagubbi Main Road, Anagalapura', 'near Asha Township, Bengaluru 560077'],
-    note: 'Parking is directly opposite the club. Doors 1:30 PM.',
+    notes: [
+      { icon: 'car', text: 'Parking is directly opposite the club.' },
+      { icon: 'door-open', text: 'Doors 1:30 PM.' },
+    ],
     mapUrl:
       'https://www.google.com/maps/search/?api=1&query=BITS+Club%2C+Doddagubbi+Main+Road%2C+Anagalapura%2C+Bengaluru+560077',
   },

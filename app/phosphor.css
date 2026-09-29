@@ -67,3 +67,16 @@
    src/light/style.css, verbatim; glyphs uniE220 / uniE224 are in the font. */
 .ph-light.ph-eye:before { content: '\e220'; }
 .ph-light.ph-eye-slash:before { content: '\e224'; }
+/* Check-in guide on the pass page (ACC-196), from @phosphor-icons/web@2.1.1
+   src/light/style.css, verbatim. */
+.ph-light.ph-map-pin:before { content: '\e316'; }
+.ph-light.ph-map-trifold:before { content: '\e31a'; }
+.ph-light.ph-drop:before { content: '\e210'; }
+.ph-light.ph-identification-card:before { content: '\e2c8'; }
+.ph-light.ph-watch:before { content: '\e4e6'; }
+.ph-light.ph-sneaker:before { content: '\e80c'; }
+.ph-light.ph-car:before { content: '\e112'; }
+.ph-light.ph-door-open:before { content: '\e7e6'; }
+.ph-light.ph-calendar-blank:before { content: '\e10a'; }
+.ph-light.ph-headset:before { content: '\e584'; }
+.ph-light.ph-device-mobile:before { content: '\e1e0'; }

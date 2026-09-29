@@ -41,6 +41,17 @@ export type IconName =
   | 'warning'
   | 'warning-circle'
   | 'x'
+  | 'calendar-blank'
+  | 'car'
+  | 'door-open'
+  | 'drop'
+  | 'headset'
+  | 'identification-card'
+  | 'device-mobile'
+  | 'map-pin'
+  | 'map-trifold'
+  | 'sneaker'
+  | 'watch'
 
 export function Icon({ name }: { name: IconName }) {
   return <i aria-hidden="true" className={`ph-light ph-${name}`} />
