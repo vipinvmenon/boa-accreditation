@@ -96,11 +96,9 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     await expect(page.getByText('BOA26-0412')).toBeVisible()
     await expect(page.getByText('KA05MJ8871')).toBeVisible()
     await expect(page.locator('.tk-tier')).toHaveText('Stage')
-    // ADR-025: the tier's woven band leads the card, and the file really loads.
-    const band = page.getByRole('img', { name: 'Stage wristband' })
-    await expect(band).toBeVisible()
-    await expect(band).toHaveAttribute('src', '/assets/bands/stage.webp')
-    expect(await band.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+    // ADR-025 amended (Vipin, 29 Sep): the band artwork is confidential, so
+    // the holder's page never shows it (the desk sheet and the gate do).
+    await expect(page.getByRole('img', { name: /wristband/ })).toHaveCount(0)
     // Round 6 (Vipin, 28 Sep): only the zones this pass enters, no ID or
     // time qualifiers, and the whole pass on one phone screen.
     await expect(page.getByRole('list', { name: 'Zones this pass enters' }).getByRole('listitem')).toHaveText([
@@ -113,7 +111,18 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     await expect(page.getByText(/5.9 Oct and 10 Oct 2026/)).toBeVisible()
     await expect(page.getByText('Show this at the accreditation desk.')).toBeVisible()
     await expect(page.getByText('Bring photo ID. One person, one pass, one band.')).toBeVisible()
-    await expect(page.getByText(/crew check-in/i)).toHaveCount(0)
+    // The ticket itself stays tier-neutral; the guide below it names both check-ins.
+    await expect(page.locator('.tk').getByText(/crew check-in/i)).toHaveCount(0)
+    // ACC-196: the check-in guide, with both maps links opening Google Maps.
+    const guide = page.getByRole('region', { name: 'How to get your access' })
+    await expect(guide.getByRole('listitem')).toHaveCount(3)
+    await expect(guide.getByText('11:00 AM – 9:00 PM')).toBeVisible()
+    await expect(guide.getByText('11:00 AM – 5:00 PM')).toBeVisible()
+    const maps = guide.getByRole('link', { name: /Open in Maps/ })
+    await expect(maps).toHaveCount(2)
+    for (const href of await maps.evaluateAll((a) => a.map((x) => x.getAttribute('href') ?? ''))) {
+      expect(href).toMatch(/^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/)
+    }
     // A scannable QR actually rendered, not a placeholder.
     const qr = page.locator('.tk-qr svg')
     await expect(qr).toBeVisible()

@@ -1,0 +1,86 @@
+/*
+ * ACC-196 — the check-in guide under the pass ticket (components/checkin-guide.tsx,
+ * mock design/proposals/checkin-guide.html). Same rule as app/ticket.css: it
+ * carries its OWN dark palette, not the theme's, because it sits over the
+ * poster on a public page with no theme toggle (ADR-009). Colours are rgba()
+ * so the design-token gate (no raw hex outside the allowed files) holds.
+ *
+ * Cards are the v2 double bezel: the element is the tray, ::before is the
+ * plate, and the plate carries sheet-strength glass (DESIGN.md).
+ */
+.cg {
+  --cg-ink: rgba(242, 239, 226, 1);
+  --cg-ink2: rgba(242, 239, 226, .74);
+  --cg-ink3: rgba(242, 239, 226, .56);
+  --cg-hair: rgba(242, 239, 226, .1);
+  --cg-gold: rgba(227, 187, 114, 1);
+  --cg-grn: rgba(0, 245, 165, 1);
+  width: min(420px, 100%);
+  display: grid;
+  gap: 14px;
+  margin-top: 6px;
+  color: var(--cg-ink);
+  scroll-margin-top: 12px;
+}
+.cg-card {
+  position: relative;
+  padding: 6px;
+  border-radius: 28px;
+  background: rgba(242, 239, 226, .035);
+  box-shadow: 0 0 0 1px rgba(242, 239, 226, .08), 0 24px 48px -24px rgba(0, 0, 0, .6);
+}
+.cg-card::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, 0) 38%),
+    linear-gradient(160deg, rgba(24, 24, 28, .62), rgba(12, 12, 14, .5));
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+.cg-in { position: relative; padding: 18px 18px 16px; }
+.cg-label { display: block; margin: 0 0 6px; font-family: var(--label); font-weight: 500; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--cg-gold); }
+.cg-h { margin: 0 0 14px; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; }
+
+.cg-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+.cg-steps li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; font-size: 14.5px; line-height: 1.42; color: var(--cg-ink2); }
+.cg-steps b { color: var(--cg-ink); font-weight: 600; }
+.cg-n {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--cg-grn);
+  background: linear-gradient(180deg, rgba(0, 245, 165, .24), rgba(0, 245, 165, .08));
+  box-shadow: inset 0 0 0 1px rgba(0, 245, 165, .4);
+}
+.cg-tips { margin: 15px 0 0; padding-top: 13px; border-top: 1px solid var(--cg-hair); font-size: 13px; line-height: 1.45; color: var(--cg-ink3); }
+
+.cg-when { display: block; font-family: var(--label); font-weight: 500; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--cg-gold); }
+.cg-time { display: block; margin: 3px 0 10px; font-family: var(--display); font-size: 32px; line-height: 1; letter-spacing: .01em; }
+.cg-warn { margin: 0 0 13px; padding: 8px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; color: rgba(255, 138, 122, 1); background: rgba(255, 107, 90, .1); box-shadow: inset 0 0 0 1px rgba(255, 107, 90, .3); }
+.cg-where { margin: 0; padding-top: 13px; border-top: 1px solid var(--cg-hair); font-size: 14.5px; line-height: 1.45; color: var(--cg-ink2); }
+.cg-where b, .cg-where span { display: block; }
+.cg-where b { color: var(--cg-ink); font-weight: 600; }
+.cg-small { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--cg-ink3); }
+
+/* The green glass pill: the Maps buttons and the cue under the ticket. */
+.cg-pill {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; text-decoration: none;
+  font-family: var(--label); font-weight: 500; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--cg-grn);
+  background: linear-gradient(180deg, rgba(0, 245, 165, .22), rgba(0, 245, 165, .08));
+  -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%);
+  box-shadow: inset 0 0 0 1px rgba(0, 245, 165, .4), inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+.cg-card .cg-pill { margin-top: 10px; }
+.cg-cue { justify-self: center; margin-top: 4px; }
+.cg-pill:focus-visible { outline: 2px solid var(--cg-grn); outline-offset: 3px; }
+.cg-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.cg-sign { margin: 0; padding-top: 8px; text-align: center; font-family: var(--display); font-size: 18px; letter-spacing: .05em; text-transform: uppercase; text-shadow: 0 2px 14px rgba(0, 0, 0, .7); }
+.cg-help { margin: 0 0 4px; text-align: center; font-size: 12.5px; color: var(--cg-ink2); text-shadow: 0 1px 10px rgba(0, 0, 0, .8); }
+
+@media (prefers-reduced-transparency: reduce) {
+  .cg-card::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(18, 18, 20, 1); }
+  .cg-pill { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media print { .cg, .cg-cue { display: none; } }

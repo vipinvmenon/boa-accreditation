@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayValidityCopy, PUBLIC_PASS_DESK_LINE, PUBLIC_PASS_FINE_PRINT } from '@/lib/pass-copy'
+import { CHECKIN_GUIDE, dayValidityCopy, PUBLIC_PASS_DESK_LINE, PUBLIC_PASS_FINE_PRINT } from '@/lib/pass-copy'
 
 describe('public pass copy', () => {
   it('uses a tier-neutral accreditation desk line', () => {
@@ -31,5 +31,28 @@ describe('dayValidityCopy', () => {
       label: 'Build + show',
       dates: '5–9 Oct and 10 Oct 2026',
     })
+  })
+})
+
+// ACC-196 · the check-in guide's times, places and map links come from BOA's
+// PDF (v03). The map URLs were opened in Google Maps on 29 Sep 2026; this is
+// the tripwire if either is edited into something that no longer resolves.
+describe('CHECKIN_GUIDE', () => {
+  it('carries the PDF\'s two check-ins', () => {
+    expect(CHECKIN_GUIDE.crew.day).toBe('Friday · 9 October')
+    expect(CHECKIN_GUIDE.crew.hours).toBe('11:00 AM – 9:00 PM')
+    expect(CHECKIN_GUIDE.guest.day).toBe('Saturday · 10 October')
+    expect(CHECKIN_GUIDE.guest.hours).toBe('11:00 AM – 5:00 PM')
+    expect(CHECKIN_GUIDE.steps).toHaveLength(3)
+  })
+
+  it.each([
+    ['crew', 'Shri Vidya Niketan School, Essel Gardens, Bileshivale, Bengaluru'],
+    ['guest', 'BITS Club, Doddagubbi Main Road, Anagalapura, Bengaluru 560077'],
+  ] as const)('%s map link is a Google Maps search URL for the place', (which, query) => {
+    const url = new URL(CHECKIN_GUIDE[which].mapUrl)
+    expect(url.origin + url.pathname).toBe('https://www.google.com/maps/search/')
+    expect(url.searchParams.get('api')).toBe('1')
+    expect(url.searchParams.get('query')).toBe(query)
   })
 })

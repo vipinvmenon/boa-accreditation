@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pass with check-in guide — mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;700&family=JetBrains+Mono:wght@500;700&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0A0A; --display: 'Anton', sans-serif; --label: 'Oswald', sans-serif;
+    --body: 'Archivo', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --tk-ink: rgba(242,239,226,1); --tk-ink2: rgba(242,239,226,.74); --tk-ink3: rgba(242,239,226,.56);
+    --tk-hair: rgba(242,239,226,.1); --tk-gold: rgba(227,187,114,.26); --tk-surface: rgba(12,12,14,.72);
+    --gold: rgba(227,187,114,1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #1b1b1d; font-family: var(--body); color: var(--tk-ink); padding: 32px 20px 56px; }
+  h1.sheet { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 4px; text-align: center; }
+  p.sub { text-align: center; margin: 0 auto 28px; max-width: 760px; color: var(--tk-ink2); font-size: 14px; }
+  .row { display: flex; gap: 36px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+  figure { margin: 0; }
+  figcaption { text-align: center; margin-top: 12px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--tk-ink3); max-width: 390px; }
+  figcaption b { color: var(--gold); font-weight: 700; }
+
+  /* phone frame */
+  .phone { width: 390px; height: 780px; border-radius: 38px; overflow: hidden; position: relative; background: var(--bg); box-shadow: 0 0 0 9px #2a2a2d, 0 0 0 10px #444, 0 30px 60px rgba(0,0,0,.6); }
+  .scroll { position: absolute; inset: 0; overflow: hidden; }
+
+  /* ---- WhatsApp ---- */
+  .wa { background: #0b141a; }
+  .wa-bar { height: 92px; background: #202c33; padding: 46px 16px 0; font-size: 16px; font-weight: 600; color: #e9edef; }
+  .wa-bar small { display: block; font-weight: 400; font-size: 12px; color: #8696a0; }
+  .wa-chat { padding: 18px 12px; background: #0b141a; height: 100%; }
+  .bubble { background: #202c33; border-radius: 0 10px 10px 10px; max-width: 300px; overflow: hidden; color: #e9edef; font-size: 14.5px; line-height: 1.4; }
+  .bubble .txt { padding: 9px 11px 4px; }
+  .bubble .foot { padding: 0 11px 8px; color: #8696a0; font-size: 12px; }
+  .bubble .time { float: right; font-size: 11px; color: #8696a0; margin: 0 0 6px 8px; }
+  .bubble .btn { border-top: 1px solid #2f3b43; text-align: center; padding: 11px; color: #53bdeb; font-weight: 600; font-size: 14.5px; }
+  .note { margin: 14px auto 0; max-width: 300px; font-size: 12px; color: #8696a0; text-align: center; }
+
+  /* ---- Pass page (today's, from app/ticket.css + pass-screen.tsx) ---- */
+  /* The poster is pinned to the phone, full strength; glass earns its place by floating over it. */
+  .scroll::before { content: ''; position: absolute; inset: 0; background: var(--bg) url(../../public/assets/pass-poster.webp) 50% 18% / cover no-repeat; }
+  .scroll::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.05), rgba(10,10,10,.12) 45%, rgba(10,10,10,.5)); pointer-events: none; }
+  .tk-page { position: relative; z-index: 1; min-height: 100%; display: grid; align-content: start; justify-items: center; gap: 12px; padding: 14px 16px 24px; }
+  .tk-logo { justify-self: start; width: 104px; height: auto; margin-left: 4px; }
+  .tk { --c: #f2b84b; width: min(420px,100%); color: var(--tk-ink); filter: drop-shadow(0 24px 34px rgba(0,0,0,.55)); }
+  .tk-top, .tk-stub { position: relative; overflow: hidden; background: var(--tk-surface); box-shadow: inset 0 0 0 1px var(--tk-gold); backdrop-filter: blur(14px) saturate(1.1); }
+  .tk-top { border-radius: 22px 22px 0 0;
+    -webkit-mask: radial-gradient(circle 12px at 0 100%, transparent 97%, black) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 100%, transparent 97%, black) right / 51% 100% no-repeat; }
+  .tk-stub { border-radius: 0 0 22px 22px; display: grid; justify-items: center; gap: 10px; padding: 16px 20px 14px;
+    -webkit-mask: radial-gradient(circle 12px at 0 0, transparent 97%, black) left / 51% 100% no-repeat, radial-gradient(circle 12px at 100% 0, transparent 97%, black) right / 51% 100% no-repeat; }
+  .tk-body { display: grid; gap: 16px; padding: 20px 22px; }
+  .tk-name { margin: 0; font-family: var(--display); font-weight: 400; font-size: 38px; line-height: .95; text-transform: uppercase; }
+  .tk-who { margin: 6px 0 0; font-size: 15px; color: var(--tk-ink2); }
+  .tk-desk { margin: 8px 0 0; font-size: 14px; }
+  .tk-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin: 0; padding-top: 14px; border-top: 1px solid var(--tk-hair); }
+  .tk-tier { font-family: var(--display); font-size: 24px; line-height: 1; text-transform: uppercase; color: var(--c); }
+  .tk-valid { font-size: 14px; }
+  .tk-zones { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
+  .tk-zones li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .tk-zones i { width: 10px; height: 10px; border-radius: 3px; }
+  .tk-perf { margin: 0 20px; border-top: 2px dashed rgba(227,187,114,.32); }
+  .tk-qr { padding: 13px; border-radius: 14px; background: #f2efe2; }
+  .tk-qr svg { display: block; width: 200px; height: 200px; }
+  .tk-fine { margin: 0; font-size: 13px; text-align: center; }
+  .tk-ref { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--tk-ink3); }
+
+  /* ---- NEW: the check-in guide, in the app's glass language (DESIGN.md: tray + plate, sheet glass) ---- */
+  :root { --grn: #00F5A5; --gold-hair: rgba(227,187,114,.32); }
+  .cue { display: inline-flex; align-items: center; gap: 8px; justify-self: center; margin: 4px 0 0; padding: 9px 18px; border-radius: 999px;
+    background: linear-gradient(180deg, rgba(0,245,165,.22), rgba(0,245,165,.08)); -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%);
+    box-shadow: inset 0 0 0 1px rgba(0,245,165,.4), inset 0 1px 0 rgba(255,255,255,.14); font-family: var(--label); font-weight: 500; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--grn); text-decoration: none; }
+  .guide { width: min(420px,100%); display: grid; gap: 14px; margin-top: 6px; }
+
+  /* tray (the element) + plate (::before) = the v2 double bezel, with sheet-strength glass on the plate */
+  .g-card { position: relative; padding: 6px; border-radius: 28px; background: rgba(242,239,226,.035);
+    box-shadow: 0 0 0 1px rgba(242,239,226,.08), 0 24px 48px -24px rgba(0,0,0,.6); }
+  .g-card::before { content: ''; position: absolute; inset: 6px; border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 38%), linear-gradient(160deg, rgba(24,24,28,.62), rgba(12,12,14,.5));
+    -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), inset 0 1px 0 rgba(255,255,255,.16); }
+  .g-in { position: relative; padding: 18px 18px 16px; }
+  .g-label { display: block; margin: 0 0 6px; font-family: var(--label); font-weight: 500; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .g-h { margin: 0 0 14px; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+  .steps li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; font-size: 14.5px; line-height: 1.42; color: var(--tk-ink2); }
+  .steps li b { color: var(--tk-ink); font-weight: 600; }
+  .steps .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--grn);
+    background: linear-gradient(180deg, rgba(0,245,165,.24), rgba(0,245,165,.08)); box-shadow: inset 0 0 0 1px rgba(0,245,165,.4); }
+  .tips { margin: 15px 0 0; padding-top: 13px; border-top: 1px solid var(--tk-hair); font-size: 13px; color: var(--tk-ink3); line-height: 1.45; }
+  .when { display: block; font-family: var(--label); font-weight: 500; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .time-big { display: block; margin: 3px 0 10px; font-family: var(--display); font-size: 32px; line-height: 1; letter-spacing: .01em; }
+  .warn { margin: 0 0 13px; padding: 8px 12px; border-radius: 12px; background: rgba(255,107,90,.10); box-shadow: inset 0 0 0 1px rgba(255,107,90,.3); font-size: 13px; color: #ff8a7a; font-weight: 600; }
+  .where { margin: 0; padding-top: 13px; border-top: 1px solid var(--tk-hair); font-size: 14.5px; line-height: 1.45; color: var(--tk-ink2); }
+  .where b { display: block; color: var(--tk-ink); font-weight: 600; }
+  .small { margin: 8px 0 0; font-size: 13px; color: var(--tk-ink3); line-height: 1.45; }
+  .maps { display: inline-flex; margin-top: 12px; padding: 9px 16px; border-radius: 999px; text-decoration: none; font-family: var(--label); font-weight: 500; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--grn);
+    background: linear-gradient(180deg, rgba(0,245,165,.22), rgba(0,245,165,.08)); -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%); box-shadow: inset 0 0 0 1px rgba(0,245,165,.4), inset 0 1px 0 rgba(255,255,255,.14); }
+  /* the holder's own check-in: a green hairline on the plate + a green glass pill */
+  .mine::before { box-shadow: inset 0 0 0 1px rgba(0,245,165,.45), inset 0 1px 0 rgba(255,255,255,.16); }
+  .badge { position: absolute; top: 16px; right: 16px; padding: 4px 11px; border-radius: 999px; font-family: var(--label); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--grn);
+    background: linear-gradient(180deg, rgba(0,245,165,.22), rgba(0,245,165,.08)); box-shadow: inset 0 0 0 1px rgba(0,245,165,.4); }
+  .sign { text-align: center; font-family: var(--display); font-size: 18px; letter-spacing: .05em; text-transform: uppercase; padding: 8px 0 0; text-shadow: 0 2px 14px rgba(0,0,0,.7); }
+  .help { text-align: center; font-size: 12.5px; color: var(--tk-ink2); margin: 0 0 4px; text-shadow: 0 1px 10px rgba(0,0,0,.8); }
+</style>
+</head>
+<body>
+<h1 class="sheet">Pass page + check-in guide — mock</h1>
+<p class="sub">Content is from <b>BOA26_Crew-Guest-CheckIn_Info_A4_v03.pdf</b>. The WhatsApp message and the pass stay exactly as they are today; the guide is new, below the ticket. Sample person only.</p>
+
+<div class="row">
+
+  <!-- 1 · WhatsApp -->
+  <figure>
+    <div class="phone wa">
+      <div class="wa-bar">Bangalore Open Air<small>Business account</small></div>
+      <div class="wa-chat">
+        <div class="bubble">
+          <div class="txt">Hi Asha, your Bangalore Open Air pass is ready. Open it below and show it at check-in.<span class="time">10:42</span></div>
+          <div class="foot">Bangalore Open Air · 10 Oct 2026</div>
+          <div class="btn">↗ Open my pass</div>
+        </div>
+        <p class="note">Unchanged: this is the approved <b>boa_crew_pass</b> template. Nothing in it needs re-approval.</p>
+      </div>
+    </div>
+    <figcaption><b>1</b> · The WhatsApp message (as today)</figcaption>
+  </figure>
+
+  <!-- 2 · Pass, top -->
+  <figure>
+    <div class="phone"><div class="scroll">
+      <main class="tk-page" style="height:100%">
+        <img class="tk-logo" src="../../public/assets/boa-logo.png" alt="Bangalore Open Air">
+        <div class="tk">
+          <div class="tk-top">
+            <div class="tk-body">
+              <div>
+                <h1 class="tk-name">Asha Rao</h1>
+                <p class="tk-who">Stagecraft Co, Rigger</p>
+                <p class="tk-desk">Show this at the accreditation desk.</p>
+              </div>
+              <p class="tk-line"><span class="tk-tier">Crew</span><span class="tk-valid">Build + show, 5–10 Oct</span></p>
+              <ul class="tk-zones"><li><i style="background:#4ade80"></i>Backstage</li><li><i style="background:#60a5fa"></i>Site</li><li><i style="background:#f472b6"></i>Front of house</li></ul>
+            </div>
+          </div>
+          <div class="tk-perf"></div>
+          <div class="tk-stub">
+            <div class="tk-qr"><svg viewBox="0 0 21 21" shape-rendering="crispEdges"><rect width="21" height="21" fill="#f2efe2"/><g fill="#0a0a0a"><path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z"/><path fill="#f2efe2" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z"/><path d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM8 1h2v2H8zM10 4h2v2h-2zM8 8h2v2H8zM12 8h3v2h-3zM16 9h2v2h-2zM9 12h2v2H9zM13 12h2v3h-2zM17 13h3v2h-3zM10 16h3v2h-3zM15 17h2v3h-2zM19 18h2v3h-2zM8 19h2v2H8zM11 10h1v1h-1z"/></g></svg></div>
+            <p class="tk-fine">Bring photo ID. One person, one pass, one band.</p>
+            <span class="tk-ref">BOA-7K2M-Q9</span>
+          </div>
+        </div>
+        <a class="cue" href="#guide">Check-in guide ↓</a>
+      </main>
+    </div></div>
+    <figcaption><b>2</b> · Opens on the ticket, one screen, as today. <b>New:</b> a small “Check-in guide ↓” cue</figcaption>
+  </figure>
+
+  <!-- 3 · Guide, scrolled -->
+  <figure>
+    <div class="phone"><div class="scroll" id="guide">
+      <main class="tk-page" style="transform: translateY(-560px); padding-bottom: 40px;">
+        <div style="height: 560px"></div>
+        <section class="guide" aria-label="Check-in guide">
+          <div class="g-card"><div class="g-in">
+            <span class="g-label">Bangalore Open Air 2026 · 14th edition</span><h2 class="g-h">How to get your access</h2>
+            <ol class="steps">
+              <li><span class="n">1</span><span><b>Bring this pass</b> to your check-in, on your phone is fine.</span></li>
+              <li><span class="n">2</span><span><b>Bring a valid photo ID:</b> Aadhaar, driving licence, passport or voter ID, so we can confirm it is you.</span></li>
+              <li><span class="n">3</span><span><b>Collect your band</b> at the desk. Wear it where it can be seen, everywhere on site. It is personal: do not lend it.</span></li>
+            </ol>
+            <p class="tips">Bring a water bottle: refill it at the drinking water stations on site. Crew: closed shoes on build and load-out days.</p>
+          </div></div>
+
+          <div class="g-card mine"><div class="g-in"><span class="badge">Your check-in</span>
+            <span class="g-label">Crew</span><h2 class="g-h">Crew check-in</h2>
+            <span class="when">Friday · 9 October</span>
+            <span class="time-big">11:00 AM – 9:00 PM</span>
+            <p class="warn">No crew check-in on Saturday 10 October.</p>
+            <p class="where"><b>Shri Vidya Niketan School</b>Essel Gardens, Bileshivale<br>Bengaluru, Karnataka 560077</p>
+            <p class="small">Plus Code 3M7C+G52: type it into Google Maps to find the gate.</p>
+            <a class="maps" href="https://www.google.com/maps/search/3M7C%2BG52">Open in Maps</a>
+          </div></div>
+
+          <div class="g-card"><div class="g-in">
+            <span class="g-label">Guests</span><h2 class="g-h">Guest check-in</h2>
+            <span class="when">Saturday · 10 October</span>
+            <span class="time-big">11:00 AM – 5:00 PM</span>
+            <p class="where"><b>At the festival venue: BITS Club</b>Doddagubbi Main Road, Anagalapura<br>near Asha Township, Bengaluru 560077</p>
+            <p class="small">Parking is directly opposite the club. Doors 1:30 PM.</p>
+          </div></div>
+
+          <p class="sign">See you at BITS Club. The ritual returns.</p>
+          <p class="help">Questions on site: the production office in the artist area, or your department head.</p>
+        </section>
+      </main>
+    </div></div>
+    <figcaption><b>3</b> · Scroll down: the guide, in the pass's own glass style</figcaption>
+  </figure>
+
+</div>
+</body>
+</html>

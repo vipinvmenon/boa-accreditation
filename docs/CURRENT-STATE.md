@@ -5,6 +5,33 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
+## Check-in guide on the pass page (ACC-196), 29 Sep 2026
+
+- **What (Vipin):** "add more info to WhatsApp sent passes... a check-in guide",
+  from BOA26_Crew-Guest-CheckIn_Info_A4_v03.pdf. Approved mock:
+  `design/proposals/checkin-guide.html`.
+- **True now (in the working tree, not yet deployed):** `/p/[passToken]` shows
+  the ticket as before, a "Check-in guide" pill under it, and below that the
+  guide: how to get your access, Crew check-in (Fri 9 Oct, 11-9, school) and
+  Guest check-in (Sat 10 Oct, 11-5, BITS Club), each with an "Open in Maps"
+  link. The poster is now full strength behind it. Words are in
+  `lib/pass-copy.ts` (`CHECKIN_GUIDE`), markup in `components/checkin-guide.tsx`,
+  styles in `app/checkin-guide.css`. **The WhatsApp template is unchanged**, so
+  nothing needs re-approval; the message just opens a richer page.
+- **Verified:** typecheck, lint, 309 unit tests, `pass-page.spec.ts` (3 pass),
+  and screenshots of the real page at 390x780 (ticket + cue fit the first
+  screen). Both map links were opened in Google Maps: the school link shows
+  Google's listing with Plus Code 3M7C+G52 (the PDF's), the club link shows
+  "Bits Club".
+- **Fixed on the way:** `pass-page.spec.ts` still expected the wristband image
+  on the holder's page, which was hidden on 29 Sep (confidential); it now
+  asserts it is absent.
+- **Not verified:** the deployed page; a real phone or the WhatsApp in-app
+  browser; print of the guide (hidden on paper).
+- **Open:** every pass shows both check-ins (no tier says crew or guest);
+  ACC-188 (Cursor) is reskinning this same page, so expect a merge on
+  `pass-screen.tsx`.
+
 ## Phone numbers from any country (ACC-195), 29 Sep 2026
 
 - **What (Vipin):** "add all international numbers as well"; foreign passes are

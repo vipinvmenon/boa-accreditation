@@ -1,3 +1,4 @@
+import { CheckinGuide, CheckinGuideCue } from '@/components/checkin-guide'
 import { PassTicket } from '@/components/pass-ticket'
 import type { PassViewWithQr } from '@/lib/schemas/pass-view'
 
@@ -15,6 +16,10 @@ import type { PassViewWithQr } from '@/lib/schemas/pass-view'
  * and the light sweep), shared with the desk's pass sheet; this page adds the
  * logo and the poster behind it.
  *
+ * ACC-196: the check-in guide (components/checkin-guide.tsx) sits below the
+ * ticket, reached by scrolling or the cue pill; the poster is now full strength
+ * behind it, because the guide's glass is what keeps the text readable.
+ *
  * Fixed dark theme: public surfaces carry no theme toggle (ADR-009).
  */
 
@@ -23,6 +28,8 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
     <main className="tk-page">
       <img className="tk-logo" src="/assets/boa-logo.png" alt="Bangalore Open Air" />
       <PassTicket {...pass} variant="live" />
+      <CheckinGuideCue />
+      <CheckinGuide />
       <style>{`
         .tk-page {
           position: relative;
@@ -42,14 +49,14 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
           inset: 0;
           z-index: -2;
           background: var(--bg, #0A0A0A) url(/assets/pass-poster.webp) 50% 18% / cover no-repeat;
-          opacity: .78;
+          opacity: 1;
         }
         .tk-page::after {
           content: '';
           position: fixed;
           inset: 0;
           z-index: -1;
-          background: linear-gradient(180deg, rgba(10,10,10,.15), rgba(10,10,10,.35) 50%, rgba(10,10,10,.7));
+          background: linear-gradient(180deg, rgba(10,10,10,.05), rgba(10,10,10,.12) 45%, rgba(10,10,10,.5));
         }
         .tk-logo { justify-self: start; width: 104px; height: auto; margin-left: max(4px, calc(50% - 206px)); }
       `}</style>
