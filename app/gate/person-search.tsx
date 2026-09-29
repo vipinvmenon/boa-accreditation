@@ -103,9 +103,9 @@ export function PersonSearch({ roster, onPick, onOpen, onClose }: Props) {
           setOpen(true)
           onOpen?.()
         }}
-        className="btn wide hov-outline-grn"
+        className="btn btn-gate btn-block"
       >
-        Can&apos;t scan? Search by name<span className="ic"><Icon name="magnifying-glass" /></span>
+        <Icon name="magnifying-glass" />Can&apos;t scan? Search by name
       </button>
       {open && (
         <div className="name-search">
@@ -160,7 +160,7 @@ export function PersonSearch({ roster, onPick, onOpen, onClose }: Props) {
               </div>
             ))}
           </div>
-          <button type="button" className="btn wide" onClick={() => { close(); openerRef.current?.focus() }}>Back to scanning</button>
+          <button type="button" className="btn btn-gate btn-block" onClick={() => { close(); openerRef.current?.focus() }}>Back to scanning</button>
         </div>
       )}
     </>

@@ -237,18 +237,29 @@
   padding: 0 var(--gutter);
 }
 
+/* r8/ui.css `.nav .frame` final cascade: darker, softer glass than --glass-fill. */
+.r10 .island.island {
+  background: rgb(12 12 16 / 62%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 10%), 0 18px 40px -24px rgb(0 0 0 / 70%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+.r10[data-theme="light"] .island.island {
+  background: rgb(246 244 236 / 70%);
+  box-shadow: inset 0 0 0 1px rgb(20 20 26 / 8%), inset 0 1px 0 rgb(255 255 255), 0 18px 40px -26px rgb(40 34 20 / 30%);
+}
 .r10 .island {
   display: flex;
   align-items: center;
-  gap: var(--s-1);
+  gap: var(--s-6);
   /* r10-foundation F1: the mock's nav pill spans the frame (`.nav .frame`,
      max-width calc(var(--frame) - 2 * var(--gutter))), it does not
      shrink-wrap to its content and float centred. */
   width: 100%;
   max-width: calc(var(--frame) - 2 * var(--gutter));
-  min-height: 60px;
+  height: 60px;
   margin: 0 auto;
-  padding: var(--s-1);
+  padding: 0 var(--s-3) 0 var(--s-5);
   border-radius: var(--r-pill);
   background: var(--glass-fill);
   box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
@@ -261,18 +272,19 @@
   align-items: center;
   gap: var(--s-2);
   min-height: var(--hit);
-  padding: var(--s-1) var(--s-4) var(--s-1) var(--s-3);
+  padding: 0;
 }
 
 .r10 .brand img { width: 104px; height: auto; filter: var(--logo-filter); }
 .r10 .brand span { color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
-.r10 .links { position: relative; display: flex; gap: var(--s-1); }
+.r10 .links { position: relative; display: flex; gap: var(--s-1); align-items: center; }
 .r10 .links a {
   position: relative;
   z-index: 1;
   display: inline-flex;
   align-items: center;
-  min-height: var(--hit);
+  gap: var(--s-2);
+  min-height: 40px;
   padding: 0 var(--s-4);
   border-radius: var(--r-pill);
   color: var(--ink-2);
@@ -290,12 +302,19 @@
   bottom: 0;
   left: 0;
   border-radius: var(--r-pill);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--go) 22%, transparent), color-mix(in srgb, var(--go) 8%, transparent));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--go) 42%, transparent), inset 0 1px 0 var(--glass-hi);
+  /* mock final cascade (ui.css:610-615): green glass, 10px blur */
+  background: linear-gradient(180deg, rgb(0 245 165 / 14%), rgb(0 245 165 / 6%));
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  box-shadow: inset 0 0 0 1px rgb(0 245 165 / 34%), inset 0 1px 0 rgb(255 255 255 / 14%), 0 6px 18px -10px rgb(0 0 0 / 60%);
   transition: transform var(--d-slow) var(--e-spring);
 }
+.r10[data-theme="light"] .links .pip {
+  background: linear-gradient(180deg, rgb(5 96 63 / 12%), rgb(5 96 63 / 5%));
+  box-shadow: inset 0 0 0 1px rgb(5 96 63 / 30%), inset 0 1px 0 #fff;
+}
 
-.r10 .nav-end { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; padding-left: var(--s-1); }
+.r10 .nav-end { display: flex; align-items: center; gap: var(--s-3); margin-left: auto; padding-left: 0; }
 .r10 .av,
 .r10 .burger {
   width: var(--hit);
@@ -305,9 +324,60 @@
   background: var(--raised);
   box-shadow: inset 0 0 0 1px var(--hair);
 }
-.r10 .av { display: grid; place-items: center; color: var(--ink); cursor: pointer; font: 600 var(--t-label-sm)/1 var(--f-mono); letter-spacing: .06em; }
-.r10 .av:hover,
-.r10 .av[aria-expanded="true"] { color: var(--go); background: var(--ok-tint); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--go) 42%, transparent); }
+.r10 .av { display: grid; place-items: center; color: var(--ink); cursor: pointer; font: 600 var(--t-label-sm)/1 var(--f-label); letter-spacing: .06em; }
+.r10 .av { transition: box-shadow var(--d-quick) var(--e-out); }
+.r10 .av:hover { box-shadow: inset 0 0 0 1px var(--hair-strong); }
+
+/* Operator popover — mock `.pop` (ui.css:87-91) on the desk's .profile-menu */
+.r10 .profile-wrap { position: relative; }
+.r10 .profile-menu {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  right: 0;
+  left: auto;
+  z-index: var(--z-menu);
+  min-width: 240px;
+  padding: var(--s-2);
+  border-radius: var(--r-md);
+  background: var(--glass-fill-strong);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  transform-origin: top right;
+  animation: r10-pop-in var(--d-quick) var(--e-out);
+}
+.r10 .profile-menu[hidden] { display: none; }
+.r10 .profile-menu .profile-head { display: block; padding: var(--s-3); margin-bottom: var(--s-1); border-bottom: 1px solid var(--hair); }
+.r10 .profile-menu .profile-head strong { display: block; color: var(--ink); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+.r10 .profile-menu .profile-head span { display: block; color: var(--ink-3); font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: normal; text-transform: none; }
+.r10 .profile-menu button,
+.r10 .profile-menu a {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: var(--hit);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  font: 400 var(--t-body)/1.55 var(--f-body);
+  letter-spacing: normal;
+  text-align: left;
+  text-decoration: none;
+  text-transform: none;
+  cursor: pointer;
+  transition: background-color var(--d-quick) var(--e-out), color var(--d-quick) var(--e-out);
+}
+.r10 .profile-menu button::after,
+.r10 .profile-menu a::after { content: none; }
+@media (hover: hover) { .r10 .profile-menu button:hover, .r10 .profile-menu a:hover { background: var(--raised); color: var(--ink); } }
+@keyframes r10-pop-in { from { opacity: 0; transform: scale(.96); } }
+
+.r10 .burger { display: none; place-items: center; cursor: pointer; color: var(--ink); font-size: 20px; }
+.r10 .burger i,
+.r10.menu-open .burger i:nth-child(n) { position: static; width: auto; height: auto; background: none; transform: none; font-size: 20px; line-height: 1; }
 
 /* r10-foundation F4: R8.shell (design/source/r10/r8/ui.js) never renders a
    status bar under the nav — no dashboard numbers live in the shared shell
@@ -352,6 +422,62 @@
 .r10 .site-footer .sf-base a { color: inherit; text-decoration: none; }
 .r10 .site-footer .sf-base a:hover { color: var(--ink); }
 
+/* mock: the nav collapses to the burger below 900px (ui.css:77-83) */
+@media (max-width: 900px) {
+  .r10 .links { display: none; }
+  .r10 .burger { display: grid; }
+}
+.r10 #desk-menu { display: none; }
+@media (max-width: 900px) {
+  .r10 #desk-menu:not([hidden]) {
+    position: fixed;
+    inset: 64px 0 auto 0;
+    z-index: var(--z-menu);
+    display: grid;
+    justify-content: stretch;
+    align-content: start;
+    gap: var(--s-1);
+    min-width: 0;
+    max-height: none;
+    overflow: visible;
+    padding: var(--s-4) var(--s-5) var(--s-8);
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: 0 1px 0 var(--gold-hair), 0 40px 60px -20px var(--scrim);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    opacity: 1;
+    pointer-events: auto;
+    animation: r10-sheet-in var(--d-base) var(--e-out);
+  }
+  .r10 #desk-menu a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    padding: 0 var(--s-2);
+    border-bottom: 1px solid var(--hair);
+    color: var(--ink-2);
+    font: 400 32px/1 var(--f-display);
+    letter-spacing: normal;
+    text-decoration: none;
+    text-transform: uppercase;
+    opacity: 1;
+    transform: none;
+  }
+  .r10 #desk-menu a[aria-current="page"] { color: var(--ink); }
+}
+@keyframes r10-sheet-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (max-width: 700px) {
+  .r10 #desk-menu:not([hidden]) {
+    inset: 80px var(--s-3) auto var(--s-3);
+    border-radius: var(--r-xl);
+    background: var(--glass-fill-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  }
+}
+
 @media (max-width: 700px) {
   .r10 .frame { padding-inline: var(--s-5); }
   .r10 .page { padding-top: var(--s-6); }
@@ -360,8 +486,6 @@
   .r10 .nav-frame { margin-inline: 0; }
   .r10 .nav-wrap { padding-inline: var(--s-3); }
   .r10 .island { width: 100%; justify-content: space-between; }
-  .r10 .links { display: none; }
-  .r10 .burger { display: block; position: relative; cursor: pointer; }
   .r10 .brand span { display: none; }
   .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-6); padding: var(--s-8) var(--s-5) var(--s-5); }
   .r10 .site-footer .sf-brand img { width: 140px; }
@@ -388,10 +512,18 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .r10 .island,
+  .r10 .island.island,
+  .r10[data-theme="light"] .island.island,
   .r10 .site-footer {
     background: var(--surface-solid);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }
+
+/* Phosphor Light glyphs the desk nav uses that app/phosphor.css does not list */
+.r10 .ph-light.ph-list:before { content: '\e2f0'; }
+.r10 .ph-light.ph-users-three:before { content: '\e68e'; }
+.r10 .ph-light.ph-sign-out:before { content: '\e42a'; }
+.r10 .links .badge,
+.r10 #desk-menu .badge { margin-left: 0; }

@@ -162,7 +162,7 @@ export function VehicleScreen() {
     // no new network path) — D7 forbids hardcoding a proposal number, so the
     // "N not in BMS" pill is left off this screen rather than faked.
     <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0}>
-      <div className="r10 vehicle-screen">
+      <div className="vehicle-screen">
         {/* r8-vehicle.html opens with this segmented control, not a v2-style
             hero header (no "Vehicle entrance" tag, no h1, no lede) — the
             gate's own nav island already names the screen. */}
@@ -171,8 +171,8 @@ export function VehicleScreen() {
           <Link href="/gate/vehicle" aria-current="page">Vehicles</Link>
         </nav>
 
-        <div className="veh-stack">
-          <section className="veh-panel veh-entry">
+        <div className="veh-split">
+          <section className="panel veh-entry">
             <label className="field" htmlFor="vehicle-plate">
               <span className="label-sm">Vehicle registration</span>
               <input
@@ -181,14 +181,14 @@ export function VehicleScreen() {
                 aria-label="Vehicle registration"
                 value={plate}
                 onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }}
-                placeholder="KA01AB1234"
+                placeholder="KA 01 AB 1234"
                 autoCapitalize="characters"
                 autoComplete="off"
               />
             </label>
-            <div className="veh-note">
-              <span className="mono gold">Both or neither</span>
-              <p>A match on the plate is not a match on the vehicle. The officer checks the sticker against the plate in front of them.</p>
+            <div className="plate-note">
+              <span className="plate-note-ic" aria-hidden="true"><Icon name="warning" /></span>
+              <div><b>Sticker and band. Both.</b>A match on the plate is not a match on the vehicle. Check the sticker against the plate in front of you.</div>
             </div>
             <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
           </section>
@@ -197,7 +197,7 @@ export function VehicleScreen() {
               buttons with no click handler — they only ever reflected the recorded outcome,
               which the verdict heading right below already states in words. Removed rather
               than kept as fake tabs; this card's `aria-live` carries it. */}
-          <section className="veh-panel veh-result" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true">
+          <section className="panel veh-result" id="vres" data-o={outcome} aria-live="polite" aria-atomic="true">
             {result && <>
             <h2 className="display-md verdict">{cleared ? 'Cleared' : result.outcome === 'blocked' ? 'Not cleared' : 'Turned away'}</h2>
             <p className="veh-sub">{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : result.outcome === 'blocked' ? result.text : `${result.text} ${online ? 'Syncing.' : `Queued offline (${queued}).`}`}</p>
@@ -231,16 +231,18 @@ export function VehicleScreen() {
             {/* ACC-131: a disabled button with no explanation just looks broken to the
                 officer at the barrier — title covers pointer users, the note text
                 below covers everyone else (title has no touch/keyboard equivalent). */}
-            <div className="veh-dock">
+            {normalized === null && <div className="veh-idle">
+              {plate.trim().length > 0 && <p role="status" className="veh-status-bad">Not a valid registration format.</p>}
+              {plate.trim().length === 0 && <p role="status">Type the registration. The sticker and the wristband show here before you decide.</p>}
+            </div>}
+            {plate.trim().length > 0 && <div className="veh-dock">
               <button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-primary btn-gate btn-block">{submitting ? 'Queueing…' : 'Log entry and open gate'}<Icon name="arrow-right" /></button>
               <button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-danger btn-gate btn-block">Turn away and log reason</button>
-            </div>
+            </div>}
             {/* ACC-159: the disabled buttons' reason as visible text. `title` is a
                 hover affordance with no touch or keyboard equivalent, and this
                 screen is used on a phone at a barrier, so it cannot be the only
                 explanation. It stays for pointer users; these lines are the real one. */}
-            {normalized === null && plate.trim().length > 0 && <p role="status" className="mono veh-status-bad">Not a valid registration format.</p>}
-            {normalized === null && plate.trim().length === 0 && <p role="status" className="mono ink-2">Type the registration. The sticker and the wristband show here before you decide.</p>}
           </section>
         </div>
       </div>
@@ -248,53 +250,39 @@ export function VehicleScreen() {
       <style jsx global>{`
         /* Compound, not descendant: .r10 and .vehicle-screen sit on the same
            root element, so ".r10 .vehicle-screen" (a space) never matches. */
-        .r10.vehicle-screen { padding-block: var(--s-6) var(--s-10); }
+        .r10 .vehicle-screen { padding-block: var(--s-6) var(--s-10); }
         .r10 .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: var(--s-5); }
         .r10 .segmented a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
         .r10 .segmented a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
-        .r10 .veh-stack { display: grid; gap: var(--s-5); max-width: 640px; }
-
-        /* Gate surfaces are always solid: no backdrop-filter, on any viewport
-           or input mode. Deliberately not the shared .card/.table/.empty/
-           .panel group in app/r10/base.css, which gates its glass overlay to
-           (hover: hover) and (min-width: 900px) rather than dropping it
-           altogether — the gate drops it altogether (DESIGN.md Do's). */
-        .r10 .veh-panel {
-          border-radius: var(--r-lg);
-          background: var(--surface);
-          box-shadow: inset 0 0 0 1px var(--hair);
-          padding: var(--s-6);
-        }
+        .r10 .veh-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; max-width: 640px; }
+        /* .panel (app/r10/base.css) supplies the r10 tray, bezel and 34px
+           padding; the gate keeps it solid on phones (no backdrop-filter). */
         .r10 .veh-entry .field { margin-bottom: var(--s-4); }
-        .r10 .veh-note { display: grid; gap: var(--s-1); margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); }
-        .r10 .veh-note p { margin: 0; color: var(--ink-2); font-size: var(--t-body-sm); }
+        .r10 .plate-note { display: flex; gap: var(--s-3); align-items: flex-start; margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); color: var(--ink); }
+        .r10 .plate-note b { display: block; }
+        .r10 .plate-note-ic { flex: none; color: var(--gold); font-size: 20px; line-height: 1.2; }
         /* SyncStatus draws itself into existing whitespace below whatever it is
            mounted after (own comment, app/gate/sync-status.tsx) rather than
            taking layout space, so the panel reserves the room itself. */
-        .r10.vehicle-screen .veh-entry { padding-bottom: calc(var(--s-6) + var(--s-5)); }
+        .r10 .vehicle-screen .veh-entry { padding-bottom: calc(34px + var(--s-5)); }
 
-        .r10 .veh-result { position: relative; min-height: 420px; }
+        .r10 .veh-result { margin-top: var(--s-5); }
+        .r10 .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-6) 0; }
+        .r10 .veh-idle p { margin: 0; }
         .r10 .veh-result .verdict { margin: 0; color: var(--ink); }
         .r10 .veh-sub { margin: var(--s-2) 0 0; color: var(--ink-2); }
-        .r10 .veh-checks { list-style: none; margin: var(--s-6) 0 0; padding: 0; display: grid; gap: var(--s-4); }
-        .r10 .veh-checks li { display: flex; align-items: flex-start; gap: var(--s-3); }
-        .r10 .veh-mark { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; }
-        .r10 .veh-mark.ok { background: var(--ok-tint); color: var(--go); }
-        .r10 .veh-mark.bad { background: var(--bad-tint); color: var(--bad); }
+        .r10 .veh-checks { list-style: none; margin: var(--s-5) 0 0; padding: 0; display: grid; gap: var(--s-3); }
+        .r10 .veh-checks li { display: flex; align-items: center; gap: var(--s-3); }
+        .r10 .veh-mark { --c: var(--go); display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--c) 18%, transparent); box-shadow: inset 0 0 0 2px var(--c); color: var(--c); font-size: 18px; }
+        .r10 .veh-mark.bad { --c: var(--bad); }
         .r10 .veh-checks .nm { font-family: var(--f-body); font-weight: 600; font-size: var(--t-body); letter-spacing: normal; text-transform: none; color: var(--ink); }
-        .r10 .veh-check-detail { margin-top: 2px; color: var(--ink-3); font-size: var(--t-body-sm); }
+        .r10 .veh-check-detail { color: var(--ink-3); font-size: var(--t-body-sm); }
         .r10 .veh-reason { margin-top: var(--s-4); }
         .r10 .veh-status-bad { color: var(--bad); }
-        .r10 .veh-dock { margin-top: var(--s-6); display: grid; gap: var(--s-3); }
-        .r10 .veh-dock + p { margin-top: var(--s-3); }
+        .r10 .veh-dock { margin-top: var(--s-5); display: grid; gap: var(--s-3); }
 
-        @media (min-width: 560px) {
+        @media (min-width: 700px) {
           .r10 .veh-dock { grid-auto-flow: column; grid-auto-columns: 1fr; }
-        }
-
-        @media (max-width: 700px) {
-          .r10 .veh-panel { padding: var(--s-5); }
-          .r10 .veh-result { min-height: 0; }
         }
       `}</style>
     </GateChrome>

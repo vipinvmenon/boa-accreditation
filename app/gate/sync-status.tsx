@@ -10,10 +10,19 @@ import { formatSyncStatus } from '@/lib/format-sync-status'
  * in the v2 contract's layout — the design has no slot for it, and
  * OFFLINE-SYNC.md asks for the pull time beside the roster count.
  */
-export function SyncStatus({ onSynced, top }: { onSynced?: () => void | Promise<void>; top: number }) {
+export function SyncStatus({ onSynced, top }: { onSynced?: () => void | Promise<void>; top?: number }) {
   const { status } = useOutboxSync(onSynced)
 
   const text = formatSyncStatus(status)
+  // No `top`: the caller has a slot for the line (the r10 gate screen), so it
+  // is drawn in flow. With `top` it is the zero-height overlay described above.
+  if (top === undefined) {
+    return (
+      <p className="mono" data-sync-status role="status" aria-live="polite" title={text}>
+        {text}
+      </p>
+    )
+  }
   const line: CSSProperties = {
     position: 'absolute',
     top,

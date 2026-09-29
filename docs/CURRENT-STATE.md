@@ -5,6 +5,90 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (all five desk screens matched to r10 mockups by screenshot)._
 
+## Gate, Vehicle and desk nav vs the r10 mockups, 29 Sep 2026
+
+This work was done on Vipin's instruction while ACC-189, 189b and 190 are in
+flight. ACC-189's "starts after ACC-147" ordering was overridden by that
+instruction. Gate behaviour is frozen: only markup and CSS changed, and no
+gate/*.ts, service worker or API code was touched.
+
+- **Gate (`app/gate/page.tsx`, `gate-chrome.tsx`, `person-search.tsx`,
+  `sync-status.tsx`):** it is now on r10. It matches r8-gate.html at 390 and
+  1440 in the idle, approved, collected, refused, search and offline
+  states. `gate-chrome` roots `r10 v2-app` like DeskChrome, and the status
+  bar and a hard-coded `bmsPending={14}` were removed.
+  - **Not matched:**
+    - The band image is a coloured strip, because the image isn't
+      precached by the SW.
+    - Reissue "Why?" and hold are ACC-189b.
+    - The nav sync pill needs new logic; sync lines stay in the panel.
+    - The verdicts stay "Approved/Collected/Refuse", and all six zones are
+      shown, because the e2e specs assert both.
+    - Search is inline, not a sheet.
+- **Vehicle (`vehicle-screen.tsx`):**
+  - It has the `.panel` bezel, the `veh-split` grid and the plate note with
+    the mockup copy.
+  - The checks are ring circles.
+  - Nothing overflows at 360, 390 or 1440.
+  - **Not matched:**
+    - There is no "Check plate" button, because the plate resolves on input.
+    - The buttons stay visible in idle, for the tests.
+    - The ADR-022 checks stay.
+- **Desk nav (`desk-chrome.tsx`, nav rules in `app/r10/base.css`):**
+  - The island is 60px tall with the mockup's padding and gaps.
+  - Pill, avatar and badges are fixed.
+  - The profile menu is restyled as `.pop` with icons, and the mobile sheet
+    as `.nav-sheet`.
+  - The burger shows below 900px.
+  - The island takes the mockup's final `.nav .frame` glass,
+    rgb(12 12 16 / 62%), because it had been lighter. The
+    reduced-transparency fallback is kept.
+- **Stale harness label:** `scripts/visual-check.mjs` fills "Manual scanner
+  input". That label did not exist even before this change; the input is
+  "Pass-code input for hardware scanner". Fix it when ACC-191 touches the
+  harness.
+
+**Verified:**
+- Playwright screenshots of the gate (idle and approved at 390, with Dexie
+  seeded offline) and the nav (1440 and 390) against the mockups.
+- The agents' own e2e runs: aeroplane-mode, two-phone-sync and
+  chrome-interactions passed 36/36, and the vehicle aeroplane cases passed
+  13/13.
+- `typecheck` is clean.
+- `lint` has 0 errors.
+- `test` passes, 298/298.
+
+**Not verified:** a real phone camera and a real gate device.
+
+**Follow-up, the same day, on Vipin's instruction:**
+- **Nav:** the Vehicle nav item is gone from `DESK_NAV` and `GATE_NAV`
+  (`lib/design.ts`), because r8 has none. `/gate/vehicle` is reached through
+  the gate's People/Vehicles switch, and `gate-chrome` highlights "Gate" on
+  every `/gate/*` route. This supersedes the ADR-019 nav list. The
+  aeroplane-mode nav assertion now checks for the "Vehicles" switch.
+- **Vehicle idle:** the decision buttons are hidden until a plate is typed,
+  as in r8-vehicle.html.
+  - The ACC-131/159 test now expects no buttons when the field is empty.
+  - With an invalid plate the buttons still show, disabled, with visible
+    text.
+- **Plate note:** it has r8's warning glyph (Phosphor `\e4e0`, from the
+  r8 tokens).
+- **Gate brand:** the "Accred gate" wordmark is gone, because r8 shows only
+  the logo.
+- **Nested `.r10`:** `.vehicle-screen` no longer adds a second `.r10`
+  inside gate-chrome's.
+- **Still different:**
+  - There is no "Check plate" button, because the plate resolves on input
+    and the button would do nothing.
+  - An issuer's gate nav shows only "Gate". r8 draws the desk links too,
+    but the app hides them from issuers (ACC-132).
+  - The sync status stays in the panel.
+- **Verified:** `aeroplane-mode` and `two-phone-sync` pass 30/30, and
+  chrome-interactions passed in the earlier run.
+- **Stale e2e:** `org-filter.spec.ts` still expects the old Master list
+  column names ("Name and company", "Band serial"), which ACC-184's r10
+  pass renamed to "Person"/"Band". It was not run.
+
 ## Users, pass sheet and page background vs the r10 mockups, 29 Sep 2026
 
 - **Page background:** Vipin reported it wasn't dark enough. The mockup's

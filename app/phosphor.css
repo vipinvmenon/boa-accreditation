@@ -43,6 +43,7 @@
 .ph-light.ph-caret-down:before { content: '\e136'; }
 .ph-light.ph-check:before { content: '\e182'; }
 .ph-light.ph-clock:before { content: '\e19a'; }
+.ph-light.ph-warning:before { content: '\e4e0'; }
 .ph-light.ph-download-simple:before { content: '\e20c'; }
 .ph-light.ph-magnifying-glass:before { content: '\e30c'; }
 .ph-light.ph-moon:before { content: '\e330'; }

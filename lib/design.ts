@@ -176,12 +176,11 @@ export const DESK_NAV = [
   { id: 'pass', label: 'Passes', href: '/desk/passes' },
   { id: 'orgs', label: 'Organisations', href: '/desk/orgs' },
   { id: 'gate', label: 'Gate', href: '/gate' },
-  { id: 'vehicle', label: 'Vehicle', href: '/gate/vehicle' },
 ] as const
 
+/** r8 has no Vehicle nav item: /gate/vehicle is the gate's People/Vehicles switch, under Gate. */
 export const GATE_NAV = [
   { id: 'gate', label: 'Gate', href: '/gate' },
-  { id: 'vehicle', label: 'Vehicle', href: '/gate/vehicle' },
 ] as const
 
 /**

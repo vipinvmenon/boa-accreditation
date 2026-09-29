@@ -275,8 +275,8 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                     <button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}>
                       <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                     </button>
-                    <Link href="/desk/users" onClick={closeProfileMenu}>Users</Link>
-                    <button type="button" onClick={() => { closeProfileMenu(); void signOut() }} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+                    <Link href="/desk/users" onClick={closeProfileMenu}><i aria-hidden="true" className="ph-light ph-users-three" />Users</Link>
+                    <button type="button" onClick={() => { closeProfileMenu(); void signOut() }} disabled={signingOut}><i aria-hidden="true" className="ph-light ph-sign-out" />{signingOut ? 'Signing out…' : 'Sign out'}</button>
                 </div>
               </div>
               <button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
@@ -286,7 +286,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   setMenuOpen(false)
                   setMobileOpen(true)
                 }
-              }} aria-label="Menu" aria-controls="desk-menu" aria-expanded={mobileOpen}><i /><i /></button>
+              }} aria-label="Menu" aria-controls="desk-menu" aria-expanded={mobileOpen}><i aria-hidden="true" className="ph-light ph-list" /></button>
             </div>
           </nav>
           {/* r10-foundation F4: R8.shell (design/source/r10/r8/ui.js) renders
@@ -298,7 +298,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
           {DESK_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
             closeMobileMenu()
-          }}>{item.label}</Link>)}
+          }}>{item.label}{item.id === 'master' && dashboard && dashboard.bmsPending > 0 && <span className="badge" aria-hidden="true">{dashboard.bmsPending}</span>}</Link>)}
         </div>
         <div className="frame page">{children}</div>
         <SiteFooter signedInAs={me ? `${me.display_name} (${ROLE_LABEL[me.role]})` : null} />

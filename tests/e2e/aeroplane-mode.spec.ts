@@ -507,7 +507,7 @@ test.describe('gate aeroplane mode', () => {
 
     const nav = page.getByRole('navigation', { name: 'Gate navigation' })
     await expect(nav.getByRole('link', { name: 'Gate' })).toBeVisible()
-    await expect(nav.getByRole('link', { name: 'Vehicle' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Vehicles' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Control room' })).toHaveCount(0)
     await expect(nav.getByRole('link', { name: 'Master list' })).toHaveCount(0)
 
@@ -715,9 +715,9 @@ test.describe('vehicle gate: resolve on input (ACC-159)', () => {
     await gate.goto('/gate/vehicle')
     await gate.context().setOffline(true)
 
-    // Empty: a phone at a barrier has no hover, so this must be readable text.
+    // Empty: readable text, and no decision buttons yet (r8-vehicle.html's idle panel).
     await expect(gate.getByText('Type the registration. The sticker and the wristband show here before you decide.')).toBeVisible()
-    await expect(gate.getByRole('button', { name: 'Log entry and open gate' })).toBeDisabled()
+    await expect(gate.getByRole('button', { name: 'Log entry and open gate' })).toHaveCount(0)
 
     // Invalid: the existing format line, still visible.
     await gate.getByLabel('Vehicle registration').fill('not-a-plate')

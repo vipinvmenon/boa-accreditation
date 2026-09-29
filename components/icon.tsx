@@ -29,6 +29,7 @@ export type IconName =
   | 'scan'
   | 'sort-descending'
   | 'sun'
+  | 'warning'
   | 'x'
 
 export function Icon({ name }: { name: IconName }) {
