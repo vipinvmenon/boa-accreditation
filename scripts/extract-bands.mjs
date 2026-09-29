@@ -109,3 +109,9 @@ if (existsSync(POSTER)) {
 // own 32×40 poster thumbnail, soft once scaled up. Copied verbatim.
 copyFileSync(join(root, 'design/source/r10/r8/img/ambient-40.png'), join(root, 'public/assets/ambient-40.png'))
 console.log('ambient-40         copied')
+
+// The Control room hero (control-room-screen.module.css): a 2400px q84 WebP
+// of the 8640px festival artwork (Vipin, 29 Sep). The 29 MB original stays
+// out of git; this approved cut is the committed source. Copied verbatim.
+copyFileSync(join(root, 'design/assets-source/control-room-art.webp'), join(root, 'public/assets/control-room-art.webp'))
+console.log('control-room-art   copied')

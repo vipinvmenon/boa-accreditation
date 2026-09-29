@@ -36,19 +36,27 @@
   position: absolute;
   inset: 0;
   z-index: -2;
-  background: url("/assets/boa-poster.png") 50% 27% / cover no-repeat;
+  /* 2400px WebP of the 8640px festival artwork (Vipin, 29 Sep), square, so
+     the crop point is the goddess's face rather than the old portrait poster's. */
+  background: url("/assets/control-room-art.webp") 50% 34% / cover no-repeat;
+  /* The artwork's mint is near the desk's --go; pulled back so the green
+     on screen means a control or a state, not the poster. */
+  filter: saturate(.65);
   animation: settle 1.6s var(--e-out) both;
 }
 
-/* The poster stays dark whatever the desk theme, so these are literal. */
+/* The poster stays dark whatever the desk theme, so these are literal.
+   A uniform shade over the whole poster plus the mockup's left and bottom
+   falloff (Vipin, 29 Sep: the full-strength art was too flashy). */
 .heroClip::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgb(8 9 9 / 70%) 0%, rgb(8 9 9 / 25%) 36%, transparent 55%),
-    linear-gradient(0deg, rgb(8 9 9 / 45%), transparent 35%);
+    linear-gradient(90deg, rgb(8 9 9 / 55%) 0%, rgb(8 9 9 / 15%) 40%, transparent 60%),
+    linear-gradient(0deg, rgb(8 9 9 / 45%), transparent 35%),
+    rgb(8 9 9 / 52%);
 }
 
 @keyframes settle { from { transform: scale(1.04); opacity: .3; } }
@@ -481,7 +489,7 @@
     background-position: 50% 0;
     background-size: 100% auto;
   }
-  .heroClip::before { background: linear-gradient(0deg, var(--bg) 35%, transparent 75%); }
+  .heroClip::before { background: linear-gradient(0deg, var(--bg) 35%, transparent 75%), rgb(8 9 9 / 52%); }
   .ringWrap { display: none; }
   .bLeft { grid-template-columns: 1fr 1fr; }
   .bento .bLeft a.tile { min-height: 160px; }
