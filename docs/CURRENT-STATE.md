@@ -5,6 +5,26 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
+## Interakt template and first real send, 29 Sep 2026
+
+- **What (Vipin):** "take over on Chrome and set up" the pass template, then
+  "send the test to my number now".
+- **Template:** `boa_crew_pass` (Utility, `en`, one body variable, dynamic URL
+  button `accred.bangaloreopenair.com/p/{{1}}` "Open my pass", footer
+  "Bangalore Open Air · 10 Oct 2026") was created in Interakt by driving
+  Vipin's signed-in Chrome. It shows **Approved** in the Active list.
+- **Desk help contact (ACC-173):** +91 88487 24976, Vipin answers; message
+  "Hi, I need help with my BOA pass". Unblocks ACC-170, not yet built.
+- **Send:** a one-off script called `sendPassTemplate` with the key from
+  `.env.local` (never printed) and a dummy pass token. Interakt returned a
+  message id. Vipin reports the message arrived and the button works.
+- **Not verified:** the send through `/desk/passes` on the deployed app; that
+  Vercel has redeployed with the key (no agent could read Vercel); delivery
+  status or the webhook (the route still checks Meta's signature, ADR-024);
+  the failure path; a real pass token end to end.
+- **Not done:** the IMAGE-header template (ACC-172/175), env vars in Vercel
+  beyond the key, ACC-144 acceptance in full.
+
 ## Styled Select, inline feedback, smoother sheet, 29 Sep 2026
 
 - **What (Vipin):** "add proper dropdown styles" (the native macOS select popup),

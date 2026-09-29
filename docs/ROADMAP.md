@@ -120,6 +120,22 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       phone-number ID and the WABA ID put into Vercel env vars by Vipin, never
       pasted into chat or committed. Meta bills per template message sent ·
       **V** · *needed Thu 24 Sep*
+      **Update 29 Sep:** superseded by ADR-024 (Interakt). `boa_crew_pass`
+      (Utility, `en`, one body variable, dynamic URL button
+      `accred.bangaloreopenair.com/p/{{1}}`, text "Open my pass", footer
+      "Bangalore Open Air · 10 Oct 2026") was submitted through Interakt's
+      dashboard by an agent, driving Vipin's signed-in Chrome. Status:
+      **Pending** Meta review (up to 24h). Not verified: approval, and the
+      `INTERAKT_*` env vars in `.env.local`/Vercel. The IMAGE-header template
+      (ACC-172) is not created.
+      **Later 29 Sep:** `boa_crew_pass` shows **Approved**; `INTERAKT_API_KEY`
+      added by Vipin to `.env.local` and Vercel (Vercel redeploy not
+      confirmed by an agent). A script call to `sendPassTemplate` sent one
+      real message to Vipin's number (Interakt accepted it, message id
+      returned); Vipin confirmed it arrived and the button works. The token
+      was a dummy, not a real pass. Not done: send through the desk's Send
+      button on the deployed app, delivery status (no webhook), the rejected-
+      send case.
 - [x] **ACC-026b** · Invite-operator UI in the desk app. `/api/admin/invite-operator`
       (ACC-026) has no screen — inviting anyone today means constructing a
       `curl` by hand. Added 12 Sep 2026 on Vipin's direct request after
@@ -152,9 +168,12 @@ These block **all** of Phase 1. Nothing on the critical path can start without #
       `ZONE_ACCESS`. Decide the Artist rule; the app follows the zone sheets
       until told otherwise. Also submit a WhatsApp template with an IMAGE
       header alongside ACC-151 (§5 B2) · **V** · due Thu 1 Oct
-- [ ] **ACC-173** · **Decide a desk help contact** for the pass, 404 and
+- [x] **ACC-173** · **Decide a desk help contact** for the pass, 404 and
       footer ("Message the accreditation desk"): a WhatsApp number the desk
-      will answer on show day. Unblocks ACC-170 · **V** · due Tue 29 Sep
+      will answer on show day. Unblocks ACC-170 · **V** · due Tue 29 Sep.
+      **Decided 29 Sep (Vipin):** +91 88487 24976 (Vipin Menon), WhatsApp.
+      Vipin answers on show day. Pre-filled message: "Hi, I need help with my
+      BOA pass".
 
 ---
 
