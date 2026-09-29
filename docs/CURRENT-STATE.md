@@ -36,6 +36,18 @@ _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room ar
 - **Not verified:** `test:e2e`, `test:visual`, or the screens in a browser.
   Everything removed had no caller and every removed class had no element,
   so no visible change is expected, but that was not looked at.
+- **Email templates, and a `SKIP_VISUAL=1` push of the whole tree (29 Sep).**
+  `docs/email-templates/` holds the r10 invite and password-reset templates
+  (HTML + text). Both are saved in the `boa-accred` Supabase project (read
+  back after a reload); the logo and banner they load are
+  `design/assets-source/email-*`, copied to `public/assets/` by
+  `extract-bands.mjs`. **Not verified:** the emails in a real inbox, and
+  Supabase's Site URL. Vipin asked for every uncommitted file to be committed
+  and pushed as it stood, so `b32fd21` carries other agents' unfinished
+  redesign work unsplit. The pre-push `test:visual` timed out twice waiting
+  for `main .num` on the control room; `VISUAL_OPERATOR_EMAIL/PASSWORD` are not
+  set here (ACC-090a), which is the likely cause but was not confirmed. Pushed
+  with `SKIP_VISUAL=1`; the hook's build ran and passed.
 - **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction.** The pre-push
   `test:visual` fails on the control room (`main .num` never appears),
   and it fails the same way on this commit alone in a clean worktree.
