@@ -10,6 +10,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
 } from 'react'
+import { Icon } from '@/components/icon'
 import { motion, useReducedMotion } from 'motion/react'
 
 type ClassName = { className?: string }
@@ -53,6 +54,8 @@ export type SheetProps = ClassName & {
   open: boolean
   onClose: () => void
   title?: ReactNode
+  /** Keep the title for screen readers only (r8-passes.html's sr-only "Pass"). */
+  titleHidden?: boolean
   labelledBy?: string
   children?: ReactNode
   footer?: ReactNode
@@ -63,6 +66,7 @@ export function Sheet({
   open,
   onClose,
   title,
+  titleHidden = false,
   labelledBy,
   children,
   footer,
@@ -145,8 +149,10 @@ export function Sheet({
       >
         <div className="grabber" aria-hidden="true" />
         <div className="sheet-head">
-          <div>{title && <h2 id={titleId} className="display-md">{title}</h2>}</div>
-          <button type="button" className="sheet-close" aria-label={closeLabel} onClick={onClose}>×</button>
+          {titleHidden
+            ? title && <h2 id={titleId} className="sr">{title}</h2>
+            : <div>{title && <h2 id={titleId} className="display-md">{title}</h2>}</div>}
+          <button type="button" className="sheet-close" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
         </div>
         <div className="sheet-body">{children}</div>
         {footer && <div className="sheet-foot">{footer}</div>}

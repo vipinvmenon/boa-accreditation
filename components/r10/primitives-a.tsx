@@ -12,6 +12,7 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
 } from 'react'
+import { Icon } from '@/components/icon'
 
 type ClassName = { className?: string }
 
@@ -301,6 +302,7 @@ export function FilterBar({
         {hasSearch && (
           <label className="search">
             <span className="sr-only">{searchLabel}</span>
+            <span className="ph" aria-hidden="true"><Icon name="magnifying-glass" /></span>
             <input
               ref={searchRef}
               className="input"

@@ -89,7 +89,11 @@
 .r10 .select select { appearance: none; padding-right: var(--s-10); cursor: pointer; }
 .r10 .select::after { content: "\e136"; position: absolute; top: 50%; right: var(--s-4); color: var(--ink-2); font: 16px/1 "Phosphor-Light"; pointer-events: none; transform: translateY(-50%); }
 
-.r10 .search { position: relative; flex: 1; min-width: 220px; }
+/* app/v2.css ships an unscoped .search (flex pill, background, box-shadow,
+   padding) that still applies here since it isn't overridden property-by-
+   property — nesting inside r10's own pill .input produced a double outline.
+   Reset every box property v2.css sets so only .input draws the pill. */
+.r10 .search { position: relative; flex: 1; min-width: 220px; display: block; padding: 0; background: none; box-shadow: none; border-radius: 0; }
 .r10 .search .input { padding-left: 44px; padding-right: 40px; border-radius: var(--r-pill); }
 .r10 .search .ph { position: absolute; z-index: 1; top: 50%; left: var(--s-4); color: var(--ink-3); transform: translateY(-50%); }
 .r10 .search kbd {
@@ -175,7 +179,9 @@
 .r10 .card-label { display: flex; justify-content: space-between; gap: var(--s-3); margin: 0 0 var(--s-4); color: var(--ink-2); }
 .r10 .card .arrow { color: var(--ink-3); transition: transform var(--d-base) var(--e-hover); }
 .r10 .meter { height: 4px; margin-top: var(--s-5); overflow: hidden; border-radius: var(--r-pill); background: var(--hair); }
-.r10 .meter i { display: block; width: calc(var(--w) * 100%); height: 100%; border-radius: inherit; background: var(--c, var(--go)); transform-origin: left; animation: r10-meter-in var(--d-settle) var(--e-out); }
+/* transform/transition reset: app/v2.css:186 sets an unscoped `.meter i { transform: scaleX(0) }`
+   that only v2's `.in` class undoes, so every r10 meter rendered empty. */
+.r10 .meter i { display: block; width: calc(var(--w) * 100%); height: 100%; border-radius: inherit; background: var(--c, var(--go)); transform: none; transform-origin: left; transition: none; animation: r10-meter-in var(--d-settle) var(--e-out); }
 @keyframes r10-meter-in { from { transform: scaleX(0); } }
 
 .r10 .table { padding-block: var(--s-1); }
@@ -223,7 +229,11 @@
 .r10 .sheet-head { display: flex; align-items: start; justify-content: space-between; gap: var(--s-4); padding: var(--s-6) var(--s-6) var(--s-4); }
 .r10 .sheet-body { flex: 1; overflow: auto; padding: 0 var(--s-6) var(--s-6); }
 .r10 .sheet-foot { display: flex; flex-wrap: wrap; gap: var(--s-3); padding: var(--s-4) var(--s-6) var(--s-6); box-shadow: inset 0 1px 0 var(--hair); }
-.r10 .sheet-close { display: grid; place-items: center; width: var(--hit); height: var(--hit); border: 0; border-radius: 50%; background: var(--raised); cursor: pointer; }
+.r10 .sheet-close { display: grid; place-items: center; flex: none; width: var(--hit); height: var(--hit); border: 0; border-radius: 50%; background: var(--raised); color: var(--ink); font-size: 18px; cursor: pointer; }
+/* r8/ui.css:647 final cascade: the close button is glass. */
+.r10 .sheet-close { background: rgb(255 255 255 / 8%); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 10%), inset 0 1px 0 rgb(255 255 255 / 14%); }
+.r10 .sheet-close:active { transform: scale(.94); }
+.r10[data-theme="light"] .sheet-close { background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); }
 .r10 .grabber { display: none; }
 
 .r10 .empty { display: grid; justify-items: start; gap: var(--s-3); padding-block: var(--s-14); }

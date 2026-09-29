@@ -1,7 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
+import { tier, tierColour } from '@/lib/design'
+import { useDomTheme } from '@/lib/use-theme'
 import { Button, Chip, CountDot, EmptyState, FilterBar, HoldButton, Sheet, Skeleton, StatusPill, Table, TableCell } from '@/components/r10'
 import { Icon } from '@/components/icon'
 import { PassTicket } from '@/components/pass-ticket'
@@ -44,6 +46,7 @@ function waMeLink(phone: string, fullName: string, passToken: string): string {
 }
 
 export function PassesScreenR10() {
+  const theme = useDomTheme()
   const router = useRouter()
   const [passes, setPasses] = useState<PassWithQr[]>([])
   const [sends, setSends] = useState<PassSendsResponse | null>(null)
@@ -219,19 +222,26 @@ export function PassesScreenR10() {
       )}
 
       <FilterBar
+        className="passes-filterbar"
         searchValue={query}
         onSearchChange={(value) => setQuery(value)}
         searchPlaceholder="Name, organisation or pass ref"
         searchLabel="Search passes"
         activeFilters={filter ? [{ id: filter, label: filter === 'unsent' ? 'Not sent' : 'Failed', onRemove: () => setFilter(null) }] : []}
-        onClearAll={() => { setFilter(null); setQuery('') }}
-        resultCount={<><strong>{filteredPasses.length}</strong> of {passes.length}</>}
-      >
-        <div className="chips passes-presets" aria-label="Pass presets">
-          <Chip preset count={unsent.length} onActivate={() => setFilter('unsent')}>Not sent</Chip>
-          <Chip preset count={failed.length} onActivate={() => setFilter('failed')}>Failed</Chip>
+        onClearAll={() => setFilter(null)}
+        resultCount={filter ? <><strong>{filteredPasses.length}</strong> of {passes.length}</> : undefined}
+      />
+      {!filter && (
+        <div className="filterbar-row passes-presets" aria-label="Pass presets">
+          <div className="chips">
+            <Chip preset count={unsent.length} onActivate={() => setFilter('unsent')}>Not sent</Chip>
+            <Chip preset count={failed.length} onActivate={() => setFilter('failed')}>Failed</Chip>
+            <span className="count body-sm">
+              {query ? <><strong>{filteredPasses.length}</strong> of {passes.length}</> : <><strong>{passes.length}</strong> people</>}
+            </span>
+          </div>
         </div>
-      </FilterBar>
+      )}
 
       {loading && (
         <section className="passes-loading" aria-busy="true" aria-label="Loading passes">
@@ -275,7 +285,7 @@ export function PassesScreenR10() {
                 onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openPass(pass) } }}
               >
                 <TableCell><button type="button" className="passes-person" onClick={() => openPass(pass)}><strong>{pass.fullName}</strong><span>{pass.orgName} · {pass.role}</span></button></TableCell>
-                <TableCell className="passes-tier">{pass.typeCode}</TableCell>
+                <TableCell className="passes-tier"><span style={{ '--c': tierColour(pass.typeCode, theme) } as CSSProperties}>{tier(pass.typeCode).label}</span></TableCell>
                 <TableCell><StatusPill status={sendStatus.tone}>{sendStatus.label}</StatusPill></TableCell>
                 <TableCell className="cell-r"><Button variant="sm" onClick={(event) => { event.stopPropagation(); openPass(pass) }}>Open</Button></TableCell>
               </div>
@@ -284,14 +294,13 @@ export function PassesScreenR10() {
         </Table>
       )}
 
-      <Sheet open={selected !== null} onClose={closePass} title={selected ? selected.fullName : undefined} className="passes-sheet">
-        {selected && (
-          <>
-            <div className="passes-ticket"><PassTicket {...selected} variant="sheet" /></div>
-            <div className="passes-sheet-status"><StatusPill status={status.tone}>{status.label}</StatusPill></div>
-          </>
-        )}
-        {selected && (
+      <Sheet
+        open={selected !== null}
+        onClose={closePass}
+        title="Pass"
+        titleHidden
+        className="passes-sheet"
+        footer={selected ? (
           <div className="passes-sheet-actions">
             {confirmResend ? (
               <>
@@ -305,10 +314,17 @@ export function PassesScreenR10() {
                   {busy === selected.id ? 'Sending' : selectedSend?.live ? 'Resend' : 'Send pass'}
                   <span className="ic"><Icon name="paper-plane-tilt" /></span>
                 </Button>
-                {selectedSend && <a className="btn btn-ghost" href={waMeLink(selectedSend.phone, selected.fullName, selected.passToken)} target="_blank" rel="noopener noreferrer">One-tap WhatsApp</a>}
+                {selectedSend && <a className="btn" href={waMeLink(selectedSend.phone, selected.fullName, selected.passToken)} target="_blank" rel="noopener noreferrer">One-tap WhatsApp</a>}
               </>
             )}
           </div>
+        ) : undefined}
+      >
+        {selected && (
+          <>
+            <div className="passes-ticket"><PassTicket {...selected} variant="sheet" /></div>
+            <div className="passes-sheet-status"><StatusPill status={status.tone}>{status.label}</StatusPill></div>
+          </>
         )}
       </Sheet>
 
@@ -329,17 +345,33 @@ export function PassesScreenR10() {
         .passes-page { container: passes / inline-size; }
         .passes-head { display: flex; align-items: end; justify-content: space-between; gap: var(--s-8); margin-bottom: var(--s-8); }
         .passes-head h1 { margin: var(--s-3) 0 var(--s-4); }
-        .passes-head .lede { max-width: 62ch; margin: 0; }
+        .passes-head .lede { max-width: 62ch; margin: var(--s-3) 0 0; }
         .passes-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: var(--s-3); }
         .passes-note { margin: var(--s-3) 0 0; color: var(--ink-2); }
-        .passes-presets { margin-left: auto; }
+        .passes-filterbar { margin-bottom: var(--s-3); }
+        .passes-presets { justify-content: space-between; align-items: center; margin-bottom: var(--s-6); }
+        .passes-presets .chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+        /* r10-foundation: the r8-passes.html sheet's ticket sits deep inside
+           .r10 .passes-page, which re-declares isolation:isolate (base.css's
+           .r10 rule) on TOP of the DeskChrome wrapper's own .r10 isolation.
+           That second, nested stacking context caps the sheet's z-index (61)
+           at "auto" among its siblings in the OUTER context, so the header's
+           avatar button (z-index 40, but not itself trapped) painted over
+           the sheet's close button and title — confirmed by
+           document.elementFromPoint() landing on the avatar, not the
+           sheet-close. Cancelling the redundant isolation here (specificity
+           (0,2,0) beats the base rule's (0,1,0)) lets the sheet's own
+           z-index compare directly against the header again. */
+        .r10.passes-page { isolation: auto; }
         .passes-table { --cols: minmax(220px, 2.4fr) minmax(110px, .9fr) minmax(170px, 1.3fr) 96px; }
         .passes-row { cursor: pointer; }
         .passes-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
         .passes-person { display: grid; min-height: var(--hit); align-content: center; justify-items: start; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
         .passes-person strong { font: 600 14.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; }
         .passes-person span { margin-top: 2px; color: var(--ink-3); font-size: var(--t-body-sm); }
-        .passes-tier { color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+        .passes-tier span { display: inline-flex; align-items: center; gap: var(--s-2); }
+        .passes-tier span::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .passes-tier { color: var(--ink); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
         .passes-failures { display: flex; flex-wrap: wrap; align-items: start; gap: var(--s-3) var(--s-5); margin-bottom: var(--s-6); padding: var(--s-4) var(--s-5); border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--hair); }
         .passes-failures ul { flex: 1 1 320px; display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
         .passes-failures li { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: baseline; }

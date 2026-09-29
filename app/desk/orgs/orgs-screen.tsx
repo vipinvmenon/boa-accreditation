@@ -7,7 +7,7 @@ import { orgRowWithCountsSchema, type OrgRowWithCounts } from '@/lib/schemas/org
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
-import { Button, CountDot, FilterBar } from '@/components/r10/primitives-a'
+import { Button, FilterBar } from '@/components/r10/primitives-a'
 import { EmptyState, Skeleton } from '@/components/r10/primitives-b'
 
 /**
@@ -58,12 +58,21 @@ const ORGS_ERROR_OVERRIDES = {
 
 const orgResponseSchema = orgRowWithCountsSchema.array()
 
+// r8-orgs.html's kindLabel(): the raw `kind` enum value ('vendor', 'crew', …)
+// capitalised for display. The database value itself stays lowercase.
+function kindLabel(kind: string) {
+  return kind.charAt(0).toUpperCase() + kind.slice(1)
+}
+
+type OrgsSort = 'name' | 'people'
+
 export function OrgsScreen() {
   const router = useRouter()
   const [orgs, setOrgs] = useState<OrgRowWithCounts[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<OrgsSort>('name')
 
   const [announcement, setAnnouncement] = useState('Loading organisations.')
   const [reloadKey, setReloadKey] = useState(0)
@@ -141,11 +150,17 @@ export function OrgsScreen() {
 
   const visibleOrgs = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase()
-    if (!orgs || !needle) return orgs ?? []
-    return orgs.filter((org) =>
-      [org.name, org.contact_name, org.kind].some((value) => value.toLocaleLowerCase().includes(needle)),
+    const filtered = !orgs || !needle
+      ? (orgs ?? [])
+      : orgs.filter((org) =>
+        [org.name, org.contact_name, org.kind].some((value) => value.toLocaleLowerCase().includes(needle)),
+      )
+    // r8-orgs.html's `results()`: name sorts alphabetically, people sorts by
+    // approvedCount descending (its `o.approved`).
+    return [...filtered].sort((a, b) =>
+      sort === 'people' ? b.approvedCount - a.approvedCount : a.name.localeCompare(b.name),
     )
-  }, [orgs, query])
+  }, [orgs, query, sort])
 
   return (
     <main id="main-content" tabIndex={-1} className="orgs-screen">
@@ -155,7 +170,7 @@ export function OrgsScreen() {
           <h1 className="display-lg">Organisations</h1>
           <p className="lede">Every company sending people. Open one to see them in the Master list.</p>
         </div>
-        <Button variant="ghost" disabled={!orgs || orgs.length === 0} onClick={() => void handleCopyOrgNames()}>
+        <Button disabled={!orgs || orgs.length === 0} onClick={() => void handleCopyOrgNames()}>
           <Icon name="paper-plane-tilt" /> Copy names for the form
         </Button>
       </header>
@@ -167,7 +182,6 @@ export function OrgsScreen() {
         searchLabel="Search organisations"
         searchPlaceholder="Organisation or contact name"
         onClearAll={() => setQuery('')}
-        resultCount={orgs ? <><strong>{visibleOrgs.length}</strong> of {orgs.length}</> : undefined}
       />
 
       {copyStatus && <p className="orgs-copy-status" role="status">{copyStatus}</p>}
@@ -180,11 +194,11 @@ export function OrgsScreen() {
         </EmptyState>
       )}
       {orgs === null && !loadError && (
-        <div className="orgs-table card" role="status" aria-label="Loading organisations" aria-busy="true">
+        <div className="orgs-table table" role="status" aria-label="Loading organisations" aria-busy="true">
           {Array.from({ length: 6 }, (_, index) => (
             <div className="org-row org-row-skeleton" key={index}>
               <div><Skeleton style={{ width: `${45 + (index % 3) * 15}%` }} /><Skeleton style={{ width: '32%', marginTop: 'var(--s-2)' }} /></div>
-              <Skeleton shape="num" /><Skeleton shape="pill" /><Skeleton style={{ width: '70%' }} /><Skeleton shape="dot" />
+              <Skeleton style={{ width: '56px' }} /><Skeleton shape="pill" /><Skeleton style={{ width: '70%' }} /><Skeleton shape="dot" />
             </div>
           ))}
         </div>
@@ -201,65 +215,85 @@ export function OrgsScreen() {
         </EmptyState>
       )}
       {orgs !== null && visibleOrgs.length > 0 && (
-        <div className="orgs-table card" role="table" aria-label="Organisations">
+        <div className="orgs-table table" role="table" aria-label="Organisations">
           <div className="orgs-thead" role="row">
-            <span role="columnheader">Organisation</span><span role="columnheader">People</span>
+            <span role="columnheader">
+              <button type="button" className="orgs-sort" aria-pressed={sort === 'name'} onClick={() => setSort('name')}>
+                Organisation <Icon name="caret-down" />
+              </button>
+            </span>
+            <span role="columnheader">
+              <button type="button" className="orgs-sort" aria-pressed={sort === 'people'} onClick={() => setSort('people')}>
+                People <Icon name="caret-down" />
+              </button>
+            </span>
             <span role="columnheader">Collected</span><span role="columnheader">Contact</span>
             <span role="columnheader"><span className="sr-only">Open</span></span>
           </div>
           <div role="rowgroup">
             {visibleOrgs.map((org) => (
               <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}`} className="org-row" aria-label={`${org.name} — show their people in the master list`}>
-                <span role="cell"><strong className="display-sm nm">{org.name}</strong><span className="body-sm ink-2">{org.kind}</span></span>
-                <span role="cell" className="org-counts">
-                  <span><CountDot label={`${org.submittedCount} sent`}>{org.submittedCount}</CountDot><span>sent</span></span>
-                  <span><CountDot label={`${org.approvedCount} approved`}>{org.approvedCount}</CountDot><span>approved</span></span>
-                </span>
+                <span role="cell"><strong className="nm">{org.name}</strong><span className="sub">{kindLabel(org.kind)}</span></span>
+                <span role="cell" className="org-people">{org.approvedCount} of {org.submittedCount}</span>
                 <span role="cell" className="orgs-collected">
                   <span className="body-sm">{org.collectedCount}</span>
                   <span className="meter" style={{ '--w': org.approvedCount ? Math.min(1, org.collectedCount / org.approvedCount) : 0 } as CSSProperties}><i /></span>
                 </span>
-                <span role="cell" className="org-contact"><span>{org.contact_name}</span><span className="mono ink-2">{org.contact_phone}</span></span>
+                <span role="cell" className="org-contact"><span className="body-sm">{org.contact_name}</span><span className="mono ink-2">{org.contact_phone}</span></span>
                 <span role="cell" className="org-arrow"><Icon name="arrow-right" /></span>
+                <span className="org-row2 body-sm ink-2">{org.approvedCount} of {org.submittedCount} approved · {org.collectedCount} collected</span>
               </Link>
             ))}
           </div>
         </div>
       )}
       <style jsx global>{`
-        .r10 .orgs-screen { padding-block: var(--s-10) var(--s-20); }
+        /* app/v2.css still ships .head, .nm, .sub, .btn as UNSCOPED rules (no
+           .r10 ancestor) — see scripts/.design-compare.mjs pitfall (1). Every
+           selector below re-declares what this screen needs at
+           (.r10 .orgs-screen …) specificity so the v2 rule never wins. */
+        /* No padding-block here: this <main> already sits inside desk-chrome's
+           .frame.page (app/r10/base.css), which supplies padding-top:
+           var(--s-10) and padding-bottom: var(--s-20) (var(--s-6) top on
+           mobile). A second padding-block here stacked a redundant 40px under
+           the nav — the title sat ~80px lower than the mock (master-screen
+           hit the same bug; see its comment). */
         .r10 .orgs-head { display: flex; align-items: end; justify-content: space-between; gap: var(--s-8); margin-bottom: var(--s-8); }
         .r10 .orgs-head h1 { margin: var(--s-2) 0 var(--s-3); }
         .r10 .orgs-filterbar { margin-bottom: var(--s-5); }
         .r10 .orgs-copy-status { color: var(--ink-2); margin: 0 0 var(--s-4); }
-        .r10 .orgs-table { overflow: hidden; }
-        .r10 .orgs-thead, .r10 .org-row { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(150px, 1.2fr) minmax(120px, .8fr) minmax(190px, 1.4fr) 44px; align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
-        .r10 .orgs-thead { min-height: 48px; color: var(--ink-3); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; box-shadow: inset 0 -1px 0 var(--hair); }
-        .r10 .org-row { min-height: 72px; padding-block: var(--s-3); color: inherit; text-decoration: none; box-shadow: inset 0 -1px 0 var(--hair); transition: background-color var(--d-quick) var(--e-hover), transform var(--d-quick) var(--e-hover); }
+        .r10 .orgs-table { --c: var(--ink-3); }
+        .r10 .orgs-thead, .r10 .org-row { display: grid; grid-template-columns: minmax(220px, 2fr) 120px minmax(150px, 1.2fr) minmax(190px, 1.4fr) 44px; align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
+        .r10 .orgs-thead { min-height: 48px; color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; box-shadow: inset 0 -1px 0 var(--hair); }
+        .r10 .orgs-thead .orgs-sort { display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--hit); padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+        .r10 .org-row { min-height: 64px; padding-block: var(--s-3); color: inherit; text-decoration: none; box-shadow: inset 0 -1px 0 var(--hair); transition: background-color var(--d-quick) var(--e-hover), transform var(--d-quick) var(--e-hover); }
         .r10 .org-row:last-child { box-shadow: none; }
         .r10 .org-row:hover { background: var(--raised); transform: translateX(2px); }
         .r10 .org-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-        .r10 .org-row > span:first-child, .r10 .org-contact, .r10 .org-counts { display: grid; gap: var(--s-1); }
-        .r10 .org-counts { grid-template-columns: repeat(2, minmax(64px, 1fr)); gap: var(--s-2); }
-        .r10 .org-counts > span { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--ink-2); font-size: var(--t-body-sm); }
+        .r10 .org-row > span:first-child, .r10 .org-contact { display: grid; gap: var(--s-1); }
+        /* r8-orgs.html's .tr .nm/.sub — re-targeted here since this row is
+           "org-row", not the literal ".tr" the shared rule in
+           app/r10/primitives.css matches, so it never applied. Without this,
+           v2.css's unscoped .nm (and the "display-sm" class this used to
+           carry) rendered the name as ~30px display type instead of the
+           mock's 14.5px label-font caps. */
+        .r10 .orgs-table .org-row .nm { font: 600 14.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
+        .r10 .orgs-table .org-row .sub { margin-top: 2px; font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; color: var(--ink-3); }
+        .r10 .org-people { color: var(--ink); }
         .r10 .orgs-collected { display: grid; gap: var(--s-1); }
         .r10 .orgs-collected .meter { margin-top: 0; }
         .r10 .org-arrow { justify-self: end; color: var(--ink-3); font-size: 20px; }
         .r10 .org-row:hover .org-arrow, .r10 .org-row:focus-visible .org-arrow { color: var(--ink); }
         .r10 .org-row-skeleton { pointer-events: none; }
         .r10 .org-row-skeleton > :last-child { justify-self: end; }
+        .r10 .org-row2 { display: none; }
         @media (max-width: 700px) {
-          .r10 .orgs-screen { padding-block: var(--s-6) var(--s-10); }
           .r10 .orgs-head { align-items: start; flex-direction: column; gap: var(--s-5); margin-bottom: var(--s-6); }
           .r10 .orgs-head .btn { width: 100%; }
           .r10 .orgs-thead { display: none; }
-          .r10 .org-row { grid-template-columns: 1fr 44px; gap: var(--s-2); padding-inline: var(--s-5); }
-          .r10 .org-row > :nth-child(2), .r10 .org-row > :nth-child(3), .r10 .org-row > :nth-child(4) { grid-column: 1; }
-          .r10 .org-row > :nth-child(2) { grid-row: 2; }
-          .r10 .org-row > :nth-child(3) { grid-row: 3; }
-          .r10 .org-row > :nth-child(4) { grid-row: 4; }
-          .r10 .org-row > :last-child { grid-column: 2; grid-row: 1 / span 4; }
-          .r10 .org-counts { display: flex; flex-wrap: wrap; }
+          .r10 .org-row { grid-template-columns: 1fr; gap: var(--s-1); padding: var(--s-4) var(--s-5); min-height: 0; }
+          .r10 .org-row > .org-people, .r10 .org-row > .orgs-collected, .r10 .org-row > .org-contact, .r10 .org-row > .org-arrow { display: none; }
+          .r10 .org-row > .org-row2 { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; }
         }
         @media (prefers-reduced-transparency: reduce) {
           .r10 .orgs-table { background: var(--surface-solid); backdrop-filter: none; }

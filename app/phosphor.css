@@ -42,6 +42,7 @@
 .ph-light.ph-arrow-up-right:before { content: '\e092'; }
 .ph-light.ph-caret-down:before { content: '\e136'; }
 .ph-light.ph-check:before { content: '\e182'; }
+.ph-light.ph-clock:before { content: '\e19a'; }
 .ph-light.ph-download-simple:before { content: '\e20c'; }
 .ph-light.ph-magnifying-glass:before { content: '\e30c'; }
 .ph-light.ph-moon:before { content: '\e330'; }

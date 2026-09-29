@@ -3,7 +3,241 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 28 September 2026 (Phase RD status after the Cursor session)._
+_Last updated: 29 September 2026 (all five desk screens matched to r10 mockups by screenshot)._
+
+## Users, pass sheet and page background vs the r10 mockups, 29 Sep 2026
+
+- **Page background:** Vipin reported it wasn't dark enough. The mockup's
+  final cascade (`r8/ui.css:469`) sets `.ambient { display: none }`, so the
+  page is only the near-black `.r10::before` gradient. An earlier pass the
+  same day had made the blurred poster visible, which lifted the whole page.
+  It is now hidden: `.r10 .ambient { display: none }` in `app/r10/base.css`.
+- **Pass sheet:** Vipin reported Passes still looked broken.
+  - **Shared Sheet** (`components/r10/primitives-b.tsx`): it has a
+    `titleHidden` prop, which renders an sr-only title with the close
+    button at the top left, as in r8-passes. The close button uses the
+    Phosphor `x` in the r8 glass circle (`app/r10/primitives.css`).
+  - **Passes** uses `titleHidden`, and its actions sit in the sheet's
+    `footer` (the hairline foot). The WhatsApp link is an outlined `.btn`.
+    The close button was hit-tested at 1440 and 390.
+  - **Pass ticket:** it still shows "Show this at the accreditation desk",
+    the date line and the vehicle, which the r8 sheet ticket doesn't. It is
+    shared with `/p/[passToken]` (ADR-025), so it was left alone.
+- **Users** (`app/desk/users/users-screen.tsx`):
+  - The title offset is fixed; this was the same doubled-padding bug.
+  - The role is plain text.
+  - The self sheet shows a Role/Status list.
+  - The confirm buttons are outlined.
+  - Names use the 14.5px label type, with a lowercase ink-3 "(you)".
+  - At 390 each row has one line.
+  - **Left out:** the Email column, because OperatorRow has no email.
+
+**Verified:**
+- A Playwright screenshot comparison at 1440 and 390, with fixture data.
+- `typecheck` is clean.
+- `lint` has 0 errors and the 7 old `<img>` warnings.
+- `test` passes, 298/298.
+
+**Not run:** `test:visual` and `test:e2e`.
+
+**Open:** Vipin said "you changed the fonts". Families are unchanged:
+computed styles show Instrument Sans, Oswald, Anton and JetBrains Mono,
+identical to the r8 tokens. Sizes changed to the mockup's. Which text he
+means is not yet known.
+
+## Passes and Organisations vs the r10 mockups, 29 Sep 2026 — same screenshot method
+
+**Passes (`app/desk/passes/passes-screen-r10.tsx`):**
+- **Filter row:** the preset chips ("Not sent"/"Failed") and "N people" sit
+  on their own row under the search, as in the mockup.
+- **Pass sheet (a real bug):** its close button and title could not be
+  clicked, because the nav painted over them.
+  - Cause: a second `.r10` on `<main>` re-applied `isolation: isolate`,
+    which trapped the fixed sheet in a stacking context under the sticky
+    header.
+  - Fixed locally with `.r10.passes-page { isolation: auto }`, and
+    hit-tested with `elementFromPoint`.
+  - Control room had the same redundant `.r10` on `<main>`; it was removed
+    there, because DeskChrome already provides it.
+- **Tier cell:** it showed the raw `typeCode`, so `promoters_lounge` would
+  have been printed as-is. It now shows the tier label with the mockup's
+  coloured dot.
+
+**Organisations (`app/desk/orgs/orgs-screen.tsx`):**
+- **Title spacing:** the title sat about 60px low, from padding doubled on
+  top of `.page` (the same bug Master list had).
+- **"Copy names" button:** it was a ringless ghost button; it now has the
+  mockup's outline.
+- **Table container:** it had the 34px `.card` padding instead of the
+  6px `.table` padding.
+- **Row typography:** names were in Anton display type, and v2 `.nm`/`.sub`
+  leaked in. They now use the mockup's 14.5px label type.
+- **People column:** it reads "N of M" as plain text instead of two badges.
+- **Organisation kind:** it is capitalised.
+- **Meters:** they are grey.
+- **Sorting:** the Organisation and People headers sort the list.
+- **Phone layout:** at 390 each row collapses to a one-line summary.
+
+**Not matched (new features or missing glyphs, not restyling):**
+- The Passes "Add filter" menu.
+- The pass sheet's "Copy WhatsApp link" and "Print this pass" buttons.
+- The "Send N unsent passes" wording: the current wording carries ACC-160's
+  count and confirm.
+- The Organisations `ph-caret-right`/`ph-copy` glyphs (not in the icon
+  subset).
+
+**Verified:**
+- A Playwright screenshot comparison at 1440, plus 390 in the agents'
+  passes, with fixture data. Orgs used an ad-hoc `/api/desk/orgs` mock built
+  to `orgRowWithCountsSchema`.
+- `typecheck` is clean.
+- `lint` has 0 errors and the 7 old `<img>` warnings.
+- `test` passes, 298/298.
+
+**Not run:** `test:visual` and `test:e2e` (Vipin's instruction).
+
+**Screen still left:** Users (`r8-users.html`).
+
+## Desk shell and Master list vs the r10 mockups, 29 Sep 2026 — same screenshot method
+
+This used the same method as the Control room entry below, through the
+untracked helper `scripts/.design-compare.mjs <r8-page.html> <route> <width>
+<outDir>`. It is kept for the next screens; delete it once Phase RD is done.
+
+**Shell (`app/r10/base.css`), which reaches every desk screen:**
+- **Footer:** its type and spacing now match `r8/ui.css:322-333`: the
+  39px/36px "SHOW 10 OCT 2026", a `--s-8`/`--s-14` grid and `--s-8` columns.
+- **Blank space under the footer:** a v2 leak, `.v2-app .site-footer {
+  padding-bottom: 110px }`, is cancelled.
+- **`.ambient`:** it now has the mockup's `blur(80px)` filter and dim layer.
+  The poster had been showing sharply behind every page.
+- **Control room only:** it takes the mockup's `.cr` 24px top padding
+  instead of `.page`'s 40px.
+- **Footer copy:** "Ask" rather than "Message" the desk is left alone,
+  because ACC-173 is undecided.
+
+**Master list (`app/desk/master/master-screen.tsx`,
+`components/r10/primitives-a.tsx`, `app/r10/primitives.css`):**
+- **Top spacing:**
+  - The title sat about 50px low. `.master-screen` padding doubled
+    `.page`'s, and the `className="head"` collided with v2's `.head`.
+  - Export CSV is in the header row.
+- **Search:** it showed a double outline, from v2's unscoped `.search`. The
+  FilterBar also lacked the mockup's magnifier; it now has it, on every
+  screen that uses FilterBar. The placeholder mentions pass refs, which the
+  API does search.
+- **Preset chips:** the chips and "N people" sit on one row.
+- **Table:**
+  - It had a ghost first row and 64px of dead space.
+    `.r10 .table > :not(.thead)` also matched `.master-thead`, which
+    stripped `sticky` while `top: 64px` still applied.
+  - The headers read "Person" and "Band".
+  - Tier text is ink, with only the dot coloured.
+  - Empty cells show "–".
+  - Row typography now uses r10 tokens instead of v2 fallbacks.
+  - At 390, rows collapse to a name line plus one summary line.
+
+**Deliberately not matched (no data or out of scope):**
+- The mockup's "Days" column and sort caret: there is no day field.
+- The "Add filter" menu and the "Voided" preset.
+- The COLLECTED header's right alignment (minor).
+- The `?status`/`?tier`/`?vehicle` URL filters, which are still unread.
+
+**Verified:**
+- A Playwright screenshot comparison at 1440, and 390 for the Master list
+  agent's pass, with fixture data.
+- `typecheck` is clean.
+- `lint` has 0 errors and the 7 old `<img>` warnings.
+- `test` passes, 298/298.
+
+**Not run, on Vipin's instruction:** `test:visual` and `test:e2e`.
+
+## Control room vs r8-control-room.html, 28 Sep 2026 — compared by screenshot, not by reading code
+
+Vipin reported the shipped Control room still differed a lot from
+`design/source/r10/r8-control-room.html`. Two earlier passes this session
+compared code to code and missed most of it. The pass that worked rendered
+both pages with Playwright at 1440 and 390: the mockup from the
+`design-proposal` server (:4455), and the app at `/desk` on the dev server
+with `/api/desk/dashboard` fulfilled from `scripts/visual-fixtures/desk.mjs`
+(no sign-in needed; the page only 401s through the API). Then it compared
+the two in 800px slices.
+
+**Two foundation defects, which affect every r10 screen:**
+- **No r10 meter ever showed a fill.** `app/v2.css:186` is still loaded
+  globally and sets an unscoped `.meter i { transform: scaleX(0) }`, which
+  only v2's `.in` class undoes. `.r10 .meter i` now resets `transform` and
+  `transition` (`app/r10/primitives.css`). This probably also fixes the
+  meters on Master list and Organisations. **That has not been checked.**
+- **`.r10 .glass` was 78% opaque** (`--glass-fill-strong`, meant for sheets
+  and menus). The mockup's final cascade (`r8/ui.css:527-534`) is
+  `rgba(16,16,20,.56)` with its own edge and shadow, plus a light-theme
+  variant. The hero plate, ring and nav glass now let the poster through.
+
+**On the page (`app/desk/control-room-screen.tsx`, module CSS rewritten from the mockup's `<style>`):**
+- **Hero:** it was a `Card`, so `.r10 .card`'s 34px bezel padding beat the
+  module's 6px. It is now a plain `<section>` with the mockup's 6px frame,
+  a 22px inner radius, the lighter left and bottom scrim over the poster, and
+  the settle-in animation. The countdown is the mockup's glass pill with a
+  clock ("Show in N days"). It had been a gold StatusPill saying "N days to
+  gate live". The day count in the sub-line is bold. The clock glyph was
+  added to `app/phosphor.css` and `components/icon.tsx`, using the codepoint
+  copied from `r8/tokens.css` (`\e19a`).
+- **Bento:** it is nested as in the mockup: `.b-left` (8/12) holds the
+  week, three tiles and "Furthest behind", and the gate feed (4/12)
+  stretches to the left column's full height.
+  - **Tiles:** they match the mockup's order and content. "Not in
+    BookMyShow" shows `bmsPending` in gold. "Vehicle stickers" reads "of N
+    vehicles have a sticker". "AAA named list" shows `aaaNominatedApproved`
+    with "approved by Salman · N collected". Each is a `spot` link with the
+    arrow, has a 48px number and puts the meter at its foot. An invented
+    "Approved" tile and the "Added to BMS" framing are gone.
+  - **Timeline:** its done/now/later states never applied. The `<li>` got
+    literal `done`/`now` classes while the module CSS was hashed. It now
+    uses the module classes, so past milestones are green and the current
+    one is the gold dot.
+  - **Furthest behind:** it has a plain gold 31px number instead of a
+    boxed `CountDot`, and dividers instead of borders. The header reads
+    "All N organisations".
+  - **Headings:** card headings have zero margin, as in the mockup, which
+    fixes the misaligned date.
+- **Bands:**
+  - **Heading:** it is "Bands", not "Eight bands. No ninth."
+  - **Cards:** they have the mockup's 6px bezel (the shared card padding
+    had been winning) and 22px art corners. The art has the mockup's filter
+    and hover sheen.
+  - **Zones:** they show held zones only, as a dot and a name (as on the
+    pass ticket), with no "+ ID" or "after 22:00" qualifiers. The
+    struck-through refused zones and the "Green band" line are gone. At
+    phones the shelf is 2 columns, as in the mockup.
+
+**Deliberately still different from the mockup:**
+- There are eight tiers, not six (ADR-018 data).
+- The nav has a Vehicle item (ADR-019 nav).
+- The dates are live. The mockup is frozen at 6 Oct, so on 28 Sep the
+  kicker reads "5 days to gate live" and "Gate live" is the current dot.
+- **Not touched (the shared desk shell, ACC-182/176b, not this page):**
+  - The footer is smaller than the mockup's. Its "SHOW 10 OCT 2026" and
+    logo are smaller, and it says "Ask" where the mockup says "Message" the
+    accreditation desk (ACC-173 is undecided).
+  - The gap between the nav and the hero is about 17px larger than the
+    mockup's.
+
+**Follow-up flagged, not fixed:** `/desk/master` reads only `q`, `in_bms`
+and `org`. The Control room's `?status=`, `?tier=` and `?vehicle=` links
+open it unfiltered. That gap already existed before this pass and belongs
+to Master list.
+
+**Verified:**
+- The Playwright screenshot comparison at 1440 and 390 described above,
+  with the app fed fixture data. It is not a signed-in session and not
+  live data.
+- `typecheck` is clean.
+- `lint` has 0 errors and the 7 old `<img>` warnings.
+- `test` passes, 298/298.
+
+**Not run, on Vipin's instruction:** `test:visual` and `test:e2e`. The
+v2-era references and specs will fail against r10 until ACC-191.
 
 ## Redesign r10, 28 Sep 2026 evening — the desk has moved, the gate has not
 

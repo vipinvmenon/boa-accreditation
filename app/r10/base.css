@@ -83,14 +83,27 @@
 .r10 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-4); }
 .r10 .section-head h2 { margin: 0; color: var(--gold); }
 
+/* r10 final cascade (design/source/r10/r8/ui.css:469): `.ambient { display: none }`.
+   The page is the near-black .r10::before gradient; the poster lives in the hero only. */
+.r10 .ambient { display: none; }
 .r10 .ambient {
   position: fixed;
   inset: -10%;
   z-index: -1;
   pointer-events: none;
   background: url("/assets/login-poster.webp") 50% 30% / cover no-repeat;
-  opacity: .1;
+  filter: blur(80px) saturate(1.05) brightness(.8);
+  opacity: var(--ambient-op);
   transform: translateZ(0);
+  will-change: transform;
+}
+.r10 .ambient::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--ambient-dim);
 }
 
 .r10 .card,
@@ -157,9 +170,18 @@
    blur, not one uniform value — .glass 14px/135%, .nav .frame 16px/140%,
    .pop/.menu/.toast 24px/160%, .sheet 28px/160% (design/source/r10/r8/ui.css
    lines 509, 527, 534, 641). */
+/* r10.1 final cascade (design/source/r10/r8/ui.css:527-534): floating glass
+   is 56% fill with its own softer edge — not --glass-fill-strong (78%),
+   which is for sheets/menus and hid the hero poster behind the plate. */
 .r10 .glass {
+  background: rgb(16 16 20 / 56%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 12%), 0 24px 48px -28px rgb(0 0 0 / 70%);
   -webkit-backdrop-filter: blur(14px) saturate(135%);
   backdrop-filter: blur(14px) saturate(135%);
+}
+.r10[data-theme="light"] .glass {
+  background: rgb(255 255 255 / 60%);
+  box-shadow: inset 0 0 0 1px rgb(20 20 26 / 8%), inset 0 1px 0 rgb(255 255 255), 0 24px 48px -30px rgb(40 34 20 / 30%);
 }
 .r10 .pop,
 .r10 .menu,
@@ -306,6 +328,9 @@
   letter-spacing: 0;
 }
 
+/* footer.site-footer outranks v2.css:615 `.v2-app .site-footer { padding-bottom: 110px }`
+   (room for a v2 bottom dock the r10 desk doesn't have). */
+.r10 footer.site-footer { padding-bottom: 0; }
 .r10 .site-footer {
   border-top: 1px solid var(--gold-hair);
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -314,13 +339,13 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
 }
-.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: var(--s-6) var(--s-10); max-width: var(--frame); margin: 0 auto; padding: var(--s-10) var(--gutter) var(--s-6); }
-.r10 .site-footer .sf-brand { display: grid; gap: var(--s-4); }
+.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: var(--s-8) var(--s-14); max-width: var(--frame); margin: 0 auto; padding: var(--s-10) var(--gutter) var(--s-6); }
+.r10 .site-footer .sf-brand { display: grid; gap: var(--s-3); }
 .r10 .site-footer .sf-brand img { width: 176px; filter: var(--logo-filter); }
-.r10 .site-footer .sf-date { margin: 0; color: var(--ink); font: 400 var(--t-display-sm)/.9 var(--f-display); text-transform: uppercase; }
+.r10 .site-footer .sf-date { margin: 0; color: var(--ink); font: 400 39px/.9 var(--f-display); text-transform: uppercase; }
 .r10 .site-footer .sf-date span,
 .r10 .site-footer .sf-cols h2 { color: var(--gold); }
-.r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); }
+.r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-8); }
 .r10 .site-footer .sf-cols h2 { margin: 0 0 var(--s-1); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
 .r10 .site-footer .sf-cols p { max-width: 32ch; margin: 0; color: var(--ink-2); }
 .r10 .site-footer .sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2) var(--s-4); max-width: calc(var(--frame) - 2 * var(--gutter)); margin: 0 auto; padding: var(--s-4) var(--gutter) var(--s-6); border-top: 1px solid var(--hair); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
@@ -340,6 +365,7 @@
   .r10 .brand span { display: none; }
   .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-6); padding: var(--s-8) var(--s-5) var(--s-5); }
   .r10 .site-footer .sf-brand img { width: 140px; }
+  .r10 .site-footer .sf-date { font-size: 36px; }
   .r10 .site-footer .sf-cols { grid-template-columns: 1fr 1fr; gap: var(--s-5); }
   .r10 .site-footer .sf-cols > :last-child { grid-column: 1 / -1; }
   .r10 .site-footer .sf-base { flex-direction: column; margin: 0 var(--s-5); padding-inline: 0; }

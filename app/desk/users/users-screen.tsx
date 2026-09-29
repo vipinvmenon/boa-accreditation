@@ -157,8 +157,8 @@ export function UsersScreen() {
         ]} className="users-table card">
           {operators.map((operator) => (
             <div key={operator.user_id} className="user-row" role="row" tabIndex={0} onClick={() => openOperator(operator)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openOperator(operator) } }}>
-              <TableCell><strong className="display-sm">{operator.display_name}{operator.user_id === callerId ? ' (you)' : ''}</strong><span className="mono ink-2">{operator.created_at.slice(0, 10)}</span></TableCell>
-              <TableCell><StatusPill status="mute">{OPERATOR_ROLE_COPY[operator.role].label}</StatusPill></TableCell>
+              <TableCell><strong className="users-nm">{operator.display_name}{operator.user_id === callerId && <span className="users-you"> (you)</span>}</strong><span className="mono ink-2">{operator.created_at.slice(0, 10)}</span></TableCell>
+              <TableCell>{OPERATOR_ROLE_COPY[operator.role].label}</TableCell>
               <TableCell><StatusPill status={operator.active ? 'ok' : 'mute'}>{operator.active ? 'Active' : 'Deactivated'}</StatusPill></TableCell>
               <TableCell className="user-arrow"><Icon name="arrow-right" /></TableCell>
             </div>
@@ -167,7 +167,7 @@ export function UsersScreen() {
       )}
 
       <Sheet open={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite operator" footer={
-        <><Button variant="primary" type="submit" form="invite-form" disabled={busy}>Send invitation <Icon name="paper-plane-tilt" /></Button><Button variant="ghost" onClick={() => setInviteOpen(false)}>Cancel</Button></>
+        <><Button variant="primary" type="submit" form="invite-form" disabled={busy}>Send invitation <Icon name="paper-plane-tilt" /></Button><Button onClick={() => setInviteOpen(false)}>Cancel</Button></>
       }>
         <form id="invite-form" onSubmit={(event) => void inviteOperator(event)} className="users-form">
           <Field label="Full name" required minLength={2} maxLength={80} value={invite.displayName} onChange={(event) => setInvite({ ...invite, displayName: event.target.value })} hint="Shown to the team and on gate records." />
@@ -180,9 +180,14 @@ export function UsersScreen() {
 
       <Sheet open={selected !== null} onClose={() => setSelected(null)} title={selected?.display_name}>
         {selected && <div className="users-form">
-          <p className="mono ink-2">Operator access</p>
           {selected.user_id === callerId ? (
-            <p className="body-sm ink-2">You can’t change your own role or status. Ask another admin.</p>
+            <>
+              <dl className="users-dl body-sm">
+                <dt>Role</dt><dd>{OPERATOR_ROLE_COPY[selected.role].label}</dd>
+                <dt>Status</dt><dd><StatusPill status={selected.active ? 'ok' : 'mute'}>{selected.active ? 'Active' : 'Deactivated'}</StatusPill></dd>
+              </dl>
+              <p className="body-sm ink-3">You can’t change your own role or status. Ask another admin.</p>
+            </>
           ) : <>
             <Select label="Role" value={role} onChange={(event) => setRole(operatorRoleSchema.parse(event.target.value))} hint={OPERATOR_ROLE_COPY[role].description}>
               {operatorRoleSchema.options.map((value) => <option key={value} value={value}>{OPERATOR_ROLE_COPY[value].label}</option>)}
@@ -193,7 +198,7 @@ export function UsersScreen() {
               <p className="body-sm ink-2">{selected.active ? 'Active. Signs in with their own password.' : 'Deactivated. Can’t sign in.'}</p>
               {confirming ? <div className="confirm" role="alertdialog" aria-label={`Confirm deactivation of ${selected.display_name}`}>
                 <strong>Deactivate {selected.display_name}?</strong><span className="body-sm ink-2">They can’t sign in until an admin reactivates them.</span>
-                <div className="confirm-actions"><Button variant="danger" disabled={busy} onClick={() => void mutate(selected.user_id, { active: false })}>Deactivate</Button><Button variant="ghost" onClick={() => setConfirming(false)}>Keep active</Button></div>
+                <div className="confirm-actions"><Button variant="danger" disabled={busy} onClick={() => void mutate(selected.user_id, { active: false })}>Deactivate</Button><Button onClick={() => setConfirming(false)}>Keep active</Button></div>
               </div> : <Button variant={selected.active ? 'danger' : 'default'} onClick={() => selected.active ? setConfirming(true) : void mutate(selected.user_id, { active: true })}>{selected.active ? 'Deactivate' : 'Reactivate'}</Button>}
             </div>
           </>}
@@ -201,11 +206,16 @@ export function UsersScreen() {
       </Sheet>
       {notice && <Toast message={notice.text} {...(notice.error ? { error: true } : {})} onDismiss={() => setNotice(null)} />}
       <style jsx global>{`
-        .r10 .users-screen { padding-block: var(--s-10) var(--s-20); }
+        /* No padding-block here: this <main> already sits inside desk-chrome's
+           .page, which pads padding-top: var(--s-10) and padding-bottom:
+           var(--s-20) (var(--s-6) top on mobile). A second padding-block here
+           stacked a redundant 40px under the header — see master/orgs. */
         .r10 .users-head { display:flex; align-items:end; justify-content:space-between; gap:var(--s-8); margin-bottom:var(--s-8); }
         .r10 .users-head h1 { margin:var(--s-2) 0 var(--s-3); }
         /* clip, not hidden: hidden makes a scroll container and breaks the sticky .thead (design/source/r10/r8/ui.css line 554) */
         .r10 .users-table { overflow:clip; }
+        .r10 .users-table .users-nm { display:block; font:600 14.5px/1.2 var(--f-label); letter-spacing:.02em; text-transform:uppercase; color:var(--ink); }
+        .r10 .users-table .users-you { font:400 var(--t-body-sm)/1 var(--f-body); letter-spacing:0; text-transform:none; color:var(--ink-3); }
         .r10 .users-table .thead, .r10 .user-row { display:grid; grid-template-columns:minmax(220px,2fr) minmax(140px,1fr) minmax(140px,1fr) 44px; align-items:center; gap:var(--s-4); padding-inline:var(--s-6); }
         .r10 .users-table .thead { min-height:48px; color:var(--ink-3); font:600 var(--t-label)/1.2 var(--f-label); letter-spacing:var(--track-label); text-transform:uppercase; box-shadow:inset 0 -1px 0 var(--hair); }
         .r10 .user-row { min-height:76px; padding-block:var(--s-3); cursor:pointer; box-shadow:inset 0 -1px 0 var(--hair); transition:background-color var(--d-quick) var(--e-hover),transform var(--d-quick) var(--e-hover); }
@@ -214,21 +224,23 @@ export function UsersScreen() {
         .r10 .user-row > [role="cell"]:first-child { display:grid; gap:var(--s-1); }
         .r10 .user-arrow { justify-self:end; color:var(--ink-3); font-size:20px; }
         .r10 .users-form { display:grid; gap:var(--s-5); }
+        .r10 .users-dl { display:grid; grid-template-columns:120px 1fr; gap:var(--s-3) var(--s-4); margin:0; }
+        .r10 .users-dl dt { color:var(--ink-3); }
+        .r10 .users-dl dd { margin:0; }
         .r10 .access-section { display:grid; gap:var(--s-3); margin-top:var(--s-3); padding-top:var(--s-5); border-top:1px solid var(--hair); }
         .r10 .access-section .label { margin:0; color:var(--gold); }
         .r10 .confirm { display:grid; gap:var(--s-3); padding:var(--s-4); border-radius:var(--r-md); background:var(--bad-tint); }
         .r10 .confirm-actions { display:flex; flex-wrap:wrap; gap:var(--s-3); }
         .r10 .user-skeleton { display:flex; justify-content:space-between; align-items:center; min-height:76px; padding:var(--s-4) var(--s-6); box-shadow:inset 0 -1px 0 var(--hair); }
         @media (max-width:700px) {
-          .r10 .users-screen { padding-block:var(--s-6) var(--s-10); }
           .r10 .users-head { align-items:start; flex-direction:column; gap:var(--s-5); margin-bottom:var(--s-6); }
           .r10 .users-head .btn { width:100%; }
           .r10 .users-table .thead { display:none; }
-          .r10 .user-row { grid-template-columns:1fr 44px; gap:var(--s-2); padding-inline:var(--s-5); }
-          .r10 .user-row > [role="cell"]:nth-child(2), .r10 .user-row > [role="cell"]:nth-child(3) { grid-column:1; }
-          .r10 .user-row > [role="cell"]:nth-child(2) { grid-row:2; }
-          .r10 .user-row > [role="cell"]:nth-child(3) { grid-row:3; }
-          .r10 .user-row > [role="cell"]:last-child { grid-column:2; grid-row:1 / span 3; }
+          .r10 .user-row { grid-template-columns:max-content 1fr 44px; grid-template-areas:"name name arrow" "role status arrow"; gap:var(--s-1) var(--s-3); padding-inline:var(--s-5); }
+          .r10 .user-row > [role="cell"]:first-child { grid-area:name; }
+          .r10 .user-row > [role="cell"]:nth-child(2) { grid-area:role; }
+          .r10 .user-row > [role="cell"]:nth-child(3) { grid-area:status; justify-self:start; }
+          .r10 .user-row > [role="cell"]:last-child { grid-area:arrow; align-self:center; }
         }
         @media (prefers-reduced-transparency:reduce) { .r10 .users-table { background:var(--surface-solid); backdrop-filter:none; } }
         @media (prefers-reduced-motion:reduce) { .r10 .user-row { transition:none; } }

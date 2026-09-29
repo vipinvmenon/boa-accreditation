@@ -1,20 +1,35 @@
+/* The r10 Control room, transcribed from design/source/r10/r8-control-room.html.
+   Where the mockup overrides a shared primitive with `!important` (the band
+   card's 6px bezel), this file wins on specificity instead. */
+
 .controlRoom {
   width: 100%;
 }
 
+/* The mockup's `.cr { padding-top: var(--s-6) }` replaces `.page`'s 40px on this
+   screen only; at ≤700px `.r10 .page` is already --s-6. */
+@media (min-width: 701px) {
+  .controlRoom { margin-top: calc(var(--s-6) - var(--s-10)); }
+}
+
+/* ── Hero: the poster is the stage, the number sits on glass in front of it ── */
 .hero {
   position: relative;
   min-height: 672px;
-  overflow: hidden;
   padding: 6px;
+  border-radius: 28px;
+  isolation: isolate;
+  background: color-mix(in srgb, var(--ink) 3.5%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 40px 80px -40px rgb(0 0 0 / 75%), 0 12px 24px -16px rgb(0 0 0 / 60%);
 }
 
 .heroClip {
   position: relative;
   min-height: 660px;
   overflow: hidden;
-  border-radius: var(--r-lg);
+  border-radius: 22px;
   isolation: isolate;
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .heroArt {
@@ -22,17 +37,21 @@
   inset: 0;
   z-index: -2;
   background: url("/assets/boa-poster.png") 50% 27% / cover no-repeat;
+  animation: settle 1.6s var(--e-out) both;
 }
 
+/* The poster stays dark whatever the desk theme, so these are literal. */
 .heroClip::before {
+  content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 72%, transparent) 38%, transparent 68%),
-    linear-gradient(0deg, color-mix(in srgb, var(--bg) 78%, transparent), transparent 55%);
-  content: "";
+    linear-gradient(90deg, rgb(8 9 9 / 70%) 0%, rgb(8 9 9 / 25%) 36%, transparent 55%),
+    linear-gradient(0deg, rgb(8 9 9 / 45%), transparent 35%);
 }
+
+@keyframes settle { from { transform: scale(1.04); opacity: .3; } }
 
 .heroInner {
   display: grid;
@@ -44,7 +63,7 @@
 }
 
 .heroPlate {
-  padding: var(--s-8);
+  padding: var(--s-6);
   border-radius: var(--r-lg);
 }
 
@@ -70,8 +89,8 @@
 }
 
 .heroBig {
-  font: 400 clamp(64px, 6.6vw, 102px)/0.82 var(--f-display);
-  letter-spacing: -0.01em;
+  font: 400 clamp(64px, 6.6vw, 102px)/.82 var(--f-display);
+  letter-spacing: -.01em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -83,16 +102,20 @@
   color: var(--ink-2);
 }
 
-.heroCopy {
+.heroSub {
   max-width: 42ch;
-  margin: var(--s-5) 0 var(--s-6);
+  margin: var(--s-4) 0 var(--s-5);
   color: var(--ink-2);
+  font-size: 14.5px;
 }
 
-.heroAction {
-  margin-top: var(--s-4);
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
 }
 
+/* ring: bands issued of approved */
 .ringWrap {
   justify-self: end;
   align-self: end;
@@ -106,33 +129,40 @@
 .ring {
   width: 132px;
   height: 132px;
-  transform: rotate(-90deg);
 }
 
 .ring circle {
   fill: none;
   stroke-width: 12;
+  stroke-linecap: round;
 }
 
-.ringTrack { stroke: var(--hair); }
-.ringValue {
-  stroke: var(--go);
-  stroke-linecap: round;
-  transition: stroke-dashoffset var(--d-settle) var(--e-out);
-}
+.ringTrack { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
+.ringValue { stroke: var(--go); transition: stroke-dashoffset 1.4s var(--e-out) .3s; }
 
 .ringLabel {
-  display: grid;
-  justify-items: center;
+  position: relative;
   margin-top: -96px;
   margin-bottom: 40px;
+  text-align: center;
 }
 
-.ringLabel strong {
-  font: 400 28px/1 var(--f-display);
-  font-variant-numeric: tabular-nums;
+.ringLabel :global(.number) {
+  display: block;
+  font-size: 28px;
 }
 
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+}
+
+/* ── Bento: the week, three tiles and "Furthest behind" on the left; the gate
+   feed on the right, stretched (grid's default) to the left column's height ── */
 .bento {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -140,14 +170,117 @@
   margin-top: var(--s-6);
 }
 
-.week {
+.bLeft {
   grid-column: span 8;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-5);
+  align-content: start;
 }
 
-.feed {
-  grid-column: span 4;
+.week,
+.behind { grid-column: 1 / -1; }
+.feed { grid-column: span 4; }
+
+/* `.r10 a.card` is display:block; the tile needs a column so the meter sits at the foot. */
+.bento .bLeft a.tile {
+  grid-column: span 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 188px;
 }
 
+.bLeft .tile :global(.card-label) { margin-bottom: var(--s-2); }
+.bLeft .tile :global(.number) { font-size: 48px; }
+.bLeft .tile :global(.meter) { margin-top: auto; }
+
+.tileSub {
+  margin: var(--s-2) 0 0;
+  color: var(--ink-2);
+  font-size: var(--t-body-sm);
+}
+
+/* timeline */
+.timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-4);
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  left: 6px;
+  height: 2px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.timeline::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: calc(var(--p, 0) * (100% - 12px));
+  height: 2px;
+  background: linear-gradient(90deg, var(--go), color-mix(in srgb, var(--go) 60%, var(--gold)));
+  transform-origin: left;
+  animation: grow 1.2s var(--e-out) .4s both;
+}
+
+@keyframes grow { from { transform: scaleX(0); } }
+
+.timeline li {
+  position: relative;
+  padding-top: var(--s-6);
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.timeline li.done::before {
+  background: var(--go);
+  box-shadow: none;
+}
+
+.timeline li.now::before {
+  top: -2px;
+  left: -2px;
+  width: 18px;
+  height: 18px;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.when {
+  color: var(--ink-3);
+  font-size: var(--t-body-sm);
+}
+
+.what {
+  margin-top: var(--s-1);
+  font: 400 var(--t-display-sm)/1.05 var(--f-display);
+  text-transform: uppercase;
+}
+
+.timeline li.later .what { color: var(--ink-2); }
+
+/* live gate feed */
 .gates {
   display: flex;
   flex-wrap: wrap;
@@ -168,11 +301,13 @@
   gap: var(--s-3);
   padding: var(--s-3) 0;
   border-top: 1px solid var(--glass-edge);
+  animation: land var(--d-slow) var(--e-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms + 300ms);
 }
 
-.feedItem:first-child {
-  border-top: 0;
-}
+.feedItem:first-child { border-top: 0; }
+
+@keyframes land { from { opacity: 0; transform: translateY(6px); } }
 
 .feedDot {
   width: 10px;
@@ -181,94 +316,24 @@
   background: var(--c);
 }
 
+.nm {
+  font: 600 13.5px/1.2 var(--f-label);
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.feedSub {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--t-body-sm);
+}
+
 .feedTime {
   color: var(--ink-2);
   font: 500 var(--t-mono)/1 var(--f-mono);
 }
 
-.stat {
-  grid-column: span 4;
-  min-height: 188px;
-}
-
-.behind {
-  grid-column: 1 / -1;
-}
-
-.tileNumber {
-  display: block;
-  margin-top: var(--s-4);
-  color: var(--gold);
-}
-
-.tileDetail {
-  margin: var(--s-2) 0 0;
-  color: var(--ink-2);
-}
-
-.timeline {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--s-4);
-  margin: var(--s-8) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* The grey track, full width, under every dot. */
-.timeline::before {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  height: 2px;
-  background: color-mix(in srgb, var(--ink) 12%, transparent);
-  content: "";
-}
-
-/* The green fill, only as far as real progress — one continuous line, not
-   four independent segments (found in review: the app rendered four
-   separately-coloured borders with no connecting line at all). */
-.timeline::after {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  height: 2px;
-  width: calc(var(--progress, 0) * (100% - 12px));
-  background: linear-gradient(90deg, var(--go), color-mix(in srgb, var(--go) 60%, var(--gold)));
-  content: "";
-}
-
-.timeline li {
-  position: relative;
-  padding-top: var(--s-6);
-}
-
-.timeline li::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--bg);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 30%, transparent);
-  content: "";
-}
-
-.timeline .done::before { background: var(--go); box-shadow: none; }
-.timeline .now::before {
-  top: -2px;
-  left: -2px;
-  width: 18px;
-  height: 18px;
-  background: var(--gold);
-  box-shadow: 0 0 0 3px var(--bg);
-}
-.timeline .later .display-sm { color: var(--ink-2); }
-
+/* who's behind: dividers, not cards inside a card */
 .behindList {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -279,46 +344,44 @@
 .behindLink {
   display: grid;
   gap: var(--s-2);
-  min-height: var(--hit);
   padding: var(--s-2) var(--s-4) var(--s-2) 0;
   color: inherit;
   text-decoration: none;
+  transition: background-color var(--d-quick) var(--e-out), transform var(--d-instant) var(--e-out);
 }
 
 .behindLink + .behindLink {
   padding-left: var(--s-4);
-  border-left: 1px solid var(--glass-edge);
+  box-shadow: inset 1px 0 0 var(--glass-edge);
 }
 
-.behindNumber {
-  display: block;
-  width: auto;
-  min-width: 0;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--gold);
+.behindLink .nm { transition: color var(--d-base) var(--e-hover); }
+.behindLink:active { transform: scale(.98); }
+
+.behindN {
   font: 400 31px/1 var(--f-display);
-  font-variant-numeric: tabular-nums;
+  color: var(--gold);
 }
 
+@media (hover: hover) {
+  .behindLink:hover .nm { color: var(--gold); }
+}
+
+/* ── Band shelf: the woven bands themselves ── */
 .shelf {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-4);
 }
 
-.bandCard {
-  padding: 6px;
-}
+.shelf a.bandCard { padding: 6px; }
 
+/* 7:1 of a 17:1 band = its first 41%: art, tier name and the rock hand */
 .bandArt {
   position: relative;
   overflow: hidden;
   aspect-ratio: 7 / 1;
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  border-radius: 22px 22px 0 0;
 }
 
 .bandArt img {
@@ -326,6 +389,23 @@
   height: 100%;
   object-fit: cover;
   object-position: left center;
+  filter: saturate(1.18) brightness(1.12) contrast(1.05);
+  transition: transform 600ms var(--e-hover);
+}
+
+.bandArt::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 44%, rgb(255 255 255 / 22%) 50%, transparent 56%);
+  transform: translateX(-70%);
+  transition: transform 1100ms var(--e-hover);
+}
+
+@media (hover: hover) {
+  .bandCard:hover .bandArt::after { transform: translateX(70%); }
+  .bandCard:hover .bandArt img { transform: scale(1.03); }
 }
 
 .bandBody {
@@ -346,27 +426,34 @@
   font-variant-numeric: tabular-nums;
 }
 
-.bandOf { color: var(--ink-3); }
-.col { color: var(--ink-2); }
+.bandOf {
+  color: var(--ink-3);
+  font-size: var(--t-body-sm);
+}
+
 .zones {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-1);
-}
-.zones span {
-  min-height: 22px;
-  padding: 3px var(--s-2);
-  border-radius: var(--r-xs);
-  background: color-mix(in srgb, var(--c, var(--ink)) 16%, transparent);
-  color: var(--ink-2);
+  gap: var(--s-2) var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: var(--t-body-sm);
 }
-.zones span.off {
-  background: var(--hair);
-  color: var(--ink-3);
-}
-.section { margin-top: var(--s-14); }
 
+.zones li {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.zones i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ── States ── */
 .error {
   justify-items: center;
   text-align: center;
@@ -375,62 +462,47 @@
 .error p { max-width: 48ch; margin: 0 auto; color: var(--ink-2); }
 .error button { justify-self: center; }
 
-.loading {
-  min-height: 560px;
-}
-
-@media (hover: hover) and (min-width: 900px) {
-  .heroPlate,
-  .ringWrap {
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-  }
-}
+.loading { min-height: 560px; }
 
 @media (max-width: 1100px) {
-  .week,
-  .feed,
-  .stat {
-    grid-column: span 6;
-  }
+  .bLeft,
+  .feed { grid-column: span 12; }
 }
 
 @media (max-width: 700px) {
-  .hero { min-height: 0; }
+  .hero,
   .heroClip,
   .heroInner { min-height: 0; }
-  .heroClip::before {
-    background: linear-gradient(0deg, var(--bg) 30%, color-mix(in srgb, var(--bg) 55%, transparent) 68%, transparent);
-  }
   .heroInner {
     grid-template-columns: 1fr;
-    padding: 260px var(--s-4) var(--s-4);
+    padding: 300px var(--s-4) var(--s-4);
   }
-  .heroPlate { padding: var(--s-6); }
+  .heroArt {
+    background-position: 50% 0;
+    background-size: 100% auto;
+  }
+  .heroClip::before { background: linear-gradient(0deg, var(--bg) 35%, transparent 75%); }
   .ringWrap { display: none; }
-  .week,
-  .feed,
-  .stat { grid-column: 1 / -1; }
+  .bLeft { grid-template-columns: 1fr 1fr; }
+  .bento .bLeft a.tile { min-height: 160px; }
+  .bLeft .tile :global(.number) { font-size: 44px; }
   .timeline { grid-template-columns: 1fr 1fr; row-gap: var(--s-5); }
-  .behindList,
-  .shelf { grid-template-columns: 1fr; }
+  .timeline::before,
+  .timeline::after { display: none; }
+  .behindList { grid-template-columns: 1fr; }
   .behindLink + .behindLink {
     padding-top: var(--s-4);
     padding-left: 0;
-    border-top: 1px solid var(--glass-edge);
-    border-left: 0;
+    box-shadow: inset 0 1px 0 var(--glass-edge);
   }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .heroPlate,
-  .ringWrap {
-    background: var(--surface-solid);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+  .shelf { grid-template-columns: 1fr 1fr; }
+  .bandBody { padding: var(--s-4); }
+  .bandIssued { font-size: 24px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ringValue { transition: none; }
+  .heroArt,
+  .timeline::after,
+  .feedItem { animation-duration: 1ms; animation-delay: 0ms; }
 }

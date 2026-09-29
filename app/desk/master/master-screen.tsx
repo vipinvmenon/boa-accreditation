@@ -112,6 +112,12 @@ export function MasterScreen() {
     empty: rows.length === 0,
   })
 
+  const activeFilters = useMemo(() => [
+    ...(orgFilter ? [{ id: 'org', label: `Organisation: ${rows[0]?.orgName ?? 'selected'}`, onRemove: () => router.replace('/desk/master') }] : []),
+    ...(bmsFilter !== 'all' ? [{ id: 'bms', label: bmsFilter === 'true' ? 'BMS: In BMS' : 'BMS: Not in BMS', onRemove: () => router.replace(`/desk/master${orgFilter ? `?org=${orgFilter}` : ''}`) }] : []),
+  ], [orgFilter, bmsFilter, rows, router])
+  const hasActiveFilters = activeFilters.length > 0
+
   const exportHref = useMemo(() => {
     const params = new URLSearchParams({ format: 'csv' })
     if (query) params.set('q', query)
@@ -159,13 +165,13 @@ export function MasterScreen() {
    * here — see ADR-023: it would break the passing gate, so it was deliberately
    * left to Vipin rather than taken quietly.
    */
-  const COLUMNS = ['Name and company', 'Tier', 'Band serial', 'Vehicle', 'BMS', 'Collected'] as const
+  const COLUMNS = ['Person', 'Tier', 'Band', 'Vehicle', 'BMS', 'Collected'] as const
   const showTable = !loading && !error && rows.length > 0
   const countLabel = masterCountLabel(rows.length, total)
 
   return (
     <main id="main-content" tabIndex={-1} ref={rootRef} className="master-screen" data-v2-ready={visualReady ? 'true' : 'false'}>
-      <section className="head rv">
+      <section className="master-head rv">
         <div>
           <h1 className="display-lg">Master list</h1>
           <p className="lede">
@@ -174,6 +180,7 @@ export function MasterScreen() {
               : <>{total} on the list.</>}
           </p>
         </div>
+        <a href={exportHref} download className="btn">Export CSV <Icon name="download-simple" /></a>
       </section>
       {filterSummary && (
         /**
@@ -199,10 +206,10 @@ export function MasterScreen() {
             margin: '0 0 18px',
           }}
         >
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink2,rgba(242,239,226,0.72))' }}>
+          <span style={{ fontFamily: 'var(--f-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
             {filterSummary}
           </span>
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink3)' }}>
+          <span style={{ fontFamily: 'var(--f-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
             {countLabel}
           </span>
           <Link href="/desk/master" className="btn hov-invert-grn">Show everyone</Link>
@@ -213,13 +220,10 @@ export function MasterScreen() {
         searchValue={query}
         onSearchChange={setQuery}
         searchLabel="Search the master list"
-        searchPlaceholder="Name, phone, company, plate or band"
-        activeFilters={[
-          ...(orgFilter ? [{ id: 'org', label: `Organisation: ${rows[0]?.orgName ?? 'selected'}`, onRemove: () => router.replace('/desk/master') }] : []),
-          ...(bmsFilter !== 'all' ? [{ id: 'bms', label: bmsFilter === 'true' ? 'BMS: In BMS' : 'BMS: Not in BMS', onRemove: () => router.replace(`/desk/master${orgFilter ? `?org=${orgFilter}` : ''}`) }] : []),
-        ]}
+        searchPlaceholder="Name, phone, company, plate, band or pass"
+        activeFilters={activeFilters}
         onClearAll={() => { setQuery(''); router.replace('/desk/master') }}
-        resultCount={<><strong>{rows.length}</strong> of {total}</>}
+        resultCount={hasActiveFilters ? <><strong>{rows.length}</strong> of {total}</> : undefined}
       >
         <Button variant="ghost" onClick={() => {
           const next = new URLSearchParams(searchParams.toString())
@@ -229,16 +233,21 @@ export function MasterScreen() {
         }}>
           <Icon name="sort-descending" /> {bmsFilter === 'false' ? 'In BMS' : 'Not in BMS'}
         </Button>
-        <a href={exportHref} download className="btn">Export CSV <Icon name="download-simple" /></a>
       </FilterBar>
-      <div className="master-presets" aria-label="Roster presets">
-        <Chip preset onActivate={() => router.replace('/desk/master?in_bms=false')} count={rows.filter((row) => !row.inBms).length}>Not in BMS</Chip>
-        <Chip preset onActivate={() => router.replace('/desk/master?in_bms=true')} count={rows.filter((row) => row.inBms).length}>In BMS</Chip>
-        <Chip preset onActivate={() => setQuery('vehicle')} count={rows.filter((row) => row.vehicleReg).length}>Has a vehicle</Chip>
-        <Chip preset onActivate={() => setQuery('')} count={rows.filter((row) => !row.bandSerial).length}>Not collected</Chip>
-      </div>
-      <div className="bz rv section" style={{ ['--d' as string]: 2 }}>
-        <div className="pl" {...(showTable ? { role: 'table', 'aria-label': `Master list. ${countLabel}.` } : {})}>
+      {!hasActiveFilters && (
+        <div className="filterbar-row master-presets" aria-label="Roster presets">
+          <div className="chips">
+            <Chip preset onActivate={() => router.replace('/desk/master?in_bms=false')} count={rows.filter((row) => !row.inBms).length}>Not in BMS</Chip>
+            <Chip preset onActivate={() => router.replace('/desk/master?in_bms=true')} count={rows.filter((row) => row.inBms).length}>In BMS</Chip>
+            <Chip preset onActivate={() => setQuery('vehicle')} count={rows.filter((row) => row.vehicleReg).length}>Has a vehicle</Chip>
+            <Chip preset onActivate={() => setQuery('')} count={rows.filter((row) => !row.bandSerial).length}>Not collected</Chip>
+            <span className="count body-sm">
+              {query ? <><strong>{rows.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
+            </span>
+          </div>
+        </div>
+      )}
+      <div className="table rv" style={{ ['--d' as string]: 2, marginTop: 'var(--s-6)' }} {...(showTable ? { role: 'table', 'aria-label': `Master list. ${countLabel}.` } : {})}>
           {showTable && (
             <div role="row" className="master-thead">
               {COLUMNS.map((column) => <span role="columnheader" key={column}>{column}</span>)}
@@ -281,7 +290,7 @@ export function MasterScreen() {
           )}
           {!loading && !error && rows.map((row) => {
             const type = row.typeCode ? tier(row.typeCode) : null
-            const typeColor = type ? tierColour(type.code, theme) : 'var(--ink3)'
+            const typeColor = type ? tierColour(type.code, theme) : 'var(--ink-3)'
             const bandClass = row.status === 'rejected' || row.status === 'voided'
               ? 'ser void'
               : row.bandSerial ? 'ser' : 'ser none'
@@ -290,39 +299,99 @@ export function MasterScreen() {
               <div key={row.id} className="mrow" role="row" tabIndex={0} onClick={() => setSelectedPerson(row)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedPerson(row) } }}>
                 <div role="cell">
                   <div className="nm">{row.fullName}</div>
-                  <div className="sub">{row.orgName}, {row.phone}</div>
+                  <div className="sub">{row.orgName} · {row.phone}</div>
                 </div>
-                <span role="cell" className="band" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
-                <span role="cell" className={bandClass}>{formatMasterBand(row)}</span>
-                <span role="cell" className="plate">{row.vehicleReg ?? <span style={{ color: 'var(--ink3)' }}>No vehicle</span>}</span>
-                <span role="cell" className="bms"><span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span></span>
-                <span role="cell" className={collectedClass}>{formatMasterCollected(row)}</span>
+                <span role="cell" className="band hide-s" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
+                <span role="cell" className={`hide-s ${bandClass}`}>{formatMasterBand(row)}</span>
+                <span role="cell" className="hide-s plate">{row.vehicleReg ?? <span className="muted">–</span>}</span>
+                <span role="cell" className="hide-s bms"><span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span></span>
+                <span role="cell" className={`hide-s ${collectedClass}`}>{row.collectedAt || (row.status === 'rejected' && row.decidedAt) ? formatMasterCollected(row) : <span className="muted">–</span>}</span>
+                {/* r8-master's mobile row2: the one summary line a collapsed row keeps
+                    — tier, BMS state, and the collected/not-collected status — instead
+                    of stacking all six columns full-height on a phone. */}
+                <div className="row2">
+                  <span className="band" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
+                  <span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span>
+                  <span className={collectedClass}>{formatMasterCollected(row)}</span>
+                </div>
               </div>
             )
           })}
-        </div>
       </div>
       <PersonSheet person={selectedPerson} onClose={() => setSelectedPerson(null)} />
       <style jsx global>{`
-        .r10 .master-screen { padding-block: var(--s-10) var(--s-20); }
-        .r10 .master-screen .head { margin-bottom: var(--s-8); }
+        /* app/v2.css still ships .head, .nm, .sub, .band, .st, .mrow .ser/.plate/.when
+           as UNSCOPED rules (no .r10 ancestor). Every selector below re-declares
+           what this screen needs at (.r10 .master-screen ...) specificity so the
+           v2 rule never wins — see scripts/.design-compare.mjs pitfall (1). */
+        /* No padding-block here: this <main> already sits inside desk-chrome's
+           .frame.page (app/r10/base.css), which supplies padding-top: var(--s-10)
+           and padding-bottom: var(--s-20). A second padding-block here stacked a
+           redundant 40px under the nav — the title sat ~48px lower than the mock. */
+        .r10 .master-screen .master-head {
+          display: flex; align-items: end; justify-content: space-between;
+          gap: var(--s-4) var(--s-6); flex-wrap: wrap; margin-bottom: var(--s-8);
+          padding: 0;
+        }
         .r10 .master-filterbar { margin-bottom: var(--s-3); }
-        .r10 .master-presets { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-6); }
+        .r10 .master-screen .master-presets {
+          justify-content: space-between; align-items: center; margin-bottom: var(--s-6);
+        }
+        .r10 .master-screen .master-presets .chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
         .r10 .master-thead,
         .r10 .master-screen .mrow { display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(120px, 1fr) 96px minmax(120px, 1fr) 104px minmax(140px, 1.1fr); align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
-        .r10 .master-thead { position: sticky; top: 64px; z-index: 2; min-height: 44px; color: var(--ink-3); background: var(--surface); box-shadow: inset 0 -1px 0 var(--hair); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+        /* app/r10/base.css's ".table > :not(.thead)" (0,3,0) — meant to lift table
+           BODY rows above the card's ::before layer — also matches our header
+           because its class is "master-thead", not "thead": :not(.thead) is
+           true for it too. That downgraded position:sticky to the inherited
+           position:relative while our top:64px still applied, shifting the
+           header 64px down ON TOP of the first row. (0,4,0) beats it cleanly. */
+        .r10 .master-screen .table .master-thead { position: sticky; top: 64px; z-index: 2; min-height: 44px; color: var(--ink-3); background: var(--surface); box-shadow: inset 0 -1px 0 var(--hair); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
         .r10 .master-screen .mrow { min-height: 64px; padding-block: var(--s-3); cursor: pointer; }
         .r10 .master-screen .mrow:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-        .r10 .master-screen .band { color: var(--c); }
+
+        /* Row typography and cell colour — r8/ui.css's .tr .nm/.sub, .tier, .mono,
+           .pill and .tr .muted, re-targeted at this screen's .mrow cells. */
+        .r10 .master-screen .mrow .nm { font: 600 14.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
+        .r10 .master-screen .mrow .sub { margin-top: 2px; font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; color: var(--ink-3); }
+        .r10 .master-screen .mrow .band {
+          display: inline-flex; align-items: center; gap: var(--s-2);
+          font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label);
+          text-transform: uppercase; color: var(--ink);
+        }
+        .r10 .master-screen .mrow .band::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .r10 .master-screen .mrow .ser,
+        .r10 .master-screen .mrow .plate { font: 500 var(--t-mono)/1.3 var(--f-mono); letter-spacing: .04em; color: var(--ink); }
+        .r10 .master-screen .mrow .ser.none { color: var(--ink-3); font-weight: 500; }
+        .r10 .master-screen .mrow .ser.void { color: var(--bad); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+        .r10 .master-screen .mrow .st {
+          display: inline-flex; align-items: center; gap: 6px; height: 26px;
+          padding: 0 var(--s-3) 0 10px; border-radius: var(--r-pill);
+          font: 600 var(--t-label-sm)/1 var(--f-label); letter-spacing: var(--track-label);
+          text-transform: uppercase; white-space: nowrap; background: var(--raised); color: var(--ink-2);
+        }
+        .r10 .master-screen .mrow .st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .r10 .master-screen .mrow .st.ok { background: var(--ok-tint); color: var(--go); }
+        .r10 .master-screen .mrow .st.wait { background: var(--wait-tint); color: var(--gold); }
+        .r10 .master-screen .mrow .when { font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; text-transform: none; text-align: right; color: var(--ink-2); }
+        .r10 .master-screen .mrow .when.mute { color: var(--ink-3); }
+        .r10 .master-screen .mrow .when.bad { color: var(--bad); }
+        .r10 .master-screen .mrow .muted { color: var(--ink-3); }
+        .r10 .master-screen .mrow .row2 { display: none; }
+
         .r10 .person-detail { display: grid; gap: var(--s-5); }
         .r10 .person-detail dl { display: grid; grid-template-columns: 1fr 1.5fr; gap: var(--s-3) var(--s-4); margin: 0; }
         .r10 .person-detail dt { color: var(--ink-3); }
         .r10 .person-detail dd { margin: 0; text-align: right; }
         @media (max-width: 700px) {
-          .r10 .master-screen { padding-top: var(--s-6); }
+          .r10 .master-screen .master-head { align-items: start; flex-direction: column; gap: var(--s-5); }
           .r10 .master-thead { display: none; }
           .r10 .master-screen .mrow { grid-template-columns: 1fr; gap: var(--s-2); padding-inline: var(--s-5); }
           .r10 .master-screen .mrow > .hide-s { display: none; }
+          .r10 .master-screen .mrow .row2 {
+            display: flex !important; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3);
+          }
+          .r10 .master-screen .mrow .row2 .when { text-align: left; color: var(--ink-3); }
         }
         @media (prefers-reduced-transparency: reduce) {
           .r10 .person-sheet, .r10 .master-thead { background: var(--surface-solid); backdrop-filter: none; }

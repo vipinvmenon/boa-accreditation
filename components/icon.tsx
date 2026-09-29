@@ -19,6 +19,7 @@ export type IconName =
   | 'arrow-up-right'
   | 'caret-down'
   | 'check'
+  | 'clock'
   | 'download-simple'
   | 'magnifying-glass'
   | 'moon'
