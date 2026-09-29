@@ -46,7 +46,12 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
         .tk-page::before {
           content: '';
           position: fixed;
-          inset: 0;
+          inset: 0 0 auto 0;
+          /* lvh, not the visible viewport: when the phone's address bar hides on
+             scroll the visible height grows and "cover" would rescale the poster
+             (a zoom). The large viewport height never changes. */
+          height: 100vh;
+          height: 100lvh;
           z-index: -2;
           background: var(--bg, #0A0A0A) url(/assets/pass-poster.webp) 50% 18% / cover no-repeat;
           opacity: 1;
@@ -54,7 +59,9 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
         .tk-page::after {
           content: '';
           position: fixed;
-          inset: 0;
+          inset: 0 0 auto 0;
+          height: 100vh;
+          height: 100lvh;
           z-index: -1;
           background: linear-gradient(180deg, rgba(10,10,10,.22), rgba(10,10,10,.3) 45%, rgba(10,10,10,.62));
         }
