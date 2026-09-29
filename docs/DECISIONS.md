@@ -1039,6 +1039,28 @@ pre-written). **This diverges from the v2 pass-sheet contract** — Passes is
 a `test:visual` screen, so its reference numbers will move when that suite
 can next run (it needs ACC-090a's operator).
 
+### Amended 29 Sep 2026 — the holder's page no longer shows the band artwork
+
+**On Vipin's instruction: the band artwork is confidential.** The page a crew
+member receives (`/p/[passToken]`, ticket variant `live`) no longer draws the
+band strip; `TicketFace` takes a `showBand` prop and `PassTicket` passes
+`variant !== 'live'`. This applies to the holder's page **only**. The desk's
+pass sheet (variant `sheet`) and the gate's result panel (`GateTicket`) keep
+the band, as the steward's picture match at the gate depends on it. The
+"woven band as the top edge" sentence above no longer holds for the holder's
+page; the tier is still shown in its colour and as text.
+
+**Not solved by this change, stated plainly:** the band files are still
+served publicly from `/assets/bands/<tier>.webp`, because the desk and the
+gate use them (the gate precaches them for offline). Anyone who knows that
+path can fetch them. Making them private means serving them behind the login
+and changing the gate's offline cache; that was not decided. The festival
+poster behind the holder's page (`pass-poster.webp`) is unchanged.
+
+**Verified:** in a browser at `/p/<a real token>` the page has no `.tk-band`
+element and loads no `/bands/` image; `typecheck` and the 295 unit tests pass.
+**Not verified:** the phone-width view, `test:visual`, or a deployed page.
+
 ## ADR-026 — Sign-in: the poster, and a quiet form beside it
 
 **Accepted 28 Sep 2026, on Vipin's instruction** (round 4 of

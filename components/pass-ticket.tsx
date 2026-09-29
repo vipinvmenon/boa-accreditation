@@ -35,7 +35,15 @@ type TicketFaceProps = Pick<PassTicketProps, 'fullName' | 'orgName' | 'role' | '
  * The top of the ticket: band, name, who, tier and days, held zones only,
  * vehicle. Shared by the pass and the gate's result panel (GateTicket).
  */
-function TicketFace(p: TicketFaceProps & { Name: 'h1' | 'h2' | 'h3'; className: string; deskLine: boolean; vehicleNote?: string | undefined }) {
+function TicketFace(
+  p: TicketFaceProps & {
+    Name: 'h1' | 'h2' | 'h3'
+    className: string
+    deskLine: boolean
+    showBand: boolean
+    vehicleNote?: string | undefined
+  },
+) {
   const type = tier(p.typeCode)
   const zones = zoneStrip(p.typeCode).filter((z) => z.held)
   const allZones = zones.length === ZONES.length
@@ -44,13 +52,15 @@ function TicketFace(p: TicketFaceProps & { Name: 'h1' | 'h2' | 'h3'; className: 
 
   return (
     <div className={p.className}>
-      <img
-        className="tk-band"
-        src={bandArtSrc(type.code)}
-        alt={`${type.label} wristband`}
-        width={BAND_ART.width}
-        height={BAND_ART.height}
-      />
+      {p.showBand && (
+        <img
+          className="tk-band"
+          src={bandArtSrc(type.code)}
+          alt={`${type.label} wristband`}
+          width={BAND_ART.width}
+          height={BAND_ART.height}
+        />
+      )}
       <div className="tk-body">
         <div>
           <Name className="tk-name">{p.fullName}</Name>
@@ -98,7 +108,9 @@ export function PassTicket(p: PassTicketProps) {
 
   return (
     <div className={`tk tk--${p.variant}`} style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
-      <TicketFace {...p} Name={Name} className={`tk-top${glare}`} deskLine />
+      {/* The band artwork is confidential (Vipin, 29 Sep): it is not shown on the
+          page a crew member receives. The desk's sheet and the gate keep it. */}
+      <TicketFace {...p} Name={Name} className={`tk-top${glare}`} deskLine showBand={p.variant !== 'live'} />
       <div className="tk-perf" aria-hidden="true" />
       <div className={`tk-stub${glare}`}>
         <div
@@ -124,7 +136,7 @@ export function PassTicket(p: PassTicketProps) {
 export function GateTicket(p: TicketFaceProps & { stickerDue: boolean }) {
   return (
     <div className="tk tk--gate" style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
-      <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
+      <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} showBand vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
     </div>
   )
 }
