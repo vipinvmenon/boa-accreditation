@@ -36,7 +36,9 @@ import {
   importApproveSql,
   importResultSchema,
   matchOrganisations,
+  orgKey,
   parseOrgAliases,
+  reconcileOrganisations,
   resolveOrganisation,
   toRpcPayload,
   validateRoster,
@@ -49,7 +51,7 @@ const MAX_ROWS_PER_CALL = 1000 // the RPC's own cap
 function usage() {
   console.error(
     'Usage: node scripts/import-roster.mjs responses.csv (--offline | --dry | --as operator@email) ' +
-      '[--aliases data/org-aliases.json] [--report data/roster-import.local.csv] [--partial]',
+      '[--aliases data/org-aliases.json] [--report data/roster-import.local.csv] [--partial] [--no-create-orgs]',
   )
 }
 
@@ -62,6 +64,7 @@ const file = args[0]
 const offline = args.includes('--offline')
 const dry = args.includes('--dry') || offline
 const partial = args.includes('--partial')
+const noCreateOrgs = args.includes('--no-create-orgs')
 const asEmail = opt('--as')
 const aliasFile = opt('--aliases') ?? join(root, 'data/org-aliases.json')
 const reportFile = opt('--report')
@@ -119,8 +122,33 @@ async function main() {
       root,
     ),
   )
-  const { groups, unmatched, aliased } = matchOrganisations(v.rows, orgs, aliases)
+  let match = matchOrganisations(v.rows, orgs, aliases)
   const info = new Map(orgs.map((o) => [o.id, o]))
+
+  // ACC-194: an answer that matched no org and no alias is matched loosely, or
+  // becomes a new organisation. Every decision is printed. --no-create-orgs
+  // restores the old rule (report by row, never guess).
+  const newOrgs = new Map() // pseudo id → { name, rows }
+  if (match.unmatched.size > 0 && !noCreateOrgs) {
+    const rec = reconcileOrganisations(match.unmatched, orgs.map((o) => o.name))
+    const extended = new Map(aliases)
+    for (const m of rec.merges) {
+      extended.set(orgKey(m.from), m.to)
+      console.log(`  [merged] "${m.from}" → "${m.to}" (${m.how}) — rows ${m.row_nos.join(', ')}`)
+    }
+    const orgsPlus = [...orgs]
+    for (const c of rec.creations) {
+      const id = `new:${c.name}`
+      for (const sp of c.spellings) extended.set(orgKey(sp), c.name)
+      orgsPlus.push({ id, name: c.name })
+      info.set(id, { id, name: c.name, status: 'open', live: 0 })
+      newOrgs.set(id, c.name)
+      console.log(`  [new org] "${c.name}" ${dry ? 'would be created' : 'will be created'} — rows ${c.row_nos.join(', ')}${c.spellings.length > 1 ? ` (spellings: ${c.spellings.map((x) => `"${x}"`).join(', ')})` : ''}`)
+    }
+    match = matchOrganisations(v.rows, orgsPlus, extended)
+    for (const r of rec.refused) console.log(`  [refused org] "${r.name}" ${r.why} — rows ${r.row_nos.join(', ')}`)
+  }
+  const { groups, unmatched, aliased } = match
 
   for (const a of aliased) console.log(`  [alias] row ${a.row_no}: "${a.from}" → "${a.to}"`)
   for (const [name, rows] of unmatched) {
@@ -163,9 +191,36 @@ async function main() {
   }
   console.log(`\nActing as ${asEmail} (${operator.role})`)
 
+  // Create the new organisations first, as the operator; the database checks
+  // lead/admin. The contact is the organisation's first person in the sheet
+  // (data already collected); quota is the column's maximum, because there are
+  // no quotas (ACC-140g).
+  for (const g of groups) {
+    if (!newOrgs.has(g.org.id)) continue
+    const first = [...g.rows].sort((a, b) => a.row_no - b.row_no)[0]
+    try {
+      const [made] = await runSql(
+        `with jwt as materialized (
+           select set_config('request.jwt.claims',
+             json_build_object('sub', ${lit(operator.user_id)}, 'role', 'authenticated')::text, true) as claims
+         )
+         select public.boa_acc_create_org(${lit(g.org.name)}, 'crew'::public.boa_acc_org_kind, 500,
+                ${lit(first.full_name)}, ${lit(first.phone)}, 'crew'::public.boa_acc_type_code)::text as id
+           from jwt`,
+        root,
+      )
+      g.org = { id: z.string().uuid().parse(made.id), name: g.org.name }
+      console.log(`  [created] organisation "${g.org.name}"`)
+    } catch (e) {
+      console.log(`  [failed] could not create "${g.org.name}": ${e instanceof Error ? e.message : e} — its rows are not loaded`)
+      g.rows = []
+    }
+  }
+
   const report = []
   const totals = zeroTotals()
   for (const g of groups) {
+    if (g.rows.length === 0) continue
     const payload = toRpcPayload(g.rows)
     for (let i = 0; i < payload.length; i += MAX_ROWS_PER_CALL) {
       const chunk = payload.slice(i, i + MAX_ROWS_PER_CALL)

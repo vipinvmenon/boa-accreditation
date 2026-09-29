@@ -30,6 +30,9 @@ import {
   normaliseCrewType,
   normalisePhone,
   normalisePlate,
+  cleanOrgName,
+  orgLooseKey,
+  reconcileOrganisations,
   parseFormTimestamp,
   parseOrgAliases,
   resolveOrganisation,
@@ -433,5 +436,71 @@ describe('pinned to the form, the pack and the migration', () => {
   it('the result outcomes are exactly the outcomes boa_acc_import_approve returns', () => {
     const returned = [...new Set([...migration.matchAll(/outcome\s*:=\s*'(\w+)'/g)].map((m) => m[1]))].sort()
     expect(returned).toEqual([...IMPORT_OUTCOMES].sort())
+  })
+})
+
+describe('ACC-194 · loose organisation matching and new organisations', () => {
+  const um = (...pairs: [string, number[]][]) => new Map(pairs)
+
+  it('the loose key forgives case, punctuation, "&", a leading The and a trailing Pvt Ltd', () => {
+    expect(orgLooseKey('The F5 Events Pvt. Ltd.')).toBe(orgLooseKey('f5 events'))
+    expect(orgLooseKey('Rock & Roll Sound')).toBe(orgLooseKey('rock and roll sound'))
+    expect(orgLooseKey('Café  Blue')).toBe(orgLooseKey('cafe blue'))
+    expect(orgLooseKey('Ltd')).toBe('ltd') // never strips the only word
+  })
+
+  it('merges punctuation and case differences into the existing org', () => {
+    const r = reconcileOrganisations(um(['F5 Events.', [2]], ['the f5 events pvt ltd', [3]]), ['F5 Events'])
+    expect(r.merges).toEqual([
+      { from: 'F5 Events.', to: 'F5 Events', row_nos: [2], how: 'punctuation' },
+      { from: 'the f5 events pvt ltd', to: 'F5 Events', row_nos: [3], how: 'punctuation' },
+    ])
+    expect(r.creations).toEqual([])
+  })
+
+  it('merges one typo in a long name, and reports it as a typo', () => {
+    const r = reconcileOrganisations(um(['Bangalor Open Air', [5]]), ['Bangalore Open Air'])
+    expect(r.merges).toEqual([{ from: 'Bangalor Open Air', to: 'Bangalore Open Air', row_nos: [5], how: 'typo' }])
+  })
+
+  it('never merges short names or names that differ in a digit; they become new orgs', () => {
+    const r = reconcileOrganisations(um(['Stage B', [2]], ['Sound Crew 13', [3]]), ['Stage A', 'Sound Crew 12'])
+    expect(r.merges).toEqual([])
+    expect(r.creations.map((c) => c.name)).toEqual(['Stage B', 'Sound Crew 13'])
+  })
+
+  it('refuses, and does not guess, when a typo is equally close to two orgs', () => {
+    const r = reconcileOrganisations(um(['Moonrise Stagecraftx', [4]]), ['Moonrise Stagecrafts', 'Moonrise Stagecraftz'])
+    expect(r.merges).toEqual([])
+    expect(r.creations).toEqual([])
+    expect(r.refused).toHaveLength(1)
+    expect(r.refused[0]?.why).toMatch(/could be/)
+  })
+
+  it('a name that resembles nothing becomes one new org, spellings collapsed to the most used', () => {
+    const r = reconcileOrganisations(
+      um(['reflections of darkness', [35]], ['Reflections Of Darkness', [36, 40]], ['Reflection of Darkness', [41]]),
+      ['Bangalore Open Air'],
+    )
+    expect(r.creations).toEqual([
+      {
+        name: 'Reflections Of Darkness',
+        row_nos: [35, 36, 40, 41],
+        spellings: ['Reflections Of Darkness', 'reflections of darkness', 'Reflection of Darkness'],
+      },
+    ])
+    expect(r.merges).toEqual([])
+  })
+
+  it('refuses a name with no letters or digits in it', () => {
+    const r = reconcileOrganisations(um(['—', [2]], ['?', [3]]), ['F5 Events'])
+    expect(r.refused.map((x) => x.name)).toEqual(['—', '?'])
+    expect(r.creations).toEqual([])
+  })
+
+  it('cleans a new name: quotes and punctuation off, lower case capitalised, other case kept', () => {
+    expect(cleanOrgName('  "reflections of darkness". ')).toBe('Reflections of Darkness')
+    expect(cleanOrgName('F5   events')).toBe('F5 events')
+    expect(cleanOrgName('ABC Sound')).toBe('ABC Sound')
   })
 })

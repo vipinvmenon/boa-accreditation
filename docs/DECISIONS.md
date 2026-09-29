@@ -1150,3 +1150,39 @@ glass sheets.
 screens migrate (v2 for `app/globals.css`, r10 for `app/r10/tokens.css`), and
 only r10 after ACC-192. The plan, lanes and agents are in
 `docs/REDESIGN.md`. Roadmap: Phase RD, ACC-178 to ACC-193.
+
+## ADR-028 — The roster import creates new organisations and forgives typos
+
+**Accepted 29 Sep 2026, on Vipin's instruction** ("add new ones automatically,
+just look for typos and punctuation"). It reverses the "anything unmatched is
+reported by row, never guessed" half of ACC-142; the alias file stays.
+
+**The rule.** An Organisation answer that matches no org and no alias goes
+through `reconcileOrganisations` (`lib/roster-import.ts`):
+
+1. Same *loose key* as an existing org (case, accents, punctuation, `&` for
+   `and`, a leading "The", a trailing "Pvt Ltd") → merged.
+2. One typo (two from 16 characters) in a name of 10+ characters, digits
+   identical, and exactly one candidate → merged. **Short names are never
+   fuzzy-matched** ("Stage A" is not "Stage B"). A typo equally close to two
+   orgs is **refused**, not guessed.
+3. Otherwise a **new organisation**, created as the loading operator: kind
+   `crew`, default tier `crew`, quota 500 (there are no quotas, ACC-140g), and
+   the org's first person in the sheet as its contact. Spellings of one new
+   name collapse to the most-used one.
+
+**Why merging is the careful side.** A wrong merge puts someone on another
+organisation's roster; a wrong creation leaves a stray org that the desk can
+fix. So the fuzzy layer is conservative and the create layer is not.
+
+**What it cannot do:** abbreviations and nicknames ("BOA" for "Bangalore Open
+Air") look like new organisations. They still need a line in
+`data/org-aliases.json`. Every merge and creation is printed, so a wrong one
+is visible before it is loaded (`--dry` lists them without writing).
+`--no-create-orgs` restores the old rule.
+
+**Verified:** 45 unit tests (`tests/unit/import-roster.test.ts`) and a dry run
+against the live sheet. **Not verified:** the create call against the live
+database (`boa_acc_create_org` as the operator) — ACC-194 stays in flight until
+the first real load exercises it.
+

@@ -515,6 +515,156 @@ export function matchOrganisations(rows: ValidRow[], orgs: OrgRef[], aliases: Or
   return { groups: [...groups.values()], unmatched, aliased }
 }
 
+// ---------------------------------------------------------------------------
+// ACC-194 · Loose organisation matching, and new organisations
+// ---------------------------------------------------------------------------
+
+const COMPANY_SUFFIXES = new Set(['pvt', 'private', 'ltd', 'limited', 'llp', 'llc', 'inc', 'co', 'company'])
+
+/**
+ * A key that forgives case, accents, punctuation, "&" for "and", spacing, a
+ * leading "The" and a trailing company suffix ("Pvt Ltd"). Two names with the
+ * same loose key are the same organisation typed differently.
+ */
+export function orgLooseKey(name: string): string {
+  const words = name
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLocaleLowerCase('en-IN')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .split(' ')
+    .filter((w) => w !== '')
+  if (words[0] === 'the') words.shift()
+  while (words.length > 1 && COMPANY_SUFFIXES.has(words[words.length - 1] as string)) words.pop()
+  return words.join('')
+}
+
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0
+  if (Math.abs(a.length - b.length) > 2) return 3
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(
+        (prev[j] as number) + 1,
+        (cur[j - 1] as number) + 1,
+        (prev[j - 1] as number) + (a[i - 1] === b[j - 1] ? 0 : 1),
+      )
+    }
+    prev = cur
+  }
+  return prev[b.length] as number
+}
+
+/**
+ * How many typos two loose keys may differ by and still be one organisation:
+ * none under 10 characters (so "Stage A" and "Stage B" are never merged),
+ * one from 10, two from 16. Digits must agree exactly.
+ */
+function typoLimit(key: string): number {
+  return key.length >= 16 ? 2 : key.length >= 10 ? 1 : 0
+}
+
+function typoMatch(a: string, b: string): number | null {
+  if (a.replace(/\D/g, '') !== b.replace(/\D/g, '')) return null
+  const limit = Math.min(typoLimit(a), typoLimit(b))
+  if (limit === 0) return null
+  const d = editDistance(a, b)
+  return d <= limit ? d : null
+}
+
+const SMALL_WORDS = new Set(['of', 'and', 'the', 'for', 'in', 'on', 'at', 'to'])
+
+/**
+ * The name a new organisation is created under: surrounding quotes and
+ * punctuation removed, spacing collapsed, and — only when it was typed
+ * entirely in lower case — capitalised. Anything else keeps its letters as
+ * typed ("F5 Events", "ABC Sound").
+ */
+export function cleanOrgName(name: string): string {
+  const t = name
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s"'`.,;:\-–—]+|[\s"'`.,;:\-–—]+$/g, '')
+    .trim()
+  if (t !== t.toLocaleLowerCase('en-IN')) return t
+  return t
+    .split(' ')
+    .map((w, i) => (i > 0 && SMALL_WORDS.has(w) ? w : w.charAt(0).toLocaleUpperCase('en-IN') + w.slice(1)))
+    .join(' ')
+}
+
+export type OrgMerge = { from: string; to: string; row_nos: number[]; how: 'punctuation' | 'typo' }
+export type OrgCreation = { name: string; row_nos: number[]; spellings: string[] }
+export type OrgRefusal = { name: string; row_nos: number[]; why: string }
+export type OrgReconciliation = { merges: OrgMerge[]; creations: OrgCreation[]; refused: OrgRefusal[] }
+
+/**
+ * ACC-194 · Decide what to do with Organisation answers that matched no org and
+ * no alias. Merging into an EXISTING organisation is the risky move (people
+ * land in the wrong org's roster), so it is conservative and never guesses
+ * between two candidates. A name that resembles nothing becomes a new
+ * organisation instead; spellings of the same new name are collapsed to one.
+ *
+ * Pure. The caller creates the organisations and prints every decision.
+ */
+export function reconcileOrganisations(unmatched: Map<string, number[]>, orgNames: string[]): OrgReconciliation {
+  const out: OrgReconciliation = { merges: [], creations: [], refused: [] }
+  const existing = orgNames.map((name) => ({ name, key: orgLooseKey(name) }))
+  const fresh: { name: string; key: string; row_nos: number[] }[] = []
+
+  for (const [name, row_nos] of unmatched) {
+    const key = orgLooseKey(name)
+    const cleaned = cleanOrgName(name)
+    if (key.length < 2 || cleaned.length < 2 || cleaned.length > 120) {
+      out.refused.push({ name, row_nos, why: 'not a usable organisation name' })
+      continue
+    }
+    const same = existing.filter((o) => o.key === key)
+    if (same.length === 1) {
+      out.merges.push({ from: name, to: (same[0] as { name: string }).name, row_nos, how: 'punctuation' })
+      continue
+    }
+    if (same.length > 1) {
+      out.refused.push({ name, row_nos, why: `matches ${same.map((o) => `"${o.name}"`).join(' and ')} equally` })
+      continue
+    }
+    const close = existing
+      .map((o) => ({ o, d: typoMatch(key, o.key) }))
+      .filter((c): c is { o: (typeof existing)[number]; d: number } => c.d !== null)
+    if (close.length > 0) {
+      const best = Math.min(...close.map((c) => c.d))
+      const nearest = close.filter((c) => c.d === best)
+      if (nearest.length === 1) {
+        out.merges.push({ from: name, to: (nearest[0] as { o: { name: string } }).o.name, row_nos, how: 'typo' })
+      } else {
+        out.refused.push({ name, row_nos, why: `could be ${nearest.map((c) => `"${c.o.name}"`).join(' or ')}` })
+      }
+      continue
+    }
+    fresh.push({ name, key, row_nos })
+  }
+
+  // Spellings of one new name collapse to the one most rows used.
+  fresh.sort((a, b) => b.row_nos.length - a.row_nos.length)
+  const made: { key: string; creation: OrgCreation }[] = []
+  for (const f of fresh) {
+    const home = made.find((m) => m.key === f.key || typoMatch(f.key, m.key) !== null)
+    if (home) {
+      home.creation.row_nos.push(...f.row_nos)
+      home.creation.spellings.push(f.name)
+    } else {
+      const creation = { name: cleanOrgName(f.name), row_nos: [...f.row_nos], spellings: [f.name] }
+      made.push({ key: f.key, creation })
+      out.creations.push(creation)
+    }
+  }
+  for (const c of out.creations) c.row_nos.sort((a, b) => a - b)
+  return out
+}
+
 const sqlLiteral = (s: string) => `'${s.replace(/'/g, "''")}'`
 
 /**
