@@ -36,6 +36,11 @@ _Last updated: 29 September 2026 (all five desk screens matched to r10 mockups b
 - **Not verified:** `test:e2e`, `test:visual`, or the screens in a browser.
   Everything removed had no caller and every removed class had no element,
   so no visible change is expected, but that was not looked at.
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction.** The pre-push
+  `test:visual` fails on the control room (`main .num` never appears),
+  and it fails the same way on this commit alone in a clean worktree.
+  That is the known ACC-191 gap (no r10 references), not this change. The
+  hook's build still ran. The push also carries `f600b4c` and `500291b`.
 
 ## Master list and Passes full parity, persistent navs, 29 Sep 2026
 
