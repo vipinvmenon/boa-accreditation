@@ -283,9 +283,12 @@ a clean port) all verified green on `main` after each merge.
   until ACC-191, which may generate references only for screens Vipin has
   signed off. **Vipin has not signed off any r10 screen yet.**
 - **None of the r10 desk screens has been seen on a real phone.**
-- **`main` has not been pushed.** It is now well over 54 commits ahead of
-  `origin/main`, so **production still runs the v2 desk.** `verify:deploy`
-  has not run for any of this work.
+- **`main` was pushed on 29 Sep with `--no-verify`, on Vipin's
+  instruction.** That was 74 commits, up to `78eae78`. The pre-push hook's
+  `test:visual` fails by design until ACC-191 regenerates the r10
+  references, so the hook was skipped. Its build step had passed first.
+  - **Not verified:** whether Vercel deployed it, `verify:deploy`, or a
+    signed-in walkthrough on production.
 - **`test:db` has not run** for the ACC-183a migration fix — no local
   Postgres in this environment. The fix is reasoned from
   `scripts/db-push.mjs`'s own sort-then-apply logic, not from an actual
