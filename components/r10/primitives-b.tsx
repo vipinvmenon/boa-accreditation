@@ -88,6 +88,12 @@ export function Sheet({
     return () => media.removeEventListener('change', update)
   }, [])
 
+  // Callers pass inline arrows, so onClose changes on every render (every
+  // keystroke in a form inside the sheet). Read it through a ref so the focus
+  // effect below runs only when `open` flips, not on each re-render.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose })
+
   useEffect(() => {
     if (!open) {
       returnFocusRef.current?.focus()
@@ -104,7 +110,7 @@ export function Sheet({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
       if (event.key !== 'Tab') return
@@ -125,11 +131,11 @@ export function Sheet({
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose, open])
+  }, [open])
 
   return (
     <>
-      <motion.div className="scrim" data-open={open ? 'true' : 'false'} aria-hidden="true" onClick={onClose} initial={false} animate={{ opacity: open ? 1 : 0 }} />
+      <motion.div className="scrim" data-open={open ? 'true' : 'false'} aria-hidden="true" onClick={onClose} initial={false} animate={{ opacity: open ? 1 : 0 }} transition={reduceMotion ? { duration: 0 } : { duration: open ? 0.32 : 0.24, ease: 'easeOut' }} />
       <motion.aside
         ref={sheetRef}
         className={joinClassNames('sheet', className)}
@@ -139,7 +145,10 @@ export function Sheet({
         aria-labelledby={title ? titleId : undefined}
         initial={false}
         animate={open ? { x: 0, y: 0, opacity: 1 } : { x: isPhone ? 0 : '100%', y: isPhone ? '100%' : 0, opacity: 0 }}
-        transition={reduceMotion ? { duration: 0 } : { duration: 0.44 }}
+        transition={reduceMotion ? { duration: 0 } : open
+          // Decelerate in (fast start, soft landing); leave quicker than it arrived.
+          ? { x: { duration: 0.42, ease: [0.22, 1, 0.36, 1] }, y: { duration: 0.42, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.22, ease: 'easeOut' } }
+          : { x: { duration: 0.3, ease: [0.4, 0, 0.9, 0.6] }, y: { duration: 0.3, ease: [0.4, 0, 0.9, 0.6] }, opacity: { duration: 0.24, delay: 0.06, ease: 'easeIn' } }}
         drag={open && isPhone ? 'y' : false}
         dragConstraints={{ top: 0 }}
         dragElastic={0.18}
