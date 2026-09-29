@@ -5,11 +5,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DESK_NAV } from '@/lib/design'
 import { SiteFooter } from '@/components/site-footer'
-import { dashboardSchema, type Dashboard } from '@/lib/schemas/dashboard'
 import { operatorRowSchema, type OperatorRow } from '@/lib/schemas/operator'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
-import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
 import { LoadingSkeleton } from '@/components/loading-skeleton'
 import { z } from 'zod'
@@ -38,7 +36,6 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const theme = useDomTheme()
-  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [me, setMe] = useState<OperatorRow | null>(null)
   const [meError, setMeError] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -47,32 +44,6 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const menuRef = useRef<HTMLDivElement>(null)
   const profileButtonRef = useRef<HTMLButtonElement>(null)
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    async function loadStatus() {
-      try {
-        const response = await fetch('/api/desk/dashboard')
-        if (cancelled) return
-        if (response.status === 401) {
-          router.replace(loginHref(window.location.pathname + window.location.search))
-          return
-        }
-        if (!response.ok) return
-        const parsed = dashboardSchema.safeParse(await response.json())
-        if (cancelled || !parsed.success) return
-        // Only feeds the Master list nav badge (F3) — R8.shell has no
-        // status bar to render the rest of this into (ACC-130/foundation).
-        setDashboard(parsed.data)
-      } catch {
-        // A silent failure just means no badge; nothing else reads this.
-      }
-    }
-    void loadStatus()
-    return () => {
-      cancelled = true
-    }
-  }, [router])
 
   useEffect(() => {
     let cancelled = false
@@ -210,14 +181,16 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     mobileMenuButtonRef.current?.focus()
   }
 
-  function rememberPip() {
-    const links = document.getElementById('desk-links')
-    const active = links?.querySelector<HTMLElement>('[aria-current="page"]')
-    if (!active) return
-    window.sessionStorage.setItem('boa-pip', JSON.stringify({
-      left: active.offsetLeft,
-      width: active.offsetWidth,
-    }))
+  // DeskChrome remounts on every route, so the pill glides to the clicked link now and
+  // the next page mounts it already there, rather than sliding after that page loads.
+  function glidePip(target: HTMLElement) {
+    const pip = document.getElementById('desk-links')?.querySelector<HTMLElement>('.pip')
+    const geometry = { left: target.offsetLeft, width: target.offsetWidth }
+    if (pip) {
+      pip.style.width = `${geometry.width}px`
+      pip.style.transform = `translateX(${geometry.left}px)`
+    }
+    window.sessionStorage.setItem('boa-pip', JSON.stringify(geometry))
   }
 
   async function signOut() {
@@ -241,19 +214,9 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
               <span className="pip" aria-hidden="true" />
               {DESK_NAV.map((item) => {
                 const active = item.id === activeNav
-                // F3: R8.shell's nav badge (design/source/r10/r8/ui.js:36,40)
-                // only has a data source for Master (not-in-BMS). This also
-                // carries the "not in BMS" deep link the removed status bar
-                // (F4) used to offer (ACC-154, tests/e2e/org-filter.spec.ts)
-                // — pointing the nav item itself at the filtered list only
-                // while there is something outstanding to flag.
-                const bmsPending = item.id === 'master' ? dashboard?.bmsPending : undefined
-                const hasBadge = typeof bmsPending === 'number' && bmsPending > 0
-                const href = hasBadge ? `${item.href}?in_bms=false` : item.href
                 return (
-                  <Link key={item.id} href={href} aria-current={active ? 'page' : undefined} onClick={rememberPip}>
+                  <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={(event) => glidePip(event.currentTarget)}>
                     {item.label}
-                    {hasBadge && <span className="badge" aria-label={`${bmsPending} not in BMS`}>{bmsPending}</span>}
                   </Link>
                 )
               })}
@@ -298,7 +261,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
           {DESK_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
             closeMobileMenu()
-          }}>{item.label}{item.id === 'master' && dashboard && dashboard.bmsPending > 0 && <span className="badge" aria-hidden="true">{dashboard.bmsPending}</span>}</Link>)}
+          }}>{item.label}</Link>)}
         </div>
         <div className="frame page">{children}</div>
         <SiteFooter signedInAs={me ? `${me.display_name} (${ROLE_LABEL[me.role]})` : null} />

@@ -54,3 +54,12 @@
 .ph-light.ph-sort-descending:before { content: '\e446'; }
 .ph-light.ph-sun:before { content: '\e472'; }
 .ph-light.ph-x:before { content: '\e4f6'; }
+/* Master list (r8-master.html): codepoints from design/source/r10/r8/tokens.css, same font. */
+.ph-light.ph-arrows-clockwise:before { content: '\e094'; }
+.ph-light.ph-caret-left:before { content: '\e138'; }
+.ph-light.ph-caret-right:before { content: '\e13a'; }
+.ph-light.ph-copy:before { content: '\e1ca'; }
+.ph-light.ph-funnel-simple:before { content: '\e268'; }
+.ph-light.ph-ticket:before { content: '\e490'; }
+.ph-light.ph-users-three:before { content: '\e68e'; }
+.ph-light.ph-warning-circle:before { content: '\e4e2'; }

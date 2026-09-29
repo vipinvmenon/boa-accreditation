@@ -7,6 +7,7 @@ import {
   type MasterRow,
 } from '@/lib/schemas/master'
 import { ORG_KINDS, ORG_TYPE_CODES } from '@/lib/schemas/org'
+import { MASTER_DAY_LABELS, matchesMasterFilters, matchesMasterSearch, parseMasterFilters } from '@/lib/master-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,8 @@ const personSchema = z.object({
   full_name: z.string(),
   phone: z.string(),
   vehicle_reg: z.string().nullable(),
+  role_text: z.string(),
+  day_validity: z.enum(['build', 'show', 'build_show']).nullable(),
   status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'voided']),
   type_code: z.enum(ORG_TYPE_CODES).nullable(),
   pass_ref: z.string().nullable(),
@@ -51,12 +54,14 @@ function csvCell(value: string | number | boolean | null): string {
 }
 
 function toCsv(rows: MasterRow[]): string {
-  const header = ['Name', 'Phone', 'Organisation', 'Type', 'Band', 'Vehicle', 'BMS', 'Collected', 'Gate']
+  const header = ['Name', 'Phone', 'Organisation', 'Role', 'Type', 'Days', 'Band', 'Vehicle', 'BMS', 'Collected', 'Gate']
   const body = rows.map((row) => [
     row.fullName,
     row.phone,
     row.orgName,
+    row.role,
     row.typeCode ?? '',
+    row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : '',
     row.bandSerial ?? 'Not issued',
     row.vehicleReg ?? '—',
     row.inBms ? 'In BMS' : 'Not in BMS',
@@ -76,9 +81,8 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const query = masterQuerySchema.safeParse({
     q: params.get('q') ?? '',
-    inBms: params.get('in_bms') ?? 'all',
     format: params.get('format') ?? 'json',
-    org: params.get('org') ?? '',
+    filters: parseMasterFilters(params),
   })
   if (!query.success) return errorResponse('invalid_query', 400)
 
@@ -86,7 +90,7 @@ export async function GET(request: Request) {
     await Promise.all([
       supabase
         .from('boa_acc_person')
-        .select('id,org_id,full_name,phone,vehicle_reg,status,type_code,pass_ref,in_bms,approved_at,updated_at')
+        .select('id,org_id,full_name,phone,role_text,day_validity,vehicle_reg,status,type_code,pass_ref,in_bms,approved_at,updated_at')
         .order('created_at', { ascending: false }),
       supabase
         .from('boa_acc_org')
@@ -124,36 +128,18 @@ export async function GET(request: Request) {
     latestByPersonAndKind.set(key, checkin)
   }
 
-  // ACC-162: the unfiltered population, counted the same way `rows` is built
-  // (a person whose org is missing is not a row), so "N of M" cannot disagree
-  // with the list under it.
-  const total = parsedPeople.data.reduce((count, person) => count + (orgById.has(person.org_id) ? 1 : 0), 0)
-
-  const needle = query.data.q.toLocaleLowerCase()
-  const rows = parsedPeople.data.flatMap((person): MasterRow[] => {
+  const everyone = parsedPeople.data.flatMap((person): MasterRow[] => {
     const org = orgById.get(person.org_id)
     if (!org) return []
     const band = latestByPersonAndKind.get(`${person.id}:wristband`)
-    const matchesSearch = !needle || [
-      person.full_name,
-      person.phone,
-      org.name,
-      person.vehicle_reg ?? '',
-      band?.band_serial ?? '',
-      person.pass_ref ?? '',
-    ].some((value) => value.toLocaleLowerCase().includes(needle))
-    const matchesBms =
-      query.data.inBms === 'all' ||
-      (query.data.inBms === 'true' && person.in_bms) ||
-      (query.data.inBms === 'false' && !person.in_bms)
-    // ADR-021: exact id, never a name match — an operator clicked one row.
-    const matchesOrg = !query.data.org || person.org_id === query.data.org
-    if (!matchesSearch || !matchesBms || !matchesOrg) return []
     return [{
       id: person.id,
       fullName: person.full_name,
+      orgId: org.id,
       phone: person.phone,
       orgName: org.name,
+      role: person.role_text,
+      dayValidity: person.day_validity,
       orgKind: org.kind,
       typeCode: person.type_code,
       status: person.status,
@@ -167,6 +153,13 @@ export async function GET(request: Request) {
       decidedAt: person.approved_at ?? (person.status === 'rejected' ? person.updated_at : null),
     }]
   })
+
+  // ACC-162: the unfiltered population (a person whose org is missing is not a
+  // row), so "N of M" cannot disagree with the list under it. The screen
+  // filters in the browser and asks for everyone; the same predicate runs here
+  // when `q` or a filter is passed, which is how the CSV matches the screen.
+  const total = everyone.length
+  const rows = everyone.filter((row) => matchesMasterSearch(row, query.data.q) && matchesMasterFilters(row, query.data.filters))
 
   const parsedResponse = masterResponseSchema.safeParse({ rows, total })
   if (!parsedResponse.success) return errorResponse('internal', 500)

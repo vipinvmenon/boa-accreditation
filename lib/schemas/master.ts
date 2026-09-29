@@ -1,25 +1,30 @@
 import { z } from 'zod'
 import { ORG_KINDS, ORG_TYPE_CODES } from './org'
+import { EMPTY_MASTER_FILTERS, masterFiltersSchema } from '../master-filter'
 
 export const masterQuerySchema = z.object({
   q: z.string().trim().max(120).default(''),
-  inBms: z.enum(['all', 'true', 'false']).default('all'),
   format: z.enum(['json', 'csv']).default('json'),
   /**
-   * ADR-021: one place lists people. Organisations links here rather than
-   * listing its own copy of the rows, so this is an EXACT org id, not the free
-   * text `q` already matches org names with. A company called "Sound" must not
-   * drag in "Soundcheck Ltd" when an operator clicked one specific row.
-   * Empty means every organisation.
+   * The screen filters the whole roster in the browser (r8-master.html does),
+   * so these only shape the CSV: the download is what the operator is looking
+   * at. `org` is EXACT org ids, never a name match (ADR-021) — a company called
+   * "Sound" must not drag in "Soundcheck Ltd".
    */
-  org: z.string().trim().max(64).default(''),
+  filters: masterFiltersSchema.default(() => EMPTY_MASTER_FILTERS),
 })
 
 export const masterRowSchema = z.object({
   id: z.string(),
   fullName: z.string(),
+  /** The organisation's id, so the screen can filter by it exactly. */
+  orgId: z.string(),
   phone: z.string(),
   orgName: z.string(),
+  /** `boa_acc_person.role_text`, as the pass shows it. */
+  role: z.string(),
+  /** `boa_acc_person.day_validity`; null until the person is approved. */
+  dayValidity: z.enum(['build', 'show', 'build_show']).nullable(),
   orgKind: z.enum(ORG_KINDS),
   typeCode: z.enum(ORG_TYPE_CODES).nullable(),
   status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'voided']),

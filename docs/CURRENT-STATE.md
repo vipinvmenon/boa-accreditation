@@ -5,6 +5,65 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (all five desk screens matched to r10 mockups by screenshot)._
 
+## Master list and Passes full parity, persistent navs, 29 Sep 2026
+
+- **Master list (`master-screen.tsx`, the new `lib/master-filter.ts`):**
+  - **Add filter menu:** 7 kinds with counts and keyboard support, plus
+    removable chips and Clear all.
+  - **Presets:** four that really filter. "Not collected" had been a no-op
+    and "Has a vehicle" a text search.
+  - **Table:** Person and Collected sort, "Show 60 more", the r8 empty,
+    no-match and error states, and the r8 person sheet.
+  - **URL filters:** `?status/?tier/?vehicle/?org/?in_bms/?q/?day/?role`
+    all work, so the Control room deep links now land filtered.
+  - **Removed:** the filter-summary banner and "Show everyone", the BMS sort
+    toggle, the "In BMS" preset and the duplicate count.
+  - **API:** `masterRowSchema` gains `orgId`, `role` (`role_text`) and
+    `dayValidity` (`day_validity`), with explicit selects and no migration.
+    The CSV adds Role and Days.
+  - **Filtering is now client-side over the whole roster:** an
+    `?org=` URL no longer sends `org` to the API, and
+    `login-return-path.spec.ts` was updated to match.
+  - **Not done** (the master route has no data for them): the WhatsApp row
+    and the voiding operator and time in the sheet's History.
+- **Passes (`passes-screen-r10.tsx`):**
+  - **Header and banner:** "Send N unsent passes", keeping ACC-160's
+    hold-to-send and the Who list, and the failures banner with "Show them".
+  - **Filters:** Add filter (WhatsApp, Tier, Organisation), URL-synced.
+  - **Rows:** per-row Send or Resend with pills and dates.
+  - **Sheet footer:** "Copy WhatsApp link" (a toast confirms it) and "Print
+    this pass" (print CSS; checked in emulated print only).
+  - **Not done:** the send sheet's "Message preview". The real template is
+    in Interakt, so showing the mock text would be unverified.
+  - No real send was made in testing: POSTs were mocked.
+- **Master list nav badge removed** (Vipin), along with the chrome's
+  dashboard fetch that only fed it.
+- **Navs are persistent now:** `app/desk/layout.tsx` + `desk-shell.tsx`, and
+  `app/gate/layout.tsx` + `gate-shell.tsx`. The pages no longer wrap
+  themselves in the nav.
+  - **Desk:** the pill glides on click through the route change,
+    transform + width on one ease-out curve over 420ms, with a
+    reduced-motion stop. Animating width departs from ACC-182's "never
+    animates width"; this is **open with Vipin**.
+  - **Gate:** Vipin found that People/Vehicles swapped the nav. Each switch
+    remounted the chrome, which drew the issuer nav until
+    `useGateOperator` resolved and then the desk nav. The chrome is now
+    mounted once, so the pill and links stay put. Verified as a lead: 5
+    links throughout, one `<main>`.
+- **Tests updated:** `desk-tiers.spec.ts` (the control-room case now
+  asserts the r10 band shelf; the master case fixture), `org-filter.spec.ts`
+  (rewritten), `login-return-path.spec.ts`, and
+  `lib/master-filter-summary.test.ts` → `lib/master-filter.test.ts`.
+- **Verified:**
+  - Screenshots of the Master list (including the open Add filter menu) and
+    Passes at 1440.
+  - `aeroplane-mode`, `two-phone-sync`, `chrome-interactions`,
+    `login-return-path`, `desk-tiers` and `org-filter` pass 57/57.
+  - `typecheck` is clean.
+  - `lint` has 0 errors (8 `<img>` warnings; the new one is the master
+    sheet's band image).
+  - `test` passes, 295/295.
+
 ## Gate, Vehicle and desk nav vs the r10 mockups, 29 Sep 2026
 
 This work was done on Vipin's instruction while ACC-189, 189b and 190 are in

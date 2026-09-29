@@ -126,22 +126,25 @@ export const operators = {
 
 // ── Master list (lines 703-725) ─────────────────────────────────────────────
 const MASTER = [
-  { name: 'Ranjith Kumar', phone: '+91 98861 04422', org: 'Chakra Sound & Light', kind: 'vendor', type: 'stage', band: '#0412', vehicle: 'KA 05 MJ 8871', at: IST('09', '14:02'), gate: 'Gate 1', inBms: true },
-  { name: 'Faisal Mohammed', phone: '+91 99012 88104', org: 'Sentinel Security', kind: 'security', type: 'crew', band: '#1180', vehicle: null, at: IST('09', '06:40'), gate: 'Gate 1', inBms: true },
-  { name: 'Bhoopesh S', phone: '+91 98450 11290', org: 'BOA Production Core', kind: 'crew', type: 'aaa', band: '#0001', vehicle: 'KA 01 AB 2211', at: IST('08', '11:15'), gate: 'Desk', inBms: true },
-  { name: 'Aditi Rao', phone: '+91 90350 77218', org: 'Thunderjaw Merch', kind: 'vendor', type: 'crew', band: null, vehicle: 'KA 51 CQ 0043', at: null, gate: null, inBms: false },
-  { name: 'Nikita Banerjee', phone: '+91 96110 55873', org: 'Distortion Press', kind: 'media', type: 'crew', band: '#2205', vehicle: null, at: IST('10', '12:30'), gate: 'Gate 2', inBms: true },
-  { name: 'Sameer Thomas', phone: '+91 87620 41139', org: 'Redline Beverages', kind: 'sponsor', type: 'crew', band: null, vehicle: 'KA 03 HD 7788', at: null, gate: null, inBms: false },
-  { name: 'Prakash Devaiah', phone: '+91 94480 30012', org: 'Ironhoof Rigging', kind: 'contractor', type: 'stage', band: '#0388', vehicle: 'KA 09 TR 1902', at: IST('08', '07:55'), gate: 'Desk', inBms: true },
-  { name: 'Imran Sheikh', phone: '+91 96320 90014', org: 'Chakra Sound & Light', kind: 'vendor', type: 'crew', band: null, vehicle: null, at: null, gate: null, inBms: false, rejectedAt: IST('05', '18:00') },
+  { name: 'Ranjith Kumar', phone: '+91 98861 04422', org: 'Chakra Sound & Light', kind: 'vendor', type: 'stage', band: '#0412', vehicle: 'KA 05 MJ 8871', at: IST('09', '14:02'), gate: 'Gate 1', role: 'Stage tech', days: 'build_show', inBms: true },
+  { name: 'Faisal Mohammed', phone: '+91 99012 88104', org: 'Sentinel Security', kind: 'security', type: 'crew', band: '#1180', vehicle: null, at: IST('09', '06:40'), gate: 'Gate 1', role: 'Security supervisor', days: 'show', inBms: true },
+  { name: 'Bhoopesh S', phone: '+91 98450 11290', org: 'BOA Production Core', kind: 'crew', type: 'aaa', band: '#0001', vehicle: 'KA 01 AB 2211', at: IST('08', '11:15'), gate: 'Desk', role: 'Accreditation lead', days: 'build_show', inBms: true },
+  { name: 'Aditi Rao', phone: '+91 90350 77218', org: 'Thunderjaw Merch', kind: 'vendor', type: 'crew', band: null, vehicle: 'KA 51 CQ 0043', at: null, gate: null, role: 'Merch lead', days: 'show', inBms: false },
+  { name: 'Nikita Banerjee', phone: '+91 96110 55873', org: 'Distortion Press', kind: 'media', type: 'crew', band: '#2205', vehicle: null, at: IST('10', '12:30'), gate: 'Gate 2', role: 'Photographer', days: 'show', inBms: true },
+  { name: 'Sameer Thomas', phone: '+91 87620 41139', org: 'Redline Beverages', kind: 'sponsor', type: 'crew', band: null, vehicle: 'KA 03 HD 7788', at: null, gate: null, role: 'Brand rep', days: 'show', inBms: false },
+  { name: 'Prakash Devaiah', phone: '+91 94480 30012', org: 'Ironhoof Rigging', kind: 'contractor', type: 'stage', band: '#0388', vehicle: 'KA 09 TR 1902', at: IST('08', '07:55'), gate: 'Desk', role: 'Rigger', days: 'build_show', inBms: true },
+  { name: 'Imran Sheikh', phone: '+91 96320 90014', org: 'Chakra Sound & Light', kind: 'vendor', type: 'crew', band: null, vehicle: null, at: null, gate: null, role: 'FOH engineer', days: 'show', inBms: false, rejectedAt: IST('05', '18:00') },
 ]
 
 export const master = {
   rows: MASTER.map((m, i) => ({
     id: uuid(300 + i),
     fullName: m.name,
+    orgId: uuid(350 + [...new Set(MASTER.map((x) => x.org))].indexOf(m.org)),
     phone: m.phone,
     orgName: m.org,
+    role: m.role,
+    dayValidity: m.rejectedAt ? null : m.days,
     orgKind: m.kind,
     typeCode: m.type,
     status: m.rejectedAt ? 'rejected' : 'approved',
@@ -204,6 +207,34 @@ export async function passesFor() {
     }),
   )
   return { passes }
+}
+
+/**
+ * GET /api/desk/passes/send — the delivery state per pass, with every state the
+ * Passes screen draws: delivered, failed, sent, read, and two never sent. The
+ * design-compare harness mocks `people: []`; the per-screen drivers use this.
+ */
+export const passSends = {
+  configured: true,
+  canSend: true,
+  people: SHEET.map((_, i) => {
+    const status = ['delivered', 'failed', 'sent', null, 'read', null][i] ?? null
+    return {
+      personId: uuid(400 + i),
+      phone: `+91987650${String(1000 + i)}`,
+      attempts: status ? 1 : 0,
+      live: status !== null && status !== 'failed',
+      last: status === null ? null : {
+        sendId: uuid(500 + i),
+        status,
+        requestedAt: `2026-09-2${6 + (i % 3)}T0${4 + i}:1${i}:00.000Z`,
+        statusAt: `2026-09-2${6 + (i % 3)}T0${4 + i}:1${i}:30.000Z`,
+        failureReason: status === 'failed' ? 'Number is not on WhatsApp' : null,
+        hasMessageId: status !== 'failed',
+        sentBy: null,
+      },
+    }
+  }),
 }
 
 /**

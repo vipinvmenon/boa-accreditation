@@ -170,7 +170,8 @@ const DEFAULT_ORGS = [
 ]
 function masterRow(id, fullName, orgName, overrides = {}) {
   return {
-    id, fullName, phone: '+919000000001', orgName, orgKind: 'vendor', typeCode: 'crew',
+    id, fullName, orgId: orgName.startsWith('Chakra') ? ORG_A : ORG_B, role: 'Crew', dayValidity: 'show',
+    phone: '+919000000001', orgName, orgKind: 'vendor', typeCode: 'crew',
     status: 'approved', passRef: `BOA26-${id.slice(-4)}`, vehicleReg: null, bandSerial: null,
     stickerNo: null, inBms: false, collectedAt: null, gateLabel: null, decidedAt: null, ...overrides,
   }

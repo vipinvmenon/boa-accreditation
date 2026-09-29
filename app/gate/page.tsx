@@ -15,7 +15,6 @@ import { gateBandCard } from '@/gate/band-card'
 import { formatRecentLedgerRow } from '@/lib/format'
 import { useDomTheme } from '@/lib/use-theme'
 import { Icon } from '@/components/icon'
-import { GateChrome } from './gate-chrome'
 import { PersonSearch } from './person-search'
 import { SyncStatus } from './sync-status'
 
@@ -276,14 +275,14 @@ export default function GatePage() {
     if (!resolution && !searchOpen) scannerInputRef.current?.focus()
   }, [resolution, searchOpen])
 
-  if (!snapshot) return <main id="main-content" tabIndex={-1} style={{ minHeight: '100vh', background: 'var(--bg,#0A0A0A)' }} />
+  if (!snapshot) return <div style={{ minHeight: '60vh' }} />
 
   // No approved list on this phone: never a scanner, which would answer
   // "Refuse" to every real pass. The list loads itself once, with signal,
   // for a signed-in issuer (ACC-150 — this is what /gate/setup used to do).
   if (snapshot.roster.length === 0) {
     return (
-      <main id="main-content" tabIndex={-1} className="r10 gate-empty" data-theme={theme}>
+      <div className="gate-empty">
         <section className="no-roster" role="status">
           <span className="label gold">Crew check-in</span>
           <h1 className="display-sm">{bootFix === null && bootError ? 'No one approved yet' : 'No list on this phone'}</h1>
@@ -305,12 +304,12 @@ export default function GatePage() {
           )}
         </section>
         <style jsx global>{`
-          .r10.gate-empty { display: grid; place-items: center; padding: var(--s-6) var(--gutter); }
-          .r10.gate-empty .no-roster { display: grid; justify-items: start; gap: var(--s-3); width: 100%; max-width: 560px; padding: var(--s-10) var(--s-6); border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
-          .r10.gate-empty .no-roster > h1, .r10.gate-empty .no-roster > p { margin: 0; }
-          .r10.gate-empty .no-roster > .btn { margin-top: var(--s-3); }
+          .r10 .gate-empty { display: grid; place-items: center; padding: var(--s-6) var(--gutter); }
+          .r10 .gate-empty .no-roster { display: grid; justify-items: start; gap: var(--s-3); width: 100%; max-width: 560px; padding: var(--s-10) var(--s-6); border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
+          .r10 .gate-empty .no-roster > h1, .r10 .gate-empty .no-roster > p { margin: 0; }
+          .r10 .gate-empty .no-roster > .btn { margin-top: var(--s-3); }
         `}</style>
-      </main>
+      </div>
     )
   }
 
@@ -318,7 +317,7 @@ export default function GatePage() {
   const resultKey = resolution?.status === 'green' ? 'green' : resolution?.status === 'amber' ? 'amber' : resolution ? 'red' : undefined
 
   return (
-    <GateChrome>
+    <>
       <div className="gate-screen">
         {/* r8-gate.html opens with this segmented control, not a hero header:
             the nav island above already names the screen. */}
@@ -414,7 +413,7 @@ export default function GatePage() {
         </section>
       </div>
       <style jsx global>{GATE_CSS}</style>
-    </GateChrome>
+    </>
   )
 }
 

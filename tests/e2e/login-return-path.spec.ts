@@ -57,8 +57,11 @@ async function installDeskFixtures(page: Page) {
         rows: [{
           id: 'person-1',
           fullName: 'Filtered Person',
+          orgId: ORG_ID,
           phone: '+919000000001',
           orgName: 'Sound',
+          role: 'Rigger',
+          dayValidity: 'show',
           orgKind: 'vendor',
           typeCode: 'crew',
           status: 'approved',
@@ -117,11 +120,10 @@ test('a desk 401 returns to the exact filtered page after sign-in', async ({ pag
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect(page).toHaveURL(`/desk/master?org=${ORG_ID}`)
-  expect(masterResults).toHaveLength(1)
-  expect(masterResults[0]).toEqual({
-    status: 401,
-    url: expect.stringContaining(`org=${ORG_ID}`),
-  })
+  // The list reads the whole roster and filters in the browser (r8-master.html),
+  // so the API is not asked for the org; the filter is carried by the page URL,
+  // which is what this test is about.
+  expect(masterResults[0]).toMatchObject({ status: 401 })
   expect(new URL(page.url()).searchParams.get('org')).toBe(ORG_ID)
 })
 

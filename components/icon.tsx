@@ -17,10 +17,15 @@
 export type IconName =
   | 'arrow-right'
   | 'arrow-up-right'
+  | 'arrows-clockwise'
   | 'caret-down'
+  | 'caret-left'
+  | 'caret-right'
   | 'check'
   | 'clock'
+  | 'copy'
   | 'download-simple'
+  | 'funnel-simple'
   | 'magnifying-glass'
   | 'moon'
   | 'paper-plane-tilt'
@@ -29,7 +34,10 @@ export type IconName =
   | 'scan'
   | 'sort-descending'
   | 'sun'
+  | 'ticket'
+  | 'users-three'
   | 'warning'
+  | 'warning-circle'
   | 'x'
 
 export function Icon({ name }: { name: IconName }) {

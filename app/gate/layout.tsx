@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GateServiceWorker } from './register-sw'
+import { GateShell } from './gate-shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export default function GateLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <GateServiceWorker />
-      {children}
+      <GateShell>{children}</GateShell>
     </>
   )
 }

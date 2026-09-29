@@ -47,39 +47,35 @@ const orgs = {
   ],
 }
 
-function person(id: string, fullName: string, orgName: string) {
+function person(id: string, fullName: string, orgName: string, orgId: string) {
   return {
-    id, fullName, phone: '+919000000009', orgName, orgKind: 'vendor' as const,
+    id, fullName, orgId, phone: '+919000000009', orgName, role: 'Rigger', dayValidity: 'show' as const, orgKind: 'vendor' as const,
     typeCode: 'crew' as const, status: 'approved' as const, passRef: 'BOA26-0001',
     vehicleReg: null, bandSerial: null, stickerNo: null, inBms: false,
     collectedAt: null, gateLabel: null, decidedAt: null,
   }
 }
 
-/** Honours `?org=` and `?in_bms=` exactly, the way the real route does. */
+/**
+ * The real route now returns the whole roster and the screen filters it in the
+ * browser (r8-master.html), so this mock ignores the filter params on purpose:
+ * `seen` records what was asked for, which for the screen itself is nothing.
+ */
 async function installDesk(page: Page, seen: string[]) {
   await page.route('**/api/desk/dashboard', (route: Route) => route.fulfill({ json: dashboard }))
   await page.route('**/api/desk/operators', (route: Route) => route.fulfill({ json: operators }))
   await page.route('**/api/desk/orgs', (route: Route) => route.fulfill({ json: orgs }))
   await page.route('**/api/desk/master**', (route: Route) => {
-    const params = new URL(route.request().url()).searchParams
-    const org = params.get('org') ?? ''
-    const inBms = params.get('in_bms')
-    seen.push(org)
+    seen.push(new URL(route.request().url()).search)
     const all = [
       // ACC-154: p1 is the one person already in BMS, so `?in_bms=` splits
       // this fixture the way it splits the real roster.
-      { ...person('p1', 'Sound Person One', 'Sound'), inBms: true },
-      person('p2', 'Sound Person Two', 'Sound'),
-      person('p3', 'Soundcheck Person', 'Soundcheck Ltd'),
+      { ...person('p1', 'Sound Person One', 'Sound', ORG_A), inBms: true },
+      person('p2', 'Sound Person Two', 'Sound', ORG_A),
+      person('p3', 'Soundcheck Person', 'Soundcheck Ltd', ORG_B),
     ]
-    const byOrg = org === ORG_A ? all.slice(0, 2) : org === ORG_B ? all.slice(2) : org ? [] : all
-    const rows = inBms === 'true' || inBms === 'false'
-      ? byOrg.filter((row) => row.inBms === (inBms === 'true'))
-      : byOrg
-    // ACC-162: `all` IS the unfiltered population here, so the count the screen
-    // prints is checked against the same fixture the filtering is derived from.
-    return route.fulfill({ json: masterResponseSchema.parse({ rows, total: all.length }) })
+    // ACC-162: `all` IS the unfiltered population here.
+    return route.fulfill({ json: masterResponseSchema.parse({ rows: all, total: all.length }) })
   })
 }
 
@@ -99,15 +95,13 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await page.getByRole('link', { name: /^Sound — show their people/ }).click()
     await expect(page).toHaveURL(new RegExp(`/desk/master\\?org=${ORG_A}$`))
 
-    // The filter reached the API as an exact id...
-    await expect.poll(() => seen).toContain(ORG_A)
-    // ...and only that company's people are on screen.
+    // Only that company's people are on screen...
     await expect(page.getByText('Sound Person One')).toBeVisible()
     await expect(page.getByText('Soundcheck Person')).toHaveCount(0)
 
-    // A filter the operator cannot see is a bug, so it is stated and escapable.
-    await expect(page.getByRole('status').filter({ hasText: 'Showing Sound only' })).toBeVisible()
-    await page.getByRole('link', { name: 'Show everyone' }).click()
+    // ...a filter the operator cannot see is a bug, so it is a removable chip.
+    await expect(page.locator('.chips .chip').filter({ hasText: 'Organisation: Sound' })).toBeVisible()
+    await page.getByRole('button', { name: 'Remove Organisation filter' }).click()
     await expect(page).toHaveURL(/\/desk\/master$/)
     await expect(page.getByText('Soundcheck Person')).toBeVisible()
   })
@@ -118,15 +112,16 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await page.goto(`/desk/master?org=${ORG_B}`)
     await expect(page.getByText('Soundcheck Person')).toBeVisible()
     await expect(page.getByText('Sound Person One')).toHaveCount(0)
-    expect(seen).toContain(ORG_B)
   })
 
   test('an org with nobody on the roster says so rather than looking broken', async ({ page }) => {
     const seen: string[] = []
     await installDesk(page, seen)
     await page.goto('/desk/master?org=99999999-9999-4999-8999-999999999999')
-    await expect(page.getByRole('status').filter({ hasText: 'No one from this organisation yet' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Show everyone' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filters' }).click()
+    await expect(page).toHaveURL(/\/desk\/master$/)
+    await expect(page.getByText('Soundcheck Person')).toBeVisible()
   })
 
   test('the Control room counts companies and links out; it no longer lists them', async ({ page }) => {
@@ -150,56 +145,103 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
  * and no way back.
  */
 test.describe('the BMS filter names itself and can be escaped (ACC-154)', () => {
-  test('the "not in BMS" badge leads to a list that says what it is showing', async ({ page }) => {
+  test('the Control room "Not in BookMyShow" tile leads to a list that says what it is showing', async ({ page }) => {
     const seen: string[] = []
     await installDesk(page, seen)
     await page.goto('/desk')
 
-    await page.getByRole('link', { name: /not in BMS/ }).first().click()
+    await page.locator('a[href="/desk/master?in_bms=false"]').first().click()
     await expect(page).toHaveURL(/\/desk\/master\?in_bms=false$/)
 
     // Only the outstanding people are on screen...
     await expect(page.getByText('Sound Person Two')).toBeVisible()
     await expect(page.getByText('Sound Person One')).toHaveCount(0)
     // ...and the screen says so, and offers the way out.
-    await expect(page.getByRole('status').filter({ hasText: 'Showing people not yet in BMS' })).toBeVisible()
+    await expect(page.locator('.chips .chip').filter({ hasText: 'BMS: Not in BMS' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Show everyone' }).click()
+    await page.getByRole('button', { name: 'Remove BMS filter' }).click()
     await expect(page).toHaveURL(/\/desk\/master$/)
     await expect(page.getByText('Sound Person One')).toBeVisible()
-    await expect(page.getByRole('status').filter({ hasText: 'Showing people' })).toHaveCount(0)
   })
 
   test('the other direction names itself too', async ({ page }) => {
-    const seen: string[] = []
-    await installDesk(page, seen)
+    await installDesk(page, [])
     await page.goto('/desk/master?in_bms=true')
     await expect(page.getByText('Sound Person One')).toBeVisible()
-    await expect(page.getByRole('status').filter({ hasText: 'Showing people already in BMS' })).toBeVisible()
+    await expect(page.getByText('Sound Person Two')).toHaveCount(0)
+    await expect(page.locator('.chips .chip').filter({ hasText: 'BMS: Entered in BMS' })).toBeVisible()
   })
 
-  test('both filters at once name both, and one link clears both', async ({ page }) => {
-    const seen: string[] = []
-    await installDesk(page, seen)
+  test('two filters at once, and Clear all clears both', async ({ page }) => {
+    await installDesk(page, [])
     await page.goto(`/desk/master?org=${ORG_A}&in_bms=false`)
 
     await expect(page.getByText('Sound Person Two')).toBeVisible()
     await expect(page.getByText('Soundcheck Person')).toHaveCount(0)
-    await expect(page.getByRole('status').filter({ hasText: 'Showing Sound, people not yet in BMS' })).toBeVisible()
+    await expect(page.locator('.chips .chip')).toHaveCount(2)
 
-    await page.getByRole('link', { name: 'Show everyone' }).click()
+    await page.getByRole('button', { name: 'Clear all' }).click()
     await expect(page).toHaveURL(/\/desk\/master$/)
     await expect(page.getByText('Soundcheck Person')).toBeVisible()
   })
 
-  test('an empty outstanding list reads as finished work, not as a broken screen', async ({ page }) => {
-    const seen: string[] = []
-    await installDesk(page, seen)
+  test('a filter that matches nobody says so and offers the way out', async ({ page }) => {
+    await installDesk(page, [])
     await page.goto(`/desk/master?org=${ORG_B}&in_bms=true`)
-    await expect(page.getByRole('status').filter({ hasText: 'Nobody matches both filters' })).toBeVisible()
-    // Not "Try a phone number or a band serial" — nobody typed a search.
-    await expect(page.getByText('Nobody matches this filter. Show everyone to see the full list.')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Show everyone' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
+    await expect(page.getByText('Remove a filter to see more people.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible()
+  })
+})
+
+/**
+ * r8-master.html's Add filter menu, its presets, and the links the Control
+ * room sends (?status=, ?tier=, ?vehicle=).
+ */
+test.describe('the Add filter menu, presets and Control room links', () => {
+  test('Add filter lists the kinds with counts, and choosing a value adds a chip', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master')
+    await page.getByRole('button', { name: 'Add filter' }).click()
+    for (const kind of ['Organisation', 'Tier', 'Status', 'BMS', 'Vehicle', 'Days valid', 'Role']) {
+      await expect(page.getByRole('menuitem', { name: new RegExp(`^${kind}`) })).toBeVisible()
+    }
+    await page.getByRole('menuitem', { name: /^Organisation/ }).click()
+    await page.locator('.menu label', { hasText: 'Soundcheck Ltd' }).locator('input').check()
+    await expect(page).toHaveURL(new RegExp(`org=${ORG_B}`))
+    await expect(page.getByText('Soundcheck Person')).toBeVisible()
+    await expect(page.getByText('Sound Person One')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.add-wrap .menu')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Add filter' })).toBeFocused()
+  })
+
+  test('the presets really filter, and carry counts', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master')
+    await expect(page.locator('.chip-preset', { hasText: 'Not in BMS' }).locator('.count-dot')).toHaveText('2')
+    await expect(page.locator('.chip-preset', { hasText: 'Has a vehicle' }).locator('.count-dot')).toHaveText('0')
+    await expect(page.locator('.chip-preset', { hasText: 'Voided' }).locator('.count-dot')).toHaveText('0')
+    await page.locator('.chip-preset', { hasText: 'Not collected' }).click()
+    await expect(page).toHaveURL(/status=not_collected/)
+    await expect(page.getByText('Sound Person One')).toBeVisible()
+    await expect(page.locator('.chips .chip').filter({ hasText: 'Status: Not collected' })).toBeVisible()
+  })
+
+  test('?status=, ?tier= and ?vehicle= are read from the URL', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master?status=collected')
+    await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
+    await page.goto('/desk/master?tier=crew&status=not_collected')
+    await expect(page.getByText('Sound Person One')).toBeVisible()
+    await page.goto('/desk/master?vehicle=pending')
+    await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
+  })
+
+  test('the export link carries the filters on screen', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto(`/desk/master?org=${ORG_A}`)
+    await expect(page.getByRole('link', { name: /Export CSV/ })).toHaveAttribute('href', new RegExp(`format=csv.*org=${ORG_A}`))
   })
 })
 
@@ -214,7 +256,7 @@ test.describe('the BMS filter names itself and can be escaped (ACC-154)', () => 
  * byte-identical, verified at 0.54/0.56/0.03/0.04% before and after.
  */
 test.describe('master list semantics and count (ACC-162)', () => {
-  const COLUMNS = ['Name and company', 'Tier', 'Band serial', 'Vehicle', 'BMS', 'Collected']
+  const COLUMNS = ['Person', 'Tier', 'Days', 'Band', 'Vehicle', 'BMS', 'Collected']
 
   test('the rows are a table with named columns, and every row has one cell per column', async ({ page }) => {
     await installDesk(page, [])
@@ -238,9 +280,9 @@ test.describe('master list semantics and count (ACC-162)', () => {
     await installDesk(page, [])
     await page.goto('/desk/master')
     // ACC-184: the r10 master list makes the columns legible to a volunteer.
-    await expect(page.getByRole('columnheader', { name: 'Band serial', exact: true })).toHaveCount(1)
-    await expect(page.locator('[role="row"].master-thead')).toBeVisible()
-    await expect(page.locator('[role="row"].master-thead')).toHaveCSS('position', 'sticky')
+    await expect(page.getByRole('columnheader', { name: 'Band', exact: true })).toHaveCount(1)
+    await expect(page.locator('[role="row"].thead')).toBeVisible()
+    await expect(page.locator('[role="row"].thead')).toHaveCSS('position', 'sticky')
   })
 
   test('the table says how much of the roster is on screen, unfiltered and filtered', async ({ page }) => {
@@ -251,8 +293,8 @@ test.describe('master list semantics and count (ACC-162)', () => {
 
     await page.goto(`/desk/master?org=${ORG_A}`)
     await expect(page.getByRole('table')).toHaveAccessibleName('Master list. Showing 2 of 3 people.')
-    // And visibly, next to the banner that already names the filter.
-    await expect(page.getByText('Showing 2 of 3 people')).toBeVisible()
+    // And visibly, beside the chips.
+    await expect(page.locator('.count')).toHaveText('2 of 3')
   })
 
   test('a filter that matches nobody still says what it was drawn from', async ({ page }) => {
@@ -260,6 +302,6 @@ test.describe('master list semantics and count (ACC-162)', () => {
     await page.goto('/desk/master?org=99999999-9999-4999-8999-999999999999')
     // No table when there are no rows — an empty ARIA table is worse than none.
     await expect(page.getByRole('table')).toHaveCount(0)
-    await expect(page.getByText('None of 3 people')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
   })
 })

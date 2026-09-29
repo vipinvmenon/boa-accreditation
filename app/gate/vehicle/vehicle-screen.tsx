@@ -3,12 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { gateDb } from '@/gate/db'
-import { readGateSnapshot, type GateSnapshot } from '@/gate/client'
 import { normalizePlate, queueVehicleEvent, resolvePlate, type PlateResolution } from '@/gate/vehicle-flow'
 import { Icon } from '@/components/icon'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { useGateSessionGuard } from '@/gate/use-session-guard'
-import { GateChrome } from '../gate-chrome'
 import { SyncStatus } from '../sync-status'
 
 /**
@@ -38,7 +36,6 @@ export function VehicleScreen() {
   const [askReason, setAskReason] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
   /**
    * ACC-159: what the plate resolves to, read as soon as it parses — not when
    * the officer presses. `null` means "nothing to say yet" (no valid plate);
@@ -47,10 +44,6 @@ export function VehicleScreen() {
   const [resolved, setResolved] = useState<PlateResolution | null>(null)
   const reasonRef = useRef<HTMLInputElement>(null)
   const { online, queued, sync, refresh } = useOutboxSync()
-
-  useEffect(() => {
-    void readGateSnapshot().then(setSnapshot)
-  }, [])
 
   const normalized = useMemo(() => {
     try {
@@ -158,10 +151,7 @@ export function VehicleScreen() {
   const cleared = result?.outcome === 'cleared'
   const outcome = cleared ? 'ok' : result ? 'bad' : undefined
   return (
-    // ACC-190: bmsPending has no Dexie source (the gate is Dexie/outbox only,
-    // no new network path) — D7 forbids hardcoding a proposal number, so the
-    // "N not in BMS" pill is left off this screen rather than faked.
-    <GateChrome bandsIssued={snapshot?.ledger.filter((row) => row.kind === 'wristband').length ?? 0} approved={snapshot?.roster.length ?? 0}>
+    <>
       <div className="vehicle-screen">
         {/* r8-vehicle.html opens with this segmented control, not a v2-style
             hero header (no "Vehicle entrance" tag, no h1, no lede) — the
@@ -190,7 +180,7 @@ export function VehicleScreen() {
               <span className="plate-note-ic" aria-hidden="true"><Icon name="warning" /></span>
               <div><b>Sticker and band. Both.</b>A match on the plate is not a match on the vehicle. Check the sticker against the plate in front of you.</div>
             </div>
-            <SyncStatus onSynced={() => readGateSnapshot().then(setSnapshot)} top={4} />
+            <SyncStatus top={4} />
           </section>
 
           {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
@@ -285,6 +275,6 @@ export function VehicleScreen() {
           .r10 .veh-dock { grid-auto-flow: column; grid-auto-columns: 1fr; }
         }
       `}</style>
-    </GateChrome>
+    </>
   )
 }

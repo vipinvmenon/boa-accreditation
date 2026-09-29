@@ -45,16 +45,14 @@ test.describe('desk tiers (ACC-115)', () => {
   test('control room renders every tier the dashboard returns, in its order', async ({ page }) => {
     await installChrome(page)
     await page.goto('/desk')
-    await expect(page.getByRole('heading', { name: 'Eight bands. No ninth.' })).toBeVisible()
-    const cards = page.locator('.bandcard')
+    // r10 (r8-control-room.html): a "Bands" shelf; each card lists its HELD zones
+    // only, dot + name, like the pass ticket (ADR-025).
+    const shelf = page.getByRole('region', { name: 'Bands' })
+    const cards = shelf.locator('a.card')
     await expect(cards).toHaveCount(8)
     await expect(cards.locator('h3')).toHaveText(TIERS.map((t) => t.label))
     const promoters = cards.filter({ hasText: 'Promoters Lounge note from the database' })
-    await expect(promoters.locator('.col')).toHaveText('Royal blue band')
-    await expect(promoters.locator('.zones span')).toHaveText([
-      'Festival Area', "Eddie's Lounge", 'Promoters Lounge + ID', 'Photo Pit', 'Backstage + ID after 22:00', 'Main Stage',
-    ])
-    await expect(promoters.locator('.zones span.off')).toHaveCount(3)
+    await expect(promoters.locator('ul li')).toHaveText(['Festival Area', 'Promoters Lounge', 'Backstage'])
     // Removed with ADR-021: this asserted `.li .band`, the band chip on the
     // Control room's ORGANISATIONS row — not a tier card, and nothing to do
     // with this test's subject. That list moved to /desk/orgs, whose rows show
@@ -67,7 +65,8 @@ test.describe('desk tiers (ACC-115)', () => {
     await installChrome(page)
     const master = masterResponseSchema.parse({
       rows: [{
-        id: PERSON_ID, fullName: 'Lounge Person', phone: '+91 90000 00000', orgName: 'Tier Test Org', orgKind: 'media',
+        id: PERSON_ID, fullName: 'Lounge Person', orgId: 'org-tier-test', phone: '+91 90000 00000', orgName: 'Tier Test Org',
+        role: 'Host', dayValidity: 'show', orgKind: 'media',
         typeCode: 'eddies_lounge', status: 'approved', passRef: 'BOA26-0001', vehicleReg: null, bandSerial: null,
         stickerNo: null, inBms: false, collectedAt: null, gateLabel: null, decidedAt: null,
       }],
@@ -75,7 +74,7 @@ test.describe('desk tiers (ACC-115)', () => {
     })
     await page.route('**/api/desk/master**', (route: Route) => route.fulfill({ json: master }))
     await page.goto('/desk/master')
-    await expect(page.locator('.mrow .band')).toHaveText("Eddie's Lounge")
+    await expect(page.locator('.tr [role="cell"] .tier')).toHaveText("Eddie's Lounge")
   })
 
   test('printed pass: the shared ticket, its band, and only the zones it enters (ADR-025)', async ({ page }) => {

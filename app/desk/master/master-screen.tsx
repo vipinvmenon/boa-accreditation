@@ -1,59 +1,101 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
 import { dashboardResponseSchema } from '@/lib/schemas/dashboard'
-import { tier, tierColour } from '@/lib/design'
+import { bandArtSrc, tier, tierColour, zoneStrip, ZONES, type Theme } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
-import { formatMasterBand, formatMasterCollected, masterCountLabel, masterFilterSummary } from '@/lib/format'
+import { formatLedgerTime, formatMasterCollected, masterCountLabel } from '@/lib/format'
+import {
+  MASTER_DAY_LABELS,
+  MASTER_FIELD_LABELS,
+  MASTER_FILTER_KEYS,
+  MASTER_PRESETS,
+  hasMasterFilters,
+  masterFilterOptions,
+  masterFilterValueLabel,
+  masterFiltersToParams,
+  masterStatusOf,
+  matchesMasterFilters,
+  matchesMasterSearch,
+  parseMasterFilters,
+  presetFilters,
+  EMPTY_MASTER_FILTERS,
+  type MasterFilterKey,
+  type MasterFilters,
+} from '@/lib/master-filter'
 import { Icon } from '@/components/icon'
-import { LoadingSkeleton } from '@/components/loading-skeleton'
-import { EmptyState, InlineError } from '@/components/states'
 import { loginHref } from '@/gate/session'
-import { Button, Chip, FilterBar, StatusPill } from '@/components/r10/primitives-a'
-import { Sheet } from '@/components/r10/primitives-b'
+import { Button, Chip, FilterBar } from '@/components/r10/primitives-a'
+import { EmptyState, Sheet, Skeleton } from '@/components/r10/primitives-b'
+
+const PAGE = 60
+type SortKey = 'default' | 'name' | 'collected'
+type MenuState = { open: false } | { open: true; field: MasterFilterKey | null }
 
 export function MasterScreen() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const theme = useDomTheme()
-  const [query, setQuery] = useState('')
   const [rows, setRows] = useState<MasterRow[]>([])
-  /** ACC-162: the unfiltered population, so the screen can say "14 of 612". */
-  const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [visualReady, setVisualReady] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<MasterRow | null>(null)
+  // The last person opened, kept while the sheet slides out so it does not
+  // collapse to an empty panel mid-animation.
+  const [sheetPerson, setSheetPerson] = useState<MasterRow | null>(null)
   /**
    * The r8-master.html subtitle is "{N} approved people. {M} more are still
-   * waiting in the response sheet." Neither number is something this
-   * screen's own /api/desk/master read has: that route counts every person
-   * regardless of status (ACC-162's "14 of 612" is unfiltered, not
-   * approved-only). Both come from the same RPC the Control room already
-   * uses (approvedTotal, pendingTotal) rather than being invented here.
+   * waiting in the response sheet." Neither number is on this screen's own
+   * read (it counts every person regardless of status); both come from the
+   * same RPC the Control room uses (approvedTotal, pendingTotal).
    */
   const [dashboardCounts, setDashboardCounts] = useState<{ approvedTotal: number; pendingTotal: number } | null>(null)
-  const rootRef = useRef<HTMLElement>(null)
-  const bmsParam = searchParams.get('in_bms')
-  const bmsFilter = bmsParam === 'true' || bmsParam === 'false' ? bmsParam : 'all'
-  /**
-   * ADR-021: Organisations links here instead of listing people itself, so
-   * this screen is the ONE place people are listed. An exact org id, not the
-   * free-text search — clicking "Sound" must not also return "Soundcheck".
-   */
-  const orgFilter = searchParams.get('org') ?? ''
 
-  async function load(nextQuery: string, nextBmsFilter: 'all' | 'true' | 'false', nextOrg: string) {
+  // ── Filters live in the URL (?tier=crew&status=not_collected&in_bms=false…) ──
+  // The Control room and Organisations link here with them, and a filtered
+  // view can be bookmarked. history.replaceState keeps typing and toggling
+  // client-side: Next.js syncs it into useSearchParams without a server trip.
+  const filters = useMemo(() => parseMasterFilters(searchParams), [searchParams])
+  const [draftQuery, setDraftQuery] = useState(searchParams.get('q') ?? '')
+  const [query, setQuery] = useState(searchParams.get('q') ?? '')
+  const [shown, setShown] = useState(PAGE)
+  const [sort, setSort] = useState<SortKey>('default')
+  const [menu, setMenu] = useState<MenuState>({ open: false })
+  const [toast, setToast] = useState<{ id: number; text: string; bad: boolean } | null>(null)
+  const addRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const writeUrl = useCallback((nextQuery: string, nextFilters: MasterFilters) => {
+    const params = new URLSearchParams()
+    if (nextQuery) params.set('q', nextQuery)
+    masterFiltersToParams(nextFilters, params)
+    const qs = params.toString()
+    window.history.replaceState(null, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname)
+  }, [])
+
+  function changeFilters(next: MasterFilters) {
+    setShown(PAGE)
+    writeUrl(query, next)
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setQuery((current) => {
+        if (current === draftQuery) return current
+        setShown(PAGE)
+        writeUrl(draftQuery, parseMasterFilters(new URLSearchParams(window.location.search)))
+        return draftQuery
+      })
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [draftQuery, writeUrl])
+
+  async function load() {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (nextQuery) params.set('q', nextQuery)
-      if (nextBmsFilter !== 'all') params.set('in_bms', nextBmsFilter)
-      if (nextOrg) params.set('org', nextOrg)
-      const response = await fetch(`/api/desk/master?${params.toString()}`)
+      const response = await fetch('/api/desk/master')
       if (response.status === 401) {
         router.replace(loginHref(window.location.pathname + window.location.search))
         return
@@ -68,11 +110,10 @@ export function MasterScreen() {
         return
       }
       setRows(parsed.data.rows)
-      setTotal(parsed.data.total)
       setError(null)
     } catch {
-      // A thrown fetch (network down) must still clear the spinner and tell
-      // the operator, not leave the skeleton spinning forever.
+      // A thrown fetch (network down) must still clear the skeleton and tell
+      // the operator, not leave it spinning forever.
       setError('Unable to load the master list.')
     } finally {
       setLoading(false)
@@ -80,11 +121,11 @@ export function MasterScreen() {
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(query, bmsFilter, orgFilter), 180)
+    // Once on arrival: the whole roster is read and filtered in the browser.
+    const timer = window.setTimeout(() => void load(), 0)
     return () => window.clearTimeout(timer)
-    // The query and filters are the intended inputs; load is stable for this screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, bmsFilter, orgFilter])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -96,330 +137,500 @@ export function MasterScreen() {
         if (cancelled || !parsed.success) return
         setDashboardCounts({ approvedTotal: parsed.data.approvedTotal, pendingTotal: parsed.data.pendingTotal })
       } catch {
-        // The subtitle just falls back to the roster's own count; the table
-        // itself does not depend on this read.
+        // The subtitle is simply left out; the table does not depend on it.
       }
     }
     void loadCounts()
     return () => { cancelled = true }
   }, [])
 
-  const filterSummary = masterFilterSummary({
-    orgFiltered: Boolean(orgFilter),
-    orgName: rows[0]?.orgName ?? null,
-    inBms: bmsFilter,
-    loading,
-    empty: rows.length === 0,
-  })
-
-  const activeFilters = useMemo(() => [
-    ...(orgFilter ? [{ id: 'org', label: `Organisation: ${rows[0]?.orgName ?? 'selected'}`, onRemove: () => router.replace('/desk/master') }] : []),
-    ...(bmsFilter !== 'all' ? [{ id: 'bms', label: bmsFilter === 'true' ? 'BMS: In BMS' : 'BMS: Not in BMS', onRemove: () => router.replace(`/desk/master${orgFilter ? `?org=${orgFilter}` : ''}`) }] : []),
-  ], [orgFilter, bmsFilter, rows, router])
-  const hasActiveFilters = activeFilters.length > 0
+  // ── The list ──
+  const total = rows.length
+  const list = useMemo(() => {
+    const matched = rows.filter((row) => matchesMasterSearch(row, query) && matchesMasterFilters(row, filters))
+    if (sort === 'name') return [...matched].sort((a, b) => a.fullName.localeCompare(b.fullName))
+    if (sort === 'collected') return [...matched].sort((a, b) => (b.collectedAt ?? '').localeCompare(a.collectedAt ?? ''))
+    return matched
+  }, [rows, query, filters, sort])
+  const activeKeys = MASTER_FILTER_KEYS.filter((key) => filters[key].length > 0)
+  const hasFilter = query.trim() !== '' || hasMasterFilters(filters)
+  const countLabel = masterCountLabel(list.length, total)
+  const showTable = !loading && !error && list.length > 0
+  const presetCounts = useMemo(
+    () => MASTER_PRESETS.map((preset) => {
+      const f = presetFilters(preset.filters)
+      return rows.filter((row) => matchesMasterFilters(row, f)).length
+    }),
+    [rows],
+  )
 
   const exportHref = useMemo(() => {
     const params = new URLSearchParams({ format: 'csv' })
     if (query) params.set('q', query)
-    if (bmsFilter !== 'all') params.set('in_bms', bmsFilter)
-    // The export must be what is on screen. Leaving the org out here would
-    // hand someone a CSV of everybody while the table showed one company.
-    if (orgFilter) params.set('org', orgFilter)
+    // The export must be what is on screen: same search, same filters.
+    masterFiltersToParams(filters, params)
     return `/api/desk/master?${params.toString()}`
-  }, [query, bmsFilter, orgFilter])
+  }, [query, filters])
+
+  // ── Add-filter menu ──
+  const closeMenu = useCallback((returnFocus: boolean) => {
+    setMenu({ open: false })
+    if (returnFocus) addRef.current?.focus()
+  }, [])
 
   useEffect(() => {
-    const root = rootRef.current
-    if (!root) return
-    setVisualReady(false)
-    const revealables = root.querySelectorAll<HTMLElement>('.rv')
-    const timer = window.setTimeout(() => setVisualReady(true), 1100)
-    if (!('IntersectionObserver' in window)) {
-      revealables.forEach((element) => element.classList.add('in'))
-    } else {
-      const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-        if (!entry.isIntersecting) return
-        entry.target.classList.add('in')
-        observer.unobserve(entry.target)
-      }), { threshold: 0.12 })
-      revealables.forEach((element) => observer.observe(element))
-      return () => {
-        observer.disconnect()
-        window.clearTimeout(timer)
-      }
-    }
-    return () => window.clearTimeout(timer)
-  }, [rows.length, loading, error])
+    if (!menu.open) return
+    menuRef.current?.querySelector<HTMLElement>('button, input')?.focus()
+  }, [menu])
 
-  /**
-   * ACC-162 — the eight columns a volunteer had to infer.
-   *
-   * The frozen contract draws no header row, and master is the one v2 screen
-   * passing `test:visual`, so these are exposed as an ARIA table rather than as
-   * visible headings: `.sr-only` is `position:absolute`, so this row is out of
-   * flow and costs zero pixels, while a screen reader gets real row and column
-   * semantics instead of a flat list of `div`s. The order MUST match the cells
-   * below and `.mrow`'s six grid columns (app/v2.css).
-   *
-   * A visible header row is the other half of this problem and is NOT solved
-   * here — see ADR-023: it would break the passing gate, so it was deliberately
-   * left to Vipin rather than taken quietly.
-   */
-  const COLUMNS = ['Person', 'Tier', 'Band', 'Vehicle', 'BMS', 'Collected'] as const
-  const showTable = !loading && !error && rows.length > 0
-  const countLabel = masterCountLabel(rows.length, total)
+  useEffect(() => {
+    if (!menu.open) return
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Element | null
+      if (!target || target.closest('.add-wrap') || target.closest('[data-edit]')) return
+      setMenu({ open: false })
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') closeMenu(true)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menu.open, closeMenu])
+
+  function onMenuKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('button, input') ?? [])
+    if (items.length === 0) return
+    event.preventDefault()
+    const index = items.indexOf(document.activeElement as HTMLElement)
+    const next = event.key === 'ArrowDown' ? (index + 1) % items.length : (index <= 0 ? items.length - 1 : index - 1)
+    items[next]?.focus()
+  }
+
+  function toggleValue(key: MasterFilterKey, value: string, on: boolean) {
+    const current = filters[key] as string[]
+    const nextValues = on ? [...current, value] : current.filter((v) => v !== value)
+    changeFilters({ ...filters, [key]: nextValues } as MasterFilters)
+  }
+
+  function clearEverything() {
+    setDraftQuery('')
+    setQuery('')
+    setShown(PAGE)
+    writeUrl('', EMPTY_MASTER_FILTERS)
+  }
+
+  function showToast(text: string, bad = false) {
+    setToast({ id: Date.now(), text, bad })
+  }
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  const menuField = menu.open ? menu.field : null
 
   return (
-    <main id="main-content" tabIndex={-1} ref={rootRef} className="master-screen" data-v2-ready={visualReady ? 'true' : 'false'}>
-      <section className="master-head rv">
+    <main id="main-content" tabIndex={-1} className="master-screen">
+      <div className="page-head">
         <div>
           <h1 className="display-lg">Master list</h1>
-          <p className="lede">
-            {dashboardCounts
-              ? <>{dashboardCounts.approvedTotal} approved people. {dashboardCounts.pendingTotal > 0 && <>{dashboardCounts.pendingTotal} more {dashboardCounts.pendingTotal === 1 ? 'is' : 'are'} still waiting in the response sheet.</>}</>
-              : <>{total} on the list.</>}
-          </p>
+          {dashboardCounts && (
+            <p className="lede">
+              {dashboardCounts.approvedTotal} approved people.{dashboardCounts.pendingTotal > 0 && <> {dashboardCounts.pendingTotal} more {dashboardCounts.pendingTotal === 1 ? 'is' : 'are'} still waiting in the response sheet.</>}
+            </p>
+          )}
         </div>
-        <a href={exportHref} download className="btn">Export CSV <Icon name="download-simple" /></a>
-      </section>
-      {filterSummary && (
-        /**
-         * A filter the operator cannot see is a bug: they arrive from
-         * Organisations, count three people, and conclude the roster lost
-         * twenty-two. It names the company and offers the way out.
-         *
-         * ACC-154: `?in_bms=` is reached from the "N not in BMS" badge in the
-         * chrome of every desk screen and had neither the name nor the way
-         * out, so the list silently showed 14 of 612. One banner now covers
-         * both filters, and "Show everyone" clears both (lib/format.ts).
-         */
-        <div
-          className="rv"
-          role="status"
-          style={{
-            ['--d' as string]: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap',
-            margin: '0 0 18px',
-          }}
-        >
-          <span style={{ fontFamily: 'var(--f-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
-            {filterSummary}
-          </span>
-          <span style={{ fontFamily: 'var(--f-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
-            {countLabel}
-          </span>
-          <Link href="/desk/master" className="btn hov-invert-grn">Show everyone</Link>
-        </div>
-      )}
+        <a href={exportHref} download className="btn btn-export">Export CSV<span className="ic" aria-hidden="true"><Icon name="download-simple" /></span></a>
+      </div>
+
       <FilterBar
         className="master-filterbar"
-        searchValue={query}
-        onSearchChange={setQuery}
+        searchValue={draftQuery}
+        onSearchChange={setDraftQuery}
         searchLabel="Search the master list"
         searchPlaceholder="Name, phone, company, plate, band or pass"
-        activeFilters={activeFilters}
-        onClearAll={() => { setQuery(''); router.replace('/desk/master') }}
-        resultCount={hasActiveFilters ? <><strong>{rows.length}</strong> of {total}</> : undefined}
       >
-        <Button variant="ghost" onClick={() => {
-          const next = new URLSearchParams(searchParams.toString())
-          if (bmsFilter === 'false') next.set('in_bms', 'true')
-          else next.set('in_bms', 'false')
-          router.replace(`/desk/master?${next.toString()}`)
-        }}>
-          <Icon name="sort-descending" /> {bmsFilter === 'false' ? 'In BMS' : 'Not in BMS'}
-        </Button>
+        <div className="add-wrap">
+          <button
+            ref={addRef}
+            type="button"
+            className="btn"
+            aria-haspopup="menu"
+            aria-expanded={menu.open}
+            onClick={() => setMenu(menu.open ? { open: false } : { open: true, field: null })}
+          >
+            <span className="master-add-ic" aria-hidden="true"><Icon name="funnel-simple" /></span>Add filter
+          </button>
+          {menu.open && (
+            <div className="menu" role="menu" aria-label="Add a filter" ref={menuRef} onKeyDown={onMenuKeyDown}>
+              {menuField === null ? (
+                <>
+                  <div className="menu-title label-sm">Filter by</div>
+                  {MASTER_FILTER_KEYS.map((key) => (
+                    <button key={key} type="button" role="menuitem" onClick={() => setMenu({ open: true, field: key })}>
+                      {MASTER_FIELD_LABELS[key]}
+                      {filters[key].length > 0
+                        ? <span className="n">{filters[key].length} on</span>
+                        : <span className="n" aria-hidden="true"><Icon name="caret-right" /></span>}
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <button type="button" className="menu-back" onClick={() => setMenu({ open: true, field: null })}>
+                    <Icon name="caret-left" />{MASTER_FIELD_LABELS[menuField]}
+                  </button>
+                  {masterFilterOptions(rows, menuField).map((option) => (
+                    <label key={option.value}>
+                      <input
+                        type="checkbox"
+                        value={option.value}
+                        checked={(filters[menuField] as string[]).includes(option.value)}
+                        onChange={(event) => toggleValue(menuField, option.value, event.target.checked)}
+                      />
+                      {option.tierCode && <span className="swatch" style={{ ['--c' as string]: tierColour(option.tierCode, theme) }} />}
+                      {option.label}
+                      <span className="n">{option.count}</span>
+                    </label>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </FilterBar>
-      {!hasActiveFilters && (
-        <div className="filterbar-row master-presets" aria-label="Roster presets">
-          <div className="chips">
-            <Chip preset onActivate={() => router.replace('/desk/master?in_bms=false')} count={rows.filter((row) => !row.inBms).length}>Not in BMS</Chip>
-            <Chip preset onActivate={() => router.replace('/desk/master?in_bms=true')} count={rows.filter((row) => row.inBms).length}>In BMS</Chip>
-            <Chip preset onActivate={() => setQuery('vehicle')} count={rows.filter((row) => row.vehicleReg).length}>Has a vehicle</Chip>
-            <Chip preset onActivate={() => setQuery('')} count={rows.filter((row) => !row.bandSerial).length}>Not collected</Chip>
-            <span className="count body-sm">
-              {query ? <><strong>{rows.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
-            </span>
+      <div className="filterbar-row master-chips">
+        <div className="chips" aria-label="Active filters">
+          {activeKeys.length === 0
+            ? MASTER_PRESETS.map((preset, index) => (
+              <Chip key={preset.label} preset count={presetCounts[index] ?? 0} onActivate={() => changeFilters(presetFilters(preset.filters))}>
+                {preset.label}
+              </Chip>
+            ))
+            : (
+              <>
+                {activeKeys.map((key) => (
+                  <Chip
+                    key={key}
+                    onEdit={() => setMenu({ open: true, field: key })}
+                    removeLabel={`Remove ${MASTER_FIELD_LABELS[key]} filter`}
+                    onRemove={() => changeFilters({ ...filters, [key]: [] })}
+                  >
+                    <b>{MASTER_FIELD_LABELS[key]}:</b> {(filters[key] as string[]).map((value) => masterFilterValueLabel(rows, key, value)).join(', ')}
+                  </Chip>
+                ))}
+                {activeKeys.length >= 2 && (
+                  <Button variant="ghost" className="btn-sm" onClick={() => changeFilters(EMPTY_MASTER_FILTERS)}>Clear all</Button>
+                )}
+              </>
+            )}
+        </div>
+        {!loading && !error && (
+          <span className="count body-sm" aria-live="polite">
+            {hasFilter ? <><strong>{list.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <section className="empty empty-error" role="alert">
+          <span aria-hidden="true"><Icon name="warning-circle" /></span>
+          <h2 className="display-sm">The list didn’t load</h2>
+          <p>Your connection or the server stopped answering. Nothing you did was lost.</p>
+          <Button icon={<Icon name="arrows-clockwise" />} onClick={() => void load()}>Try again</Button>
+        </section>
+      )}
+
+      {loading && !error && (
+        <div className="table master" aria-busy="true" aria-label="Loading the master list">
+          <div className="thead" aria-hidden="true">
+            <span>Person</span><span>Tier</span><span>Days</span><span>Band</span><span>Vehicle</span><span>BMS</span><span className="cell-r">Collected</span>
+          </div>
+          <div>
+            {Array.from({ length: 8 }, (_, index) => (
+              <div className="tr" key={index} style={{ cursor: 'default' }}>
+                <div><Skeleton style={{ width: `${50 + (index * 17) % 35}%` }} /><Skeleton style={{ width: `${40 + (index * 11) % 30}%`, marginTop: '8px', height: '10px' }} /></div>
+                <div className="hide-s master-sk-tier"><Skeleton shape="dot" /><Skeleton style={{ width: '56px' }} /></div>
+                <div className="hide-s"><Skeleton style={{ width: '64px', display: 'block' }} /></div>
+                <div className="hide-s"><Skeleton style={{ width: '48px', display: 'block' }} /></div>
+                <div className="hide-s"><Skeleton style={{ width: index % 3 ? '20px' : '96px', display: 'block' }} /></div>
+                <div className="hide-s"><Skeleton shape="pill" style={{ display: 'block' }} /></div>
+                <div className="cell-r hide-s"><Skeleton style={{ width: index % 2 ? '20px' : '120px', display: 'block' }} /></div>
+              </div>
+            ))}
           </div>
         </div>
       )}
-      <div className="table rv" style={{ ['--d' as string]: 2, marginTop: 'var(--s-6)' }} {...(showTable ? { role: 'table', 'aria-label': `Master list. ${countLabel}.` } : {})}>
-          {showTable && (
-            <div role="row" className="master-thead">
-              {COLUMNS.map((column) => <span role="columnheader" key={column}>{column}</span>)}
-            </div>
-          )}
-          {error && (
-            <div className="mrow">
-              <InlineError message={error} onRetry={() => void load(query, bmsFilter, orgFilter)} />
-            </div>
-          )}
-          {loading && !error && (
-            <div className="table-skeleton" role="status" aria-label="Loading master list">
-              {Array.from({ length: 5 }, (_, index) => (
-                <div className="mrow" key={index}>
-                  <LoadingSkeleton width="42%" />
-                  <LoadingSkeleton width="68px" />
-                  <LoadingSkeleton width="56px" />
-                  <LoadingSkeleton width="76px" />
-                  <LoadingSkeleton width="82px" />
-                  <LoadingSkeleton width="92px" />
-                </div>
-              ))}
-            </div>
-          )}
-          {/* ACC-134: the in-app queue this empty state used to name was retired
-              (ADR-019, 22 Sep) — approval now happens from the response sheet,
-              not a screen here. */}
-          {!loading && !error && rows.length === 0 && (
-            /* ACC-154: "Try a phone number or a band serial" is the frozen
-               design's own string (boa_design_v2.html:778) and stays for the
-               search. It is the wrong advice when a filter, not the query, is
-               why the list is empty — the banner above says which. */
-            <EmptyState message={
-              query
-                ? 'Nobody matches that. Try a phone number or a band serial.'
-                : orgFilter || bmsFilter !== 'all'
-                  ? 'Nobody matches this filter. Show everyone to see the full list.'
-                  : 'Nobody accredited yet. This list fills in once people are approved.'
-            } />
-          )}
-          {!loading && !error && rows.map((row) => {
-            const type = row.typeCode ? tier(row.typeCode) : null
-            const typeColor = type ? tierColour(type.code, theme) : 'var(--ink-3)'
-            const bandClass = row.status === 'rejected' || row.status === 'voided'
-              ? 'ser void'
-              : row.bandSerial ? 'ser' : 'ser none'
-            const collectedClass = row.status === 'rejected' ? 'when bad' : row.collectedAt ? 'when' : 'when mute'
-            return (
-              <div key={row.id} className="mrow" role="row" tabIndex={0} onClick={() => setSelectedPerson(row)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedPerson(row) } }}>
-                <div role="cell">
-                  <div className="nm">{row.fullName}</div>
-                  <div className="sub">{row.orgName} · {row.phone}</div>
-                </div>
-                <span role="cell" className="band hide-s" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
-                <span role="cell" className={`hide-s ${bandClass}`}>{formatMasterBand(row)}</span>
-                <span role="cell" className="hide-s plate">{row.vehicleReg ?? <span className="muted">–</span>}</span>
-                <span role="cell" className="hide-s bms"><span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span></span>
-                <span role="cell" className={`hide-s ${collectedClass}`}>{row.collectedAt || (row.status === 'rejected' && row.decidedAt) ? formatMasterCollected(row) : <span className="muted">–</span>}</span>
-                {/* r8-master's mobile row2: the one summary line a collapsed row keeps
-                    — tier, BMS state, and the collected/not-collected status — instead
-                    of stacking all six columns full-height on a phone. */}
-                <div className="row2">
-                  <span className="band" style={{ ['--c' as string]: typeColor }}>{type?.label ?? '—'}</span>
-                  <span className={`st ${row.inBms ? 'ok' : 'wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span>
-                  <span className={collectedClass}>{formatMasterCollected(row)}</span>
-                </div>
-              </div>
-            )
-          })}
+
+      {!loading && !error && total === 0 && (
+        <EmptyState title="No one approved yet" icon={<Icon name="users-three" />}>
+          People appear here as soon as they are approved in the response sheet and imported.
+        </EmptyState>
+      )}
+
+      {showTable && (
+        <div className="table master" role="table" aria-label={`Master list. ${countLabel}.`}>
+          <div className="thead" role="row">
+            <span role="columnheader" aria-sort={sort === 'name' ? 'ascending' : 'none'}>
+              <button type="button" onClick={() => setSort(sort === 'name' ? 'default' : 'name')}>Person <Icon name="caret-down" /></button>
+            </span>
+            <span role="columnheader">Tier</span>
+            <span role="columnheader">Days</span>
+            <span role="columnheader">Band</span>
+            <span role="columnheader">Vehicle</span>
+            <span role="columnheader">BMS</span>
+            <span role="columnheader" className="cell-r" aria-sort={sort === 'collected' ? 'descending' : 'none'}>
+              <button type="button" onClick={() => setSort(sort === 'collected' ? 'default' : 'collected')}>Collected</button>
+            </span>
+          </div>
+          <div role="rowgroup">
+            {list.slice(0, shown).map((row) => (
+              <MasterRowView key={row.id} row={row} theme={theme} onOpen={() => { setSelectedPerson(row); setSheetPerson(row) }} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!loading && !error && total > 0 && list.length === 0 && (
+        <section className="empty">
+          <span aria-hidden="true"><Icon name="funnel-simple" /></span>
+          <h2 className="display-sm">No one matches</h2>
+          <p>{query.trim() ? `No one matches “${query.trim()}”. Try a phone number or band serial, or remove a filter.` : 'Remove a filter to see more people.'}</p>
+          <Button onClick={clearEverything}>Clear filters</Button>
+        </section>
+      )}
+
+      {showTable && list.length > shown && (
+        <div className="more"><Button variant="ghost" onClick={() => setShown(shown + PAGE)}>Show {Math.min(PAGE, list.length - shown)} more</Button></div>
+      )}
+
+      <PersonSheet
+        person={sheetPerson}
+        open={selectedPerson !== null}
+        theme={theme}
+        onClose={() => setSelectedPerson(null)}
+        onCopy={(phone) => {
+          navigator.clipboard.writeText(phone).then(
+            () => showToast('Phone number copied'),
+            () => showToast('Could not copy the number', true),
+          )
+        }}
+      />
+      <div className="toasts" role="status" aria-live="polite">
+        {toast && (
+          <div key={toast.id} className={`toast${toast.bad ? ' bad' : ''}`}>
+            <span aria-hidden="true"><Icon name={toast.bad ? 'warning-circle' : 'check'} /></span>
+            <span>{toast.text}</span>
+          </div>
+        )}
       </div>
-      <PersonSheet person={selectedPerson} onClose={() => setSelectedPerson(null)} />
+
       <style jsx global>{`
-        /* app/v2.css still ships .head, .nm, .sub, .band, .st, .mrow .ser/.plate/.when
-           as UNSCOPED rules (no .r10 ancestor). Every selector below re-declares
-           what this screen needs at (.r10 .master-screen ...) specificity so the
-           v2 rule never wins — see scripts/.design-compare.mjs pitfall (1). */
-        /* No padding-block here: this <main> already sits inside desk-chrome's
-           .frame.page (app/r10/base.css), which supplies padding-top: var(--s-10)
-           and padding-bottom: var(--s-20). A second padding-block here stacked a
-           redundant 40px under the nav — the title sat ~48px lower than the mock. */
-        .r10 .master-screen .master-head {
-          display: flex; align-items: end; justify-content: space-between;
-          gap: var(--s-4) var(--s-6); flex-wrap: wrap; margin-bottom: var(--s-8);
-          padding: 0;
-        }
-        .r10 .master-filterbar { margin-bottom: var(--s-3); }
-        .r10 .master-screen .master-presets {
-          justify-content: space-between; align-items: center; margin-bottom: var(--s-6);
-        }
-        .r10 .master-screen .master-presets .chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
-        .r10 .master-thead,
-        .r10 .master-screen .mrow { display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(120px, 1fr) 96px minmax(120px, 1fr) 104px minmax(140px, 1.1fr); align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
-        /* app/r10/base.css's ".table > :not(.thead)" (0,3,0) — meant to lift table
-           BODY rows above the card's ::before layer — also matches our header
-           because its class is "master-thead", not "thead": :not(.thead) is
-           true for it too. That downgraded position:sticky to the inherited
-           position:relative while our top:64px still applied, shifting the
-           header 64px down ON TOP of the first row. (0,4,0) beats it cleanly. */
-        .r10 .master-screen .table .master-thead { position: sticky; top: 64px; z-index: 2; min-height: 44px; color: var(--ink-3); background: var(--surface); box-shadow: inset 0 -1px 0 var(--hair); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-        .r10 .master-screen .mrow { min-height: 64px; padding-block: var(--s-3); cursor: pointer; }
-        .r10 .master-screen .mrow:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+        /* app/v2.css still ships .nm, .sub, .empty, .menu (a full-screen nav
+           overlay), .zones and .mono as UNSCOPED rules. Everything below is
+           (.r10 .master-screen …) so the v2 rule never wins, and it
+           re-declares what r8-master.html's <style> and r8/ui.css draw. */
+        .r10 .master-screen .master-filterbar { margin-bottom: var(--s-3); }
+        .r10 .master-screen .master-chips { margin-bottom: var(--s-6); }
+        .r10 .master-screen .btn-export { flex: none; }
 
-        /* Row typography and cell colour — r8/ui.css's .tr .nm/.sub, .tier, .mono,
-           .pill and .tr .muted, re-targeted at this screen's .mrow cells. */
-        .r10 .master-screen .mrow .nm { font: 600 14.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
-        .r10 .master-screen .mrow .sub { margin-top: 2px; font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; color: var(--ink-3); }
-        .r10 .master-screen .mrow .band {
-          display: inline-flex; align-items: center; gap: var(--s-2);
-          font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label);
-          text-transform: uppercase; color: var(--ink);
-        }
-        .r10 .master-screen .mrow .band::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
-        .r10 .master-screen .mrow .ser,
-        .r10 .master-screen .mrow .plate { font: 500 var(--t-mono)/1.3 var(--f-mono); letter-spacing: .04em; color: var(--ink); }
-        .r10 .master-screen .mrow .ser.none { color: var(--ink-3); font-weight: 500; }
-        .r10 .master-screen .mrow .ser.void { color: var(--bad); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-        .r10 .master-screen .mrow .st {
-          display: inline-flex; align-items: center; gap: 6px; height: 26px;
-          padding: 0 var(--s-3) 0 10px; border-radius: var(--r-pill);
-          font: 600 var(--t-label-sm)/1 var(--f-label); letter-spacing: var(--track-label);
-          text-transform: uppercase; white-space: nowrap; background: var(--raised); color: var(--ink-2);
-        }
-        .r10 .master-screen .mrow .st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-        .r10 .master-screen .mrow .st.ok { background: var(--ok-tint); color: var(--go); }
-        .r10 .master-screen .mrow .st.wait { background: var(--wait-tint); color: var(--gold); }
-        .r10 .master-screen .mrow .when { font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; text-transform: none; text-align: right; color: var(--ink-2); }
-        .r10 .master-screen .mrow .when.mute { color: var(--ink-3); }
-        .r10 .master-screen .mrow .when.bad { color: var(--bad); }
-        .r10 .master-screen .mrow .muted { color: var(--ink-3); }
-        .r10 .master-screen .mrow .row2 { display: none; }
+        .r10 .master-screen .table.master { --cols: minmax(220px, 2.2fr) minmax(120px, 1fr) 96px 88px minmax(120px, 1fr) 104px minmax(140px, 1.1fr); --c: var(--ink-3); }
+        .r10 .master-screen .thead button { display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--hit); padding: 0; border: 0; background: none; color: inherit; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; }
+        .r10 .master-screen .tr { cursor: pointer; }
+        .r10 .master-screen .tr:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+        .r10 .master-screen .tr .nm { font: 600 14.5px/1.2 var(--f-label); letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
+        .r10 .master-screen .tr .sub { margin-top: 2px; font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; color: var(--ink-3); }
+        .r10 .master-screen .tr .muted { color: var(--ink-3); }
+        .r10 .master-screen .tier { display: inline-flex; align-items: center; gap: var(--s-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink); }
+        .r10 .master-screen .tier::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); transition: transform var(--d-quick) var(--e-out); }
+        @media (hover: hover) { .r10 .master-screen .tr:hover .tier::before { transform: scale(1.3); } }
+        .r10 .master-screen .days { color: var(--ink-2); font-size: var(--t-body-sm); }
+        .r10 .master-screen .flagged { color: var(--bad); }
+        .r10 .master-screen .mono { font: 500 var(--t-mono)/1.3 var(--f-mono); letter-spacing: .04em; color: var(--ink); }
+        .r10 .master-screen .tr .pill-sticker { margin-left: 4px; }
+        .r10 .master-screen .master-sk-tier { display: flex; gap: 8px; align-items: center; }
+        .r10 .master-screen .tr .row2 { display: none; }
 
-        .r10 .person-detail { display: grid; gap: var(--s-5); }
-        .r10 .person-detail dl { display: grid; grid-template-columns: 1fr 1.5fr; gap: var(--s-3) var(--s-4); margin: 0; }
-        .r10 .person-detail dt { color: var(--ink-3); }
-        .r10 .person-detail dd { margin: 0; text-align: right; }
+        .r10 .master-screen .more { display: flex; justify-content: center; padding: var(--s-6) 0 0; }
+        .r10 .master-screen .empty { text-align: left; color: var(--ink-2); }
+        .r10 .master-screen .empty > span { font-size: 32px; color: var(--gold); }
+        .r10 .master-screen .empty-error > span { color: var(--bad); }
+
+        /* Add filter */
+        .r10 .master-screen .add-wrap { position: relative; }
+        .r10 .master-screen .master-add-ic { display: inline-flex; font-size: 18px; }
+        .r10 .master-screen .menu {
+          position: absolute; inset: auto; top: calc(100% + var(--s-2)); right: 0; left: auto; z-index: var(--z-menu);
+          display: block; width: auto; min-width: 260px; max-height: 420px; overflow: auto; padding: var(--s-2);
+          border-radius: var(--r-md); opacity: 1; pointer-events: auto; transform-origin: top right;
+          animation: master-menu-in var(--d-quick) var(--e-out);
+        }
+        @keyframes master-menu-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } }
+        .r10 .master-screen .menu-title { padding: var(--s-2) var(--s-3); color: var(--ink-3); }
+        .r10 .master-screen .menu button,
+        .r10 .master-screen .menu label {
+          display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: var(--hit); padding: 0 var(--s-3);
+          border: 0; border-radius: var(--r-sm); background: none; text-align: left; cursor: pointer;
+          font: 400 var(--t-body)/1.3 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink);
+          opacity: 1; transform: none; transition: background-color var(--d-quick) var(--e-out);
+        }
+        @media (hover: hover) { .r10 .master-screen .menu button:hover, .r10 .master-screen .menu label:hover { background: var(--raised); } }
+        .r10 .master-screen .menu button:focus-visible,
+        .r10 .master-screen .menu label:focus-within { outline: 2px solid var(--ink); outline-offset: -2px; }
+        .r10 .master-screen .menu .menu-back { color: var(--ink-3); }
+        .r10 .master-screen .menu .n { display: inline-flex; margin-left: auto; color: var(--ink-3); font: 500 var(--t-label-sm)/1 var(--f-mono); }
+        .r10 .master-screen .menu input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--go); margin: 0; }
+        .r10 .master-screen .swatch { width: 12px; height: 12px; border-radius: var(--r-xs); background: var(--c, var(--ink-3)); flex: none; }
+
         @media (max-width: 700px) {
-          .r10 .master-screen .master-head { align-items: start; flex-direction: column; gap: var(--s-5); }
-          .r10 .master-thead { display: none; }
-          .r10 .master-screen .mrow { grid-template-columns: 1fr; gap: var(--s-2); padding-inline: var(--s-5); }
-          .r10 .master-screen .mrow > .hide-s { display: none; }
-          .r10 .master-screen .mrow .row2 {
-            display: flex !important; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3);
-          }
-          .r10 .master-screen .mrow .row2 .when { text-align: left; color: var(--ink-3); }
+          .r10 .master-screen .tr { grid-template-columns: 1fr; }
+          .r10 .master-screen .tr > .row2 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; }
+          .r10 .master-screen .tr .tier { font-size: var(--t-label-sm); }
+          /* r8-master.html anchors the menu to the button's right edge, which
+             pushes it off the left of a 390px screen: open it rightwards here. */
+          .r10 .master-screen .menu { left: 0; right: auto; transform-origin: top left; max-width: calc(100vw - 32px); }
         }
         @media (prefers-reduced-transparency: reduce) {
-          .r10 .person-sheet, .r10 .master-thead { background: var(--surface-solid); backdrop-filter: none; }
+          .r10 .master-screen .menu, .r10 .person-sheet { background: var(--surface-solid); backdrop-filter: none; }
         }
+
+        /* Person sheet — r8-master.html */
+        .r10 .person-sheet .master-who { display: block; margin-top: var(--s-2); font: 400 var(--t-body)/1.5 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink-2); }
+        .r10 .person-sheet .sheet-band { display: block; width: 100%; aspect-ratio: 12/1; object-fit: cover; object-position: left center; border-radius: var(--r-sm); opacity: .8; }
+        .r10 .person-sheet .sheet-tier { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-4) 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); margin: var(--s-5) 0; }
+        .r10 .person-sheet .sheet-tier .tier { display: inline-flex; align-items: center; gap: var(--s-2); font: 600 15px/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink); }
+        .r10 .person-sheet .sheet-tier .tier::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .r10 .person-sheet .person-zones { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: 0; padding: 0; list-style: none; font-size: var(--t-body-sm); }
+        .r10 .person-sheet .person-zones li { display: flex; align-items: center; gap: var(--s-2); }
+        .r10 .person-sheet .person-zones i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .r10 .person-sheet h3.label { margin: var(--s-6) 0 var(--s-3); color: var(--gold); }
+        .r10 .person-sheet .person-dl { display: grid; grid-template-columns: 120px 1fr; gap: var(--s-3) var(--s-4); margin: 0; }
+        .r10 .person-sheet .person-dl dt { color: var(--ink-3); }
+        .r10 .person-sheet .person-dl dd { margin: 0; }
+        .r10 .person-sheet .mono { font: 500 var(--t-mono)/1.3 var(--f-mono); letter-spacing: .04em; }
+        .r10 .person-sheet .person-ledger { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+        .r10 .person-sheet .person-ledger li { display: grid; grid-template-columns: 12px 1fr; gap: var(--s-3); }
+        .r10 .person-sheet .person-ledger li::before { content: ""; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: var(--c, var(--ink-3)); }
+        .r10 .person-sheet .ink-3 { color: var(--ink-3); }
+        .r10 .person-sheet .person-note { margin-top: var(--s-5); color: var(--ink-3); }
       `}</style>
     </main>
   )
 }
 
-function PersonSheet({ person, onClose }: { person: MasterRow | null; onClose: () => void }) {
+function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; onOpen: () => void }) {
+  const type = row.typeCode ? tier(row.typeCode) : null
+  const colour = row.typeCode ? tierColour(row.typeCode, theme) : 'var(--ink-3)'
+  const state = masterStatusOf(row)
+  const band = row.status === 'voided'
+    ? <span className="flagged label-sm">Voided</span>
+    : row.status === 'rejected'
+      ? <span className="flagged label-sm">Rejected</span>
+      : row.bandSerial
+        ? <span className="mono">{row.bandSerial.startsWith('#') ? row.bandSerial : `#${row.bandSerial}`}</span>
+        : <span className="muted">–</span>
+  const bms = row.status !== 'approved'
+    ? <span className="muted">–</span>
+    : <span className={`pill ${row.inBms ? 'pill-ok' : 'pill-wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span>
+  const tierLabel = type?.label ?? '–'
   return (
-    <Sheet open={person !== null} onClose={onClose} title={person?.fullName ?? 'Person details'} className="person-sheet">
-      {person && (
-        <div className="person-detail">
-          <div>
-            <p className="label gold">{person.orgName}</p>
-            <p className="body-sm ink-2">{person.phone}</p>
+    <div
+      className="tr"
+      role="row"
+      tabIndex={0}
+      style={{ ['--c' as string]: colour }}
+      onClick={onOpen}
+      onKeyDown={(event) => { if (event.key === 'Enter') onOpen() }}
+    >
+      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}</div></div>
+      <div role="cell" className="hide-s"><span className="tier">{tierLabel}</span></div>
+      <div role="cell" className="days hide-s">{row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : <span className="muted">–</span>}</div>
+      <div role="cell" className="hide-s">{band}</div>
+      <div role="cell" className="hide-s">
+        {row.vehicleReg
+          ? <><span className="mono">{row.vehicleReg}</span>{!row.stickerNo && <span className="pill pill-wait pill-sticker">Sticker</span>}</>
+          : <span className="muted">–</span>}
+      </div>
+      <div role="cell" className="hide-s">{bms}</div>
+      <div role="cell" className="cell-r hide-s">{state === 'collected' ? <span className="body-sm">{formatMasterCollected(row)}</span> : <span className="muted">–</span>}</div>
+      <div className="row2">
+        <span className="tier">{tierLabel}</span>
+        {row.status === 'approved' && bms}
+        {state === 'collected'
+          ? <span className="body-sm ink-2">Collected {row.collectedAt ? formatLedgerTime(row.collectedAt) : ''}</span>
+          : state === 'not_collected'
+            ? <span className="body-sm ink-3">Not collected</span>
+            : band}
+      </div>
+    </div>
+  )
+}
+
+function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: MasterRow | null; open: boolean; theme: Theme; onClose: () => void; onCopy: (phone: string) => void }) {
+  const type = p?.typeCode ? tier(p.typeCode) : null
+  const colour = p?.typeCode ? tierColour(p.typeCode, theme) : 'var(--ink-3)'
+  const state = p ? masterStatusOf(p) : 'other'
+  const held = p?.typeCode ? zoneStrip(p.typeCode).filter((z) => z.held) : []
+  const zoneColour = (code: string) => `var(--zone-${ZONES.find((z) => z.code === code)?.mapColour ?? 'green'})`
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      className="person-sheet"
+      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}</span></> : 'Person details'}
+      footer={p && (
+        <>
+          <a className="btn" href="/desk/passes">Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>
+          <Button variant="ghost" onClick={() => onCopy(p.phone)}><Icon name="copy" /> Copy phone</Button>
+        </>
+      )}
+    >
+      {p && (
+        <>
+          {type && p.typeCode && <img className="sheet-band" src={bandArtSrc(p.typeCode)} alt={`${type.label} band`} />}
+          <div className="sheet-tier" style={{ ['--c' as string]: colour }}>
+            <span className="tier">{type?.label ?? 'Not assigned'}</span>
+            <span className="ink-2">{p.dayValidity ? MASTER_DAY_LABELS[p.dayValidity] : ''}</span>
           </div>
-          <dl>
-            <dt>Tier</dt><dd>{person.typeCode ? tier(person.typeCode).label : 'Not assigned'}</dd>
-            <dt>Pass</dt><dd className="mono">{person.passRef ?? 'Not issued'}</dd>
-            <dt>Band</dt><dd className="mono">{formatMasterBand(person)}</dd>
-            <dt>Vehicle</dt><dd className="mono">{person.vehicleReg ?? 'None'}</dd>
-            <dt>BMS</dt><dd><StatusPill status={person.inBms ? 'ok' : 'wait'}>{person.inBms ? 'In BMS' : 'Not in BMS'}</StatusPill></dd>
-            <dt>Collected</dt><dd>{formatMasterCollected(person)}</dd>
+          {p.typeCode && (
+            <ul className="person-zones">
+              {p.typeCode === 'aaa'
+                ? <li>All zones</li>
+                : held.map((z) => <li key={z.zone}><i style={{ ['--c' as string]: zoneColour(z.zone) }} />{z.label}</li>)}
+            </ul>
+          )}
+          <h3 className="label">Details</h3>
+          <dl className="person-dl body-sm">
+            <dt>Phone</dt><dd className="mono">{p.phone}</dd>
+            <dt>Pass</dt><dd className="mono">{p.passRef ?? '–'}</dd>
+            <dt>Vehicle</dt>
+            <dd>{p.vehicleReg ? <><span className="mono">{p.vehicleReg}</span> · {p.stickerNo ? `sticker ${p.stickerNo}` : 'sticker not issued'}</> : 'None'}</dd>
+            <dt>BMS</dt>
+            <dd>{p.status !== 'approved' ? '–' : <span className={`pill ${p.inBms ? 'pill-ok' : 'pill-wait'}`}>{p.inBms ? 'In BMS' : 'Not in BMS'}</span>}</dd>
           </dl>
-          <p className="body-sm ink-3">The history only grows. A reissue or a void adds a line; nothing above it changes.</p>
-        </div>
+          <h3 className="label">History</h3>
+          <ul className="person-ledger body-sm">
+            {state === 'collected' && (
+              <li style={{ ['--c' as string]: 'var(--go)' }}><span><b>Band {p.bandSerial} issued</b><br /><span className="ink-3">{formatMasterCollected(p)}</span></span></li>
+            )}
+            {p.status === 'voided' && (
+              <li style={{ ['--c' as string]: 'var(--bad)' }}><span><b>Pass voided</b></span></li>
+            )}
+            {p.status === 'rejected' && (
+              <li style={{ ['--c' as string]: 'var(--bad)' }}><span><b>Rejected</b>{p.decidedAt && <><br /><span className="ink-3">{formatLedgerTime(p.decidedAt)}</span></>}</span></li>
+            )}
+            {(p.status === 'approved' || p.status === 'voided') && type && (
+              <li style={{ ['--c' as string]: 'var(--gold)' }}><span><b>Approved as {type.label}</b>{p.decidedAt && <><br /><span className="ink-3">{formatLedgerTime(p.decidedAt)} · imported from the response sheet</span></>}</span></li>
+            )}
+          </ul>
+          <p className="body-sm person-note">The history only grows. A reissue or a void adds a line; nothing above it changes.</p>
+        </>
       )}
     </Sheet>
   )
