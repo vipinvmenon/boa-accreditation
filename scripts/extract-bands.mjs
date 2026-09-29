@@ -13,7 +13,7 @@
 // Rows are found, not hardcoded: the strips are the only non-white runs down
 // a column through the artwork, top to bottom in the sheet's order.
 
-import { existsSync, mkdirSync, realpathSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -104,3 +104,8 @@ if (existsSync(POSTER)) {
 } else {
   throw new Error('public/assets/boa-poster.png missing — run scripts/extract-assets.mjs first')
 }
+
+// The r10 ambient layer behind every surface (app/r10/base.css): the mockup's
+// own 32×40 poster thumbnail, soft once scaled up. Copied verbatim.
+copyFileSync(join(root, 'design/source/r10/r8/img/ambient-40.png'), join(root, 'public/assets/ambient-40.png'))
+console.log('ambient-40         copied')

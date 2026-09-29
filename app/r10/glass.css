@@ -1,0 +1,186 @@
+/* r10 glass, everywhere (Vipin, 29 Sep): every surface's background becomes
+   see-through with a backdrop blur, instead of a solid --surface / --raised
+   fill or the 78% plate. This file changes `background` and `backdrop-filter`
+   only — borders, rings, bezels, shadows, layout and type stay exactly as
+   base.css / primitives.css / the screens set them.
+
+   The blur runs on every viewport, gate and phones included. This overrides
+   D6 (no blur on phones or at the gate) at Vipin's request. Loaded after
+   primitives.css; the screens' own <style> blocks come later in the cascade,
+   so selectors that override them carry one extra class. */
+
+.r10 {
+  --gl-fill: rgb(16 16 20 / 40%);
+  --gl-fill-soft: rgb(255 255 255 / 4%);
+  --gl-fill-hover: rgb(255 255 255 / 7%);
+  --gl-blur: blur(24px) saturate(160%);
+  --gl-overlay: rgb(16 16 20 / 48%);
+  --gl-overlay-blur: blur(28px) saturate(160%);
+  --gl-scrim: rgb(0 0 0 / 40%);
+}
+.r10[data-theme="light"],
+[data-theme="light"] .r10 {
+  --gl-overlay: rgb(255 255 255 / 55%);
+  --gl-scrim: rgb(20 20 26 / 24%);
+  --gl-fill: rgb(255 255 255 / 45%);
+  --gl-fill-soft: rgb(255 255 255 / 45%);
+  --gl-fill-hover: rgb(255 255 255 / 75%);
+}
+
+/* ── See-through backgrounds, blurred ── */
+.r10 .card::before,
+.r10 .table::before,
+.r10 .empty::before,
+.r10 .panel::before,
+.r10 .gate-screen .panel.panel,
+.r10 .gate-empty .no-roster.no-roster,
+.r10 .input,
+.r10 .gate-screen .name-search input[type="search"],
+.r10 .name-search-result.name-search-result,
+.r10 .chip,
+.r10 .segmented.segmented,
+.r10 .av,
+.r10 .burger,
+.r10 .site-footer,
+.r10 .btn:not(.btn-primary):not(.btn-ghost):not([disabled]):not([aria-disabled="true"]) {
+  background: var(--gl-fill);
+  -webkit-backdrop-filter: var(--gl-blur);
+  backdrop-filter: var(--gl-blur);
+}
+
+/* The outline button's hover wipe fills with a see-through tint, not --raised. */
+.r10 .btn:not(.btn-primary) { --btn-fill: var(--gl-fill-hover); }
+
+/* The card plates take the hero plate's (.glass) light: the same white edge,
+   top highlight and 160° sheen, so a card over the page and a plate over the
+   poster read as one material (Vipin, 29 Sep). */
+.r10 .card::before,
+.r10 .table::before,
+.r10 .empty::before,
+.r10 .panel::before {
+  background-image: linear-gradient(160deg, rgb(255 255 255 / 5%), transparent 45%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 12%);
+}
+.r10[data-theme="light"] .card::before,
+.r10[data-theme="light"] .table::before,
+.r10[data-theme="light"] .empty::before,
+.r10[data-theme="light"] .panel::before {
+  background-image: linear-gradient(160deg, rgb(255 255 255 / 60%), transparent 45%);
+  box-shadow: inset 0 0 0 1px rgb(20 20 26 / 8%), inset 0 1px 0 rgb(255 255 255);
+}
+
+/* Glass needs something behind it to blur. Below the hero that is only the
+   ambient poster: dark theme keeps the mockup's 10% (base.css; Vipin tried
+   30% down to 13% on 29 Sep and settled back on it). Light theme is lifted
+   so the poster still reaches through the paler fill. */
+.r10[data-theme="light"] .ambient { opacity: .18; }
+
+/* Small fills inside rows: a see-through tint, no blur (there are many of them). */
+.r10 .search kbd,
+.r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
+.r10 .sk,
+.r10 .g-note.g-note:not(.bad),
+.r10 .segmented.segmented a[aria-current="page"] { background: var(--gl-fill-soft); }
+
+/* Row and menu hovers: a see-through lift instead of a solid --raised fill. */
+@media (hover: hover) {
+  .r10 .tr:hover,
+  .r10 .user-row.user-row:hover,
+  .r10 .org-row.org-row:hover,
+  .r10 .profile-menu button:hover,
+  .r10 .profile-menu a:hover,
+  .r10 .master-screen .menu.menu button:hover,
+  .r10 .master-screen .menu.menu label:hover { background: var(--gl-fill-hover); }
+}
+
+/* ── Overlays: sheets, menus, toasts, the operator popover ──
+   These were a 78% near-opaque fill. They get the same see-through blur,
+   a touch stronger since they float over content. */
+.r10 .sheet,
+.r10 .pop,
+.r10 .menu,
+.r10 .toast,
+.r10 .profile-menu,
+.r10 .passes-menu.passes-menu {
+  background: var(--gl-overlay);
+  -webkit-backdrop-filter: var(--gl-overlay-blur);
+  backdrop-filter: var(--gl-overlay-blur);
+}
+.r10 .scrim { background: var(--gl-scrim); }
+
+/* The 700–900px menu was solid --bg. */
+@media (max-width: 900px) {
+  .r10 #desk-menu:not([hidden]) {
+    background: var(--gl-overlay);
+    -webkit-backdrop-filter: var(--gl-overlay-blur);
+    backdrop-filter: var(--gl-overlay-blur);
+  }
+}
+
+/* ── The nav bar's glass moves onto a layer behind its contents ──
+   A backdrop-filter only sees the page if no ancestor has one. The operator
+   popover lives inside the nav, so while the nav carried the blur, the
+   popover's own blur saw nothing and the poster showed through it sharp.
+   Same fill, same blur, same edges; only which box paints them changes. */
+.r10 .island.island.island {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.r10 .island.island.island::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: rgb(12 12 16 / 62%);
+  /* The island's inset edges (base.css) paint under this layer, so the layer
+     carries the same two insets; the island keeps its outer drop shadow. */
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 10%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+.r10[data-theme="light"] .island.island.island::before {
+  background: rgb(246 244 236 / 70%);
+  box-shadow: inset 0 0 0 1px rgb(20 20 26 / 8%), inset 0 1px 0 rgb(255 255 255);
+}
+
+/* ── Reduced transparency: every surface drops to solid, as DESIGN.md requires ── */
+@media (prefers-reduced-transparency: reduce) {
+  .r10 .card::before,
+  .r10 .table::before,
+  .r10 .empty::before,
+  .r10 .panel::before,
+  .r10 .gate-screen .panel.panel,
+  .r10 .gate-empty .no-roster.no-roster,
+  .r10 .input,
+  .r10 .gate-screen .name-search input[type="search"],
+  .r10 .name-search-result.name-search-result,
+  .r10 .chip,
+  .r10 .segmented.segmented,
+  .r10 .av,
+  .r10 .burger,
+  .r10 .site-footer,
+  .r10 #desk-menu:not([hidden]),
+  .r10 .sheet,
+  .r10 .pop,
+  .r10 .menu,
+  .r10 .toast,
+  .r10 .profile-menu,
+  .r10 .passes-menu.passes-menu,
+  .r10 .island.island.island::before,
+  .r10 .btn:not(.btn-primary):not(.btn-ghost):not([disabled]):not([aria-disabled="true"]) {
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .r10 .search kbd,
+  .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
+  .r10 .sk,
+  .r10 .g-note.g-note:not(.bad),
+  .r10 .segmented.segmented a[aria-current="page"] { background: var(--raised); }
+  .r10 .ambient { display: none; }
+}

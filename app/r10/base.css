@@ -83,9 +83,8 @@
 .r10 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-4); }
 .r10 .section-head h2 { margin: 0; color: var(--gold); }
 
-/* r10 final cascade (design/source/r10/r8/ui.css:469): `.ambient { display: none }`.
-   The page is the near-black .r10::before gradient; the poster lives in the hero only. */
-.r10 .ambient { display: none; }
+/* The ambient's r9 base rule. ui.css:469 hid it; ui.css:604 brings it back
+   faint — see the final-cascade rule after `.ambient::after` below. */
 .r10 .ambient {
   position: fixed;
   inset: -10%;
@@ -105,6 +104,20 @@
   pointer-events: none;
   background: var(--ambient-dim);
 }
+
+/* r10 final cascade (design/source/r10/r8/ui.css:604-606, :623): the ambient
+   comes back as a faint poster, a 32×40 image scaled up so it is soft by
+   itself with no live blur filter. It is what the glass surfaces refract —
+   over the flat near-black gradient alone a see-through card reads as solid. */
+.r10 .ambient {
+  display: block;
+  opacity: .1;
+  filter: none;
+  background-image: url("/assets/ambient-40.png");
+  background-size: cover;
+  image-rendering: auto;
+}
+.r10 .ambient::after { background: none; }
 
 .r10 .card,
 .r10 .table,

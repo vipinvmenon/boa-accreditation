@@ -60,6 +60,7 @@ import './phosphor.css'
 import './r10/tokens.css'
 import './r10/base.css'
 import './r10/primitives.css'
+import './r10/glass.css'
 
 export const metadata: Metadata = {
   // ACC-127: every route below sets its own `title` (a plain string), which
