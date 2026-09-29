@@ -5,6 +5,30 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
+## Sheet focus fix and transition, 29 Sep 2026
+
+- **What (Vipin):** in the Invite operator sheet, "I need to click on input
+  every key press", plus "improve the transition when the overlay comes
+  throughout the app".
+- **Cause:** `Sheet` (`components/r10/primitives-b.tsx`) listed `onClose` in its
+  focus effect's dependencies. Screens pass an inline arrow, so every keystroke
+  re-rendered the screen, re-ran the effect and refocused the first control (the
+  close button). Affected every `Sheet`, not just Invite operator.
+- **Fix (`cc9ef79`):** `onClose` is read through a ref and the effect depends on
+  `[open]` only. Sheet slides in over 0.42s (decelerating), out over 0.3s
+  (accelerating); the scrim fades on its own timing; reduced-motion stays
+  instant.
+- **Verified:** `typecheck`, `lint` (0 errors, the 8 existing `<img>`
+  warnings), `test` (295/295), and the pre-push build and SQL check.
+- **Not verified:** the fix or the transition in a browser, on the live site or
+  locally. `test:e2e` and `test:visual` were not run. `.sheet`/`.scrim` CSS was
+  not checked for `transition` rules that could fight the motion timings.
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction.** Same known
+  `main .num` timeout on the control room (ACC-191 / ACC-090a gap).
+- **Deploy not confirmed.** The Vercel connection returned 403 (needs
+  re-authentication to the `vipin-menon` scope), so it is unknown whether Vercel
+  built the push. Check the Deployments tab.
+
 ## Dead code removed, 29 Sep 2026
 
 - **What (Vipin):** "remove all the code which are unnecessary; this
