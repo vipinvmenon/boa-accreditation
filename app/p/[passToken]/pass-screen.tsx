@@ -56,7 +56,7 @@ export function PassScreen({ pass }: { pass: PassViewWithQr }) {
           position: fixed;
           inset: 0;
           z-index: -1;
-          background: linear-gradient(180deg, rgba(10,10,10,.05), rgba(10,10,10,.12) 45%, rgba(10,10,10,.5));
+          background: linear-gradient(180deg, rgba(10,10,10,.22), rgba(10,10,10,.3) 45%, rgba(10,10,10,.62));
         }
         .tk-logo { justify-self: start; width: 104px; height: auto; margin-left: max(4px, calc(50% - 206px)); }
       `}</style>
