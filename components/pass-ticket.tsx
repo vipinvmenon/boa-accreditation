@@ -151,7 +151,15 @@ export function GateTicket({
       {/* ACC-197: a cue for the volunteer only. The holder's PassTicket never renders it. */}
       {tshirtSize ? (
         <div className={tshirtGivenAt ? 'tk-tshirt tk-tshirt--given' : 'tk-tshirt'} role="status">
-          <span>Crew T-shirt · {tshirtSize}</span>
+          <span className="tk-tshirt-ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
+              <path d="M8.5 3 3 6l2 4.2 3-1.3V21h8V8.9l3 1.3L21 6l-5.5-3c-.4 1.6-1.7 2.6-3.5 2.6S8.9 4.6 8.5 3z" />
+            </svg>
+          </span>
+          <span className="tk-tshirt-txt">
+            <small>Crew T-shirt</small>
+            <strong>Size {tshirtSize}</strong>
+          </span>
           {tshirtGivenAt ? (
             <b>Given</b>
           ) : onTshirtGiven ? (

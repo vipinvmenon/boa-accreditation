@@ -328,11 +328,11 @@ test.describe('gate aeroplane mode', () => {
 
     await scan(gate, `BOA26:${PEOPLE[1].passToken}`)
     await expectVerdict(gate, 'Approved')
-    await expect(gate.getByText('Crew T-shirt · L')).toBeVisible()
+    await expect(gate.locator('.tk-tshirt')).toContainText('Size L')
 
     await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
     await expectVerdict(gate, 'Approved')
-    await expect(gate.getByText(/Crew T-shirt/)).toHaveCount(0)
+    await expect(gate.locator('.tk-tshirt')).toHaveCount(0)
   })
 
   test('ACC-197b: handing the shirt over is recorded offline, survives a rescan, and syncs once', async ({ page }) => {
@@ -340,7 +340,7 @@ test.describe('gate aeroplane mode', () => {
     await reloadColdOffline(gate)
 
     await scan(gate, `BOA26:${PEOPLE[1].passToken}`)
-    await expect(gate.getByText('Crew T-shirt · L')).toBeVisible()
+    await expect(gate.locator('.tk-tshirt')).toContainText('Size L')
     await gate.getByRole('button', { name: 'Mark given' }).click()
     await expect(gate.locator('.tk-tshirt--given')).toContainText('Given')
     await expect(gate.getByRole('button', { name: 'Mark given' })).toHaveCount(0)
