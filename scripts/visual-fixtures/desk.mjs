@@ -144,6 +144,7 @@ export const master = {
     phone: m.phone,
     orgName: m.org,
     role: m.role,
+    tshirtSize: null,
     dayValidity: m.rejectedAt ? null : m.days,
     orgKind: m.kind,
     typeCode: m.type,

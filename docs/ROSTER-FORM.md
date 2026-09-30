@@ -220,6 +220,29 @@ mean different dates.
 Neither setting is visible in the CSV, so neither can be checked from the
 export. They can only be read in the sheet.
 
+### The desk's T-shirt columns: J and K (ACC-197, 30 Sep 2026)
+
+Two more columns typed **by hand in the sheet** after column I, for Salman to
+fill in for the crew who are to get a T-shirt at check-in:
+
+```
+…, Accreditation Type, T-Shirt, T-Shirt Size
+```
+
+- **J `T-Shirt`**: a dropdown, `Yes` or blank. Blank means no shirt.
+- **K `T-Shirt Size`**: a dropdown, `S · M · L · XL · XXL · 3XL`.
+- Not form questions; organisations never see them. Optional: a sheet ending at
+  column I (or with no desk column) still imports, with no shirts.
+- **Both or neither.** `Yes` with a blank size, a size with no `Yes`, or a size
+  outside the list refuses that row with the reason; nothing is guessed.
+- **The header must be exactly the three, in this order** (matched ignoring
+  case and spacing, like column I). J on its own, or K before J, is refused.
+- **What it does:** the gate shows "Crew T-shirt · L" on the scan result, in
+  person search and on the desk Master list. **The holder's pass
+  (`/p/[passToken]`, `boa_acc_pass_view`) never carries it** (pgTAP proves it).
+- **A later change applies** to people who are already approved, unlike the
+  tier: a shirt is a cue, not a band. It reaches the gate on its next pull.
+
 ### The desk's column: Accreditation type
 
 Added 22 Sep 2026 **by hand in the sheet**, by Vipin, for Salman to fill in:

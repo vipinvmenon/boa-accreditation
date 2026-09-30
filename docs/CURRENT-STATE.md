@@ -5,6 +5,29 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
 
+## Crew T-shirt at check-in (ACC-197), 30 Sep 2026
+
+- **What (Vipin, from Salman):** the desk marks crew who get a T-shirt; the
+  gate shows it at check-in; the holder must not see it.
+- **True now (in the working tree):** roster sheet columns J `T-Shirt` (Yes/blank)
+  and K `T-Shirt Size` (S-3XL), documented in `docs/ROSTER-FORM.md`. Migration
+  `202609301000_boa_acc_crew_tshirt.sql` (**applied to the live database**) adds
+  `boa_acc_person.tshirt_size`, teaches `boa_acc_import_approve` to store it
+  (and to apply a later change to already-approved people), and adds `tshirtSize`
+  to `boa_acc_gate_pull`. `boa_acc_pass_view` and `/p/[passToken]` are untouched.
+  The gate shows an amber "Crew T-shirt · L" bar on the scan result
+  (`GateTicket`), and "T-shirt L" in person search and the desk Master list.
+- **Verified:** typecheck, unit tests (importer: J/K parsing and refusals),
+  `test:db` (new `tshirt.test.sql`, 11 checks incl. the pass view carrying no
+  trace of it; all other suites still green), an e2e in `aeroplane-mode.spec.ts`
+  (chip shows with the radio off, only for who has one), and a 390px screenshot.
+- **Not verified:** a real sheet with columns J and K (the sheet does not have
+  them yet: add them and dropdowns by hand); a real phone; the Master list
+  rendering with a shirt (only its data path is tested).
+- **Already failing before this task** (same 4 on the untouched base commit; not caused by ACC-197, not investigated): e2e `aeroplane-mode` "renders a pack tier...", "search by name...", "searches by the last four phone digits..." and `pass-page` "renders an approved person's pass...".
+- **Open:** no "shirt handed over" record (would need a new ledger event), so a
+  rescan shows the cue again. Gate phones show a new shirt after their next pull.
+
 ## Check-in guide on the pass page (ACC-196), 29 Sep 2026
 
 - **What (Vipin):** "add more info to WhatsApp sent passes... a check-in guide",

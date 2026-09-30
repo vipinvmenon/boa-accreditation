@@ -404,7 +404,7 @@ export default function GatePage() {
               </div>
               {/* The person as their pass shows them: band, name, tier and
                   days, and only the zones they may enter (Vipin, 29 Sep). */}
-              {person && <GateTicket fullName={person.fullName} orgName={person.orgName} role={person.roleText} typeCode={person.typeCode} dayValidity={person.dayValidity} vehicleReg={person.vehicleReg ?? null} stickerDue={stickerDue} />}
+              {person && <GateTicket fullName={person.fullName} orgName={person.orgName} role={person.roleText} typeCode={person.typeCode} dayValidity={person.dayValidity} vehicleReg={person.vehicleReg ?? null} stickerDue={stickerDue} tshirtSize={person.tshirtSize ?? null} />}
               {resolution.status === 'amber' && <div className="g-note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
               {resolution.status === 'red' && <div className="g-note bad"><b>Do not let them in.</b> This token is not on the approved list.</div>}
               <div className="g-dock">

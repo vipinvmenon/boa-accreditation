@@ -153,6 +153,7 @@ export function PersonSearch({ roster, onPick, onOpen, onClose }: Props) {
                   <b>{row.fullName}</b>
                   <small>
                     {row.orgName} · {row.roleText} · {gateBandCard(row.typeCode).label}
+                    {row.tshirtSize ? ` · T-shirt ${row.tshirtSize}` : ''}
                     {row.phone ? ` · ${maskPhone(row.phone)}` : ''}
                   </small>
                 </span>

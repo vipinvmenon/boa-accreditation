@@ -39,6 +39,8 @@ const PULL = {
     // PEOPLE[3] carries a pack tier the v1 enum did not have (ADR-018).
     typeCode: index === 3 ? ('promoters_lounge' as const) : ('crew' as const),
     dayValidity: 'build_show' as const,
+    // ACC-197: only PEOPLE[1] has a crew T-shirt.
+    tshirtSize: index === 1 ? ('L' as const) : null,
   })),
   ledger: [],
   rosterAsOf: '2026-09-12T12:00:00.000Z',
@@ -311,6 +313,19 @@ test.describe('gate aeroplane mode', () => {
       '—— Main Stage',
     ])
     await expect(gate.locator('.zones span.off')).toHaveCount(3)
+  })
+
+  test('ACC-197: the crew T-shirt shows on the scan result, with the radio off, only for who has one', async ({ page }) => {
+    const gate = (await installFixture(page, [])).page
+    await reloadColdOffline(gate)
+
+    await scan(gate, `BOA26:${PEOPLE[1].passToken}`)
+    await expectVerdict(gate, 'Approved')
+    await expect(gate.getByText('Crew T-shirt · L')).toBeVisible()
+
+    await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
+    await expectVerdict(gate, 'Approved')
+    await expect(gate.getByText(/Crew T-shirt/)).toHaveCount(0)
   })
 
   test('preserves the whole queue after a 401 and drains it after recovery', async ({ page }) => {

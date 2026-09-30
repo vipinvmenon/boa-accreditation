@@ -35,6 +35,9 @@ export const rosterRowSchema = z.object({
   // valid tiers, so no stored row needs rewriting.
   typeCode: tierCodeSchema,
   dayValidity: z.enum(['build', 'show', 'build_show']),
+  // ACC-197: null/absent = no crew T-shirt. Optional so rows cached before
+  // this pull still parse; not an index, so no Dexie version bump.
+  tshirtSize: z.enum(['S', 'M', 'L', 'XL', 'XXL', '3XL']).nullable().optional(),
 })
 
 export type RosterRow = z.infer<typeof rosterRowSchema>

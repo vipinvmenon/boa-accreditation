@@ -20,7 +20,7 @@ import type { MasterRow } from './schemas/master'
 
 function row(over: Partial<MasterRow> = {}): MasterRow {
   return {
-    id: 'p', fullName: 'A', orgId: 'org-1', phone: '+91', orgName: 'Sound', role: 'Rigger', dayValidity: 'show',
+    id: 'p', fullName: 'A', orgId: 'org-1', phone: '+91', orgName: 'Sound', role: 'Rigger', tshirtSize: null, dayValidity: 'show',
     orgKind: 'vendor', typeCode: 'crew', status: 'approved', passRef: 'BOA26-0001', vehicleReg: null,
     bandSerial: null, stickerNo: null, inBms: false, collectedAt: null, gateLabel: null, decidedAt: null, ...over,
   }

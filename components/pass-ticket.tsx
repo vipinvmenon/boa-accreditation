@@ -133,10 +133,12 @@ export function PassTicket(p: PassTicketProps) {
  * to the band in hand. Everything it reads is in the gate's offline roster;
  * the band art is precached by scripts/build-gate-sw.mjs.
  */
-export function GateTicket(p: TicketFaceProps & { stickerDue: boolean }) {
+export function GateTicket({ tshirtSize, ...p }: TicketFaceProps & { stickerDue: boolean; tshirtSize?: string | null }) {
   return (
     <div className="tk tk--gate" style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
       <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} showBand vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
+      {/* ACC-197: a cue for the volunteer only. The holder's PassTicket never renders it. */}
+      {tshirtSize ? <p className="tk-tshirt" role="status">Crew T-shirt · {tshirtSize}</p> : null}
     </div>
   )
 }

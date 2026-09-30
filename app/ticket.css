@@ -123,6 +123,19 @@
 .tk--gate .tk-band { opacity: 1; filter: none; }
 .tk--gate .tk-body { gap: 14px; padding: 18px 20px 20px; }
 .tk--gate .tk-name { font-size: 40px; }
+.tk-tshirt {
+  margin: 10px 0 0;
+  padding: 11px 16px;
+  border: 1px solid rgba(227, 187, 114, .5);
+  border-radius: 12px;
+  background: rgba(227, 187, 114, .14);
+  color: rgba(227, 187, 114, 1);
+  font-family: var(--f-label, var(--display));
+  font-size: 16px;
+  letter-spacing: .08em;
+  text-align: center;
+  text-transform: uppercase;
+}
 .tk-vehicle-note {
   margin-left: 10px;
   padding: 3px 8px;

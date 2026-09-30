@@ -66,7 +66,7 @@ const deskSheet = (...rows: [string, string][]) =>
   [`${HEADER},${DESK_HEADER}`, ...rows.map(([r, desk]) => `${r},${csvCell(desk)}`)].join('\r\n') + '\r\n'
 
 const migration = readFileSync(
-  new URL('../../supabase/migrations/202609221000_boa_acc_import_approve.sql', import.meta.url),
+  new URL('../../supabase/migrations/202609301000_boa_acc_crew_tshirt.sql', import.meta.url),
   'utf8',
 )
 
@@ -400,12 +400,13 @@ describe('the 500-row fixture', () => {
       vehicle_reg: 'KA01AB1000',
       type_code: null,
       day_validity: 'build',
+      tshirt_size: null,
       submitted_at: '2026-09-21T00:00:07+05:30',
     })
     expect(payload[1]?.type_code).toBe('artist')
     // Nothing beyond the RPC's fields leaves this module: no crew type, no org name.
     expect(Object.keys(payload[0]!).sort()).toEqual(
-      ['day_validity', 'full_name', 'phone', 'role_text', 'row_no', 'submitted_at', 'type_code', 'vehicle_reg'],
+      ['day_validity', 'full_name', 'phone', 'role_text', 'row_no', 'submitted_at', 'tshirt_size', 'type_code', 'vehicle_reg'],
     )
   })
 
@@ -518,5 +519,57 @@ describe('ACC-194 · loose organisation matching and new organisations', () => {
     expect(cleanOrgName('  "reflections of darkness". ')).toBe('Reflections of Darkness')
     expect(cleanOrgName('F5   events')).toBe('F5 events')
     expect(cleanOrgName('ABC Sound')).toBe('ABC Sound')
+  })
+})
+
+describe('ACC-197 · the T-shirt columns (J and K)', () => {
+  const tshirtSheet = (...rows: [string, string, string, string][]) =>
+    [`${HEADER},${DESK_HEADER},T-Shirt,T-Shirt Size`, ...rows.map(([r, ...c]) => `${r},${c.map(csvCell).join(',')}`)].join('\r\n') + '\r\n'
+
+  it('Yes + a size becomes tshirt_size; blank means none', () => {
+    const v = validateRoster(
+      tshirtSheet(
+        [row(), 'Crew', 'Yes', 'L'],
+        [row({ 'Full name': 'Asha Rao', 'WhatsApp number': '9876543211' }), 'Crew', '', ''],
+      ),
+    )
+    expect(v.errors).toEqual([])
+    expect(v.rows.map((r) => r.tshirt_size)).toEqual(['L', null])
+  })
+
+  it('reads yes/size case-insensitively', () => {
+    const v = validateRoster(tshirtSheet([row(), 'Crew', ' yes ', 'xxl']))
+    expect(v.rows[0]?.tshirt_size).toBe('XXL')
+  })
+
+  it('refuses a half-filled pair rather than guessing', () => {
+    const noSize = validateRoster(tshirtSheet([row(), 'Crew', 'Yes', '']))
+    expect(noSize.errors[0]?.errors.join()).toMatch(/Yes but T-Shirt Size is blank/)
+    const noYes = validateRoster(tshirtSheet([row(), 'Crew', '', 'M']))
+    expect(noYes.errors[0]?.errors.join()).toMatch(/set but T-Shirt is not Yes/)
+    const badSize = validateRoster(tshirtSheet([row(), 'Crew', 'Yes', '4XL']))
+    expect(badSize.errors[0]?.errors.join()).toMatch(/not one of S, M, L, XL, XXL, 3XL/)
+    const badYes = validateRoster(tshirtSheet([row(), 'Crew', 'Maybe', '']))
+    expect(badYes.errors[0]?.errors.join()).toMatch(/must be Yes or blank/)
+  })
+
+  it('a sheet without J and K still imports, with no shirts', () => {
+    expect(validateRoster(deskSheet([row(), 'Crew'])).rows[0]?.tshirt_size).toBeNull()
+  })
+
+  it('J without K, or K before J, is not a valid header', () => {
+    const jOnly = [`${HEADER},${DESK_HEADER},T-Shirt`, `${row()},Crew,Yes`].join('\n') + '\n'
+    expect(validateRoster(jOnly).fatal).toMatch(/Invalid header/)
+    const swapped = [`${HEADER},${DESK_HEADER},T-Shirt Size,T-Shirt`, `${row()},Crew,L,Yes`].join('\n') + '\n'
+    expect(validateRoster(swapped).fatal).toMatch(/Invalid header/)
+  })
+
+  it('the RPC payload carries it, and the migration never touches the holder\'s pass view', () => {
+    const v = validateRoster(tshirtSheet([row(), 'Crew', 'Yes', 'M']))
+    expect(toRpcPayload(v.rows)[0]?.tshirt_size).toBe('M')
+    const mig = readFileSync(new URL('../../supabase/migrations/202609301000_boa_acc_crew_tshirt.sql', import.meta.url), 'utf8')
+    expect(mig).not.toMatch(/create (or replace )?function public\.boa_acc_pass_view/)
+    const passView = readFileSync(new URL('../../supabase/migrations/202609221400_boa_acc_pass_view.sql', import.meta.url), 'utf8')
+    expect(passView).not.toMatch(/tshirt/i)
   })
 })

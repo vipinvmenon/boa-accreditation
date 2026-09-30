@@ -34,6 +34,8 @@ const gateRosterRowSchema = z.object({
   // is still a tier, so rows cached before the widening still parse.
   typeCode: tierCodeSchema,
   dayValidity: z.enum(['build', 'show', 'build_show']),
+  /** ACC-197: the crew T-shirt the desk chose for this person, else null. Gate-only. */
+  tshirtSize: z.enum(['S', 'M', 'L', 'XL', 'XXL', '3XL']).nullable().optional(),
 })
 
 const gateLedgerRowSchema = z.object({

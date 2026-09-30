@@ -567,7 +567,7 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
       onClick={onOpen}
       onKeyDown={(event) => { if (event.key === 'Enter') onOpen() }}
     >
-      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}</div></div>
+      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}{row.tshirtSize ? ` · T-shirt ${row.tshirtSize}` : ''}</div></div>
       <div role="cell" className="hide-s"><span className="tier">{tierLabel}</span></div>
       <div role="cell" className="days hide-s">{row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : <span className="muted">–</span>}</div>
       <div role="cell" className="hide-s">{band}</div>
@@ -602,7 +602,7 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
       open={open}
       onClose={onClose}
       className="person-sheet"
-      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}</span></> : 'Person details'}
+      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}{p.tshirtSize ? ` · T-shirt ${p.tshirtSize}` : ''}</span></> : 'Person details'}
       footer={p && (
         <>
           <a className="btn" href="/desk/passes">Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>

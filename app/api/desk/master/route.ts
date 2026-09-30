@@ -18,6 +18,7 @@ const personSchema = z.object({
   phone: z.string(),
   vehicle_reg: z.string().nullable(),
   role_text: z.string(),
+  tshirt_size: z.enum(['S', 'M', 'L', 'XL', 'XXL', '3XL']).nullable(),
   day_validity: z.enum(['build', 'show', 'build_show']).nullable(),
   status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'voided']),
   type_code: z.enum(ORG_TYPE_CODES).nullable(),
@@ -90,7 +91,7 @@ export async function GET(request: Request) {
     await Promise.all([
       supabase
         .from('boa_acc_person')
-        .select('id,org_id,full_name,phone,role_text,day_validity,vehicle_reg,status,type_code,pass_ref,in_bms,approved_at,updated_at')
+        .select('id,org_id,full_name,phone,role_text,tshirt_size,day_validity,vehicle_reg,status,type_code,pass_ref,in_bms,approved_at,updated_at')
         .order('created_at', { ascending: false }),
       supabase
         .from('boa_acc_org')
@@ -139,6 +140,7 @@ export async function GET(request: Request) {
       phone: person.phone,
       orgName: org.name,
       role: person.role_text,
+      tshirtSize: person.tshirt_size,
       dayValidity: person.day_validity,
       orgKind: org.kind,
       typeCode: person.type_code,
