@@ -226,13 +226,11 @@
 .r10 .segmented a[aria-current="page"] { color: var(--ink); }
 .r10 .segmented .seg-pip { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 8px) / 2); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--edge); transition: transform 420ms var(--e-out); }
 .r10 .segmented .seg-pip[data-pos="1"] { transform: translateX(calc(100% + 2px)); }
-/* What sits under the switch eases in rather than popping when the route lands. */
-.r10 .gate-split,
-.r10 .veh-split { animation: r10-tab-in var(--d-base) var(--e-out); }
-@keyframes r10-tab-in { from { opacity: 0; transform: translateY(4px); } }
-@media (prefers-reduced-motion: reduce) { .r10 .gate-split, .r10 .veh-split { animation: none; } }
-.r10[data-motion="reduced"] .gate-split,
-.r10[data-motion="reduced"] .veh-split { animation: none; }
+/* The gate screens no longer ease in (Vipin, 30 Sep). They used to fade up from
+   transparent on every mount, and the people screen mounts twice (the skeleton,
+   then the real panels once the offline cache is read), so a reload showed a dim
+   panel that changed colour a moment later. At a gate the screen should simply be
+   there, with the radio off or on. */
 @media (prefers-reduced-motion: reduce) { .r10 .segmented .seg-pip { transition: none; } }
 .r10[data-motion="reduced"] .segmented .seg-pip { transition: none; }
 .r10 .filterbar { display: grid; gap: var(--s-3); margin-bottom: var(--s-6); }
