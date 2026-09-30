@@ -74,14 +74,6 @@ export function CheckinGuide() {
               </li>
             ))}
           </ol>
-          <ul className="cg-notes cg-tips">
-            {g.tips.map((t) => (
-              <li key={t.text}>
-                <Icon name={t.icon} />
-                <span>{t.text}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
 
@@ -124,7 +116,15 @@ export function CheckinGuide() {
       <p className="cg-sign">{g.signOff}</p>
       <p className="cg-help">
         <Icon name="headset" />
-        <span>{g.help}</span>
+        <span>
+          {g.help}
+          {g.helpPhone ? (
+            <>
+              {': '}
+              <a href={`tel:${g.helpPhone.replace(/\s+/g, '')}`}>{g.helpPhone}</a>
+            </>
+          ) : null}
+        </span>
       </p>
     </section>
   )

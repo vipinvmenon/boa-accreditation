@@ -46,10 +46,6 @@ export const CHECKIN_GUIDE = {
       rest: 'at the desk. Wear it where it can be seen, everywhere on site. It is personal: do not lend it.',
     },
   ],
-  tips: [
-    { icon: 'drop', text: 'Bring a water bottle: refill it at the drinking water stations on site.' },
-    { icon: 'sneaker', text: 'Crew: closed shoes on build and load-out days.' },
-  ],
   crew: {
     label: 'Crew',
     heading: 'Crew check-in',
@@ -70,14 +66,16 @@ export const CHECKIN_GUIDE = {
     place: 'At the festival venue: BITS Club',
     address: ['Doddagubbi Main Road, Anagalapura', 'near Asha Township, Bengaluru 560077'],
     notes: [
-      { icon: 'car', text: 'Parking is directly opposite the club.' },
+      { icon: 'car', text: 'Parking is at Shri Vidya Niketan School.' },
       { icon: 'door-open', text: 'Doors 1:30 PM.' },
     ],
     mapUrl:
       'https://www.google.com/maps/search/?api=1&query=BITS+Club%2C+Doddagubbi+Main+Road%2C+Anagalapura%2C+Bengaluru+560077',
   },
-  signOff: 'See you at BITS Club. The ritual returns.',
-  help: 'Questions on site: the production office in the artist area, or your department head.',
+  signOff: 'See you at the Home Of Heavy metal In India!',
+  help: 'Questions: contact Bhupesh',
+  // Bhupesh (production), given by Vipin 30 Sep 2026.
+  helpPhone: '+91 70103 90385' as string,
   cue: 'Check-in guide',
   mapsCta: 'Open in Maps',
 } as const
