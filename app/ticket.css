@@ -146,25 +146,25 @@
   background: rgba(227, 187, 114, .18);
   box-shadow: inset 0 0 0 1px rgba(227, 187, 114, .45);
 }
-.tk-tshirt-txt { display: grid; flex: 1; min-width: 0; line-height: 1.1; }
-.tk-tshirt-txt small { font-size: 11px; letter-spacing: .12em; opacity: .8; }
+.tk-tshirt-txt { display: grid; flex: 1; min-width: 0; gap: 6px; align-content: center; justify-items: start; }
+.tk-tshirt-txt small { font-size: 11px; line-height: 1; letter-spacing: .12em; opacity: .85; }
 .tk-tshirt-txt .tk-size {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  justify-self: start;
-  margin-top: 5px;
-  padding: 3px 14px 3px 10px;
+  height: 30px;
+  padding: 0 13px 2px;
   border-radius: 999px;
   background: rgba(227, 187, 114, 1);
   color: rgb(26, 20, 8);
-  font-size: 20px;
+  font-size: 19px;
+  line-height: 1;
   letter-spacing: .04em;
-  box-shadow: 0 0 0 3px rgba(227, 187, 114, .18);
 }
 .tk-tshirt-txt .tk-size i {
   font-style: normal;
   font-size: 10px;
+  line-height: 1;
   letter-spacing: .14em;
   opacity: .7;
 }
@@ -202,7 +202,7 @@
   background: linear-gradient(100deg, rgba(0, 245, 165, .16), rgba(0, 245, 165, .05));
   color: var(--grn, #00F5A5);
 }
-.tk-tshirt--given .tk-tshirt-txt .tk-size { background: var(--grn, #00F5A5); box-shadow: 0 0 0 3px rgba(0, 245, 165, .18); }
+.tk-tshirt--given .tk-tshirt-txt .tk-size { background: var(--grn, #00F5A5); }
 .tk-tshirt--given .tk-tshirt-ic { background: rgba(0, 245, 165, .14); box-shadow: inset 0 0 0 1px rgba(0, 245, 165, .4); }
 .tk-vehicle-note {
   margin-left: 10px;
