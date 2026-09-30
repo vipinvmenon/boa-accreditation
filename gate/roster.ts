@@ -103,8 +103,9 @@ export async function pullGate(): Promise<GateSnapshot> {
   const parsed = gatePullSchema.safeParse(body)
   if (!parsed.success || parsed.data.roster.length === 0) throw new Error('empty_roster')
 
+  const pulledRoster = parsed.data.roster.map(localRoster)
   const snapshot: GateSnapshot = {
-    roster: parsed.data.roster.map(localRoster),
+    roster: pulledRoster,
     ledger: parsed.data.ledger.map(localLedger),
     meta: {
       gateLabel: parsed.data.gateLabel,
@@ -118,6 +119,14 @@ export async function pullGate(): Promise<GateSnapshot> {
   // and the index has not is the bug this replaces, in the other direction.
   const stickers = stickerRowsFrom(snapshot.roster, snapshot.ledger)
   await gateDb.transaction('rw', gateDb.roster, gateDb.ledger, gateDb.sticker, gateDb.meta, async () => {
+    // ACC-197b: a hand-over tapped on this phone that the server has not
+    // acknowledged yet must survive the pull. The server's row is never
+    // deleted, so keeping a local mark can only ever be early, never wrong.
+    const before = new Map((await gateDb.roster.toArray()).map((row) => [row.personId, row.tshirtGivenAt]))
+    snapshot.roster = pulledRoster.map((row) => {
+      const local = before.get(row.personId)
+      return !row.tshirtGivenAt && local ? { ...row, tshirtGivenAt: local } : row
+    })
     await gateDb.roster.clear()
     await gateDb.ledger.clear()
     await gateDb.sticker.clear()

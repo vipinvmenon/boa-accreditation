@@ -133,12 +133,32 @@ export function PassTicket(p: PassTicketProps) {
  * to the band in hand. Everything it reads is in the gate's offline roster;
  * the band art is precached by scripts/build-gate-sw.mjs.
  */
-export function GateTicket({ tshirtSize, ...p }: TicketFaceProps & { stickerDue: boolean; tshirtSize?: string | null }) {
+export function GateTicket({
+  tshirtSize,
+  tshirtGivenAt,
+  onTshirtGiven,
+  ...p
+}: TicketFaceProps & {
+  stickerDue: boolean
+  tshirtSize?: string | null
+  /** ACC-197b: set once a volunteer has handed the shirt over. */
+  tshirtGivenAt?: string | null
+  onTshirtGiven?: () => void
+}) {
   return (
     <div className="tk tk--gate" style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
       <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} showBand vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
       {/* ACC-197: a cue for the volunteer only. The holder's PassTicket never renders it. */}
-      {tshirtSize ? <p className="tk-tshirt" role="status">Crew T-shirt · {tshirtSize}</p> : null}
+      {tshirtSize ? (
+        <div className={tshirtGivenAt ? 'tk-tshirt tk-tshirt--given' : 'tk-tshirt'} role="status">
+          <span>Crew T-shirt · {tshirtSize}</span>
+          {tshirtGivenAt ? (
+            <b>Given</b>
+          ) : onTshirtGiven ? (
+            <button type="button" className="tk-tshirt-btn" onClick={onTshirtGiven}>Mark given</button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

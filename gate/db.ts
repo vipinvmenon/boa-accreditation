@@ -38,6 +38,9 @@ export const rosterRowSchema = z.object({
   // ACC-197: null/absent = no crew T-shirt. Optional so rows cached before
   // this pull still parse; not an index, so no Dexie version bump.
   tshirtSize: z.enum(['S', 'M', 'L', 'XL', 'XXL', '3XL']).nullable().optional(),
+  // ACC-197b: when the shirt was handed over (this phone's tap until the server
+  // confirms it). Monotonic: a pull never clears it. Not an index.
+  tshirtGivenAt: timestamp.nullable().optional(),
 })
 
 export type RosterRow = z.infer<typeof rosterRowSchema>

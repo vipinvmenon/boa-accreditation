@@ -37,14 +37,16 @@ test('invite form defaults to issuer and explains every role', async ({ page }) 
   await page.goto('/desk/users')
 
   await page.getByRole('button', { name: 'Invite operator' }).click()
-  const role = page.getByLabel('Role')
-  await expect(role).toHaveValue('issuer')
+  const role = page.getByRole('combobox', { name: 'Role' })
+  // r10's Select is a listbox, not a native <select>: read the shown value and pick by option.
+  await expect(role).toContainText('Issuer')
   await expect(page.getByText('Check people in, issue wristbands, and log vehicle events; gate only.')).toBeVisible()
 
+  await role.click()
   for (const option of ['Lead', 'Approver', 'Admin', 'Issuer']) {
-    await expect(role.locator('option', { hasText: option })).toHaveCount(1)
+    await expect(page.getByRole('option', { name: new RegExp(`^${option}`) })).toHaveCount(1)
   }
-  await role.selectOption('approver')
+  await page.getByRole('option', { name: /^Approver/ }).click()
   await expect(page.getByText('Review and approve people in the desk; cannot use the gate.')).toBeVisible()
 })
 
@@ -68,9 +70,10 @@ test('operator sheet changes a role and requires confirmation before deactivatio
   await page.goto('/desk/users')
   await page.getByRole('row', { name: /Gate Lead/ }).press('Enter')
   await expect(page.getByRole('dialog', { name: /Gate Lead/ })).toBeVisible()
-  await page.getByLabel('Role').last().selectOption('approver')
+  await page.getByRole('combobox', { name: 'Role' }).last().click()
+  await page.getByRole('option', { name: /^Approver/ }).click()
   await page.getByRole('button', { name: 'Save role' }).click()
-  await expect(page.getByText('Gate Lead updated.')).toBeVisible()
+  await expect(page.getByText('Role saved.')).toBeVisible()
   await page.getByRole('button', { name: 'Deactivate' }).click()
   await expect(page.getByRole('alertdialog', { name: /Confirm deactivation/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Keep active' })).toBeVisible()

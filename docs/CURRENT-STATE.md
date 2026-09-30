@@ -17,16 +17,38 @@ _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room ar
   to `boa_acc_gate_pull`. `boa_acc_pass_view` and `/p/[passToken]` are untouched.
   The gate shows an amber "Crew T-shirt · L" bar on the scan result
   (`GateTicket`), and "T-shirt L" in person search and the desk Master list.
-- **Verified:** typecheck, unit tests (importer: J/K parsing and refusals),
-  `test:db` (new `tshirt.test.sql`, 11 checks incl. the pass view carrying no
-  trace of it; all other suites still green), an e2e in `aeroplane-mode.spec.ts`
-  (chip shows with the radio off, only for who has one), and a 390px screenshot.
+- **Handed over (ACC-197b, same day):** the gate's bar has a "Mark given" button; once
+  tapped it turns green ("Given"), including on a rescan, so a shirt is not
+  handed out twice. It goes through the outbox like every gate write, so it works
+  with the radio off; the mark is on the phone at once and a pull never clears it.
+  The server keeps one row per person in `boa_acc_tshirt_handover` (append-only,
+  `UNIQUE(person_id)`), so two phones that both hand it over offline collapse to
+  the first. `boa_acc_gate_pull` carries `tshirtGivenAt`. Migrations `202609301100`
+  (table, `boa_acc_gate_tshirt`, pull) and `202609301200`/`202609301300` (a test
+  helper added and withdrawn: it could not work, and a function that disables an
+  immutability trigger should not exist), **all applied to the live database**.
+  A wrong tap is corrected by the desk in SQL; there is no un-give at the gate.
+- **Verified:** typecheck, lint, 317 unit tests (importer J/K parsing and
+  refusals; the queue-and-mark flow), `test:db` all green (`tshirt.test.sql` 11
+  checks incl. the pass view carrying no trace of it; `tshirt-handover.test.sql`
+  6 checks in a rollback scenario: one per person, refused without a shirt, in
+  the pull, append-only, needs a session; `privileges.test.sql` for the new
+  table and function), e2e (gate shows the cue offline; hand-over recorded offline,
+  kept on rescan, posted once when signal returns; Master list shows the shirt;
+  the holder's page has no phone but the help line and no T-shirt), and 390px
+  screenshots of both states.
+- **Also fixed:** six e2e tests that were already failing on the base commit,
+  all stale selectors or copy: three gate tests (`.gband`, `.person .nm` predate
+  the gate ticket), the pass-page test (`/\+91/` predates the help-line number),
+  and two `users.spec.ts` tests (the r10 Role control is a listbox, not a
+  `<select>`; the toast now says "Role saved."). The full e2e suite is 65/65.
 - **Not verified:** a real sheet with columns J and K (the sheet does not have
-  them yet: add them and dropdowns by hand); a real phone; the Master list
-  rendering with a shirt (only its data path is tested).
-- **Already failing before this task** (same 4 on the untouched base commit; not caused by ACC-197, not investigated): e2e `aeroplane-mode` "renders a pack tier...", "search by name...", "searches by the last four phone digits..." and `pass-page` "renders an approved person's pass...".
-- **Open:** no "shirt handed over" record (would need a new ledger event), so a
-  rescan shows the cue again. Gate phones show a new shirt after their next pull.
+  them yet: add them and the dropdowns by hand); a real phone; two real phones
+  handing the same shirt over (the collapse is proven in the database, not
+  across two devices).
+- **Open:** ACC-189 (r10 gate reskin) restyles the same result card, so expect a
+  merge on `GateTicket` / `app/gate/page.tsx`. Gate phones show a new shirt after
+  their next pull.
 
 ## Check-in guide on the pass page (ACC-196), 29 Sep 2026
 

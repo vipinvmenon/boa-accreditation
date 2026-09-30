@@ -39,7 +39,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(142) as line
+  select 0 as n, plan(147) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -138,6 +138,12 @@ select line from (
   union all select 1462, function_privs_are('public', 'boa_acc_pass_view', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_view')
   union all select 1463, function_privs_are('public', 'boa_acc_pass_view', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_pass_view')
   union all select 1464, function_privs_are('public', 'boa_acc_pass_view', array['text'], 'service_role', array['EXECUTE'], 'service_role: EXECUTE on boa_acc_pass_view')
+  -- ACC-197b: the T-shirt hand-over table and its gate RPC.
+  union all select 1470, table_privs_are('public', 'boa_acc_tshirt_handover', 'anon', array[]::text[], 'anon: zero on boa_acc_tshirt_handover')
+  union all select 1471, table_privs_are('public', 'boa_acc_tshirt_handover', 'authenticated', array[]::text[], 'authenticated: zero on boa_acc_tshirt_handover (RPC-only)')
+  union all select 1472, function_privs_are('public', 'boa_acc_gate_tshirt', array['uuid','uuid','timestamptz'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_tshirt')
+  union all select 1473, function_privs_are('public', 'boa_acc_gate_tshirt', array['uuid','uuid','timestamptz'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_gate_tshirt (gate operators; role checked inside)')
+  union all select 1474, ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.boa_acc_tshirt_handover'::regclass), 'RLS enabled and forced on boa_acc_tshirt_handover')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')

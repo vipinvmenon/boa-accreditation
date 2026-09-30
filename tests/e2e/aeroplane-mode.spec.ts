@@ -74,8 +74,9 @@ type VehiclePost = { outcome: string; reason: string | null; checks: { sticker: 
 async function installFixture(
   page: Page,
   modes: IssueMode[],
-): Promise<{ page: Page; requests: string[]; vehiclePosts: VehiclePost[] }> {
+): Promise<{ page: Page; requests: string[]; vehiclePosts: VehiclePost[]; tshirtPosts: string[] }> {
   const requests: string[] = []
+  const tshirtPosts: string[] = []
   const vehiclePosts: VehiclePost[] = []
   let requestNumber = 0
 
@@ -103,6 +104,20 @@ async function installFixture(
       return
     }
     await route.fulfill({ status: 201, contentType: 'application/json', json: issueResult(action) })
+  })
+
+  await page.route('**/api/gate/tshirt', async (route: Route) => {
+    const body = route.request().postDataJSON() as { idempotencyKey: string; personId: string; occurredAt: string }
+    tshirtPosts.push(body.personId)
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      json: {
+        id: crypto.randomUUID(), personId: body.personId, idempotencyKey: body.idempotencyKey, size: 'L',
+        operatorId: PULL.operatorId, gateLabel: PULL.gateLabel, volunteerName: PULL.volunteerName,
+        occurredAt: body.occurredAt, postedAt: '2026-09-12T12:01:00.000Z',
+      },
+    })
   })
 
   await page.route('**/api/gate/vehicle', async (route: Route) => {
@@ -139,7 +154,7 @@ async function installFixture(
       throw new Error(`gate service worker is ${registration.active?.state ?? 'missing'}`)
     }
   })
-  return { page, requests, vehiclePosts }
+  return { page, requests, vehiclePosts, tshirtPosts }
 }
 
 async function reloadColdOffline(page: Page) {
@@ -301,18 +316,10 @@ test.describe('gate aeroplane mode', () => {
 
     await scan(gate, `BOA26:${PEOPLE[3].passToken}`)
     await expectVerdict(gate, 'Approved')
-    const band = gate.locator('.gband')
-    await expect(band.locator('b')).toHaveText('Promoters Lounge')
-    await expect(band.locator('small')).toHaveText('Hand over a royal blue band')
-    await expect(gate.locator('.zones span')).toHaveText([
-      'Festival Area',
-      "—— Eddie's Lounge",
-      'Promoters Lounge · + ID',
-      '—— Photo Pit',
-      'Backstage · + ID · after 22:00',
-      '—— Main Stage',
-    ])
-    await expect(gate.locator('.zones span.off')).toHaveCount(3)
+    // The gate shows the person as their pass does (ACC-189): the ticket's tier
+    // and the zones this pass enters. Held zones only; unheld ones are not listed.
+    await expect(gate.locator('.tk--gate .tk-tier')).toHaveText('Promoters Lounge')
+    await expect(gate.locator('.tk--gate .tk-zones li')).toHaveText(['Festival Area', 'Promoters Lounge', 'Backstage'])
   })
 
   test('ACC-197: the crew T-shirt shows on the scan result, with the radio off, only for who has one', async ({ page }) => {
@@ -326,6 +333,29 @@ test.describe('gate aeroplane mode', () => {
     await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
     await expectVerdict(gate, 'Approved')
     await expect(gate.getByText(/Crew T-shirt/)).toHaveCount(0)
+  })
+
+  test('ACC-197b: handing the shirt over is recorded offline, survives a rescan, and syncs once', async ({ page }) => {
+    const { page: gate, tshirtPosts } = await installFixture(page, [])
+    await reloadColdOffline(gate)
+
+    await scan(gate, `BOA26:${PEOPLE[1].passToken}`)
+    await expect(gate.getByText('Crew T-shirt · L')).toBeVisible()
+    await gate.getByRole('button', { name: 'Mark given' }).click()
+    await expect(gate.locator('.tk-tshirt--given')).toContainText('Given')
+    await expect(gate.getByRole('button', { name: 'Mark given' })).toHaveCount(0)
+    expect(tshirtPosts).toEqual([]) // radio is off: queued, not sent
+
+    // A rescan shows it as already given, not as a shirt still to hand over.
+    await gate.getByRole('button', { name: 'Next person' }).click()
+    await scan(gate, `BOA26:${PEOPLE[1].passToken}`)
+    await expect(gate.locator('.tk-tshirt--given')).toBeVisible()
+
+    // Signal returns: exactly one post, for that person.
+    await gate.context().setOffline(false)
+    await gate.evaluate(() => window.dispatchEvent(new Event('online')))
+    await expect.poll(() => tshirtPosts).toEqual([PEOPLE[1].personId])
+    await expect(gate.locator('.tk-tshirt--given')).toBeVisible()
   })
 
   test('preserves the whole queue after a 401 and drains it after recovery', async ({ page }) => {
@@ -402,7 +432,7 @@ test.describe('gate aeroplane mode', () => {
     await box.press('Enter')
 
     await expectVerdict(gate, 'Approved')
-    await expect(gate.locator('.person .nm')).toHaveText('E2E Person 3')
+    await expect(gate.locator('.tk--gate .tk-name')).toHaveText('E2E Person 3')
     await expect(box).toHaveCount(0)
     await gate.getByLabel('Wristband serial, optional').fill('0417')
     await gate.getByRole('button', { name: 'Issue wristband' }).click()
@@ -438,7 +468,7 @@ test.describe('gate aeroplane mode', () => {
     await option.click()
 
     await expectVerdict(gate, 'Approved')
-    await expect(gate.locator('.person .nm')).toHaveText('E2E Person 3')
+    await expect(gate.locator('.tk--gate .tk-name')).toHaveText('E2E Person 3')
     expect(requests).toEqual([])
   })
 

@@ -29,6 +29,7 @@ plus one auth-plumbing table.
 | 7 | `boa_acc_device` | gate devices. No accounts |
 | 8 | `boa_acc_aaa_nomination` | Salman's named list |
 | 9 | `boa_acc_submit_throttle` | per-token per-hour counter |
+| — | `boa_acc_tshirt_handover` | ACC-197b: one append-only row per person handed their crew T-shirt (`UNIQUE(person_id)`; RPC-only, no table grants) |
 | — | `boa_acc_operator` | desk roster (auth plumbing, not domain) |
 | — | `boa_acc_zone_access` | the pack's 26 (zone, tier) allow rows: `+ photo ID` flag, optional IST time window. **Absence is refusal** |
 

@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http'
 import { expect, test } from '@playwright/test'
+import { CHECKIN_GUIDE } from '../../lib/pass-copy'
 
 /**
  * ACC-144 · /p/[passToken], from mocked data.
@@ -131,8 +132,13 @@ test.describe('/p/[passToken] (ACC-144)', () => {
     // ADR-009: no desk chrome on a public pass-token screen.
     await expect(page.locator('.nav-wrap')).toHaveCount(0)
 
-    // Never the phone (non-negotiable #9) — nowhere on this screen, ever.
-    await expect(page.getByText(/\+91/)).toHaveCount(0)
+    // Never the holder's phone (non-negotiable #9) — nowhere on this screen, ever.
+    // The one number that IS shown is the desk's help line (ACC-196), so take
+    // that out before looking for any other phone number.
+    const shown = (await page.locator('body').innerText()).split(CHECKIN_GUIDE.helpPhone).join('')
+    expect(shown).not.toMatch(/\+\d/)
+    // ACC-197: the crew T-shirt is a gate cue; the holder's page never mentions it.
+    expect(shown).not.toMatch(/t-?shirt/i)
 
     // ACC-127: a neutral title, never the holder's name — a shared device's
     // tab strip or history must not read out who this pass belongs to.

@@ -6,6 +6,7 @@ import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
 import { enqueueIssue, pullGate, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { queueTshirtGiven } from '@/gate/tshirt-flow'
 import { GATE_PATH, loginHref, redirectIfSignedOut } from '@/gate/session'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { scanFrame } from '@/gate/scanner'
@@ -248,6 +249,16 @@ export default function GatePage() {
     await sync()
   }
 
+  // ACC-197b: hand-over state comes from the live cache, not the scan-time copy,
+  // so the tap is reflected at once (and survives a pull before the server acks).
+  const giveTshirt = async () => {
+    const target = resolution && resolution.status !== 'red' ? resolution.person : null
+    if (!target || !target.tshirtSize) return
+    await queueTshirtGiven(gateDb, target.personId)
+    await loadCache() // offline nothing else reloads it
+    await sync()
+  }
+
   const nextPerson = () => {
     setResolution(null)
     setIssuedTo(null)
@@ -404,7 +415,7 @@ export default function GatePage() {
               </div>
               {/* The person as their pass shows them: band, name, tier and
                   days, and only the zones they may enter (Vipin, 29 Sep). */}
-              {person && <GateTicket fullName={person.fullName} orgName={person.orgName} role={person.roleText} typeCode={person.typeCode} dayValidity={person.dayValidity} vehicleReg={person.vehicleReg ?? null} stickerDue={stickerDue} tshirtSize={person.tshirtSize ?? null} />}
+              {person && <GateTicket fullName={person.fullName} orgName={person.orgName} role={person.roleText} typeCode={person.typeCode} dayValidity={person.dayValidity} vehicleReg={person.vehicleReg ?? null} stickerDue={stickerDue} tshirtSize={person.tshirtSize ?? null} tshirtGivenAt={snapshot.roster.find((row) => row.personId === person.personId)?.tshirtGivenAt ?? person.tshirtGivenAt ?? null} onTshirtGiven={() => void giveTshirt()} />}
               {resolution.status === 'amber' && <div className="g-note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
               {resolution.status === 'red' && <div className="g-note bad"><b>Do not let them in.</b> This token is not on the approved list.</div>}
               <div className="g-dock">

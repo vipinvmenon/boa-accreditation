@@ -1,5 +1,6 @@
 import { gateIssueResultSchema } from '@/lib/schemas/gate'
 import { vehicleEventResponseSchema } from '@/lib/schemas/vehicle'
+import { tshirtResponseSchema } from '@/lib/schemas/tshirt'
 import { gateDb } from './db'
 import { classifyFailure, nextAttemptDelayMs, selectDrainBatch } from './outbox-policy'
 import { rebuildStickerIndex } from './roster'
@@ -56,6 +57,29 @@ async function drainOnce(): Promise<void> {
         }
         const result = vehicleEventResponseSchema.parse(body)
         await gateDb.outbox.update(entry.id, { status: 'done', result })
+        continue
+      }
+      // ACC-197b: a T-shirt hand-over. Its own endpoint, no ledger row; the
+      // server's answer (the first hand-over, if another phone got there first)
+      // is what the roster keeps.
+      if (entry.kind === 'tshirt_given') {
+        const response = await fetch('/api/gate/tshirt', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(entry.payload),
+        })
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+          throw { code: String(response.status), message: typeof body === 'object' && body !== null ? JSON.stringify(body) : 'sync failed' }
+        }
+        const result = tshirtResponseSchema.parse(body)
+        await gateDb.transaction('rw', gateDb.outbox, gateDb.roster, async () => {
+          await gateDb.outbox.update(entry.id, { status: 'done', result })
+          await gateDb.roster.where('personId').equals(result.personId).modify((row) => {
+            row.tshirtGivenAt = result.occurredAt
+          })
+        })
         continue
       }
       const response = await fetch('/api/gate/issue', {

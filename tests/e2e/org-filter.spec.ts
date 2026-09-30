@@ -49,7 +49,7 @@ const orgs = {
 
 function person(id: string, fullName: string, orgName: string, orgId: string) {
   return {
-    id, fullName, orgId, phone: '+919000000009', orgName, role: 'Rigger', dayValidity: 'show' as const, orgKind: 'vendor' as const,
+    id, fullName, orgId, phone: '+919000000009', orgName, role: 'Rigger', tshirtSize: null, dayValidity: 'show' as const, orgKind: 'vendor' as const,
     typeCode: 'crew' as const, status: 'approved' as const, passRef: 'BOA26-0001',
     vehicleReg: null, bandSerial: null, stickerNo: null, inBms: false,
     collectedAt: null, gateLabel: null, decidedAt: null,
@@ -71,7 +71,8 @@ async function installDesk(page: Page, seen: string[]) {
       // ACC-154: p1 is the one person already in BMS, so `?in_bms=` splits
       // this fixture the way it splits the real roster.
       { ...person('p1', 'Sound Person One', 'Sound', ORG_A), inBms: true },
-      person('p2', 'Sound Person Two', 'Sound', ORG_A),
+      // ACC-197: the one person with a crew T-shirt.
+      { ...person('p2', 'Sound Person Two', 'Sound', ORG_A), tshirtSize: 'M' as const },
       person('p3', 'Soundcheck Person', 'Soundcheck Ltd', ORG_B),
     ]
     // ACC-162: `all` IS the unfiltered population here.
@@ -104,6 +105,14 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await page.getByRole('button', { name: 'Remove Organisation filter' }).click()
     await expect(page).toHaveURL(/\/desk\/master$/)
     await expect(page.getByText('Soundcheck Person')).toBeVisible()
+  })
+
+  test('ACC-197: the Master list shows a crew T-shirt only on the person who has one', async ({ page }) => {
+    await installDesk(page, [])
+    await page.goto('/desk/master')
+    await expect(page.getByText('Sound Person Two')).toBeVisible()
+    await expect(page.getByText('Sound · Rigger · T-shirt M')).toHaveCount(1)
+    await expect(page.getByText(/T-shirt/)).toHaveCount(1)
   })
 
   test('the filter is an exact id, so "Sound" does not drag in "Soundcheck Ltd"', async ({ page }) => {

@@ -240,6 +240,8 @@ fill in for the crew who are to get a T-shirt at check-in:
 - **What it does:** the gate shows "Crew T-shirt · L" on the scan result, in
   person search and on the desk Master list. **The holder's pass
   (`/p/[passToken]`, `boa_acc_pass_view`) never carries it** (pgTAP proves it).
+- **Handed over:** the gate's "Mark given" records it (`boa_acc_tshirt_handover`),
+  so a rescan shows "Given" and the shirt is not handed out twice.
 - **A later change applies** to people who are already approved, unlike the
   tier: a shirt is a cue, not a band. It reaches the gate on its next pull.
 

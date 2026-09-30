@@ -36,6 +36,8 @@ const gateRosterRowSchema = z.object({
   dayValidity: z.enum(['build', 'show', 'build_show']),
   /** ACC-197: the crew T-shirt the desk chose for this person, else null. Gate-only. */
   tshirtSize: z.enum(['S', 'M', 'L', 'XL', 'XXL', '3XL']).nullable().optional(),
+  /** ACC-197b: when a volunteer handed the shirt over, else null. */
+  tshirtGivenAt: isoDateTime.nullable().optional(),
 })
 
 const gateLedgerRowSchema = z.object({
