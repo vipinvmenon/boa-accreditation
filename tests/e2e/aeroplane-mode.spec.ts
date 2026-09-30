@@ -728,6 +728,21 @@ test.describe('vehicle gate: resolve on input (ACC-159)', () => {
     expect(await vehicleOutbox(gate)).toEqual([])
   })
 
+  test('the Check button looks the plate up, and Enter does the same', async ({ page }) => {
+    const gate = (await installFixture(page, [])).page
+    await gate.goto('/gate/vehicle')
+    const check = gate.getByRole('button', { name: 'Check' })
+    await expect(check).toBeDisabled() // nothing typed yet
+    await gate.getByLabel('Vehicle registration').fill('KA01AB1234')
+    await expect(check).toBeEnabled()
+    await check.click()
+    await expect(gate.getByRole('heading', { name: 'Will not clear' })).toBeVisible()
+    await expect(gate.getByLabel('Vehicle registration')).not.toBeFocused() // keyboard dropped, answer in view
+    await gate.getByLabel('Vehicle registration').fill('KA02CD5678')
+    await gate.getByLabel('Vehicle registration').press('Enter')
+    await expect(gate.getByRole('heading', { name: 'Will not clear' })).toBeVisible()
+  })
+
   test('an unknown plate says nothing is issued to it, before the press', async ({ page }) => {
     const { page: gate } = await installFixture(page, ['success'])
     await gate.goto('/gate/vehicle')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { gateDb } from '@/gate/db'
 import { normalizePlate, queueVehicleEvent, resolvePlate, type PlateResolution } from '@/gate/vehicle-flow'
 import { Icon } from '@/components/icon'
@@ -148,6 +148,13 @@ export function VehicleScreen() {
     }
   }
 
+  async function lookUp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (normalized === null) return
+    setResolved(await resolvePlate(gateDb, normalized))
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+  }
+
   const cleared = result?.outcome === 'cleared'
   const outcome = cleared ? 'ok' : result ? 'bad' : undefined
   return (
@@ -160,19 +167,28 @@ export function VehicleScreen() {
 
         <div className="veh-split">
           <section className="panel veh-entry">
-            <label className="field" htmlFor="vehicle-plate">
-              <span className="label-sm">Vehicle registration</span>
-              <input
-                id="vehicle-plate"
-                className="input input-mono"
-                aria-label="Vehicle registration"
-                value={plate}
-                onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }}
-                placeholder="KA 01 AB 1234"
-                autoCapitalize="characters"
-                autoComplete="off"
-              />
-            </label>
+            {/* The lookup runs as you type; the button (and Enter) is the explicit
+                "check this one now": it re-reads the cache and drops the phone
+                keyboard so the answer beside it is not hidden behind it. */}
+            <form className="field veh-lookup" onSubmit={(event) => void lookUp(event)}>
+              <label className="label-sm" htmlFor="vehicle-plate">Vehicle registration</label>
+              <div className="veh-lookup-row">
+                <input
+                  id="vehicle-plate"
+                  className="input input-mono"
+                  aria-label="Vehicle registration"
+                  value={plate}
+                  onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }}
+                  placeholder="KA 01 AB 1234"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  enterKeyHint="search"
+                />
+                <button type="submit" className="btn btn-primary btn-gate veh-lookup-btn" disabled={normalized === null}>
+                  <Icon name="magnifying-glass" />Check
+                </button>
+              </div>
+            </form>
             <div className="plate-note">
               <span className="plate-note-ic" aria-hidden="true"><Icon name="warning" /></span>
               <div><b>Sticker and band. Both.</b>A match on the plate is not a match on the vehicle. Check the sticker against the plate in front of you.</div>
@@ -244,6 +260,15 @@ export function VehicleScreen() {
         /* .panel (app/r10/base.css) supplies the r10 tray, bezel and 34px
            padding; the gate keeps it solid on phones (no backdrop-filter). */
         .r10 .veh-entry .field { margin-bottom: var(--s-4); }
+        .r10 .veh-lookup { display: grid; gap: var(--s-2); }
+        .r10 .veh-lookup-row { display: flex; gap: var(--s-3); align-items: stretch; }
+        .r10 .veh-lookup-row .input { flex: 1; min-width: 0; }
+        .r10 .veh-lookup-btn { flex: none; width: auto; min-width: 112px; }
+        /* A phone is too narrow to share a row with the plate, which would be cut off. */
+        @media (max-width: 520px) {
+          .r10 .veh-lookup-row { flex-direction: column; }
+          .r10 .veh-lookup-btn { width: 100%; }
+        }
         .r10 .plate-note { display: flex; gap: var(--s-3); align-items: flex-start; margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); color: var(--ink); }
         .r10 .plate-note b { display: block; }
         .r10 .plate-note-ic { flex: none; color: var(--gold); font-size: 20px; line-height: 1.2; }
@@ -252,7 +277,8 @@ export function VehicleScreen() {
            taking layout space, so the panel reserves the room itself. */
         .r10 .vehicle-screen .veh-entry { padding-bottom: calc(34px + var(--s-5)); }
 
-        .r10 .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-6) 0; }
+        .r10 .veh-result { display: flex; flex-direction: column; }
+        .r10 .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-6) 0; margin: auto 0; }
         .r10 .veh-idle p { margin: 0; }
         .r10 .veh-result .verdict { margin: 0; color: var(--ink); }
         .r10 .veh-sub { margin: var(--s-2) 0 0; color: var(--ink-2); }
@@ -274,7 +300,7 @@ export function VehicleScreen() {
            the same container width as .gate-split's two columns. In a half
            column the two actions stack, as the gate's .g-dock does. */
         @container app (min-width: 1000px) {
-          .r10 .veh-split { grid-template-columns: 1fr 1fr; align-items: start; max-width: none; }
+          .r10 .veh-split { grid-template-columns: 1fr 1fr; align-items: stretch; max-width: none; }
           .r10 .veh-dock { grid-auto-flow: row; }
         }
       `}</style>
