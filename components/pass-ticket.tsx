@@ -158,7 +158,10 @@ export function GateTicket({
           </span>
           <span className="tk-tshirt-txt">
             <small>Crew T-shirt</small>
-            <strong>Size {tshirtSize}</strong>
+            <span className="tk-size">
+              <i>Size</i>{' '}
+              {tshirtSize}
+            </span>
           </span>
           {tshirtGivenAt ? (
             <b>Given</b>
