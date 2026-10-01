@@ -296,9 +296,11 @@
   font-size: var(--t-body-sm);
 }
 
+/* Milestone names: a label, not a headline (was 21px Anton, 1 Oct review). */
 .what {
   margin-top: var(--s-1);
-  font: 400 var(--t-display-sm)/1.05 var(--f-display);
+  font: 600 var(--t-label)/1.2 var(--f-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
@@ -508,7 +510,9 @@
   .heroInner { min-height: 0; }
   .heroInner {
     grid-template-columns: 1fr;
-    padding: 300px var(--s-4) var(--s-4);
+    /* 160px of poster, not 300: on a phone the art was a whole screen
+       before the number it frames (1 Oct review). */
+    padding: 160px var(--s-4) var(--s-4);
   }
   .heroArt {
     background-position: 50% 0;

@@ -203,10 +203,9 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
                 <span className={styles['heroUnit']}>still to collect a band</span>
               </div>
               <p className={styles['heroSub']}>
-                {dash ? dash.bandsIssued : <SkeletonText w="3ch" />} of {dash ? dash.approvedTotal : <SkeletonText w="3ch" />} bands handed over.
-                {daysToShow === null
-                  ? <> The show is in <b><SkeletonText w="2ch" /> days</b>, and everyone collects in person.</>
-                  : daysToShow > 0 && <> The show is in <b>{daysToShow} day{daysToShow === 1 ? '' : 's'}</b>, and everyone collects in person.</>}
+                {/* The show countdown is the ring's pill, and the gate countdown
+                    the line above: this sentence no longer repeats either. */}
+                {dash ? dash.bandsIssued : <SkeletonText w="3ch" />} of {dash ? dash.approvedTotal : <SkeletonText w="3ch" />} bands handed over. Everyone collects in person.
               </p>
               <div className={styles['heroActions']}>
                 <Link href="/desk/master?status=not_collected" className="btn btn-primary">

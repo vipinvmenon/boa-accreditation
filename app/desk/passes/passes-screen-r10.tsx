@@ -443,7 +443,7 @@ export function PassesScreenR10() {
               aria-expanded={menu !== null}
               onClick={() => setMenu(menu ? null : { field: null })}
             >
-              <i className="ph-light ph-funnel-simple passes-funnel" aria-hidden="true" />Add filter
+              <i className="ph-light ph-funnel-simple passes-funnel" aria-hidden="true" /><span className="btn-label">Add filter</span>
             </button>
             {menu && (
               <div className="passes-menu" role="menu" ref={menuRef} onClick={(event) => event.stopPropagation()}>

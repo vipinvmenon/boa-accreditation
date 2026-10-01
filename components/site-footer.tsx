@@ -23,11 +23,14 @@ export function SiteFooter({ signedInAs }: { signedInAs?: string | null }) {
       <div className="sf-in">
         <div className="sf-brand">
           <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
-          <p className="sf-date">
-            Show <span>10 Oct</span> 2026
-          </p>
         </div>
+        {/* 1 Oct review: the show date was a 39px headline under every working
+            screen. It is now one column among the other dates, same size. */}
         <div className="sf-cols">
+          <div>
+            <h2>Show</h2>
+            <p>10 October 2026.</p>
+          </div>
           <div>
             <h2>Gate live</h2>
             <p>4 October.</p>

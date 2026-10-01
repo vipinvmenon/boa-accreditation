@@ -195,10 +195,10 @@ export function VehicleScreen() {
                 </button>
               </div>
             </form>
-            {!result && !plateFacts && <div className="plate-note">
-              <span className="plate-note-ic" aria-hidden="true"><Icon name="warning" /></span>
-              <div><b>Check the sticker and the band.</b>The app only knows the number you type. Look at the sticker on the windscreen and make sure it matches the plate.</div>
-            </div>}
+            {/* The idle "check the sticker" callout is gone (1 Oct review): it
+                sat beside the line below saying the same thing, and the
+                result's own "Plate matches sticker" row asks for that check
+                at the moment it matters. */}
 
           {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
               buttons with no click handler — they only ever reflected the recorded outcome,
@@ -278,16 +278,13 @@ export function VehicleScreen() {
           .r10 .veh-lookup-row .input { font-size: 17px; letter-spacing: .02em; padding-inline: var(--s-3); }
           .r10 .veh-lookup-btn { min-width: 0; padding-inline: var(--s-4); font-size: 14px; }
         }
-        .r10 .plate-note { display: flex; gap: var(--s-3); align-items: flex-start; margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); color: var(--ink); }
-        .r10 .plate-note b { display: block; }
-        .r10 .plate-note-ic { flex: none; color: var(--gold); font-size: 20px; line-height: 1.2; }
         .r10 .veh-card > [data-sync-status] { margin: var(--s-4) 0 0; color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
 
         .r10 .veh-result { --c: var(--ink); display: flex; flex-direction: column; }
         .r10 .veh-result[data-o="ok"] { --c: var(--go); }
         .r10 .veh-result[data-o="bad"] { --c: var(--bad); }
         .r10 .veh-result:has(> .verdict) { margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--edge-line); }
-        .r10 .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-6) 0 0; margin: auto 0; }
+        .r10 .veh-idle { text-align: left; color: var(--ink-3); padding: var(--s-4) 0 0; margin: auto 0; }
         .r10 .veh-idle p { margin: 0; }
         .r10 .veh-result .verdict { margin: 0; color: var(--c); }
         .r10 .veh-sub { margin: var(--s-2) 0 0; color: var(--ink-2); }

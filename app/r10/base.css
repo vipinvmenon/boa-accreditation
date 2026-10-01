@@ -46,6 +46,10 @@
 
 .r10 .display-xl { margin: 0; font: 400 var(--t-display-xl)/.86 var(--f-display); text-transform: uppercase; }
 .r10 .display-lg { margin: 0; font: 400 var(--t-display-lg)/.9 var(--f-display); text-transform: uppercase; }
+/* Deliberate departure from r10 (Vipin, 1 Oct review): on the desk's working
+   screens a 56px "MASTER LIST" out-shouted the list it names. The token keeps
+   the contract value; only the page heads step down. */
+.r10 .frame.page h1.display-lg { font-size: clamp(30px, 2.4vw, 38px); }
 .r10 .display-md { margin: 0; font: 400 var(--t-display-md)/.95 var(--f-display); text-transform: uppercase; overflow-wrap: anywhere; text-wrap: balance; }
 .r10 .display-sm { margin: 0; font: 400 var(--t-display-sm)/1 var(--f-display); text-transform: uppercase; }
 .r10 .number { font: 400 var(--t-number)/.9 var(--f-display); font-variant-numeric: tabular-nums; }
@@ -433,18 +437,20 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
 }
-.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: var(--s-8) var(--s-14); max-width: var(--frame); margin: 0 auto; padding: var(--s-10) var(--gutter) var(--s-6); }
-.r10 .site-footer .sf-brand { display: grid; gap: var(--s-3); }
-.r10 .site-footer .sf-brand img { width: 176px; filter: var(--logo-filter); }
-.r10 .site-footer .sf-date { margin: 0; color: var(--ink); font: 400 39px/.9 var(--f-display); text-transform: uppercase; }
-.r10 .site-footer .sf-date span,
+.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: var(--s-6) var(--s-14); max-width: var(--frame); margin: 0 auto; padding: var(--s-8) var(--gutter) var(--s-5); }
+.r10 .site-footer .sf-brand { display: block; }
+/* The nav's logo size: the footer is a sign-off, not a second masthead. */
+.r10 .site-footer .sf-brand img { display: block; width: 104px; filter: var(--logo-filter); }
 .r10 .site-footer .sf-cols h2 { color: var(--gold); }
-.r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-8); }
+.r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, max-content) minmax(0, 1fr); gap: var(--s-10); }
 .r10 .site-footer .sf-cols h2 { margin: 0 0 var(--s-1); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-.r10 .site-footer .sf-cols p { max-width: 32ch; margin: 0; color: var(--ink-2); }
-.r10 .site-footer .sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2) var(--s-4); max-width: calc(var(--frame) - 2 * var(--gutter)); margin: 0 auto; padding: var(--s-4) var(--gutter) var(--s-6); border-top: 1px solid var(--hair); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
+.r10 .site-footer .sf-cols p { max-width: 40ch; margin: 0; color: var(--ink-2); font-size: var(--t-body-sm); }
+/* The base row shares the columns' left and right edges: it had the gutter
+   twice (max-width already took it off, then padding added it again). */
+.r10 .site-footer .sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2) var(--s-4); max-width: calc(var(--frame) - 2 * var(--gutter)); margin: 0 auto; padding: var(--s-3) 0 var(--s-5); border-top: 1px solid var(--hair); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
 .r10 .site-footer .sf-base a { color: inherit; text-decoration: none; }
 .r10 .site-footer .sf-base a:hover { color: var(--ink); }
+@media (max-width: 1100px) { .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-5); } }
 
 /* mock: the nav collapses to the burger below 900px (ui.css:77-83) */
 @media (max-width: 900px) {
@@ -511,10 +517,8 @@
   .r10 .nav-wrap { padding-inline: var(--s-3); }
   .r10 .island { width: 100%; justify-content: space-between; }
   .r10 .brand span { display: none; }
-  .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-6); padding: var(--s-8) var(--s-5) var(--s-5); }
-  .r10 .site-footer .sf-brand img { width: 140px; }
-  .r10 .site-footer .sf-date { font-size: 36px; }
-  .r10 .site-footer .sf-cols { grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-5); padding: var(--s-6) var(--s-5) var(--s-4); }
+  .r10 .site-footer .sf-cols { grid-template-columns: 1fr 1fr; gap: var(--s-4) var(--s-5); }
   .r10 .site-footer .sf-cols > :last-child { grid-column: 1 / -1; }
   .r10 .site-footer .sf-base { flex-direction: column; margin: 0 var(--s-5); padding-inline: 0; }
 }

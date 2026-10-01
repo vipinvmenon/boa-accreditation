@@ -47,6 +47,20 @@ _Last updated: 1 October 2026 (UX review fixes on branch `fix/ux-review-1-oct`).
   the browser against the live database at 1280 and 375. **Not verified:**
   `test:visual` fails waiting for `main .num` on the Control room, the known
   ACC-191 gap noted below, not re-run on main; light theme; a real phone.
+- **Second round, same day (Vipin: "cluttered, big font for unnecessary
+  stuff"):** desk page titles 56px → `clamp(30px, 2.4vw, 38px)` (scoped to
+  `.frame.page h1.display-lg`; the `--t-display-lg` token keeps the r10 value,
+  which `check-design-tokens` enforces, so this is a recorded departure, not a
+  token change); footer reduced to the nav-size logo and four equal columns
+  (Show / Gate live / Build / What we keep), the 39px "Show 10 Oct 2026"
+  headline gone, base row aligned to the columns (it had the gutter twice);
+  vehicle placeholder in the body face, not 22px upper-case mono, and the idle
+  "check the sticker" callout removed (it repeated the line under it); gate
+  status in one row (sync · online · operator); Control room milestones as
+  labels not 21px Anton, the hero no longer repeats the show countdown, the
+  phone poster 160px instead of 300px; "Add filter" icon-only on phones beside
+  the search. Verified: typecheck, lint, 322 unit, `test:e2e` 66/66, and
+  each screen at 1440 and 375 in the browser.
 - **Found, not fixed (not code, or not decided):** passes "Queued" since 29 Sep
   means no WhatsApp delivery receipt has reached the app; Loud Society's
   contact is +91 98765 43210, which looks like a placeholder; every org's kind

@@ -305,7 +305,6 @@ export default function GatePage() {
               <div className="scan-copy" aria-hidden="true">
                 <h3 className="label">Scan a pass</h3>
                 <p className="body-sm ink-2"><SkeletonText w="17ch" /></p>
-                <p className="mono"><SkeletonText w="18ch" /></p>
               </div>
               <div className="scan-meta mono" aria-hidden="true">
                 <span><SkeletonText w="26ch" /></span>
@@ -394,11 +393,13 @@ export default function GatePage() {
             <div className="scan-copy">
               <h3 className="label">Scan a pass</h3>
               <p className="body-sm ink-2">{snapshot.roster.length} passes on this phone</p>
-              <SyncStatus onSynced={loadCache} />
             </div>
+            {/* One status row instead of three stacked mono lines (1 Oct
+                review): when it last synced, whether it can, and who is on. */}
             <div className="scan-meta mono">
-              <span>{snapshot.meta.volunteerName} at {snapshot.meta.gateLabel}</span>
+              <SyncStatus onSynced={loadCache} />
               <span className={online ? 'q' : 'q wait'}>{online ? 'Online' : 'Offline'} · {queued} waiting to send{canSync ? '' : ' · not syncing, sign in again'}</span>
+              <span>{snapshot.meta.volunteerName} at {snapshot.meta.gateLabel}</span>
             </div>
             <PersonSearch roster={snapshot.roster} onOpen={() => { setCameraError(null); setSearchOpen(true) }} onClose={() => setSearchOpen(false)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <p role="alert" className="g-note bad">{cameraError}</p>}
@@ -488,6 +489,7 @@ const GATE_CSS = `
   .r10 .gate-split[data-resolution] .panel-result { display: block; }
   .r10 .scan-head { padding-bottom: var(--s-4); text-align: left; }
   .r10 .scan-head > * { margin: 0; }
+  .r10 .scan-head > p { margin-top: var(--s-1); }
   .r10 .scan-head .verdict { color: var(--go); }
   /* Searching by name: the list is the widget. The camera, its copy and the
      opener step aside so the matches are not pushed below the keyboard. */
@@ -522,8 +524,8 @@ const GATE_CSS = `
   .r10 .scan-copy { margin-top: var(--s-4); text-align: center; }
   .r10 .scan-copy h3 { margin: 0 0 4px; }
   .r10 .scan-copy p { margin: 0; }
-  .r10 .scan-copy .mono { margin-top: var(--s-2); color: var(--ink-3); font-size: var(--t-label-sm); text-align: center; }
-  .r10 .scan-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-3); margin-top: var(--s-3); color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
+  .r10 .scan-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-1) var(--s-4); margin-top: var(--s-3); color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
+  .r10 .scan-meta > p { margin: 0; }
   .r10 .scan-meta .q.wait { color: var(--gold); }
   .r10 .panel-scan > .btn { margin-top: var(--s-5); }
   .r10 .panel-scan .btn { padding-inline: var(--s-3); }

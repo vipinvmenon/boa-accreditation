@@ -161,6 +161,9 @@
 .r10 input[type="checkbox"]:focus-visible { outline: 0; box-shadow: var(--edge-focus); }
 .r10 input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .4; }
 .r10 .input-mono { min-height: 64px; text-align: center; font: 500 22px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+/* The hint must not read as a typed plate (1 Oct review): body face, normal
+   case, no tracking, the faint ink. */
+.r10 .input-mono::placeholder { font: 400 var(--t-body)/1 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink-3); opacity: 1; }
 .r10 .select { position: relative; }
 .r10 .select-trigger { display: flex; align-items: center; padding-right: var(--s-10); text-align: left; cursor: pointer; }
 .r10 .select-trigger:disabled { cursor: not-allowed; opacity: .5; }
@@ -208,7 +211,7 @@
 .r10 .search .input { padding-left: 44px; padding-right: 40px; border-radius: var(--r-pill); }
 .r10 .search .ph { position: absolute; z-index: 1; top: 50%; left: var(--s-4); color: var(--ink-3); transform: translateY(-50%); }
 /* The "/" shortcut hint means nothing on a touch screen (1 Oct review). */
-@media (hover: none) and (pointer: coarse) { .r10 .search kbd { display: none; } }
+@media (hover: none) and (pointer: coarse) { .r10 .search kbd { display: none; } .r10 .search .input { padding-right: var(--s-4); } }
 .r10 .search kbd {
   position: absolute;
   z-index: 1;
@@ -239,6 +242,12 @@
 .r10 .filterbar-row,
 .r10 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .r10 .chips { gap: var(--s-2); min-height: var(--h-chip); }
+/* Phones: "Add filter" keeps its name for assistive tech but shows only the
+   funnel, so it sits beside the search instead of taking a row of its own. */
+@media (max-width: 700px) {
+  .r10 .filterbar .btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .r10 .filterbar .search { min-width: 0; }
+}
 .r10 .chip {
   display: inline-flex;
   align-items: center;

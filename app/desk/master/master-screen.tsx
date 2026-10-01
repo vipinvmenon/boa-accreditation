@@ -275,7 +275,7 @@ export function MasterScreen() {
             aria-expanded={menu.open}
             onClick={() => setMenu(menu.open ? { open: false } : { open: true, field: null })}
           >
-            <span className="master-add-ic" aria-hidden="true"><Icon name="funnel-simple" /></span>Add filter
+            <span className="master-add-ic" aria-hidden="true"><Icon name="funnel-simple" /></span><span className="btn-label">Add filter</span>
           </button>
           {menu.open && (
             <div className="menu" role="menu" aria-label="Add a filter" ref={menuRef} onKeyDown={onMenuKeyDown}>
