@@ -132,9 +132,9 @@ function questionSpecs_() {
       // is in place.
       key: 'PHONE', type: 'TEXT', title: Q.PHONE, required: true,
       legacyTitles: ['Mobile number', 'WhatsApp Number'],
-      help: 'India: 10 digits, no +91. Any other country: start with + and the country code, e.g. +971501234567. No spaces.',
-      pattern: '^([6-9][0-9]{9}|\\+[1-9][0-9]{7,14})$',
-      patternHelp: 'India: 10 digits starting 6, 7, 8 or 9. Other countries: + then the country code and number, no spaces.',
+      help: 'India: 10 digits, no +91. Any other country: the country code then the number, e.g. +971501234567 or 971501234567. No spaces.',
+      pattern: '^([6-9][0-9]{9}|\\+?[1-9][0-9]{10,14})$',
+      patternHelp: 'India: 10 digits starting 6, 7, 8 or 9. Other countries: the country code then the number (a leading + is fine), no spaces.',
     },
     {
       // Multiple choice, not a dropdown: Google Forms only offers a write-in

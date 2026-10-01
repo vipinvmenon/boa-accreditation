@@ -92,8 +92,11 @@ _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room ar
   valid, 0 refused, one `+971` person approved.
 - **Not verified:** a WhatsApp message to a foreign number; the gate's phone
   search on one.
-- **Open:** the live Google Form's validation still rejects `+` numbers (only
-  the builder script changed). The 4 people approved in today's load, and the
+- **Form, 1 Oct:** the builder script now also accepts bare 11–15 digit
+  numbers (`971568250443`), matching the importer; `roster-form.test.ts`
+  covers it (18 pass). **Not verified on the live form:** it still shows the
+  old Indian-only rule until someone re-runs `buildRosterForm` in Apps Script.
+- **Open:** re-run `buildRosterForm` (above). The 4 people approved in today's load, and the
   rest, have not been sent passes.
 
 ## Import creates organisations and forgives typos (ACC-194), 29 Sep 2026

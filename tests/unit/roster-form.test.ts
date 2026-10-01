@@ -174,7 +174,8 @@ const onlyForm = (w: World) => {
 const item = (f: FakeForm, title: string) => f.items.find((i) => i.title === title)!
 
 /** The importer's normalisation, restated so the patterns can be pinned. */
-const normPhone = (v: string) => (v.startsWith('+') ? v : `+91${v}`)
+const normPhone = (v: string) =>
+  v.startsWith('+') ? v : /^[0-9]{11,15}$/.test(v) ? `+${v}` : `+91${v}`
 const normPlate = (v: string) => v.toUpperCase().replace(/\s/g, '')
 // The database's own CHECKs, from supabase/migrations/202609110001_boa_acc_core.sql.
 const DB_PHONE = /^\+(?:91[6-9][0-9]{9}|(?!91)[1-9][0-9]{7,14})$/
@@ -370,13 +371,13 @@ describe('roster form — patterns agree with the database', () => {
 
   it('accepts only phones the database will accept (10-digit Indian, or + and a country code)', () => {
     const p = patterns()('WhatsApp number')
-    for (const ok of ['9876543210', '6000000000', '+971501234567', '+447911123456', '+12125551234']) {
+    for (const ok of ['9876543210', '6000000000', '+971501234567', '+447911123456', '+12125551234', '971501234567', '971568250443']) {
       expect(p.test(ok)).toBe(true)
       expect(DB_PHONE.test(normPhone(ok))).toBe(true)
     }
     // The form is a first filter; the importer and the database are the authority
     // (a "+915…" typo passes the form's shape and is refused there).
-    for (const bad of ['98765 43210', '5876543210', '987654321', '+0501234567', '971501234567', '+97150']) {
+    for (const bad of ['98765 43210', '5876543210', '987654321', '+0501234567', '+97150', '97150123']) {
       expect(p.test(bad)).toBe(false)
     }
   })

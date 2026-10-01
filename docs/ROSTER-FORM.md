@@ -96,7 +96,7 @@ whenever needed.
 |---|---|---|---|---|
 | 1 | Organisation | dropdown, or text | yes | Dropdown once `ORGS` is filled in (ACC-030a); free text until then |
 | 2 | Full name | text | yes | 2–80 characters, as on their photo ID |
-| 3 | WhatsApp number | text | yes | 10 digits starting 6–9, no `+91`. The importer adds `+91`. Renamed from "Mobile number" by Vipin, 21 Sep |
+| 3 | WhatsApp number | text | yes | India: 10 digits starting 6–9, no `+91` (the importer adds it). Any other country: country code then number, with or without a leading `+` (ACC-195). Renamed from "Mobile number" by Vipin, 21 Sep |
 | 4 | Crew type | multiple choice + Other | yes | Security · Bouncer · Bar Crew · Merch Crew · Artist Hospitality · Food Stalls · Cashless · Sound & Lights · Generator · Ground Production · Sponsor · Special Tickets Crew · BOA Internal Crew · Family & Friends · Media / Photo · **Other (write-in)** |
 | 5 | Job title | text | no | 2–60 characters |
 | 6 | Days on site | single choice | yes | Build days only (5–9 Oct) · Show day only (10 Oct) · Both build and show |
@@ -354,7 +354,7 @@ node scripts/import-roster.mjs responses.csv --as you@example.com --report data/
 | Timestamp | US locale `M/D/YYYY H:MM:SS`, no zone in the cell. **Read as Asia/Kolkata** and sent as `…+05:30`. That is an assumption about the spreadsheet's time-zone setting, which the CSV does not carry — check **File ▸ Settings** on the response sheet says GMT+05:30 before the first real import. Becomes `submitted_at` |
 | Organisation | through `data/org-aliases.json`, then matched to `boa_acc_org.name` trimmed, whitespace-collapsed, case-insensitive. Unmatched names are reported with their row numbers, never guessed |
 | Full name | 2–80 characters |
-| WhatsApp number | read as a **string**; 10 digits starting 6–9 → `+91…`. Spaces and dashes tolerated; a spreadsheet round-trip like `9.87E9` is refused, never repaired |
+| WhatsApp number | read as a **string**; 10 digits starting 6–9 → `+91…`; `+…`, `00…` or 11–15 bare digits → international as typed. Spaces and dashes tolerated; a spreadsheet round-trip like `9.87E9` is refused, never repaired |
 | Crew type | case and spacing normalised (`normaliseCrewType`): a fixed choice takes the form's spelling; a write-in gets each word's first letter upper-cased, nothing lower-cased. Display and role text only — **never the tier** |
 | Job title | role text is the job title if given, else the crew type; 2–60 characters or the row is **refused, never truncated** |
 | Days on site | the three answers → `build` / `show` / `build_show`; sent as `day_validity` |
