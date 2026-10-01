@@ -450,6 +450,8 @@ test.describe('gate aeroplane mode', () => {
     await gate.getByRole('option', { name: /E2E Person 3/ }).click()
     await expectVerdict(gate, 'Collected')
 
+    // One widget: the result has the card, so "Next person" gives it back to the search.
+    await gate.getByRole('button', { name: 'Next person' }).click()
     await gate.getByRole('button', { name: "Can't scan? Search by name" }).click()
     await gate.getByRole('combobox', { name: 'Search approved list' }).fill('nobody here')
     await expect(gate.getByText('No approved person matches that search.')).toBeVisible()

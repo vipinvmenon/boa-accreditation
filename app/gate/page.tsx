@@ -298,6 +298,7 @@ export default function GatePage() {
           <GateTabs />
           <div className="gate-split">
             <div className="panel panel-scan">
+              <div className="scan-head"><h2 className="display-md verdict">Ready</h2><p className="body-sm ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>
               <div className="viewfinder" data-camera="off">
                 <i className="vf-corner tl" /><i className="vf-corner tr" /><i className="vf-corner bl" /><i className="vf-corner br" />
               </div>
@@ -314,7 +315,6 @@ export default function GatePage() {
               </button>
             </div>
             <div className="panel panel-result">
-              <div className="result-idle"><span className="label-sm">Waiting for a scan</span><h2 className="display-md verdict">Ready</h2><p className="ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>
             </div>
           </div>
         </div>
@@ -368,8 +368,9 @@ export default function GatePage() {
         {/* r8-gate.html opens with this segmented control, not a hero header:
             the nav island above already names the screen. */}
         <GateTabs />
-        <div className="gate-split" data-resolution={resultKey}>
+        <div className="gate-split" data-resolution={resultKey} data-search={searchOpen ? 'open' : undefined}>
           <div className="panel panel-scan">
+            <div className="scan-head"><h2 className="display-md verdict">Ready</h2><p className="body-sm ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>
             <div className="viewfinder" data-camera={cameraActive ? 'on' : 'off'}>
               <i className="vf-corner tl" /><i className="vf-corner tr" /><i className="vf-corner bl" /><i className="vf-corner br" />
               <div className="vf-sweep" aria-hidden="true" />
@@ -404,7 +405,6 @@ export default function GatePage() {
               buttons with no click handler, so they were removed; the verdict heading and
               aria-live on this panel carry the outcome. */}
           <div className="panel panel-result" id="gres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--c': colour } as CSSProperties}>
-            {!resolution && <div className="result-idle"><span className="label-sm">Waiting for a scan</span><h2 className="display-md verdict">Ready</h2><p className="ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>}
             {resolution && <div className="result-body">
               <div className="g-hero">
                 <span className="mark" aria-hidden="true"><svg viewBox="0 0 40 40">{resolution.status === 'green' ? <path d="M10 21l7 7 14-15" /> : resolution.status === 'amber' ? <><path d="M20 9v14" /><path d="M20 30v.5" /></> : <><path d="M12 12l16 16" /><path d="M28 12L12 28" /></>}</svg></span>
@@ -467,18 +467,33 @@ const GATE_CSS = `
   .r10 .gate-screen { padding-block: var(--s-10) var(--s-10); }
   @media (max-width: 700px) { .r10 .gate-screen { padding-top: var(--s-6); } }
 
+  /* One widget (Vipin, 30 Sep): the camera, the result and the name search
+     take turns in the same card, so the eye never has to find where the
+     answer went. Same 600px column, centred, on a phone and on a desk. */
+  .r10 .gate-screen { max-width: 600px; margin-inline: auto; }
   .r10 .gate-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; align-items: start; }
+  @media (max-width: 520px) { .r10 .gate-screen .panel { padding: 18px; } }
   /* The gate's panels are the shared .panel (base.css): the tray and glass
      plate the vehicle screen and the desk cards draw. A flat box with its own
      hairline here read as a different component (Vipin, 29 Sep). */
-  .r10 .gate-screen .panel { overflow: hidden; }
+  .r10 .gate-screen .panel { overflow: clip; }
 
   /* Phone: one panel, two states (scan or result), in place. The scan panel is
      clipped, not display:none, so the camera keeps decoding behind a result. */
   .r10 .gate-split[data-resolution] .panel-scan { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .r10 .panel-result { display: none; }
   .r10 .gate-split[data-resolution] .panel-result { display: block; }
-  .r10 .result-idle { display: none; }
+  .r10 .scan-head { padding-bottom: var(--s-4); text-align: left; }
+  .r10 .scan-head > * { margin: 0; }
+  .r10 .scan-head .verdict { color: var(--go); }
+  /* Searching by name: the list is the widget. The camera, its copy and the
+     opener step aside so the matches are not pushed below the keyboard. */
+  .r10 .gate-split[data-search] .scan-head,
+  .r10 .gate-split[data-search] .viewfinder,
+  .r10 .gate-split[data-search] .scan-copy,
+  .r10 .gate-split[data-search] .scan-meta,
+  .r10 .gate-split[data-search] .panel-scan > .btn[aria-expanded="true"] { display: none; }
+  .r10 .gate-split[data-search] .name-search { margin-top: 0; }
 
   /* Not the mockup's #000 (Vipin, 29 Sep): a dark see-through well that
      belongs to the glass panel around it. The camera feed covers it once on. */
@@ -524,10 +539,11 @@ const GATE_CSS = `
   .r10 .name-search-result small { display: block; color: var(--ink-3); font-size: var(--t-body-sm); }
   .r10 .name-search .btn.wide { width: 100%; min-height: var(--h-control-gate); }
 
-  .r10 .g-hero { display: grid; justify-items: center; gap: var(--s-3); padding-bottom: var(--s-4); text-align: center; }
-  .r10 .mark { flex: none; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 18%, transparent); box-shadow: inset 0 0 0 2px var(--c); }
-  .r10 .mark svg { width: 40px; height: 40px; stroke: var(--c); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .r10 .g-verdict, .r10 .result-idle .verdict { margin: 0; color: var(--ink); }
+  .r10 .g-hero { display: flex; align-items: center; gap: var(--s-4); padding-bottom: var(--s-4); text-align: left; }
+  .r10 .mark { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 18%, transparent); box-shadow: inset 0 0 0 2px var(--c); }
+  .r10 .mark svg { width: 32px; height: 32px; stroke: var(--c); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .r10 .g-verdict { margin: 0; color: var(--ink); }
+  .r10 .panel-result[data-o] .g-verdict { color: var(--c); }
   .r10 .g-sub { margin: 2px 0 0; color: var(--ink-2); }
   .r10 .g-note { margin: var(--s-4) 0 0; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--raised); color: var(--ink-2); }
   .r10 .g-note.bad { background: var(--bad-tint); color: var(--ink); }
@@ -535,6 +551,10 @@ const GATE_CSS = `
   .r10 .g-field { margin-top: 0; }
   .r10 .g-dock { display: grid; gap: var(--s-3); margin-top: var(--s-4); }
   .r10 .g-dock .btn { width: 100%; }
+  /* Phone: the buttons stay in thumb reach however tall the ticket is. */
+  @media (max-width: 700px) {
+    .r10 .g-dock { position: sticky; bottom: var(--s-3); z-index: 2; margin-inline: calc(var(--s-2) * -1); padding: var(--s-3) var(--s-2) 0; border-radius: var(--r-md); background: color-mix(in srgb, var(--surface) 94%, transparent); }
+  }
   .r10 .g-message { color: var(--go); }
   .r10 .g-message.bad { color: var(--bad); }
 
@@ -555,12 +575,4 @@ const GATE_CSS = `
   .r10 .gate-screen .name-search-result b { font-family: var(--f-body); font-size: var(--t-body); text-transform: none; }
   .r10 .gate-screen .name-search-result small { margin-top: 0; font-family: var(--f-body); font-size: var(--t-body-sm); letter-spacing: normal; }
   .r10 .gate-screen .name-search .field input { min-height: var(--h-control); }
-
-  @container app (min-width: 1000px) {
-    .r10 .gate-split { grid-template-columns: 1fr 1fr; }
-    .r10 .gate-split .panel-scan, .r10 .gate-split[data-resolution] .panel-scan { position: relative; width: auto; height: auto; padding: calc(6px + 28px); overflow: hidden; clip: auto; white-space: normal; }
-    .r10 .gate-split .panel-result { display: block; }
-    .r10 .gate-split:not([data-resolution]) .result-idle { display: grid; place-items: center; gap: var(--s-3); padding: var(--s-14) 0; text-align: center; color: var(--ink-3); }
-    .r10 .viewfinder { max-height: none; }
-  }
 `
