@@ -44,11 +44,24 @@ const TIMELINE = [
   { when: '10 Oct', label: 'Show', doneAt: SHOW_DATE },
 ] as const
 
-/** 0 to 1 across the whole links-out-to-show span, for the timeline's fill line. */
+/**
+ * 0 to 1 for the timeline's fill line. The four dots sit at even steps along
+ * the line (a quarter of its width apart), not at their calendar distances, so
+ * the fill moves through each gap between two milestones in proportion to the
+ * days within that gap. A calendar-wide fraction put the fill past a dot whose
+ * date had not come (1 Oct showed the line beyond Build).
+ */
+const TIMELINE_DOTS = [LINKS_OUT_DATE, GATE_LIVE_DATE, BUILD_START_DATE, SHOW_DATE] as const
+
 function timelineProgress(now: Date): number {
-  const total = SHOW_DATE.getTime() - LINKS_OUT_DATE.getTime()
-  const elapsed = now.getTime() - LINKS_OUT_DATE.getTime()
-  return Math.min(1, Math.max(0, elapsed / total))
+  if (now >= SHOW_DATE) return 1
+  const step = 1 / TIMELINE_DOTS.length
+  const gaps = TIMELINE_DOTS.slice(1).map((to, i) => ({ from: TIMELINE_DOTS[i]!, to }))
+  const gap = gaps.findIndex(({ to }) => now < to)
+  const current = gaps[gap]
+  if (!current) return 0
+  const within = (now.getTime() - current.from.getTime()) / (current.to.getTime() - current.from.getTime())
+  return (gap + Math.min(1, Math.max(0, within))) * step
 }
 
 function daysBetween(from: Date, to: Date): number {
