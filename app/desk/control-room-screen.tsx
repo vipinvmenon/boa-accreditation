@@ -105,6 +105,9 @@ function heroKickerText(now: Date): string {
   return `Show day. ${sinceGate}`
 }
 
+/** Tiers that go to the band shelf's last row, in this order. */
+const SHELF_LAST: readonly string[] = ['artist', 'general_admission']
+
 function ratio(value: number, total: number): number {
   return total > 0 ? Math.min(1, Math.max(0, value / total)) : 0
 }
@@ -180,9 +183,13 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
   // `types` aggregate) — TIERS is that order, so the shelf is laid out
   // before the counts arrive. `issued` is null until the counts land, and
   // stays null (a dash) if the collection read failed.
-  const types = dash
+  const shelf = dash
     ? dash.types.map((t) => ({ code: t.code, note: t.note ?? null, issued: collection ? (tierCounts.get(t.code)?.collected ?? 0) : null }))
     : TIERS.map((t) => ({ code: t.code, note: null, issued: null }))
+  // Shelf order (Vipin, 1 Oct): the bands the desk hands out lead, and Artist
+  // (handled at the hotel) and General Admission (ticketing's band) share the
+  // last row. Display only: boa_acc_type.sort_order is untouched.
+  const types = [...shelf].sort((a, b) => Number(SHELF_LAST.includes(a.code)) - Number(SHELF_LAST.includes(b.code)))
 
   return (
     <main id="main-content" tabIndex={-1} className={styles['controlRoom']} aria-busy={dash ? undefined : true}>
@@ -321,9 +328,9 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
               ))}
             </ul>
           ) : dash.gateCounts === null || dash.latestIssues === null ? (
-            <p className={styles['feedSub']}>Today&apos;s gate activity isn&apos;t available right now.</p>
+            <p className={`${styles['feedSub']} ${styles['feedEmptyMsg']}`}>Today&apos;s gate activity isn&apos;t available right now.</p>
           ) : dash.latestIssues.length === 0 ? (
-            <p className={styles['feedSub']}>No bands or stickers issued yet today.</p>
+            <p className={`${styles['feedSub']} ${styles['feedEmptyMsg']}`}>No bands or stickers issued yet today.<br />Each one appears here as the gate hands it over.</p>
           ) : (
             <>
               <div className={styles['gates']}>

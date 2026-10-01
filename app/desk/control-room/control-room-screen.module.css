@@ -202,9 +202,11 @@
 .week,
 .behind { grid-column: 1 / -1; }
 .feed { grid-column: span 4; }
-/* An empty feed is one line: it keeps its own height instead of stretching
-   into a tall empty card beside the left column. */
-.feedEmpty { align-self: start; }
+/* An empty feed still stretches to the left column's height (a short card
+   left a hole beside the tiles, Vipin 1 Oct); its one line sits in the
+   middle of the space the feed will fill on show days. */
+.feedEmpty { display: flex; flex-direction: column; }
+.feedEmpty > .feedEmptyMsg { margin: auto 0; padding: var(--s-6) 0; text-align: center; }
 
 /* `.r10 a.card` is display:block; the tile needs a column so the meter sits at the foot. */
 .bento .bLeft a.tile {
