@@ -42,7 +42,7 @@ async function installChrome(page: Page) {
 }
 
 test.describe('desk tiers (ACC-115)', () => {
-  test('control room renders every tier the dashboard returns, in its order', async ({ page }) => {
+  test('control room renders every tier the dashboard returns, in its order, Artist and GA last', async ({ page }) => {
     await installChrome(page)
     await page.goto('/desk')
     // r10 (r8-control-room.html): a "Bands" shelf; each card lists its HELD zones
@@ -50,7 +50,11 @@ test.describe('desk tiers (ACC-115)', () => {
     const shelf = page.getByRole('region', { name: 'Bands' })
     const cards = shelf.locator('a.card')
     await expect(cards).toHaveCount(8)
-    await expect(cards.locator('h3')).toHaveText(TIERS.map((t) => t.label))
+    // Vipin, 1 Oct: Artist and General Admission close the shelf; the rest
+    // keep the dashboard's (boa_acc_type.sort_order) order.
+    const last = ['artist', 'general_admission']
+    const shelfOrder = [...TIERS.filter((t) => !last.includes(t.code)), ...last.map((code) => TIERS.find((t) => t.code === code)!)]
+    await expect(cards.locator('h3')).toHaveText(shelfOrder.map((t) => t.label))
     const promoters = cards.filter({ hasText: 'Promoters Lounge note from the database' })
     await expect(promoters.locator('ul li')).toHaveText(['Festival Area', 'Promoters Lounge', 'Backstage'])
     // Removed with ADR-021: this asserted `.li .band`, the band chip on the
