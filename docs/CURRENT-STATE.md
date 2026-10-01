@@ -94,9 +94,11 @@ _Last updated: 29 September 2026 (skeletons and load-jump fixes; control room ar
   search on one.
 - **Form, 1 Oct:** the builder script now also accepts bare 11–15 digit
   numbers (`971568250443`), matching the importer; `roster-form.test.ts`
-  covers it (18 pass). **Not verified on the live form:** it still shows the
-  old Indian-only rule until someone re-runs `buildRosterForm` in Apps Script.
-- **Open:** re-run `buildRosterForm` (above). The 4 people approved in today's load, and the
+  covers it (18 pass). `buildRosterForm` was re-run in Apps Script on 1 Oct
+  (same form, same links). **Verified on the live form** by typing, without
+  submitting: `971568250443` is accepted, `5876543210` is refused with the new
+  message. The Apps Script copy was updated by editing the phone question only.
+- **Open:** The 4 people approved in today's load, and the
   rest, have not been sent passes.
 
 ## Import creates organisations and forgives typos (ACC-194), 29 Sep 2026
