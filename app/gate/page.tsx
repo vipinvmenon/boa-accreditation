@@ -359,7 +359,10 @@ export default function GatePage() {
     )
   }
 
-  const issuedCount = snapshot.ledger.filter((row) => row.kind === 'wristband').length
+  // "Issued today" means today, in India: the ledger on this phone holds every
+  // band since the gate went live, and the count used to be all of them.
+  const todayIst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+  const issuedCount = snapshot.ledger.filter((row) => row.kind === 'wristband' && new Date(row.occurredAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) === todayIst).length
   const resultKey = resolution?.status === 'green' ? 'green' : resolution?.status === 'amber' ? 'amber' : resolution ? 'red' : undefined
 
   return (
@@ -394,8 +397,8 @@ export default function GatePage() {
               <SyncStatus onSynced={loadCache} />
             </div>
             <div className="scan-meta mono">
-              <span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span>
-              <span className={online ? 'q' : 'q wait'}>{online ? 'Online' : 'Offline'} | {queued} queued{canSync ? '' : ' | not syncing, sign in again'}</span>
+              <span>{snapshot.meta.volunteerName} at {snapshot.meta.gateLabel}</span>
+              <span className={online ? 'q' : 'q wait'}>{online ? 'Online' : 'Offline'} · {queued} waiting to send{canSync ? '' : ' · not syncing, sign in again'}</span>
             </div>
             <PersonSearch roster={snapshot.roster} onOpen={() => { setCameraError(null); setSearchOpen(true) }} onClose={() => setSearchOpen(false)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <p role="alert" className="g-note bad">{cameraError}</p>}
@@ -431,7 +434,7 @@ export default function GatePage() {
         </div>
 
         <section className="last-issued">
-          <h2 className="label gold">Last issued at this gate</h2>
+          <h2 className="label gold">Last issued</h2>
           <div className="last-list">
             {recent.map((row) => {
               const holder = personById.get(row.personId)
@@ -451,7 +454,7 @@ export default function GatePage() {
               return <div key={row.id} className="last-row"><span className="bar" style={{ '--c': holder ? tierColour(holder.typeCode, theme) : 'var(--ink-3)' } as CSSProperties} /><div><div className="nm">{history.name}</div><div className="sub">{history.detail}</div></div></div>
             })}
           </div>
-          <p className="last-meta mono"><span>{issuedCount} issued today</span><span>Ledger append-only</span></p>
+          <p className="last-meta mono"><span>{issuedCount} {issuedCount === 1 ? 'band' : 'bands'} issued today</span></p>
         </section>
       </div>
       <style jsx global>{GATE_CSS}</style>

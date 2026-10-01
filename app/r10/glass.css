@@ -123,6 +123,13 @@
   background: var(--gl-scrim);
 }
 
+/* The operator popover opens over the page's own green primary ("Invite
+   operator", "Send unsent passes"); at the shared overlay's transparency that
+   button glowed through the menu text (1 Oct review). Near-solid here only. */
+.r10 .profile-menu {
+  background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
+}
+
 /* The 700–900px menu was solid --bg. */
 @media (max-width: 900px) {
   .r10 #desk-menu:not([hidden]) {

@@ -160,7 +160,7 @@ async function installFixture(
 async function reloadColdOffline(page: Page) {
   await page.context().setOffline(true)
   await page.reload()
-  await expect(page.getByText(/Offline \|/)).toBeVisible()
+  await expect(page.getByText(/Offline ·/)).toBeVisible()
 }
 
 async function scan(page: Page, value: string) {
@@ -288,7 +288,7 @@ test.describe('gate aeroplane mode', () => {
     await reloadColdOffline(gate)
 
     await queueWristband(gate, PEOPLE[0].passToken)
-    await expect(gate.getByText(/Offline \| 1 queued/)).toBeVisible()
+    await expect(gate.getByText(/Offline · 1 waiting to send/)).toBeVisible()
     await scan(gate, 'garbage')
     await expectVerdict(gate, 'Refuse')
     await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
@@ -305,7 +305,7 @@ test.describe('gate aeroplane mode', () => {
     // "0 queued" can be on screen before the second issue's drain runs. Wait
     // on the outbox itself, not the label.
     await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done'])
-    await expect(gate.getByText(/Online \| 0 queued/)).toBeVisible()
+    await expect(gate.getByText(/Online · 0 waiting to send/)).toBeVisible()
     expect(requests).toHaveLength(2)
     expect(requests[0]).not.toBe(requests[1])
   })
@@ -369,7 +369,7 @@ test.describe('gate aeroplane mode', () => {
     await gate.context().setOffline(false)
     await gate.waitForFunction(() => navigator.onLine)
     await queueWristband(gate, PEOPLE[2].passToken)
-    await expect(gate.getByText(/Online \| 3 queued/)).toBeVisible()
+    await expect(gate.getByText(/Online · 3 waiting to send/)).toBeVisible()
     // Since ACC-109 the `online` event drains as well as an issue, so the
     // head entry may be retried. What must hold: only the head is ever sent
     // (a 401 stops the drain) and nothing is dropped.
@@ -389,7 +389,7 @@ test.describe('gate aeroplane mode', () => {
     await gate.context().setOffline(false)
     await gate.waitForFunction(() => navigator.onLine)
     await queueWristband(gate, PEOPLE[2].passToken)
-    await expect(gate.getByText(/Online \| 3 queued/)).toBeVisible()
+    await expect(gate.getByText(/Online · 3 waiting to send/)).toBeVisible()
     expect(requests).toHaveLength(1)
 
     await makePendingEntriesReady(gate)
@@ -398,7 +398,7 @@ test.describe('gate aeroplane mode', () => {
     // bug). Reconnecting triggers the drain now.
     await gate.context().setOffline(true)
     await gate.context().setOffline(false)
-    await expect(gate.getByText(/Online \| 0 queued/)).toBeVisible()
+    await expect(gate.getByText(/Online · 0 waiting to send/)).toBeVisible()
     expect(requests).toHaveLength(4)
     expect(requests[0]).toBe(requests[1])
     expect(requests[2]).not.toBe(requests[0])
@@ -436,7 +436,7 @@ test.describe('gate aeroplane mode', () => {
     await expect(box).toHaveCount(0)
     await gate.getByLabel('Wristband serial, optional').fill('0417')
     await gate.getByRole('button', { name: 'Issue wristband' }).click()
-    await expect(gate.getByText(/Offline \| 1 queued/)).toBeVisible()
+    await expect(gate.getByText(/Offline · 1 waiting to send/)).toBeVisible()
     await expect.poll(() => outboxIssues(gate)).toEqual([
       { status: 'pending', passToken: PEOPLE[2].passToken, kind: 'wristband', bandSerial: '0417' },
     ])
@@ -536,7 +536,7 @@ test.describe('gate aeroplane mode', () => {
     // Administrator" every issuer's phone used to show.
     await page.getByRole('button', { name: 'Operator menu' }).click()
     await expect(page.locator('#gate-profile-menu').getByText('Vipin Menon')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Manage users' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Users', exact: true })).toBeVisible()
   })
 
   test('an issuer gets the two-tab gate chrome and no desk links at all', async ({ page }) => {
@@ -561,7 +561,7 @@ test.describe('gate aeroplane mode', () => {
     await page.getByRole('button', { name: 'Operator menu' }).click()
     await expect(page.locator('#gate-profile-menu').getByText('Meera Joseph')).toBeVisible()
     // A desk link a volunteer taps and gets refused is a trap, not security.
-    await expect(page.getByRole('link', { name: 'Manage users' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Users', exact: true })).toHaveCount(0)
   })
 
   test('a pull that fails on signal offers Try again, not Sign in, and recovers', async ({ page }) => {
@@ -652,13 +652,18 @@ test.describe('vehicle gate (ACC-109)', () => {
     expect(vehiclePosts[0]?.checks).toEqual({ sticker: true, wristband: true, plateVisual: true })
   })
 
-  test('Log entry without a sticker logs nothing; Turn away with a reason logs TURNED AWAY', async ({ page }) => {
+  test('Without a sticker entry is not offered; Turn away with a reason logs TURNED AWAY', async ({ page }) => {
     const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
     await gate.goto('/gate/vehicle')
     await gate.context().setOffline(true)
     await gate.getByLabel('Vehicle registration').fill('KA 01 AB 1234')
-    await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
-    await expectVerdict(gate, 'Not cleared')
+    await expectVerdict(gate, 'Will not clear')
+    // 1 Oct UX review: no green "open gate" under a red verdict.
+    await expect(gate.getByRole('button', { name: 'Entry not possible' })).toBeDisabled()
+    await expect(gate.getByRole('button', { name: 'Log entry and open gate' })).toHaveCount(0)
+    await gate.getByRole('button', { name: 'Turn away and log reason' }).click()
+    await expect(gate.getByLabel('Turn-away reason')).toBeFocused()
+    await expect(gate.getByRole('button', { name: 'Entry not possible' })).toBeDisabled()
     expect(await vehicleOutbox(gate)).toEqual([])
 
     await gate.getByLabel('Turn-away reason').fill('No sticker')
@@ -852,8 +857,9 @@ test.describe('the plate index is built by the pull (ACC-153)', () => {
 
     await gate.goto('/gate/vehicle')
     await gate.getByLabel('Vehicle registration').fill('KA 01 ZZ 9999')
-    await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
-    await expectVerdict(gate, 'Not cleared')
+    await expectVerdict(gate, 'Will not clear')
+    // Entry is not offered at all on a refused plate (1 Oct UX review).
+    await expect(gate.getByRole('button', { name: 'Entry not possible' })).toBeDisabled()
     expect(await vehicleOutbox(gate)).toEqual([])
   })
 

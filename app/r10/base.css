@@ -309,6 +309,11 @@
 }
 .r10 .links a:hover { color: var(--ink); }
 .r10 .links a[aria-current="page"] { color: var(--go); }
+/* A green focus ring beside the green glass pip read as two current pages
+   (1 Oct review): the nav's keyboard ring is the ink colour instead. */
+.r10 .links a:focus-visible { outline-color: var(--ink); }
+/* /desk/users lives in the operator menu, so the avatar marks it. */
+.r10 .av[data-here] { color: var(--go); box-shadow: 0 0 0 1px color-mix(in srgb, var(--go) 60%, transparent); }
 .r10 .links .pip {
   position: absolute;
   top: 0;

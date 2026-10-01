@@ -33,6 +33,11 @@ export function formatLedgerTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso))
 }
 
+/** A date on the desk's clock, e.g. "25 Sept", the same form as every other desk date. */
+export function formatDeskDate(iso: string): string {
+  return dateFormatter.format(new Date(iso))
+}
+
 /** A typed band serial, or the fact that none was typed (non-negotiable #6). */
 export function formatBandSerial(serial: string | null): string {
   if (!serial) return 'No serial typed'

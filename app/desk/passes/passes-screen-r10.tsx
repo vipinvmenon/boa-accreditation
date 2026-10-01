@@ -101,6 +101,7 @@ export function PassesScreenR10() {
   const [selected, setSelected] = useState<PassWithQr | null>(null)
   const [confirmAll, setConfirmAll] = useState(false)
   const [confirmResend, setConfirmResend] = useState(false)
+  const [armed, setArmed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -109,10 +110,16 @@ export function PassesScreenR10() {
   const tableRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const urlReady = useRef(false)
+  const pendingPerson = useRef<string | null>(null)
 
   const showToast = useCallback((text: string, bad = false) => {
     setToast({ id: Date.now(), text, bad, icon: bad ? 'warning-circle' : 'check-circle' })
   }, [])
+  useEffect(() => {
+    if (!armed) return
+    const timer = window.setTimeout(() => setArmed(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [armed])
   useEffect(() => {
     if (!toast) return
     const timer = window.setTimeout(() => setToast(null), 4000)
@@ -143,6 +150,14 @@ export function PassesScreenR10() {
       if (!parsed.success) throw new Error('invalid_response')
       setPasses(parsed.data.passes)
       setError(false)
+      // /desk/passes?person=<id> (the Master list's "Open pass") opens that
+      // person's pass straight away instead of dropping the operator on the
+      // whole list to search again. Read at mount (pendingPerson), because the
+      // URL effect below rewrites the address before this fetch returns.
+      const personId = pendingPerson.current
+      pendingPerson.current = null
+      const match = personId ? parsed.data.passes.find((pass) => pass.id === personId) : undefined
+      if (match) setSelected(match)
     } catch {
       setError(true)
     } finally {
@@ -153,6 +168,7 @@ export function PassesScreenR10() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const initial = readUrlState()
+      pendingPerson.current = new URLSearchParams(window.location.search).get('person')
       setQuery(initial.query)
       setFilters(initial.filters)
       urlReady.current = true
@@ -214,11 +230,14 @@ export function PassesScreenR10() {
 
   const filteredPasses = useMemo(() => {
     const needle = query.trim().toLowerCase()
+    // Newest first, like the Master list: pass refs are numbered as people
+    // are approved, so the latest approvals lead (the RPC's own order read as
+    // random next to the Master list — 1 Oct review).
     return passes.filter((pass) => {
       const matchesQuery = !needle || [pass.fullName, pass.orgName, pass.role, pass.passRef]
         .some((value) => value.toLowerCase().includes(needle))
       return matchesQuery && matches(pass, filters)
-    })
+    }).sort((a, b) => b.passRef.localeCompare(a.passRef, undefined, { numeric: true }))
   }, [filters, matches, passes, query])
 
   const activeFields = FIELD_KEYS.filter((field) => (filters[field]?.length ?? 0) > 0)
@@ -545,7 +564,7 @@ export function PassesScreenR10() {
               const stamp = sentStamp(sendState?.last?.requestedAt)
               const tierLabel = tier(pass.typeCode).label
               const tierStyle = { '--c': tierColour(pass.typeCode, theme) } as CSSProperties
-              const reason = sendState?.last?.failureReason ?? undefined
+              const reason = sendState?.last?.failureReason ?? (sendStatus.label === 'Queued' ? 'WhatsApp accepted it; no delivery receipt has come back yet.' : undefined)
               return (
                 <div
                   key={pass.id}
@@ -568,12 +587,16 @@ export function PassesScreenR10() {
                       disabled={!canSend || busy !== null}
                       onClick={(event) => {
                         event.stopPropagation()
-                        if (!sendState?.last) sendOne(pass, false)
-                        else if (sendState.live) openPass(pass, true)
-                        else sendOne(pass, false)
+                        if (sendState?.live) { openPass(pass, true); return }
+                        // A WhatsApp message cannot be unsent, so a row's Send
+                        // takes a second tap, the way bulk send takes a hold
+                        // (1 Oct review). The first tap arms it for 4 s.
+                        if (armed !== pass.id) { setArmed(pass.id); return }
+                        setArmed(null)
+                        sendOne(pass, false)
                       }}
                     >
-                      {sendState?.last ? 'Resend' : 'Send'}
+                      {armed === pass.id ? `Send to ${pass.fullName.split(/\s+/)[0]}?` : sendState?.last ? 'Resend' : 'Send'}
                     </Button>
                   </TableCell>
                   <div className="row2">
@@ -689,7 +712,7 @@ export function PassesScreenR10() {
         .passes-row .sub { font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: normal; text-transform: none; }
         .passes-tier { color: var(--ink); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
         .passes-tier span { display: inline-flex; align-items: center; gap: var(--s-2); }
-        .passes-tier span::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); transition: transform var(--d-quick) var(--e-out); }
+        .passes-tier span::before { content: ""; width: 10px; height: 10px; border-radius: var(--r-xs); background: var(--c); transition: transform var(--d-quick) var(--e-out); }
         @media (hover: hover) { .passes-row:hover .passes-tier span::before { transform: scale(1.3); } }
         .passes-wa { display: grid; gap: 2px; justify-items: start; }
         .passes-stamp { color: var(--ink-3); }

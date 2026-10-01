@@ -12,10 +12,14 @@
   .controlRoom { margin-top: calc(var(--s-6) - var(--s-10)); }
 }
 
-/* ── Hero: the poster is the stage, the number sits on glass in front of it ── */
+/* ── Hero: the poster is the stage, the number sits on glass in front of it ──
+   r10 draws it 672px tall. On a 1280×800 desk that is the whole first screen
+   and every working number sits below the fold (1 Oct UX review, Vipin asked
+   for the fix): capped at 56% of the viewport so the week and the tiles
+   start on the first screen, never taller than the mockup. */
 .hero {
   position: relative;
-  min-height: 672px;
+  min-height: clamp(420px, 56vh, 672px);
   padding: 6px;
   border-radius: 28px;
   isolation: isolate;
@@ -25,7 +29,7 @@
 
 .heroClip {
   position: relative;
-  min-height: 660px;
+  min-height: clamp(408px, calc(56vh - 12px), 660px);
   overflow: hidden;
   border-radius: 22px;
   isolation: isolate;
@@ -66,7 +70,7 @@
   grid-template-columns: minmax(0, 440px) 1fr;
   align-items: end;
   gap: var(--s-8);
-  min-height: 660px;
+  min-height: clamp(408px, calc(56vh - 12px), 660px);
   padding: var(--s-8);
 }
 
@@ -198,6 +202,9 @@
 .week,
 .behind { grid-column: 1 / -1; }
 .feed { grid-column: span 4; }
+/* An empty feed is one line: it keeps its own height instead of stretching
+   into a tall empty card beside the left column. */
+.feedEmpty { align-self: start; }
 
 /* `.r10 a.card` is display:block; the tile needs a column so the meter sits at the foot. */
 .bento .bLeft a.tile {
@@ -376,8 +383,19 @@
 .behindLink:active { transform: scale(.98); }
 
 .behindN {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
   font: 400 31px/1 var(--f-display);
   color: var(--gold);
+}
+
+/* The big number's unit, so "499" never stands alone (1 Oct review). */
+.behindUnit {
+  font: 600 12px/1.2 var(--f-label);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
 @media (hover: hover) {
@@ -500,6 +518,8 @@
   .ringWrap { display: none; }
   .bLeft { grid-template-columns: 1fr 1fr; }
   .bento .bLeft a.tile { min-height: 160px; }
+  /* Three tiles in two columns left the third alone with an empty cell. */
+  .bento .bLeft a.tile:last-of-type { grid-column: 1 / -1; }
   .bLeft .tile :global(.number) { font-size: 44px; }
   .timeline { grid-template-columns: 1fr 1fr; row-gap: var(--s-5); }
   .timeline::before,

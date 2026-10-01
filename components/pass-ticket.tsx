@@ -65,7 +65,7 @@ function TicketFace(
         <div>
           <Name className="tk-name">{p.fullName}</Name>
           <p className="tk-who">
-            {p.orgName}, {p.role}
+            {p.orgName} · {p.role}
           </p>
           {p.deskLine && <p className="tk-desk">{PUBLIC_PASS_DESK_LINE}</p>}
         </div>

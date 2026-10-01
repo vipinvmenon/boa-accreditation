@@ -188,7 +188,7 @@ export function OrgsScreen() {
       <header className="orgs-head">
         <div>
           <h1 className="display-lg">Organisations</h1>
-          <p className="lede">Every company sending people. Open one to see them in the Master list.</p>
+          <p className="lede">Every organisation sending people. Open one to see its people in the Master list.</p>
         </div>
         <Button disabled={!orgs || orgs.length === 0} onClick={() => void handleCopyOrgNames()}>
           <Icon name="paper-plane-tilt" /> Copy names for the form

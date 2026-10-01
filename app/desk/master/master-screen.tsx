@@ -83,17 +83,18 @@ export function MasterScreen() {
     writeUrl(query, next)
   }
 
+  // The URL write stays outside the state updater: replaceState inside it
+  // updated Next's router while React was rendering MasterScreen (the "Cannot
+  // update a component while rendering" error, 1 Oct review).
   useEffect(() => {
+    if (draftQuery === query) return
     const timer = window.setTimeout(() => {
-      setQuery((current) => {
-        if (current === draftQuery) return current
-        setShown(PAGE)
-        writeUrl(draftQuery, parseMasterFilters(new URLSearchParams(window.location.search)))
-        return draftQuery
-      })
+      setShown(PAGE)
+      setQuery(draftQuery)
+      writeUrl(draftQuery, parseMasterFilters(new URLSearchParams(window.location.search)))
     }, 120)
     return () => window.clearTimeout(timer)
-  }, [draftQuery, writeUrl])
+  }, [draftQuery, query, writeUrl])
 
   async function load() {
     setLoading(true)
@@ -263,7 +264,7 @@ export function MasterScreen() {
         searchValue={draftQuery}
         onSearchChange={setDraftQuery}
         searchLabel="Search the master list"
-        searchPlaceholder="Name, phone, company, plate, band or pass"
+        searchPlaceholder="Name, phone, plate or band"
       >
         <div className="add-wrap">
           <button
@@ -467,7 +468,7 @@ export function MasterScreen() {
         .r10 .master-screen .tr .sub { margin-top: 2px; font: 400 var(--t-body-sm)/1.45 var(--f-body); letter-spacing: -.005em; color: var(--ink-3); }
         .r10 .master-screen .tr .muted { color: var(--ink-3); }
         .r10 .master-screen .tier { display: inline-flex; align-items: center; gap: var(--s-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink); }
-        .r10 .master-screen .tier::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); transition: transform var(--d-quick) var(--e-out); }
+        .r10 .master-screen .tier::before { content: ""; width: 10px; height: 10px; border-radius: var(--r-xs); background: var(--c); transition: transform var(--d-quick) var(--e-out); }
         @media (hover: hover) { .r10 .master-screen .tr:hover .tier::before { transform: scale(1.3); } }
         .r10 .master-screen .days { color: var(--ink-2); font-size: var(--t-body-sm); }
         .r10 .master-screen .flagged { color: var(--bad); }
@@ -521,13 +522,13 @@ export function MasterScreen() {
 
         /* Person sheet — r8-master.html */
         .r10 .person-sheet .master-who { display: block; margin-top: var(--s-2); font: 400 var(--t-body)/1.5 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink-2); }
-        .r10 .person-sheet .sheet-band { display: block; width: 100%; aspect-ratio: 12/1; object-fit: cover; object-position: left center; border-radius: var(--r-sm); opacity: .8; }
+        .r10 .person-sheet .sheet-band { display: block; width: 100%; aspect-ratio: 12/1; object-fit: cover; object-position: left center; border-radius: var(--r-sm); opacity: .8; -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent); mask-image: linear-gradient(90deg, #000 72%, transparent); }
         .r10 .person-sheet .sheet-tier { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-4) 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); margin: var(--s-5) 0; }
         .r10 .person-sheet .sheet-tier .tier { display: inline-flex; align-items: center; gap: var(--s-2); font: 600 15px/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink); }
-        .r10 .person-sheet .sheet-tier .tier::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .r10 .person-sheet .sheet-tier .tier::before { content: ""; width: 10px; height: 10px; border-radius: var(--r-xs); background: var(--c); }
         .r10 .person-sheet .person-zones { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: 0; padding: 0; list-style: none; font-size: var(--t-body-sm); }
         .r10 .person-sheet .person-zones li { display: flex; align-items: center; gap: var(--s-2); }
-        .r10 .person-sheet .person-zones i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .r10 .person-sheet .person-zones i { width: 10px; height: 10px; border-radius: var(--r-xs); background: var(--c); }
         .r10 .person-sheet h3.label { margin: var(--s-6) 0 var(--s-3); color: var(--gold); }
         .r10 .person-sheet .person-dl { display: grid; grid-template-columns: 120px 1fr; gap: var(--s-3) var(--s-4); margin: 0; }
         .r10 .person-sheet .person-dl dt { color: var(--ink-3); }
@@ -537,7 +538,6 @@ export function MasterScreen() {
         .r10 .person-sheet .person-ledger li { display: grid; grid-template-columns: 12px 1fr; gap: var(--s-3); }
         .r10 .person-sheet .person-ledger li::before { content: ""; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: var(--c, var(--ink-3)); }
         .r10 .person-sheet .ink-3 { color: var(--ink-3); }
-        .r10 .person-sheet .person-note { margin-top: var(--s-5); color: var(--ink-3); }
       `}</style>
     </main>
   )
@@ -605,7 +605,7 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
       title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}{p.tshirtSize ? ` · T-shirt ${p.tshirtSize}` : ''}</span></> : 'Person details'}
       footer={p && (
         <>
-          <a className="btn" href="/desk/passes">Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>
+          <a className="btn" href={`/desk/passes?person=${encodeURIComponent(p.id)}`}>Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>
           <Button variant="ghost" onClick={() => onCopy(p.phone)}><Icon name="copy" /> Copy phone</Button>
         </>
       )}
@@ -648,7 +648,6 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
               <li style={{ ['--c' as string]: 'var(--gold)' }}><span><b>Approved as {type.label}</b>{p.decidedAt && <><br /><span className="ink-3">{formatLedgerTime(p.decidedAt)} · imported from the response sheet</span></>}</span></li>
             )}
           </ul>
-          <p className="body-sm person-note">The history only grows. A reissue or a void adds a line; nothing above it changes.</p>
         </>
       )}
     </Sheet>

@@ -9,6 +9,7 @@ import { EmptyState, Sheet, Skeleton, SkeletonText, Table, TableCell } from '@/c
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, setOperatorActiveResultSchema, type OperatorRow } from '@/lib/schemas/operator'
+import { formatDeskDate } from '@/lib/format'
 
 const responseSchema = z.object({ operators: operatorRowSchema.array(), callerId: z.string() })
 const mutationSchema = z.object({ operator: setOperatorActiveResultSchema })
@@ -197,7 +198,7 @@ export function UsersScreen() {
         <Table label="Operators" columns={USER_COLUMNS} className="users-table card">
           {operators.map((operator) => (
             <div key={operator.user_id} className="user-row" role="row" tabIndex={0} onClick={() => openOperator(operator)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openOperator(operator) } }}>
-              <TableCell><strong className="users-nm">{operator.display_name}{operator.user_id === callerId && <span className="users-you"> (you)</span>}</strong><span className="mono ink-2">{operator.created_at.slice(0, 10)}</span></TableCell>
+              <TableCell><strong className="users-nm">{operator.display_name}{operator.user_id === callerId && <span className="users-you"> (you)</span>}</strong><span className="body-sm ink-2">Added {formatDeskDate(operator.created_at)}</span></TableCell>
               <TableCell>{OPERATOR_ROLE_COPY[operator.role].label}</TableCell>
               <TableCell><StatusPill status={operator.active ? 'ok' : 'mute'}>{operator.active ? 'Active' : 'Deactivated'}</StatusPill></TableCell>
               <TableCell className="user-arrow"><Icon name="arrow-right" /></TableCell>

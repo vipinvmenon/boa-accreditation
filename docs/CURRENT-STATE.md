@@ -3,7 +3,58 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
+_Last updated: 1 October 2026 (UX review fixes on branch `fix/ux-review-1-oct`)._
+
+## UX review fixes (branch `fix/ux-review-1-oct`), 1 Oct 2026
+
+- **What (Vipin):** a walk-through of the running app (desk at 1280 and 375,
+  gate, vehicle, sign-in, invalid pass), then "fix everything in a new branch".
+  No roadmap ID; not merged, not pushed, not deployed.
+- **Control room numbers were wrong, now fixed.** The AAA tile printed the
+  RPC's `aaaStamped` (nominations linked to a person) as "collected", the band
+  shelf printed approved-per-tier as "issued", and "Furthest behind" printed
+  submitted-of-quota (500) as "collected", on a day nothing had been handed
+  over. `/api/desk/dashboard` now adds `collection` (approved and collected per
+  tier and per org) from `boa_acc_person` + `boa_acc_checkin`, the way
+  `/api/desk/orgs` already read them; `lib/collection.ts` is the one rule
+  (a live, non-voided wristband). **No migration.** `/api/desk/orgs` moved to
+  the same rule: it used "latest check-in is a wristband", which un-collected
+  anyone who got a sticker afterwards.
+- **Vehicle:** on "Will not clear" the green "Log entry and open gate" is
+  replaced by a disabled "Entry not possible" and a filled "Turn away" leads.
+  `recordEvent` already refused that press; only the presentation changed.
+- **Deliberate departures from the r10 contract / an earlier decision:** the
+  Control room hero is `clamp(420px, 56vh, 672px)` instead of 672px so the work
+  starts on the first screen at 1280×800; the footer (ADR-026) now reads Gate
+  live / Build / What we keep instead of Need help / Your data, because only
+  operators see it. Both at Vipin's instruction after the review.
+- **Smaller fixes:** gate status line "Vipin Menon at Check-in · Online · 0
+  waiting to send", "Ledger append-only" removed, "issued today" now counts
+  today (IST) instead of the whole ledger; vehicle tab title; Master list
+  "Open pass" opens that person's pass (`/desk/passes?person=`); Passes sorted
+  newest pass ref first; a row Send takes a second tap ("Send to Li?", 4 s);
+  "Queued" explains itself on hover; avatar initials one rule (desk showed a
+  hardcoded "VI" fallback); Users dates "Added 12 Sept"; operator menu
+  near-opaque; nav focus ring in ink so it is not mistaken for the current
+  page; "/" hint hidden on touch; band strips fade instead of stopping
+  mid-word; invalid pass gets a gold tag and Bhupesh's number; sign-in says
+  which field is empty; Master list search no longer updates the router
+  mid-render; "companies" → "organisations"; shimmer easing, 3px/12px radii
+  and the Arial fallback the detector flagged.
+- **Verified:** typecheck, lint (0 errors), 322 unit tests (5 new in
+  `tests/unit/collection.test.ts`), `test:e2e` 66/66 (vehicle and status-line
+  tests updated to the new copy and behaviour), build; each screen checked in
+  the browser against the live database at 1280 and 375. **Not verified:**
+  `test:visual` fails waiting for `main .num` on the Control room, the known
+  ACC-191 gap noted below, not re-run on main; light theme; a real phone.
+- **Found, not fixed (not code, or not decided):** passes "Queued" since 29 Sep
+  means no WhatsApp delivery receipt has reached the app; Loud Society's
+  contact is +91 98765 43210, which looks like a placeholder; every org's kind
+  is "Crew", German Embassy included; `/api/desk/{dashboard,orgs,master}` read
+  `boa_acc_person`/`boa_acc_checkin` with no `.range()`, so past PostgREST's
+  row cap (1000 by default) counts would silently stop. Contract-defined and
+  left alone: upper-case names on the desk, band art repeating the card title,
+  the General Admission art (it is the real band), the BMS column.
 
 ## Crew T-shirt at check-in (ACC-197), 30 Sep 2026
 

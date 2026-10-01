@@ -160,6 +160,9 @@ export function VehicleScreen() {
   // Before the officer decides, the verdict still takes the colour of what the
   // cache says: green when both checks pass, red when the vehicle will not clear.
   const tone = plateFacts ? (plateFacts.stickerOk && plateFacts.wristbandOk ? 'ok' : 'bad') : undefined
+  // The cache says no, and nothing has been logged yet (a blocked press, e.g.
+  // Turn away waiting for its reason, still counts as "not decided").
+  const willNotClear = tone === 'bad' && (!result || result.outcome === 'blocked')
   return (
     <>
       <div className="vehicle-screen">
@@ -182,7 +185,7 @@ export function VehicleScreen() {
                   aria-label="Vehicle registration"
                   value={plate}
                   onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }}
-                  placeholder="KA 01 AB 1234"
+                  placeholder="e.g. KA 01 AB 1234"
                   autoCapitalize="characters"
                   autoComplete="off"
                   enterKeyHint="search"
@@ -194,7 +197,7 @@ export function VehicleScreen() {
             </form>
             {!result && !plateFacts && <div className="plate-note">
               <span className="plate-note-ic" aria-hidden="true"><Icon name="warning" /></span>
-              <div><b>Sticker and band. Both.</b>A match on the plate is not a match on the vehicle. Check the sticker against the plate in front of you.</div>
+              <div><b>Check the sticker and the band.</b>The app only knows the number you type. Look at the sticker on the windscreen and make sure it matches the plate.</div>
             </div>}
 
           {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
@@ -239,9 +242,13 @@ export function VehicleScreen() {
               {plate.trim().length > 0 && <p role="status" className="veh-status-bad">Not a valid registration format.</p>}
               {plate.trim().length === 0 && <p role="status">Type the registration. The sticker and the wristband show here before you decide.</p>}
             </div>}
-            {plate.trim().length > 0 && <div className="veh-dock">
-              <button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-primary btn-gate btn-block">{submitting ? 'Queueing…' : 'Log entry and open gate'}<Icon name="arrow-right" /></button>
-              <button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-danger btn-gate btn-block">Turn away and log reason</button>
+            {/* 1 Oct UX review: on "Will not clear" the green "open gate" button
+                sat under a red verdict. recordEvent('enter') already refuses
+                that plate ("Not logged"), so the button now says so before the
+                tap: Turn away leads, filled, and entry is shown disabled. */}
+            {plate.trim().length > 0 && <div className={`veh-dock${willNotClear ? ' veh-dock-refuse' : ''}`}>
+              <button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting || willNotClear} title={normalized === null ? 'Enter a valid registration first' : willNotClear ? 'This vehicle does not clear' : undefined} className={`btn ${willNotClear ? 'btn-ghost' : 'btn-primary'} btn-gate btn-block veh-enter`}>{submitting ? 'Queueing…' : willNotClear ? 'Entry not possible' : 'Log entry and open gate'}{!willNotClear && <Icon name="arrow-right" />}</button>
+              <button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className={`btn btn-danger btn-gate btn-block${willNotClear ? ' veh-turn-lead' : ''}`}>Turn away and log reason</button>
             </div>}
           </div>
             <SyncStatus />
@@ -293,6 +300,9 @@ export function VehicleScreen() {
         .r10 .veh-reason { margin-top: var(--s-4); }
         .r10 .veh-status-bad { color: var(--bad); }
         .r10 .veh-dock { margin-top: var(--s-5); display: grid; gap: var(--s-3); }
+        /* Specific enough to beat glass.css's see-through .btn fill. */
+        .r10 .veh-dock.veh-dock-refuse .btn.btn-danger.veh-turn-lead.veh-turn-lead { order: -1; --btn-fg: var(--bg); color: var(--bg); background: var(--bad); }
+        .r10 .veh-dock.veh-dock-refuse .btn.veh-enter:disabled { color: var(--ink-3); cursor: not-allowed; }
         /* Phone: the two decisions stay in thumb reach however tall the checks are. */
         @media (max-width: 700px) {
           .r10 .veh-dock { position: sticky; bottom: var(--s-3); z-index: 2; margin-inline: calc(var(--s-2) * -1); padding: var(--s-3) var(--s-2) 0; border-radius: var(--r-md); background: color-mix(in srgb, var(--surface) 94%, transparent); }

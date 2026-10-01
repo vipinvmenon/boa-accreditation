@@ -207,6 +207,8 @@
 .r10 .search { position: relative; flex: 1; min-width: 220px; display: block; padding: 0; background: none; box-shadow: none; border-radius: 0; }
 .r10 .search .input { padding-left: 44px; padding-right: 40px; border-radius: var(--r-pill); }
 .r10 .search .ph { position: absolute; z-index: 1; top: 50%; left: var(--s-4); color: var(--ink-3); transform: translateY(-50%); }
+/* The "/" shortcut hint means nothing on a touch screen (1 Oct review). */
+@media (hover: none) and (pointer: coarse) { .r10 .search kbd { display: none; } }
 .r10 .search kbd {
   position: absolute;
   z-index: 1;
@@ -374,7 +376,7 @@
 .r10 .empty p { max-width: 52ch; margin: 0; color: var(--ink-2); }
 .r10 .empty-error .ph { color: var(--bad); }
 .r10 .sk { position: relative; overflow: hidden; border-radius: var(--r-xs); background: var(--raised); color: transparent; }
-.r10 .sk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 5%, transparent), transparent); animation: r10-sk 1.6s var(--e-spring) infinite; }
+.r10 .sk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 5%, transparent), transparent); animation: r10-sk 1.6s linear infinite; }
 @keyframes r10-sk { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 .r10 .sk-line { height: 12px; }
 /* In-line value placeholder (Skeleton shape="text"): inline-block with

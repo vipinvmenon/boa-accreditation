@@ -236,8 +236,13 @@ function DeskLoginForm() {
     setError(null)
     // The forms are noValidate: every message, including "you left it
     // blank", arrives in the same role="alert" line, not a browser tooltip.
+    // Say which field is empty and put the cursor in it (1 Oct review: one
+    // line under the form named neither).
     if (!email.trim() || !password) {
-      setError('Enter your email and password.')
+      const missing = !email.trim() ? 'email' : 'password'
+      setError(!email.trim() && !password ? 'Enter your email and password.' : `Enter your ${missing}.`)
+      const form = e.currentTarget as HTMLFormElement
+      form.querySelector<HTMLInputElement>(missing === 'email' ? 'input[type="email"]' : 'input[autocomplete="current-password"]')?.focus()
       return
     }
     setBusy(true)

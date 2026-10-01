@@ -11,6 +11,11 @@
  *
  * Help is plain text until ACC-173 gives the desk a WhatsApp number; a link
  * that goes nowhere would be worse than none.
+ *
+ * 1 Oct UX review: everyone who sees this footer is an operator, so "Need help?
+ * Ask the accreditation desk" told the desk to ask itself, and "Your data"
+ * addressed a holder who never signs in. The columns now carry the dates an
+ * operator works to and the data rule they apply (non-negotiable #9).
  */
 export function SiteFooter({ signedInAs }: { signedInAs?: string | null }) {
   return (
@@ -24,16 +29,16 @@ export function SiteFooter({ signedInAs }: { signedInAs?: string | null }) {
         </div>
         <div className="sf-cols">
           <div>
+            <h2>Gate live</h2>
+            <p>4 October.</p>
+          </div>
+          <div>
             <h2>Build</h2>
             <p>5 to 9 October.</p>
           </div>
           <div>
-            <h2>Need help</h2>
-            <p>Ask the accreditation desk.</p>
-          </div>
-          <div>
-            <h2>Your data</h2>
-            <p>We keep your name, phone, role and vehicle number. Nothing else.</p>
+            <h2>What we keep</h2>
+            <p>Name, phone, role and vehicle number. Never ask for an ID number, address or photo.</p>
           </div>
         </div>
       </div>
