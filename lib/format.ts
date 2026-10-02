@@ -81,3 +81,24 @@ export function masterCountLabel(shown: number, total: number): string {
   if (shown >= total) return `All ${total} ${total === 1 ? 'person' : 'people'}`
   return `Showing ${shown} of ${total} people`
 }
+
+const indiaDayFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: INDIA_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+/**
+ * How far away a show date is, on the desk's clock: "in 2 days", "tomorrow",
+ * "today", "on now" inside a range, "done" after it. `start` and `end` are
+ * calendar days ('2026-10-05'); `end` defaults to `start`.
+ */
+export function formatCountdown(start: string, end: string = start, now: Date = new Date()): string {
+  const today = Date.parse(indiaDayFormatter.format(now))
+  const days = Math.round((Date.parse(start) - today) / 86_400_000)
+  if (days > 1) return `in ${days} days`
+  if (days === 1) return 'tomorrow'
+  if (Date.parse(end) < today) return 'done'
+  return start === end ? 'today' : 'on now'
+}

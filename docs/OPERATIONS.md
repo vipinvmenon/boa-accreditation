@@ -97,7 +97,7 @@ this checklist ticked.
    issuer email and password.
 2. **You SHOULD SEE:** back on `/gate`, the header **"Point at the pass
    code"** and, under it, **"N approved passes held on this device"** with a
-   sync line under that reading **"Last synced HH:MM · 0 queued"**. If the
+   sync line under that reading **"Synced just now"**. If the
    roster is empty, you instead see **"No list on this phone"** — stop and
    fix step 2 of "Before you start" before continuing.
 3. **Both issuers:** turn on aeroplane mode (radio fully off, not just
@@ -140,8 +140,9 @@ this checklist ticked.
 12. **You SHOULD SEE, within about a minute (per OFFLINE-SYNC.md's
     convergence bound — issue posts immediately, the other phone re-pulls
     within 45s + a 5s tick):** the "Offline | n queued" chip changes to
-    **"Online | 0 queued"** and **"Last synced HH:MM"** updates on both
-    phones.
+    **"Online | 0 queued"** and the sync line reads **"Synced just now"**
+    on both phones. Amber **"List is N min old"** means that phone has not
+    heard from the server for 5 minutes or more.
 13. **On a laptop, open the Control room (`/desk`).** **You SHOULD SEE** a
     section headed **"1 person holds two live bands"** (or more, if you
     staged more than one double issue), listing the double-issued person's

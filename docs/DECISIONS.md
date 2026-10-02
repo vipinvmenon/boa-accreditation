@@ -832,6 +832,15 @@ non-negotiable #1 continues to hold for everything both still draw.
 
 Roadmap: ACC-159. Depends on ACC-109/ACC-164 having made the reference current.
 
+**Amended 2 Oct 2026, on Vipin's instruction:** the lookup runs when the officer
+presses Check or Enter (or taps a plate in the folds), not on every keystroke.
+The decision above is kept: the checks are still on screen before any decision
+button can be pressed, and the press still re-resolves through the same
+`resolvePlate`. An invalid plate says so only after Check. Pinned by the e2e test
+"typing a plate looks nothing up until Check or Enter"
+(`tests/e2e/aeroplane-mode.spec.ts`); the vehicle `test:visual` reference was
+not re-measured for this amendment.
+
 ## ADR-023 — Master list gets table semantics and a count, not a visible header row
 
 **Accepted 27 Sep 2026, on Vipin's instruction** (ACC-162), from the three

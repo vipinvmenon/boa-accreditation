@@ -164,6 +164,24 @@
         ],
         "createdAt": "2026-09-29T14:37:13.466Z",
         "reason": "Uppercase is only on the short Anton headline, the Oswald labels and the button, as the r10 design uses them; the body paragraphs are sentence case"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "app/gate/page.tsx"
+        ],
+        "createdAt": "2026-10-01T16:50:35.163Z",
+        "reason": "Claude: .vf-corner are 26px scanner-viewfinder corner brackets (two 3px borders each), not a card accent; from r8-gate.html, predates this session"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "app/gate/page.tsx"
+        ],
+        "createdAt": "2026-10-01T16:50:35.179Z",
+        "reason": "Claude: .vf-corner viewfinder brackets, not a rounded card; from r8-gate.html, predates this session"
       }
     ]
   }
