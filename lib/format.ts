@@ -33,6 +33,11 @@ export function formatLedgerTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso))
 }
 
+/** A date on the desk's clock, e.g. "25 Sept", the same form as every other desk date. */
+export function formatDeskDate(iso: string): string {
+  return dateFormatter.format(new Date(iso))
+}
+
 /** A typed band serial, or the fact that none was typed (non-negotiable #6). */
 export function formatBandSerial(serial: string | null): string {
   if (!serial) return 'No serial typed'
@@ -75,4 +80,25 @@ export function masterCountLabel(shown: number, total: number): string {
   if (shown === 0) return `None of ${total} ${total === 1 ? 'person' : 'people'}`
   if (shown >= total) return `All ${total} ${total === 1 ? 'person' : 'people'}`
   return `Showing ${shown} of ${total} people`
+}
+
+const indiaDayFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: INDIA_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+/**
+ * How far away a show date is, on the desk's clock: "in 2 days", "tomorrow",
+ * "today", "on now" inside a range, "done" after it. `start` and `end` are
+ * calendar days ('2026-10-05'); `end` defaults to `start`.
+ */
+export function formatCountdown(start: string, end: string = start, now: Date = new Date()): string {
+  const today = Date.parse(indiaDayFormatter.format(now))
+  const days = Math.round((Date.parse(start) - today) / 86_400_000)
+  if (days > 1) return `in ${days} days`
+  if (days === 1) return 'tomorrow'
+  if (Date.parse(end) < today) return 'done'
+  return start === end ? 'today' : 'on now'
 }

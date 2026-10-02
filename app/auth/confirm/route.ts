@@ -62,7 +62,7 @@ export async function GET(request: Request) {
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${heading}</title>
 <style>
-  body{background:var(--bg,#0A0A0A);color:var(--ink,#F2EFE2);font-family:Arial,Helvetica,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}
+  body{background:var(--bg,#0A0A0A);color:var(--ink,#F2EFE2);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}
   main{width:100%;max-width:360px}
   h1{font-size:22px;margin:0 0 12px}
   p{font-size:13.5px;color:var(--ink2,rgba(242,239,226,0.72));line-height:1.5}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { supabaseServer } from '@/lib/supabase-server'
+import { collectedPersonIds } from '@/lib/collection'
 import { ORG_QUOTA_NON_ENFORCING, orgCreateSchema, orgRowSchema, orgRowWithCountsSchema } from '@/lib/schemas/org'
 
 // ACC-027. Every write to boa_acc_org goes through boa_acc_create_org
@@ -70,8 +71,7 @@ export async function GET() {
     supabase.from('boa_acc_person').select('id,org_id,status'),
     // Same void-aware ledger read as GET /api/desk/master, to answer r10's
     // "Collected" column (design/source/r10/r8-orgs.html) without a new RPC —
-    // a person has collected once their most recent, non-voided checkin here
-    // is a wristband.
+    // a person has collected once they hold a non-voided wristband checkin.
     supabase.from('boa_acc_checkin').select('id,person_id,kind,voids_checkin_id').order('occurred_at', { ascending: true }),
   ])
 
@@ -86,21 +86,15 @@ export async function GET() {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
-  const voidedIds = new Set(
-    checkins.data.filter((c) => c.kind === 'void' && c.voids_checkin_id).map((c) => c.voids_checkin_id as string),
-  )
-  const latestKindByPerson = new Map<string, string>()
-  for (const c of checkins.data) {
-    if (c.kind === 'void' || voidedIds.has(c.id)) continue
-    latestKindByPerson.set(c.person_id, c.kind)
-  }
+  // lib/collection.ts: a live (non-voided) wristband, whatever came after it.
+  const collected = collectedPersonIds(checkins.data)
 
   const countsByOrg = new Map<string, { submittedCount: number; approvedCount: number; collectedCount: number }>()
   for (const person of people.data) {
     const counts = countsByOrg.get(person.org_id) ?? { submittedCount: 0, approvedCount: 0, collectedCount: 0 }
     counts.submittedCount += 1
     if (person.status === 'approved') counts.approvedCount += 1
-    if (latestKindByPerson.get(person.id) === 'wristband') counts.collectedCount += 1
+    if (person.status === 'approved' && collected.has(person.id)) counts.collectedCount += 1
     countsByOrg.set(person.org_id, counts)
   }
 

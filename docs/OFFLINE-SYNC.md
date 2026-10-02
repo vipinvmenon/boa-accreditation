@@ -184,9 +184,13 @@ outbox (non-negotiable #7).
   restores ledger rows only for entries that turned `done` *during* that pull.
   Entries done before the request left are not restored: the server's answer
   has them, or correctly omits them because the desk voided them.
-- **"Last synced HH:MM"** renders on `/gate` (the second line under
-  *"N approved passes held on this device"*, as specified above) and on
-  `/gate/vehicle`. The time is the last successful pull, persisted in Dexie
+- **The sync line** renders on `/gate` and `/gate/vehicle`. Since 2 Oct it
+  gives the age of the copy, not a clock time: "Synced just now", "Synced 4
+  min ago"; from 5 minutes (`SYNC_STALE_AFTER_MS`) it turns amber: "List is
+  12 min old" offline, and "List is 12 min old · not updating, call a lead"
+  online, the case where pulls fail with signal and nothing else said so
+  (`lib/format-sync-status.ts`). The clock time is the tooltip. The time is
+  the last successful pull, persisted in Dexie
   `meta.lastPullAt`, so a cold offline reload still shows when this phone last
   heard from the server. The gate pill owns online/offline and queued state;
   this line reports pull freshness only. The line is laid out at zero height

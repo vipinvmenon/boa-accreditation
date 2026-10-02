@@ -62,7 +62,7 @@
 .cg-time i { font-size: 24px; color: var(--cg-gold); }
 .cg-when i { font-size: 16px; }
 .cg-time { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; font-family: var(--display); font-size: 32px; line-height: 1; letter-spacing: .01em; }
-.cg-warn { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: start; margin: 0 0 13px; padding: 8px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; color: rgba(255, 138, 122, 1); background: rgba(255, 107, 90, .1); box-shadow: inset 0 0 0 1px rgba(255, 107, 90, .3); }
+.cg-warn { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: start; margin: 0 0 13px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: rgba(255, 138, 122, 1); background: rgba(255, 107, 90, .1); box-shadow: inset 0 0 0 1px rgba(255, 107, 90, .3); }
 .cg-where { display: grid; grid-template-columns: 22px 1fr; gap: 10px; margin: 0; padding-top: 13px; border-top: 1px solid var(--cg-hair); font-size: 14.5px; line-height: 1.45; color: var(--cg-ink2); }
 .cg-where b, .cg-where span span { display: block; }
 .cg-where b { color: var(--cg-ink); font-weight: 600; }

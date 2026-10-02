@@ -1,29 +1,78 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { gateDb } from '@/gate/db'
 import { normalizePlate, queueVehicleEvent, resolvePlate, type PlateResolution } from '@/gate/vehicle-flow'
-import { Icon } from '@/components/icon'
+import { Icon, type IconName } from '@/components/icon'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { useGateSessionGuard } from '@/gate/use-session-guard'
-import { SyncStatus } from '../sync-status'
-import { GateTabs } from '../gate-tabs'
+import { GateStatus } from '../gate-status'
+import { VehicleFolds } from '../gate-lists'
 
-/**
- * 'blocked' = "Log entry" was pressed but a system check failed. Nothing is
- * logged; the officer either fixes it or turns the vehicle away with a reason.
- */
+/** What was logged for the plate on screen. Nothing is logged without one. */
 type Result = {
-  outcome: 'cleared' | 'turned_away' | 'blocked'
-  text: string
+  outcome: 'cleared' | 'turned_away'
+  reason?: string
   stickerNo?: string
   plate?: string
   wristbandDetail?: string
   occurredAt?: string
 }
 
+/**
+ * The turn-away reasons an officer picks with one tap (1 Oct review, item
+ * 21): typing at a barrier was slow, and the three checks below are the
+ * three reasons a vehicle is refused. "Other" still takes free text. Stored
+ * as the same text column as before (lib/schemas/vehicle.ts, max 240).
+ */
+const NO_STICKER = 'No sticker'
+const NO_WRISTBAND = 'No wristband'
+const PLATE_MISMATCH = 'Plate does not match sticker'
+
+type CheckState = 'ok' | 'bad' | 'todo'
+type Check = { label: string; state: CheckState; detail: string }
+
+const MARK_ICON: Record<CheckState, IconName> = { ok: 'check', bad: 'x', todo: 'eye' }
+
 function formatIssuedAt(iso: string): string {
   return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).replace(',', '')
+}
+
+/**
+ * The checks as the officer needs them before deciding. One cause shows
+ * once: with no sticker there is no holder whose wristband to check and no
+ * sticker to match the plate to, so those rows are not drawn as three red
+ * crosses for one fact. The plate check is the officer's to make, never a
+ * failure the app has found, so it is drawn as a step, not a cross.
+ */
+function checksFor(facts: PlateResolution): Check[] {
+  const checks: Check[] = [{
+    label: 'Vehicle sticker',
+    state: facts.stickerOk ? 'ok' : 'bad',
+    detail: facts.stickerOk && facts.stickerNo ? `${facts.stickerNo}, bound to ${facts.plate}` : 'No sticker is issued to this registration',
+  }]
+  if (!facts.stickerOk) return checks
+  checks.push({
+    label: 'Crew wristband',
+    state: facts.wristbandOk ? 'ok' : 'bad',
+    detail: facts.wristbandOk && facts.wristbandDetail ? facts.wristbandDetail.replaceAll(' · ', ', ') : 'The sticker holder has no active wristband',
+  })
+  if (!facts.wristbandOk) return checks
+  checks.push({ label: 'Plate matches sticker', state: 'todo', detail: 'Look at the plate yourself before you open the gate.' })
+  return checks
+}
+
+function CheckList({ checks }: { checks: Check[] }) {
+  return (
+    <ul className="veh-checks">
+      {checks.map((check) => (
+        <li key={check.label}>
+          <span aria-hidden="true" className={`veh-mark ${check.state}`}><Icon name={MARK_ICON[check.state]} /></span>
+          <div><div className="nm">{check.label}</div><div className="veh-check-detail">{check.detail}</div></div>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export function VehicleScreen() {
@@ -32,18 +81,27 @@ export function VehicleScreen() {
   // screen and letting every write fail 401, silently.
   useGateSessionGuard('/gate/vehicle')
   const [plate, setPlate] = useState('')
-  const [reason, setReason] = useState('')
-  const [askReason, setAskReason] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  /** Set when a press was refused by the checks; nothing was logged. */
+  const [notice, setNotice] = useState<string | null>(null)
+  /** "Turn away" on a vehicle that would clear opens the reasons. */
+  const [reasonsOpen, setReasonsOpen] = useState(false)
+  const [otherOpen, setOtherOpen] = useState(false)
+  const [otherReason, setOtherReason] = useState('')
   /**
-   * ACC-159: what the plate resolves to, read as soon as it parses — not when
-   * the officer presses. `null` means "nothing to say yet" (no valid plate);
-   * a resolution means the three checks below are showing the real cache.
+   * What the plate resolved to when the officer last pressed Check (or Enter,
+   * or tapped a plate in the folds). `null` means "nothing to say yet"; a
+   * resolution means the checks below are showing the real cache.
    */
   const [resolved, setResolved] = useState<PlateResolution | null>(null)
-  const reasonRef = useRef<HTMLInputElement>(null)
-  const { online, queued, sync, refresh } = useOutboxSync()
+  /** Check was pressed for the plate as typed: an invalid one says so only then. */
+  const [tried, setTried] = useState(false)
+  const plateRef = useRef<HTMLInputElement>(null)
+  const otherRef = useRef<HTMLInputElement>(null)
+  /** Bumped after each logged decision so the folds re-read the outbox. */
+  const [logged, setLogged] = useState(0)
+  const { online, queued, canSync, sync, refresh } = useOutboxSync()
 
   const normalized = useMemo(() => {
     try {
@@ -54,65 +112,46 @@ export function VehicleScreen() {
   }, [plate])
 
   /**
-   * ACC-159 / ADR-022 — resolve on input, not on press.
-   *
-   * `live` guards the race: the officer types continuously at a barrier, so a
-   * slower earlier lookup must not overwrite a newer plate's answer.
-   */
-  useEffect(() => {
-    if (normalized === null) return
-    let live = true
-    void resolvePlate(gateDb, normalized).then((next) => {
-      if (live) setResolved(next)
-    })
-    return () => {
-      live = false
-    }
-  }, [normalized])
-
-  /**
-   * Only ever show facts that belong to the plate currently on screen. Keying
-   * the resolution to its own plate rather than clearing it in the effect does
-   * two jobs: no synchronous setState in an effect, and no window in which the
-   * previous vehicle's sticker is displayed under a newly typed registration.
+   * Only ever show facts that belong to the plate currently on screen: keyed
+   * to its own plate, so there is no window in which the previous vehicle's
+   * sticker is displayed under a newly typed registration.
    */
   const plateFacts = resolved !== null && resolved.plate === normalized ? resolved : null
 
+  function resetDecision() {
+    setResult(null)
+    setNotice(null)
+    setReasonsOpen(false)
+    setOtherOpen(false)
+    setOtherReason('')
+  }
+
   /**
-   * The button pressed IS the officer's decision, passed in explicitly.
-   * Until ACC-109 both buttons did `setPlateVisual(x); recordEvent()` in one
-   * click, so recordEvent read the previous render's value: the first
-   * "Log entry" reported "Turned away" without logging, and a reason plus
-   * "Turn away" could log a valid vehicle as CLEARED.
+   * The button pressed IS the officer's decision, passed in explicitly
+   * (ACC-109: reading it from state logged the previous render's choice).
    *   enter     — the officer has looked at the plate and it matches the
    *               sticker (plateVisual: true). Clears only if the sticker
    *               and an active wristband also check out; otherwise nothing
    *               is logged and the screen says which check failed.
-   *   turn_away — always logs turned_away, and needs a reason first.
+   *   turn_away — always logs turned_away, with the reason tapped or typed.
    */
-  async function recordEvent(intent: 'enter' | 'turn_away') {
+  async function recordEvent(intent: 'enter' | 'turn_away', reasonText?: string) {
     if (normalized === null || submitting) return
-    const selectedReason = reason.trim()
-    if (intent === 'turn_away' && selectedReason.length === 0) {
-      setAskReason(true)
-      setResult({ outcome: 'blocked', text: 'Type the reason, then press Turn away again.' })
-      window.setTimeout(() => reasonRef.current?.focus(), 0)
+    const reason = (reasonText ?? '').trim()
+    if (intent === 'turn_away' && reason.length === 0) {
+      otherRef.current?.focus()
       return
     }
     setSubmitting(true)
     try {
-      // ACC-159: the same resolver the panel above is already showing, so the
-      // press can only confirm what the officer was told, never contradict it.
+      // ACC-159: the same resolver the panel is already showing, so the press
+      // can only confirm what the officer was told, never contradict it.
       const facts = await resolvePlate(gateDb, normalized)
       setResolved(facts)
       const { stickerOk, wristbandOk } = facts
 
       if (intent === 'enter' && !(stickerOk && wristbandOk)) {
-        setAskReason(true)
-        setResult({
-          outcome: 'blocked',
-          text: !stickerOk ? 'No sticker is issued to this plate. Not logged.' : 'The sticker holder has no active wristband. Not logged.',
-        })
+        setNotice(!stickerOk ? 'No sticker is issued to this plate. Nothing was logged.' : 'The sticker holder has no active wristband. Nothing was logged.')
         return
       }
 
@@ -122,25 +161,26 @@ export function VehicleScreen() {
         personId: facts.personId,
         stickerCheckinId: facts.stickerCheckinId,
         outcome,
-        reason: outcome === 'cleared' ? null : selectedReason,
+        reason: outcome === 'cleared' ? null : reason,
         checks: {
           sticker: stickerOk,
           wristband: wristbandOk,
           plateVisual: intent === 'enter',
         },
       })
+      setNotice(null)
+      setReasonsOpen(false)
+      setOtherOpen(false)
+      setOtherReason('')
       setResult({
         outcome,
-        text: outcome === 'cleared' ? 'Cleared — entry logged.' : `Turned away — ${selectedReason}`,
+        ...(outcome === 'turned_away' ? { reason } : {}),
         plate: plate.trim().toUpperCase(),
         ...(facts.stickerNo ? { stickerNo: facts.stickerNo } : {}),
         ...(facts.stickerIssuedAt ? { occurredAt: facts.stickerIssuedAt } : {}),
         ...(facts.wristbandDetail ? { wristbandDetail: facts.wristbandDetail } : {}),
       })
-      // The plate stays on show beside the verdict, as designed; editing it
-      // clears the verdict and starts the next vehicle.
-      setReason('')
-      setAskReason(false)
+      setLogged((n) => n + 1)
       await refresh()
       await sync()
     } finally {
@@ -148,152 +188,226 @@ export function VehicleScreen() {
     }
   }
 
-  async function lookUp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (normalized === null) return
-    setResolved(await resolvePlate(gateDb, normalized))
+  /**
+   * ADR-022, amended 2 Oct: the plate is looked up when the officer asks
+   * (Check, Enter, or a plate tapped in the folds), not on every keystroke.
+   * Still before any decision, so the officer is still told first. The facts
+   * are keyed to their plate, so a slow lookup for an edited plate is never
+   * shown under the new one.
+   */
+  async function check(value: string) {
+    setTried(true)
+    let next: string
+    try {
+      next = normalizePlate(value)
+    } catch {
+      return
+    }
+    setResolved(await resolvePlate(gateDb, next))
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
   }
 
+  function lookUp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void check(plate)
+  }
+
+  function editPlate(value: string) {
+    setPlate(value)
+    setResolved(null)
+    setTried(false)
+    resetDecision()
+  }
+
+  /** The vehicle is dealt with: an empty field, focused, for the next one. */
+  function nextVehicle() {
+    editPlate('')
+    plateRef.current?.focus()
+  }
+
+  function openOther() {
+    setOtherOpen(true)
+    window.setTimeout(() => otherRef.current?.focus(), 0)
+  }
+
   const cleared = result?.outcome === 'cleared'
-  const outcome = cleared ? 'ok' : result ? 'bad' : undefined
-  // Before the officer decides, the verdict still takes the colour of what the
-  // cache says: green when both checks pass, red when the vehicle will not clear.
-  const tone = plateFacts ? (plateFacts.stickerOk && plateFacts.wristbandOk ? 'ok' : 'bad') : undefined
+  const clears = plateFacts !== null && plateFacts.stickerOk && plateFacts.wristbandOk
+  // Before the officer decides, the verdict takes the colour of what the cache
+  // says: green when both checks pass, red when the vehicle will not clear.
+  const tone = result ? (cleared ? 'ok' : 'bad') : plateFacts ? (clears ? 'ok' : 'bad') : undefined
+  const willNotClear = !result && plateFacts !== null && !clears
+  // Only the reasons that can apply to this vehicle, the one the checks
+  // point at first and filled: no sticker means there is no wristband or
+  // plate to fault, and a vehicle that clears can only fail the plate check.
+  const reasons = !plateFacts ? [] : !plateFacts.stickerOk ? [NO_STICKER] : !plateFacts.wristbandOk ? [NO_WRISTBAND, PLATE_MISMATCH] : [PLATE_MISMATCH]
+  const suggested = reasons[0] ?? null
+  const showReasons = !result && plateFacts !== null && (willNotClear || reasonsOpen)
+  const savedOffline = online ? null : 'Saved on this phone. It sends when signal returns.'
+
   return (
     <>
       <div className="vehicle-screen">
-        {/* r8-vehicle.html opens with this segmented control, not a v2-style
-            hero header (no "Vehicle entrance" tag, no h1, no lede) — the
-            gate's own nav island already names the screen. */}
-        <GateTabs />
 
         <div className="veh-split">
           <section className="panel veh-card">
-            {/* The lookup runs as you type; the button (and Enter) is the explicit
-                "check this one now": it re-reads the cache and drops the phone
-                keyboard so the answer beside it is not hidden behind it. */}
+            {/* The lookup runs only on Check (or Enter): it reads the cache and
+                drops the phone keyboard so the answer under it is not hidden
+                behind it. It is a quiet button: it is not a decision (1 Oct
+                review, item 19). */}
             <form className="field veh-lookup" onSubmit={(event) => void lookUp(event)}>
-              <label className="label-sm" htmlFor="vehicle-plate">Vehicle registration</label>
+              <label className="display-sm veh-title" htmlFor="vehicle-plate">Vehicle registration</label>
               <div className="veh-lookup-row">
                 <input
+                  ref={plateRef}
                   id="vehicle-plate"
                   className="input input-mono"
                   aria-label="Vehicle registration"
                   value={plate}
-                  onChange={(event) => { setPlate(event.target.value); setResult(null); setAskReason(false); setReason('') }}
+                  onChange={(event) => editPlate(event.target.value)}
                   placeholder="KA 01 AB 1234"
                   autoCapitalize="characters"
                   autoComplete="off"
                   enterKeyHint="search"
                 />
-                <button type="submit" className="btn btn-primary btn-gate veh-lookup-btn" disabled={normalized === null}>
+                <button type="submit" className="btn btn-gate veh-lookup-btn" disabled={plate.trim().length === 0}>
                   <Icon name="magnifying-glass" />Check
                 </button>
               </div>
             </form>
-            {!result && !plateFacts && <div className="plate-note">
-              <span className="plate-note-ic" aria-hidden="true"><Icon name="warning" /></span>
-              <div><b>Sticker and band. Both.</b>A match on the plate is not a match on the vehicle. Check the sticker against the plate in front of you.</div>
-            </div>}
 
-          {/* ACC-130: the mock's Cleared/Band missing/Not registered tabs were rendered as
-              buttons with no click handler — they only ever reflected the recorded outcome,
-              which the verdict heading right below already states in words. Removed rather
-              than kept as fake tabs; this card's `aria-live` carries it. */}
-          <div className="veh-result" id="vres" data-o={outcome ?? tone} aria-live="polite" aria-atomic="true">
-            {result && <>
-            <h2 className="display-md verdict">{cleared ? 'Cleared' : result.outcome === 'blocked' ? 'Not cleared' : 'Turned away'}</h2>
-            <p className="veh-sub">{cleared && result?.stickerNo && result.occurredAt ? `Sticker ${result.stickerNo} · Issued ${formatIssuedAt(result.occurredAt)}` : result.outcome === 'blocked' ? result.text : `${result.text} ${online ? 'Syncing.' : `Queued offline (${queued}).`}`}</p>
-            <ul className="veh-checks">{[
-              ['Vehicle sticker', cleared && result?.stickerNo && result.plate ? `${result.stickerNo}, bound to ${result.plate}` : 'Sticker is bound to this registration'],
-              ['Crew wristband', cleared && result?.wristbandDetail ? result.wristbandDetail.replaceAll(' · ', ', ') : 'Active wristband required'],
-              ['Plate matches sticker', 'Visual check by the officer at the barrier'],
-            ].map(([label, detail]) => <li key={label}><span aria-hidden="true" className={`veh-mark ${cleared ? 'ok' : 'bad'}`}><Icon name={cleared ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="veh-check-detail">{detail}</div></div></li>)}</ul>
-            {askReason && <div className="field veh-reason"><label htmlFor="vehicle-reason" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason" className="input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
-            </>}
-            {/* ACC-159 / ADR-022 — the officer is told before deciding.
-                Deliberate, ADR'd deviation: the frozen contract draws this panel
-                blank until a verdict exists. It is not pixel-gated, because the
-                vehicle reference is captured on the settled `Cleared` result
-                (scripts/visual-check.mjs, GATE_CAPTURE_STATE.vehicle), and the
-                post-press branch above is left untouched so that shot cannot
-                move. Both facts come from `resolved`, which is the same
-                `resolvePlate` that `recordEvent` gates on. */}
-            {!result && plateFacts && <>
-            <h2 className="display-md verdict">{plateFacts.stickerOk && plateFacts.wristbandOk ? 'Ready to clear' : 'Will not clear'}</h2>
-            <p className="veh-sub">{plateFacts.holderName
-              ? `${plateFacts.holderName}${plateFacts.stickerNo ? ` · sticker ${plateFacts.stickerNo}` : ''} · check the sticker against the plate, then decide.`
-              : 'Nothing is issued to this registration. Check the plate, or park it outside.'}</p>
-            <ul className="veh-checks">{([
-              ['Vehicle sticker', plateFacts.stickerOk, plateFacts.stickerOk && plateFacts.stickerNo ? `${plateFacts.stickerNo}, bound to ${plateFacts.plate}` : 'No sticker is issued to this registration'],
-              ['Crew wristband', plateFacts.wristbandOk, plateFacts.wristbandOk && plateFacts.wristbandDetail ? plateFacts.wristbandDetail.replaceAll(' · ', ', ') : plateFacts.stickerOk ? 'The sticker holder has no active wristband' : 'Needs a sticker holder first'],
-              ['Plate matches sticker', false, 'Yours to check at the barrier — the app cannot see the vehicle'],
-            ] as [string, boolean, string][]).map(([label, ok, detail]) => <li key={label}><span aria-hidden="true" className={`veh-mark ${ok ? 'ok' : 'bad'}`}><Icon name={ok ? 'check' : 'x'} /></span><div><div className="nm">{label}</div><div className="veh-check-detail">{detail}</div></div></li>)}</ul>
-            </>}
-            {!result && askReason && <div className="field veh-reason"><label htmlFor="vehicle-reason-first" className="sr-only">Turn-away reason</label><input ref={reasonRef} id="vehicle-reason-first" className="input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="TURN-AWAY REASON" /></div>}
-            {/* ACC-131: a disabled button with no explanation just looks broken to the
-                officer at the barrier — title covers pointer users, the note text
-                below covers everyone else (title has no touch/keyboard equivalent). */}
-            {normalized === null && <div className="veh-idle">
-              {plate.trim().length > 0 && <p role="status" className="veh-status-bad">Not a valid registration format.</p>}
-              {plate.trim().length === 0 && <p role="status">Type the registration. The sticker and the wristband show here before you decide.</p>}
-            </div>}
-            {plate.trim().length > 0 && <div className="veh-dock">
-              <button type="button" onClick={() => void recordEvent('enter')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-primary btn-gate btn-block">{submitting ? 'Queueing…' : 'Log entry and open gate'}<Icon name="arrow-right" /></button>
-              <button type="button" onClick={() => void recordEvent('turn_away')} disabled={normalized === null || submitting} title={normalized === null ? 'Enter a valid registration first' : undefined} className="btn btn-danger btn-gate btn-block">Turn away and log reason</button>
-            </div>}
-          </div>
-            <SyncStatus />
+            <div className="veh-result" id="vres" data-o={tone} aria-live="polite" aria-atomic="true">
+              {/* After the decision: what was logged, and the way to the next vehicle. */}
+              {result && <>
+                <h2 className="display-md verdict">{cleared ? 'Cleared' : 'Turned away'}</h2>
+                <p className="veh-sub">{cleared
+                  ? `${result.stickerNo ? `Sticker ${result.stickerNo}${result.occurredAt ? `, issued ${formatIssuedAt(result.occurredAt)}` : ''}. ` : ''}Entry logged. Open the gate.`
+                  : `Reason: ${result.reason ?? ''}.`}</p>
+                {savedOffline && <p className="veh-sub ink-3">{savedOffline}</p>}
+                {cleared && <CheckList checks={[
+                  { label: 'Vehicle sticker', state: 'ok', detail: result.stickerNo && result.plate ? `${result.stickerNo}, bound to ${result.plate}` : 'Bound to this registration' },
+                  { label: 'Crew wristband', state: 'ok', detail: result.wristbandDetail ? result.wristbandDetail.replaceAll(' · ', ', ') : 'Active' },
+                  { label: 'Plate matches sticker', state: 'ok', detail: 'Checked by you at the barrier' },
+                ]} />}
+                <div className="veh-dock">
+                  <button type="button" onClick={nextVehicle} className="btn btn-gate btn-block">Next vehicle</button>
+                </div>
+              </>}
+
+              {/* ACC-159 / ADR-022 — the officer is told before deciding.
+                  Deliberate, ADR'd deviation: the frozen contract draws this
+                  panel blank until a verdict exists. Both facts come from
+                  `resolved`, the same `resolvePlate` that `recordEvent` gates on. */}
+              {!result && plateFacts && <>
+                <h2 className="display-md verdict">{clears ? 'Ready to clear' : 'Will not clear'}</h2>
+                <p className="veh-sub">{plateFacts.holderName
+                  ? `${plateFacts.holderName}${plateFacts.stickerNo ? `, sticker ${plateFacts.stickerNo}` : ''}.`
+                  : 'Nothing is issued to this registration.'}</p>
+                {notice && <p role="status" className="veh-sub veh-status-bad">{notice}</p>}
+                <CheckList checks={checksFor(plateFacts)} />
+              </>}
+
+              {/* ACC-131: an empty or unparseable plate says why in visible text.
+                  No decision buttons until there is a plate to decide on. */}
+              {!result && !plateFacts && <div className="veh-idle">
+                {tried && normalized === null
+                  ? <p role="status" className="veh-status-bad">Not a valid registration format.</p>
+                  : <p role="status">Press Check to see the sticker and the wristband before you decide.</p>}
+              </div>}
+
+              {/* The decision. A vehicle that clears gets the green button and a
+                  quiet "Turn away"; one that will not clear gets the reasons
+                  straight away, the likely one first and filled, and no dead
+                  "Entry not possible" button (1 Oct review, items 20 and 21). */}
+              {!result && plateFacts && <div className="veh-dock">
+                {clears && <button type="button" onClick={() => void recordEvent('enter')} disabled={submitting} className="btn btn-primary btn-gate btn-block veh-enter"><Icon name="check-circle" />{submitting ? 'Logging…' : 'Log entry and open gate'}</button>}
+                {clears && !reasonsOpen && <button type="button" onClick={() => setReasonsOpen(true)} disabled={submitting} className="btn btn-gate btn-block">Turn away</button>}
+                {showReasons && <div className="veh-reasons" role="group" aria-labelledby="veh-reasons-label">
+                  <p id="veh-reasons-label" className="label-sm">Turn away because</p>
+                  <div className="veh-reason-grid">
+                    {reasons.map((reason) => (
+                      <button key={reason} type="button" disabled={submitting} onClick={() => void recordEvent('turn_away', reason)} className={`btn ${reason === suggested ? 'btn-danger veh-reason-lead' : ''}`}>{reason}</button>
+                    ))}
+                    {!otherOpen && <button type="button" disabled={submitting} onClick={openOther} className="btn">Other</button>}
+                  </div>
+                  {otherOpen && <form className="veh-other" onSubmit={(event) => { event.preventDefault(); void recordEvent('turn_away', otherReason) }}>
+                    <label htmlFor="vehicle-reason" className="label-sm">Turn-away reason</label>
+                    <div className="veh-lookup-row">
+                      <input ref={otherRef} id="vehicle-reason" className="input" value={otherReason} onChange={(event) => setOtherReason(event.target.value)} maxLength={240} autoComplete="off" />
+                      <button type="submit" disabled={submitting || otherReason.trim().length === 0} className="btn btn-danger veh-lookup-btn">Turn away</button>
+                    </div>
+                  </form>}
+                </div>}
+              </div>}
+            </div>
+            <GateStatus online={online} queued={queued} canSync={canSync} />
           </section>
         </div>
+        {/* With the plate field empty (Vipin, 1 Oct, prototype option A):
+            today's cleared and turned-away vehicles, and the plates with a
+            sticker still to come. A row fills the plate field. */}
+        {plate.trim().length === 0 && !result && <VehicleFolds version={logged + queued} onOpen={(next) => { editPlate(next); void check(next) }} />}
       </div>
 
       <style jsx global>{`
         /* Compound, not descendant: .r10 and .vehicle-screen sit on the same
            root element, so ".r10 .vehicle-screen" (a space) never matches. */
-        /* Same top space and equal-width tabs as /gate (app/gate/page.tsx). */
-        .r10 .vehicle-screen { padding-block: var(--s-10) var(--s-10); }
-        @media (max-width: 700px) { .r10 .vehicle-screen { padding-top: var(--s-6); } }
-        /* One card (Vipin, 30 Sep): the plate you type and the answer it gets
-           share a widget, in the same 600px centred column as /gate. */
+        /* Same top space, column and status row as /gate (app/gate/page.tsx). */
+        .r10 .vehicle-screen { padding-block: 0 var(--s-10); }
         .r10 .vehicle-screen { max-width: 600px; margin-inline: auto; }
         .r10 .veh-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; }
         @media (max-width: 520px) { .r10 .vehicle-screen .panel { padding: 18px; } }
         .r10 .vehicle-screen .panel { overflow: clip; }
         .r10 .veh-lookup { display: grid; gap: var(--s-2); }
+        /* Set like the gate's "Scan a pass" heading, centred over the plate field. */
+        .r10 .veh-title { padding-bottom: var(--s-2); color: var(--ink); text-align: center; }
         .r10 .veh-lookup-row { display: flex; gap: var(--s-3); align-items: stretch; }
+        /* The plate field takes the full width; Check sits under it. */
+        .r10 .veh-lookup .veh-lookup-row { flex-direction: column; }
+        .r10 .veh-lookup .veh-lookup-btn { width: 100%; }
+        .r10 .veh-lookup-btn i { transition: transform var(--d-base) var(--e-spring); }
+        @media (hover: hover) {
+          .r10 .veh-lookup .veh-lookup-btn:not([disabled]):hover { --btn-ring: var(--ink-3); transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--btn-ring), inset 0 1px 0 var(--btn-hi), 0 10px 22px -14px rgb(0 0 0 / 70%); }
+          .r10 .veh-lookup .veh-lookup-btn:not([disabled]):hover i { transform: scale(1.18) rotate(-12deg); }
+        }
+        .r10 .veh-lookup .veh-lookup-btn:not([disabled]):active { transform: scale(.98); }
         .r10 .veh-lookup-row .input { flex: 1; min-width: 0; }
         .r10 .veh-lookup-btn { flex: none; width: auto; min-width: 112px; }
-        /* On a phone the plate and its Check button still share a row: the
-           result must land above the fold, so the row cannot take two lines. */
         @media (max-width: 520px) {
           .r10 .veh-lookup-row .input { font-size: 17px; letter-spacing: .02em; padding-inline: var(--s-3); }
           .r10 .veh-lookup-btn { min-width: 0; padding-inline: var(--s-4); font-size: 14px; }
         }
-        .r10 .plate-note { display: flex; gap: var(--s-3); align-items: flex-start; margin-top: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--wait-tint); color: var(--ink); }
-        .r10 .plate-note b { display: block; }
-        .r10 .plate-note-ic { flex: none; color: var(--gold); font-size: 20px; line-height: 1.2; }
-        .r10 .veh-card > [data-sync-status] { margin: var(--s-4) 0 0; color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
+
 
         .r10 .veh-result { --c: var(--ink); display: flex; flex-direction: column; }
         .r10 .veh-result[data-o="ok"] { --c: var(--go); }
         .r10 .veh-result[data-o="bad"] { --c: var(--bad); }
         .r10 .veh-result:has(> .verdict) { margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--edge-line); }
-        .r10 .veh-idle { text-align: center; color: var(--ink-3); padding: var(--s-6) 0 0; margin: auto 0; }
-        .r10 .veh-idle p { margin: 0; }
+        .r10 .veh-idle { text-align: left; color: var(--ink-3); padding: var(--s-4) 0 0; margin: auto 0; }
+        .r10 .veh-idle p { margin: 0; font-size: var(--t-body-sm); line-height: 1.4; }
         .r10 .veh-result .verdict { margin: 0; color: var(--c); }
         .r10 .veh-sub { margin: var(--s-2) 0 0; color: var(--ink-2); }
+        .r10 .veh-sub.ink-3 { color: var(--ink-3); }
         .r10 .veh-checks { list-style: none; margin: var(--s-5) 0 0; padding: 0; display: grid; gap: var(--s-3); }
         .r10 .veh-checks li { display: flex; align-items: center; gap: var(--s-3); }
         .r10 .veh-mark { --c: var(--go); display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--c) 18%, transparent); box-shadow: inset 0 0 0 2px var(--c); color: var(--c); font-size: 18px; }
         .r10 .veh-mark.bad { --c: var(--bad); }
+        /* The officer's own step: neutral, not a pass or a fail. */
+        .r10 .veh-mark.todo { --c: var(--ink-3); background: none; color: var(--ink-2); }
         .r10 .veh-checks .nm { font-family: var(--f-body); font-weight: 600; font-size: var(--t-body); letter-spacing: normal; text-transform: none; color: var(--ink); }
         .r10 .veh-check-detail { color: var(--ink-3); font-size: var(--t-body-sm); }
-        .r10 .veh-reason { margin-top: var(--s-4); }
         .r10 .veh-status-bad { color: var(--bad); }
         .r10 .veh-dock { margin-top: var(--s-5); display: grid; gap: var(--s-3); }
-        /* Phone: the two decisions stay in thumb reach however tall the checks are. */
+        .r10 .veh-reasons { display: grid; gap: var(--s-2); }
+        .r10 .veh-reasons > .label-sm { margin: 0; color: var(--ink-2); }
+        /* Wrapping, not a fixed two-column grid: the lead reason takes the
+           row, and whatever follows shares the next one or fills it alone. */
+        .r10 .veh-reason-grid { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+        .r10 .veh-reason-grid .btn { flex: 1 1 140px; min-height: var(--h-control-gate); padding-inline: var(--s-3); white-space: normal; line-height: 1.15; }
+        .r10 .veh-reason-grid .veh-reason-lead { flex-basis: 100%; }
+        /* Specific enough to beat glass.css's see-through .btn fill. */
+        .r10 .veh-reason-grid .btn.btn-danger.veh-reason-lead.veh-reason-lead { --btn-fg: var(--bg); color: var(--bg); background: var(--bad); }
+        .r10 .veh-other { display: grid; gap: var(--s-2); margin-top: var(--s-1); }
+        /* Phone: the decision stays in thumb reach however tall the checks are. */
         @media (max-width: 700px) {
           .r10 .veh-dock { position: sticky; bottom: var(--s-3); z-index: 2; margin-inline: calc(var(--s-2) * -1); padding: var(--s-3) var(--s-2) 0; border-radius: var(--r-md); background: color-mix(in srgb, var(--surface) 94%, transparent); }
         }

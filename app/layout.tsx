@@ -62,6 +62,10 @@ import './r10/tokens.css'
 import './r10/base.css'
 import './r10/primitives.css'
 import './r10/glass.css'
+// The gate's shared styles (folds, status row). Loaded here, like the rest,
+// not from app/gate/layout.tsx: a stylesheet chunked under /gate kept one URL
+// across edits, and a browser holding the old copy drew the folds unstyled.
+import './gate/gate.css'
 import { StyledJsxRegistry } from './styled-jsx-registry'
 
 export const metadata: Metadata = {

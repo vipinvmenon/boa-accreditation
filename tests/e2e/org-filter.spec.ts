@@ -86,7 +86,7 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await installDesk(page, seen)
     await page.goto('/desk/orgs')
 
-    await expect(page.getByText('Every company sending people. Open one to see them in the Master list.')).toBeVisible()
+    await expect(page.getByText('Every organisation sending people. Open one to see its people in the Master list.')).toBeVisible()
     await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.nm')).toBeVisible()
     // r10 (r8-orgs.html) replaced the Status column with Collected.
     await expect(page.getByRole('link', { name: /^Sound —/ }).locator('.orgs-collected .body-sm')).toHaveText('1')
@@ -138,7 +138,7 @@ test.describe('organisations link to a filtered master list (ACC-152)', () => {
     await installDesk(page, seen)
     await page.goto('/desk')
 
-    await expect(page.getByRole('heading', { name: '2 companies on site' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '2 organisations sending people' })).toBeVisible()
     // The list, its fake 25/500 quota meter and its dead "Needs you first"
     // sort all went with ADR-021 rather than being repaired.
     await expect(page.getByText('Needs you first')).toHaveCount(0)

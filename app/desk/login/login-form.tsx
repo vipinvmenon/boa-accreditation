@@ -58,17 +58,22 @@ import styles from './login.module.css'
  * button at their real sizes, so nothing moves when the form arrives.
  */
 function LoginFormSkeleton() {
+  // The form's own field and label markup (Field's .field, PasswordField's
+  // label), so each row is its loaded height; and the "Forgot password?"
+  // line, which the skeleton used to leave out: the centred column was 66px
+  // short and jumped up when the form arrived (2 Oct).
   return (
     <div className={styles['form']} aria-hidden="true">
-      <div className={styles['skField']}>
-        <span className="body-sm"><SkeletonText w="5ch" /></span>
+      <div className="field">
+        <span>Email</span>
         <Skeleton shape="btn" style={{ '--sk-w': '100%' } as CSSProperties} />
       </div>
-      <div className={styles['skField']}>
-        <span className="body-sm"><SkeletonText w="8ch" /></span>
+      <div className="field">
+        <span className={styles['pwLabel']}>Password</span>
         <Skeleton shape="btn" style={{ '--sk-w': '100%' } as CSSProperties} />
       </div>
       <Skeleton shape="btn" className="btn-block" style={{ '--sk-w': '100%' } as CSSProperties} />
+      <span className={`btn-link ${styles['back']}`}><SkeletonText w="16ch" /></span>
     </div>
   )
 }
@@ -236,8 +241,13 @@ function DeskLoginForm() {
     setError(null)
     // The forms are noValidate: every message, including "you left it
     // blank", arrives in the same role="alert" line, not a browser tooltip.
+    // Say which field is empty and put the cursor in it (1 Oct review: one
+    // line under the form named neither).
     if (!email.trim() || !password) {
-      setError('Enter your email and password.')
+      const missing = !email.trim() ? 'email' : 'password'
+      setError(!email.trim() && !password ? 'Enter your email and password.' : `Enter your ${missing}.`)
+      const form = e.currentTarget as HTMLFormElement
+      form.querySelector<HTMLInputElement>(missing === 'email' ? 'input[type="email"]' : 'input[autocomplete="current-password"]')?.focus()
       return
     }
     setBusy(true)

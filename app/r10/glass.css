@@ -86,8 +86,7 @@
 .r10 .search kbd,
 .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
 .r10 .sk,
-.r10 .g-note.g-note:not(.bad),
-.r10 .segmented.segmented a[aria-current="page"] {
+.r10 .g-note.g-note:not(.bad) {
   background: var(--gl-fill-soft);
 }
 
@@ -121,6 +120,13 @@
 
 .r10 .scrim {
   background: var(--gl-scrim);
+}
+
+/* The operator popover opens over the page's own green primary ("Invite
+   operator", "Send unsent passes"); at the shared overlay's transparency that
+   button glowed through the menu text (1 Oct review). Near-solid here only. */
+.r10 .profile-menu {
+  background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
 }
 
 /* The 700–900px menu was solid --bg. */
@@ -198,8 +204,7 @@
   .r10 .search kbd,
   .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
   .r10 .sk,
-  .r10 .g-note.g-note:not(.bad),
-  .r10 .segmented.segmented a[aria-current="page"] {
+  .r10 .g-note.g-note:not(.bad) {
     background: var(--raised);
   }
 

@@ -135,14 +135,30 @@ export const doubleIssueListSchema = z.array(doubleIssueSchema)
  * review, ACC-183a: a timeout or a `boa_acc_type_code` TIER_CODES doesn't
  * cover would otherwise make every gate read zero on show day).
  */
+/**
+ * Approved and collected counts per tier and per organisation, computed by
+ * /api/desk/dashboard from the ledger with lib/collection.ts (1 Oct UX
+ * review). The RPC's `types[].count` is approved people per tier (and AAA
+ * nominations) and its `orgs[].used` is submitted people against a quota;
+ * neither is "collected", which is what the Control room's band shelf, AAA
+ * tile and "Furthest behind" print (design/source/r10/r8-control-room.html).
+ * `null` when those reads fail: the cards show a dash, never a wrong number.
+ */
+export const dashboardCollectionSchema = z.object({
+  tiers: z.array(z.object({ code: z.enum(ORG_TYPE_CODES), approved: z.number().int().nonnegative(), collected: z.number().int().nonnegative() })),
+  orgs: z.array(z.object({ id: z.string(), approved: z.number().int().nonnegative(), collected: z.number().int().nonnegative() })),
+})
+
 export const dashboardResponseSchema = dashboardSchema.extend({
   gateCounts: dashboardGateCountSchema.array().nullable().default([]),
   latestIssues: dashboardLatestIssueSchema.array().nullable().default([]),
   doubleIssueList: doubleIssueListSchema.nullable().default([]),
+  collection: dashboardCollectionSchema.nullable().default(null),
 })
 
 export type Dashboard = z.infer<typeof dashboardSchema>
 export type DashboardResponse = z.infer<typeof dashboardResponseSchema>
+export type DashboardCollection = z.infer<typeof dashboardCollectionSchema>
 export type DoubleIssue = z.infer<typeof doubleIssueSchema>
 export type DoubleIssueBand = z.infer<typeof doubleIssueBandSchema>
 export type DashboardOrg = z.infer<typeof dashboardOrgSchema>

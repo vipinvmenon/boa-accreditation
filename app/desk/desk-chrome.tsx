@@ -10,6 +10,7 @@ import { supabaseBrowser } from '@/lib/supabase-browser'
 import { useDomTheme } from '@/lib/use-theme'
 import { rememberDeskNav } from '@/lib/nav-memory'
 import { Icon } from '@/components/icon'
+import { initialsOf } from '@/gate/use-operator'
 import { Skeleton } from '@/components/states/skeleton'
 import { z } from 'zod'
 
@@ -243,15 +244,15 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   }
                   setMobileOpen(false)
                   setMenuOpen(true)
-                }} aria-controls="desk-profile-menu" aria-expanded={menuOpen} aria-label="Operator menu">
-                  {me?.display_name?.slice(0, 2).toUpperCase() ?? 'VI'}
+                }} aria-controls="desk-profile-menu" aria-expanded={menuOpen} aria-label="Operator menu" data-here={pathname === '/desk/users' ? '' : undefined}>
+                  {me?.display_name ? initialsOf(me.display_name) : '··'}
                 </button>
                 <div id="desk-profile-menu" aria-label="Operator menu" className="profile-menu" hidden={!menuOpen}>
                     <div className="profile-head"><strong>{me ? me.display_name : meError ? 'Operator' : <Skeleton width="86px" />}</strong><span>{me ? ROLE_LABEL[me.role] : meError ? '—' : <Skeleton width="52px" />}</span></div>
                     <button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}>
                       <Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                     </button>
-                    <Link href="/desk/users" onClick={closeProfileMenu}><i aria-hidden="true" className="ph-light ph-users-three" />Users</Link>
+                    <Link href="/desk/users" onClick={closeProfileMenu} aria-current={pathname === '/desk/users' ? 'page' : undefined}><i aria-hidden="true" className="ph-light ph-users-three" />Users</Link>
                     <button type="button" onClick={() => { closeProfileMenu(); void signOut() }} disabled={signingOut}><i aria-hidden="true" className="ph-light ph-sign-out" />{signingOut ? 'Signing out…' : 'Sign out'}</button>
                 </div>
               </div>
@@ -277,7 +278,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           }}>{item.label}</Link>)}
         </div>
         <div className="frame page">{children}</div>
-        <SiteFooter signedInAs={me ? `${me.display_name} (${ROLE_LABEL[me.role]})` : null} />
+        <SiteFooter />
       </div>
     </div>
   )

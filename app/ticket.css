@@ -75,6 +75,10 @@
   opacity: .62;
   filter: saturate(.85);
   border-bottom: 1px solid rgba(227, 187, 114, .4);
+  /* The band art is a 3900px strip cropped to the card: it used to stop
+     mid-word ("…ROC"). It now runs out to the right like a band tail. */
+  -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent);
+  mask-image: linear-gradient(90deg, #000 72%, transparent);
 }
 .tk-body { display: grid; gap: 16px; padding: 20px 22px; }
 .tk-name {
@@ -105,7 +109,7 @@
 .tk-valid { font-size: 14px; color: var(--tk-ink); }
 .tk-zones { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
 .tk-zones li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tk-ink); }
-.tk-zones i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.tk-zones i { width: 10px; height: 10px; border-radius: 4px; flex: none; }
 .tk-vehicle { margin: 0; font-size: 14px; color: var(--tk-ink2); }
 .tk-vehicle b { font-family: var(--mono); font-weight: 700; color: var(--tk-ink); letter-spacing: .04em; }
 .tk-perf { margin: 0 20px; border-top: 2px dashed rgba(227, 187, 114, .32); position: relative; top: -1px; }

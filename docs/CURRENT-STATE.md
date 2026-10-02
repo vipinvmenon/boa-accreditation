@@ -3,7 +3,256 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 29 September 2026 (skeletons and load-jump fixes; control room art; gate band card)._
+_Last updated: 2 October 2026 (UX review fixes on branch `fix/ux-review-1-oct`)._
+
+## Favicon is the wordmark (branch `fix/ux-review-1-oct`), 2 Oct 2026
+
+- **What (Vipin):** "change the favicon to the BOA logo… the one we use
+  everywhere", i.e. `public/assets/boa-logo.png` (nav and footer). This
+  replaces the ACC-101 "B" crop, which also clipped the B's right edge.
+- `app/icon.png`: 256×256, the wordmark fitted to the width (2% margin) on a
+  **transparent** ground, so it sits on light and dark tab bars. 34 KB.
+  `app/apple-icon.png`: 180×180 on black, 8% margin (a home-screen icon must
+  be opaque). Generated from `boa-logo.png` with PIL, nothing redrawn.
+- Known limit, accepted: the wordmark is 2.7:1, so at 16px it is a thin
+  strip; a square mark would read better but the brief was this logo.
+- Checked: the dev server's `<link rel="icon">` and `apple-touch-icon` point
+  at the new files (200, image/png); previewed at 16/32/64 on light and
+  dark grounds.
+
+## Icon review (branch `fix/ux-review-1-oct`), 2 Oct 2026
+
+- **What (Vipin):** "add proper icons wherever needed, don't over-add, find
+  better alternatives". An audit of every screen was offered as swaps plus
+  four optional additions; he picked **the swaps only**. No icon was added
+  where there was none.
+- **Swaps:** Organisations "Copy names for the form" paper-plane → `copy`
+  (it copies; the plane means send). "Invite operator" and the "Only you so
+  far" empty state plus → `user-plus` (`r8-users.html:29`). "No
+  organisations yet" plus → `buildings` (`r8-orgs.html:73`). Error panels and
+  the error note on Organisations and Users `x` → `warning-circle`, as the
+  Master list and the mock use. Users "Try again" arrow → `arrows-clockwise`,
+  as the Master list. Gate "Issue wristband" check → `check-circle`; Vehicle
+  "Log entry and open gate" trailing arrow → leading `check-circle`
+  (`r8-gate.html:228`, `r8-vehicle.html:105`).
+- Three glyph rules added to `app/phosphor.css` (`buildings`, `check-circle`,
+  `user-plus`), codepoints from `design/source/r10/r8/tokens.css`, whose
+  existing entries match the vendored ones. All six glyphs checked rendering
+  in the real font in the browser; "Issue wristband" checked on a live
+  green result (cancelled, nothing issued). **Not checked in the browser:**
+  the vehicle "Log entry" button (no vehicles in the data) and the error
+  and empty states (they need a failing or empty load). Accessible names are
+  unchanged (icons are `aria-hidden`), so the e2e selectors stand; e2e not
+  rerun. Typecheck, lint, 332 unit tests pass.
+
+## Desk footer (branch `fix/ux-review-1-oct`), 2 Oct 2026
+
+- **What (Vipin):** "make the footer better with necessary info, remove
+  Signed in as Vipin". Option A of three prototypes, without a build id.
+- `components/site-footer.tsx`: "Signed in as" is gone (the avatar menu says
+  it). Each date says how far away it is (`formatCountdown` in
+  `lib/format.ts`, calendar days on the Asia/Kolkata clock, unit-tested). The
+  base row is the ACC-173 help line, linked to WhatsApp: "Something broken?
+  WhatsApp Vipin · +91 88487 24976".
+- **Defect fixed:** the Control room hero said "1 day to gate live" and "Show
+  in 7 days" from noon on 2 Oct (it rounded hours to midnight); it now counts
+  calendar days, so it matches the footer (`daysBetween`,
+  `app/desk/control-room-screen.tsx`). Checked in the browser at 1440 and 375.
+- **Round 2 (Vipin: "cluttered even though we have space"; option 1, plus
+  the gate strip):** logo left, the three dates spread to the right edge, one
+  line each ("Sun 4 Oct · in 2 days"); the data rule moved to the base row as
+  a sentence; rocknrolloriginals.com removed.
+- **The gate has the same footer again** (Vipin, 2 Oct), reversing item 16
+  of the 1 Oct list below (`app/gate/gate-chrome.tsx`).
+- **Vehicle plate field:** the placeholder is "KA 01 AB 1234" (no "e.g.")
+  in the plate's own mono face and size, at a faint ink, so the field shows
+  what goes in it (`.input-mono::placeholder`, `app/r10/primitives.css`).
+  This replaces the 1 Oct body-face hint. Layout and the Check button are
+  unchanged. Checked in the browser at 1440, empty and typed.
+- **Sync line (Vipin: "what is the point of last synced, is it working"):**
+  it was working (pulls every ~45 s, 200s, line matched the last pull), but
+  a pull failing with signal froze it silently, and a clock time made the
+  volunteer do the sum. It now says the age ("Synced 3 min ago"), and from 5
+  minutes turns amber: "List is N min old", plus "not updating, call a lead"
+  when online (`lib/format-sync-status.ts`, unit-tested; ticks every 15 s in
+  `app/gate/sync-status.tsx`). Verified in the browser: fresh on load; stale
+  by blocking pulls and moving the page clock 10 minutes on. The offline
+  stale case is unit-tested only. `two-phone-sync.spec.ts` expects the new
+  text; it and `aeroplane-mode.spec.ts` pass (37 tests, 2 Oct).
+- **Polish (Vipin, screenshot):** the footer sits on the bottom edge when
+  the page is shorter than the window (`margin-top: auto` in `.app`'s
+  column, `app/r10/base.css`); the vehicle hint is now "Press Check to see the
+  sticker and the wristband before you decide." (one line on desktop, two at
+  375), centred; the sync line is a pill in the old 9px type, gold text and
+  border, with a gold fill when stale (`app/gate/gate.css`).
+- **Camera button** is the r10 mock's round icon-only disc again
+  (`r8-gate.html:34`), 104px against the mock's 88 (Vipin: "just the logo, a
+  bit big"); "Start camera" stays its accessible name.
+- **Defect fixed, black circle on /desk (Vipin: reload /gate, open Control
+  room):** the "Bands issued" ring's fill and size lived only in the
+  Control room's CSS module, which /gate does not load. A frame painted
+  before it arrived used SVG defaults: a black disc 1,360px wide. The ring
+  now carries `fill="none"` and `width`/`height` attributes
+  (`app/desk/control-room-screen.tsx`). The late frame did not happen in the
+  Claude browser pane; verified by switching that stylesheet off: 1,360px
+  black before the fix, invisible and 132px after.
+- **Bands issued ring:** the percentage 24 to 30px, "Bands issued" 12 to
+  10px with an 8px gap (was 2px), the pair re-centred in the ring. 10px is
+  under DESIGN.md's 12px floor, on Vipin's explicit call
+  (`control-room-screen.module.css`).
+
+## Gate and vehicle declutter (branch `fix/ux-review-1-oct`), 1 Oct 2026
+
+- **What (Vipin):** "the Gate page, both people and vehicle, looks AI slop:
+  unnecessary information, UX flaws". A 27-item list was agreed, then fixed.
+  No roadmap ID; overlaps ACC-189/189b/190 (in flight). Not merged or deployed.
+- **People (`app/gate/page.tsx`):** idle heading "Scan a pass" in ink (was a
+  green verdict-sized "Ready" plus "Works with the radio off"); the "Scan a
+  pass / N passes on this phone" block is gone; the camera button reads
+  "Start camera" and the camera starts by itself once the site has camera
+  permission; status is one row (`app/gate/gate-status.tsx`, shared with
+  vehicle): last synced always, plus a phrase only when offline, queued or
+  needing sign-in (operator name dropped, it is in the avatar). Result: one
+  sentence under the verdict; Refuse tells "not a BOA code, scan the pass on
+  their phone" from "not on the list, send them to the desk"; Collected says
+  when, where and which serial, with "call a lead" for a lost band (reissue is
+  ACC-189b); "Cancel" before a band is issued, "Next person" after; serial
+  field compact, labelled "(optional)", no placeholder-as-label; no duplicate
+  "Syncing now" line online; "Last issued" only when there is a row. The gate
+  ticket shows "Show day", not the calendar date (`datesShown={false}`, gate
+  face only; the holder's pass is unchanged). Wrong-day passes do **not**
+  change the verdict: bands are collected before show day.
+- **Vehicle (`app/gate/vehicle/vehicle-screen.tsx`):** one cause shows once
+  (no sticker hides the wristband and plate rows); the plate check is a
+  neutral step, never a red cross under "Ready to clear"; "Check" is a quiet
+  button; no disabled "Entry not possible"; turn-away is one tap on a reason
+  that applies (No sticker / No wristband / Plate does not match sticker) or
+  "Other" with typed text, stored as the same `reason` text; "Next vehicle"
+  after a decision; copy without dashes. `recordEvent` still gates on
+  `resolvePlate`, unchanged.
+- **Both:** People/Vehicles switch full width; search rows without the dot
+  chains; the site footer is no longer drawn at the gate (`gate-chrome.tsx`);
+  the cache-error copy no longer points at the removed `/gate/setup`.
+- **Round 2, folds under the card (Vipin: "bland now"; picked from
+  prototypes, option A):** `app/gate/gate-lists.tsx`, styles in
+  `app/gate/gate.css` (loaded by `app/gate/layout.tsx`). People: "Just now"
+  (today's bands, ledger plus this phone's queued ones) and "Still to
+  collect" by team, one fold open at a time, hidden while a result or the
+  name search has the card; a row reopens that person's result. Teams are
+  roles, because 39 of 42 people are the festival's own organisation; anyone
+  from another organisation is grouped under it, and one-person teams fold
+  into "Other teams". Vehicles, only while the plate field is empty: "Just
+  now" (cleared today), "Turned away" (with reason) and "Expected" (plates
+  with a sticker not cleared today); a row fills the plate field. Vehicle
+  decisions are read from outbox rows, which are kept after sending.
+  Read-only; nothing here writes. A side panel with a band shelf was built
+  and removed the same day (the scan result already names the band).
+- **Round 3, the verdict (Vipin: "the only page issuers see, make it
+  perfect"; picked from prototypes: B, lock, buzz and tone):** the result's
+  top fills with the verdict colour (`--go`/`--gold`/`--bad`, text in
+  `--bg`), verdict 44–60px; Refuse turns the whole card red; the result card
+  keeps the idle scanner's height, so nothing jumps; a short rise on each new
+  verdict (off under reduced motion). Approved now says which band ("Hand over
+  a purple band.", `gateBandCard().handOver`). **Defect fixed:** the camera
+  re-resolved a pass held in view every 700ms, which wiped the typed serial
+  and, straight after "Issue wristband", flipped the green result to amber
+  Collected; a second pass in view could replace a green result mid-handover.
+  `gate/scan-guard.ts` (5 unit tests): the pass on screen is ignored until out
+  of view for 2.5s; Approved with no band is locked until Issue or Cancel;
+  Refuse, Collected and issued give way to a different pass. The wedge scanner
+  and name search are not guarded (deliberate input). `gate/feedback.ts`: a
+  buzz pattern and a WebAudio tone per verdict, unlocked by the first tap, no
+  sound file (works offline; iPhones get the tone only). Name search no longer
+  says "no one matches" after one letter.
+- **Round 3 verified:** typecheck, lint (0 errors), 327 unit, aeroplane-mode +
+  two-phone-sync 36/36; Approved and Refuse in the browser at 375 in dark and
+  light against the live database, Collected from the e2e fixture at 1280.
+  **Not verified:** the scan guard with a real camera (unit tests only), the
+  buzz and tone on a real phone. Seen, not changed: in light theme the gate
+  ticket face reads as a mid-grey plate.
+- **Departures from `design/source/r10/r8-gate.html`**, at Vipin's
+  instruction: the Ready/lede/"Scan a pass" copy block, the "passes on this
+  phone" line, the OPTIONAL serial placeholder, the amber/red note boxes and
+  the always-on "Last issued". No outbox, cache, ledger or schema change.
+- **Verified:** typecheck, lint (0 errors), 322 unit, `test:e2e` (66 passed on
+  the full run, the one failure was an assertion on the old 401 wording; after
+  updating it, aeroplane-mode + two-phone-sync 34/34), build (inside
+  `test:e2e`); screens checked in the browser at 390 and 1440 against the live
+  database (idle, search, Approved, Refuse, Will not clear, Other), and Ready
+  to clear from a temporary local-cache row, deleted afterwards. **Not
+  verified:** Collected and Cleared by eye (e2e only), `test:visual` (known
+  ACC-191 gap; the vehicle reference is the Cleared shot and has moved),
+  light theme, a real phone's camera auto-start.
+- **Round 2 verified:** typecheck, lint (0 errors), 322 unit, `test:e2e`
+  69/69 (two new: the People folds offline, the vehicle folds from expected
+  to just now and turned away), build; the folds checked in the browser at
+  390 against the live database. **Not verified:** the folds with real
+  vehicle stickers (none issued yet), light theme.
+
+## UX review fixes (branch `fix/ux-review-1-oct`), 1 Oct 2026
+
+- **What (Vipin):** a walk-through of the running app (desk at 1280 and 375,
+  gate, vehicle, sign-in, invalid pass), then "fix everything in a new branch".
+  No roadmap ID; not merged, not pushed, not deployed.
+- **Control room numbers were wrong, now fixed.** The AAA tile printed the
+  RPC's `aaaStamped` (nominations linked to a person) as "collected", the band
+  shelf printed approved-per-tier as "issued", and "Furthest behind" printed
+  submitted-of-quota (500) as "collected", on a day nothing had been handed
+  over. `/api/desk/dashboard` now adds `collection` (approved and collected per
+  tier and per org) from `boa_acc_person` + `boa_acc_checkin`, the way
+  `/api/desk/orgs` already read them; `lib/collection.ts` is the one rule
+  (a live, non-voided wristband). **No migration.** `/api/desk/orgs` moved to
+  the same rule: it used "latest check-in is a wristband", which un-collected
+  anyone who got a sticker afterwards.
+- **Vehicle:** on "Will not clear" the green "Log entry and open gate" is
+  replaced by a disabled "Entry not possible" and a filled "Turn away" leads.
+  `recordEvent` already refused that press; only the presentation changed.
+- **Deliberate departures from the r10 contract / an earlier decision:** the
+  Control room hero is `clamp(420px, 56vh, 672px)` instead of 672px so the work
+  starts on the first screen at 1280×800; the footer (ADR-026) now reads Gate
+  live / Build / What we keep instead of Need help / Your data, because only
+  operators see it. Both at Vipin's instruction after the review.
+- **Smaller fixes:** gate status line "Vipin Menon at Check-in · Online · 0
+  waiting to send", "Ledger append-only" removed, "issued today" now counts
+  today (IST) instead of the whole ledger; vehicle tab title; Master list
+  "Open pass" opens that person's pass (`/desk/passes?person=`); Passes sorted
+  newest pass ref first; a row Send takes a second tap ("Send to Li?", 4 s);
+  "Queued" explains itself on hover; avatar initials one rule (desk showed a
+  hardcoded "VI" fallback); Users dates "Added 12 Sept"; operator menu
+  near-opaque; nav focus ring in ink so it is not mistaken for the current
+  page; "/" hint hidden on touch; band strips fade instead of stopping
+  mid-word; invalid pass gets a gold tag and Bhupesh's number; sign-in says
+  which field is empty; Master list search no longer updates the router
+  mid-render; "companies" → "organisations"; shimmer easing, 3px/12px radii
+  and the Arial fallback the detector flagged.
+- **Verified:** typecheck, lint (0 errors), 322 unit tests (5 new in
+  `tests/unit/collection.test.ts`), `test:e2e` 66/66 (vehicle and status-line
+  tests updated to the new copy and behaviour), build; each screen checked in
+  the browser against the live database at 1280 and 375. **Not verified:**
+  `test:visual` fails waiting for `main .num` on the Control room, the known
+  ACC-191 gap noted below, not re-run on main; light theme; a real phone.
+- **Second round, same day (Vipin: "cluttered, big font for unnecessary
+  stuff"):** desk page titles 56px → `clamp(30px, 2.4vw, 38px)` (scoped to
+  `.frame.page h1.display-lg`; the `--t-display-lg` token keeps the r10 value,
+  which `check-design-tokens` enforces, so this is a recorded departure, not a
+  token change); footer reduced to the nav-size logo and four equal columns
+  (Show / Gate live / Build / What we keep), the 39px "Show 10 Oct 2026"
+  headline gone, base row aligned to the columns (it had the gutter twice);
+  vehicle placeholder in the body face, not 22px upper-case mono, and the idle
+  "check the sticker" callout removed (it repeated the line under it); gate
+  status in one row (sync · online · operator); Control room milestones as
+  labels not 21px Anton, the hero no longer repeats the show countdown, the
+  phone poster 160px instead of 300px; "Add filter" icon-only on phones beside
+  the search. Verified: typecheck, lint, 322 unit, `test:e2e` 66/66, and
+  each screen at 1440 and 375 in the browser.
+- **Found, not fixed (not code, or not decided):** passes "Queued" since 29 Sep
+  means no WhatsApp delivery receipt has reached the app; Loud Society's
+  contact is +91 98765 43210, which looks like a placeholder; every org's kind
+  is "Crew", German Embassy included; `/api/desk/{dashboard,orgs,master}` read
+  `boa_acc_person`/`boa_acc_checkin` with no `.range()`, so past PostgREST's
+  row cap (1000 by default) counts would silently stop. Contract-defined and
+  left alone: upper-case names on the desk, band art repeating the card title,
+  the General Admission art (it is the real band), the BMS column.
 
 ## Crew T-shirt at check-in (ACC-197), 30 Sep 2026
 

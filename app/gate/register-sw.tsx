@@ -33,6 +33,20 @@ async function retireGateServiceWorker(): Promise<void> {
     const keys = await caches.keys()
     await Promise.all(keys.filter((k) => k.startsWith('boa-gate-')).map((k) => caches.delete(k)))
   }
+  // An unregistered worker still controls the page that removed it, and
+  // keeps answering (and re-caching) /_next/static cache-first; Safari held
+  // on to it across reloads, so the gate kept a stale stylesheet (2 Oct).
+  // Reload once so the page comes back uncontrolled.
+  if (navigator.serviceWorker.controller) {
+    const KEY = 'boa-gate-sw-retired'
+    try {
+      if (window.sessionStorage.getItem(KEY)) return
+      window.sessionStorage.setItem(KEY, '1')
+    } catch {
+      return
+    }
+    window.location.reload()
+  }
 }
 
 export function GateServiceWorker() {

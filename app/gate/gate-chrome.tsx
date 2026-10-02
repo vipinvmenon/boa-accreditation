@@ -207,7 +207,7 @@ export function GateChrome({
           <nav className="island" aria-label="Gate navigation">
             <Link href="/gate" className="brand" aria-label="Bangalore Open Air"><img src="/assets/boa-logo.png" alt="Bangalore Open Air" /></Link>
             <div className="links"><span className="pip" aria-hidden="true" />{nav.map((item) => <Link key={item.id} href={item.href} aria-current={item.id === active ? 'page' : undefined} onClick={rememberPip}>{item.label}</Link>)}</div>
-            <div className="nav-end"><div ref={profileMenuRef} className="profile-wrap"><button ref={profileButtonRef} type="button" className="av" onClick={() => { if (profileOpen) closeProfileMenu(); else { setMobileOpen(false); setProfileOpen(true) } }} aria-controls="gate-profile-menu" aria-expanded={profileOpen} aria-label="Operator menu">{operator ? initialsOf(operator.displayName) : '··'}</button><div id="gate-profile-menu" className="profile-menu" hidden={!profileOpen} aria-label="Operator menu"><div className="profile-head"><strong>{operator ? operator.displayName : 'Signed in'}</strong><span>{operator ? GATE_ROLE_LABEL[operator.role] : '—'}</span></div><button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme</button>{isDeskOperator && <Link href="/desk/users" onClick={closeProfileMenu}><i aria-hidden="true" className="ph-light ph-users-three" />Manage users</Link>}<button type="button" disabled={signingOut} onClick={() => { closeProfileMenu(); void signOut() }}><i aria-hidden="true" className="ph-light ph-sign-out" />{signingOut ? 'Signing out…' : 'Sign out'}</button></div></div><button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
+            <div className="nav-end"><div ref={profileMenuRef} className="profile-wrap"><button ref={profileButtonRef} type="button" className="av" onClick={() => { if (profileOpen) closeProfileMenu(); else { setMobileOpen(false); setProfileOpen(true) } }} aria-controls="gate-profile-menu" aria-expanded={profileOpen} aria-label="Operator menu">{operator ? initialsOf(operator.displayName) : '··'}</button><div id="gate-profile-menu" className="profile-menu" hidden={!profileOpen} aria-label="Operator menu"><div className="profile-head"><strong>{operator ? operator.displayName : 'Signed in'}</strong><span>{operator ? GATE_ROLE_LABEL[operator.role] : ''}</span></div><button type="button" onClick={() => { toggleTheme(); closeProfileMenu() }}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /> Switch to {theme === 'dark' ? 'light' : 'dark'} theme</button>{isDeskOperator && <Link href="/desk/users" onClick={closeProfileMenu}><i aria-hidden="true" className="ph-light ph-users-three" />Users</Link>}<button type="button" disabled={signingOut} onClick={() => { closeProfileMenu(); void signOut() }}><i aria-hidden="true" className="ph-light ph-sign-out" />{signingOut ? 'Signing out…' : 'Sign out'}</button></div></div><button ref={mobileMenuButtonRef} type="button" className="burger" onClick={() => {
               if (mobileOpen) {
                 closeMobileMenu()
               } else {
@@ -221,7 +221,9 @@ export function GateChrome({
           closeMobileMenu()
         }}>{item.label}</Link>)}</div>
         <main id="main-content" tabIndex={-1} ref={mainRef} className="frame">{children}</main>
-        <SiteFooter signedInAs={operator ? `${operator.displayName} (${GATE_ROLE_LABEL[operator.role]})` : null} />
+        {/* The desk's footer, back at the gate (2 Oct, Vipin), reversing
+            item 16 of the 1 Oct review. */}
+        <SiteFooter />
       </div>
     </div>
   )

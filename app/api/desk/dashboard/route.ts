@@ -1,13 +1,31 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { supabaseServer } from '@/lib/supabase-server'
+import { collectionCounts } from '@/lib/collection'
 import {
+  dashboardCollectionSchema,
   dashboardSchema,
   dashboardGateFeedSchema,
   dashboardTypeNoteSchema,
   doubleIssueListSchema,
+  type DashboardCollection,
   type DashboardResponse,
   type DoubleIssue,
 } from '@/lib/schemas/dashboard'
+
+const collectionPersonSchema = z.object({
+  id: z.string(),
+  org_id: z.string(),
+  status: z.string(),
+  type_code: z.string().nullable(),
+})
+
+const collectionCheckinSchema = z.object({
+  id: z.string(),
+  person_id: z.string(),
+  kind: z.enum(['wristband', 'vehicle_sticker', 'void']),
+  voids_checkin_id: z.string().nullable(),
+})
 
 // ACC-033. Every Control-room number comes from boa_acc_desk_dashboard()
 // (202609120010) in one call — holds lib/supabase-server.ts (the operator's
@@ -23,9 +41,14 @@ export async function GET() {
     return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
   }
 
-  const [{ data, error }, { data: feedData, error: feedError }] = await Promise.all([
+  // The collected counts (per tier, per organisation) are read the same way
+  // GET /api/desk/orgs and GET /api/desk/master read them — two RLS-guarded
+  // tables any active operator can already see — rather than a new RPC.
+  const [{ data, error }, { data: feedData, error: feedError }, { data: personRows, error: personError }, { data: checkinRows, error: checkinError }] = await Promise.all([
     supabase.rpc('boa_acc_desk_dashboard'),
     supabase.rpc('boa_acc_desk_gate_feed'),
+    supabase.from('boa_acc_person').select('id,org_id,status,type_code'),
+    supabase.from('boa_acc_checkin').select('id,person_id,kind,voids_checkin_id'),
   ])
 
   if (error) {
@@ -68,12 +91,25 @@ export async function GET() {
     doubleIssueList = list?.success ? list.data : null
   }
 
+  // A failed read prints a dash on those cards, never a number that means
+  // something else (the 1 Oct review found "collected" over approved counts).
+  let collection: DashboardCollection | null = null
+  if (!personError && !checkinError) {
+    const people = collectionPersonSchema.array().safeParse(personRows)
+    const checkins = collectionCheckinSchema.array().safeParse(checkinRows)
+    if (people.success && checkins.success) {
+      const counts = dashboardCollectionSchema.safeParse(collectionCounts(people.data, checkins.data))
+      collection = counts.success ? counts.data : null
+    }
+  }
+
   const body: DashboardResponse = {
     ...parsed.data,
     gateCounts: parsedFeed?.success ? parsedFeed.data.gateCounts : null,
     latestIssues: parsedFeed?.success ? parsedFeed.data.latestIssues : null,
     types: parsed.data.types.map((type) => ({ ...type, note: noteByCode.get(type.code) ?? null })),
     doubleIssueList,
+    collection,
   }
   return NextResponse.json(body)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
@@ -10,16 +10,17 @@ import { queueTshirtGiven } from '@/gate/tshirt-flow'
 import { GATE_PATH, loginHref, redirectIfSignedOut } from '@/gate/session'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
 import { scanFrame } from '@/gate/scanner'
-import { tierColour } from '@/lib/design'
+import { passPayload } from '@/gate/search'
 import { gateBandCard } from '@/gate/band-card'
-import { formatRecentLedgerRow } from '@/lib/format'
-import { useDomTheme } from '@/lib/use-theme'
+import { acceptCameraRead, type LastRead, type ScanShowing } from '@/gate/scan-guard'
+import { signalVerdict, unlockFeedback } from '@/gate/feedback'
+import { formatBandSerial, formatLedgerTime } from '@/lib/format'
 import { Icon } from '@/components/icon'
 import { GateTicket } from '@/components/pass-ticket'
 import { SkeletonText } from '@/components/r10'
 import { PersonSearch } from './person-search'
-import { GateTabs } from './gate-tabs'
-import { SyncStatus } from './sync-status'
+import { GateStatus } from './gate-status'
+import { PeopleFolds } from './gate-lists'
 
 export default function GatePage() {
   const [snapshot, setSnapshot] = useState<GateSnapshot | null>(null)
@@ -47,6 +48,19 @@ export default function GatePage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scannerInputRef = useRef<HTMLInputElement>(null)
+  const splitRef = useRef<HTMLDivElement>(null)
+  const scanPanelRef = useRef<HTMLDivElement>(null)
+  // The camera's last read and what is on screen, for acceptCameraRead: the
+  // decode loop runs on a timer and must see the current values, not the
+  // ones from the render that started it.
+  const lastReadRef = useRef<LastRead>(null)
+  const showingRef = useRef<ScanShowing>('none')
+  // Bumped on every resolved scan, so the result re-enters even when two
+  // passes in a row get the same verdict.
+  const [scanSeq, setScanSeq] = useState(0)
+  // The scanner card's height while idle: the result card keeps it, so the
+  // screen does not jump from a tall camera to a short Refuse.
+  const [scanHeight, setScanHeight] = useState<number | null>(null)
 
   const loadCache = useCallback(async () => {
     setSnapshot(await readGateSnapshot())
@@ -143,6 +157,27 @@ export default function GatePage() {
 
   const { online, queued, canSync, sync, refresh } = useOutboxSync(loadCache)
 
+  // Wristbands queued on this phone and not yet in the ledger: the folds
+  // count them as handed over, as the scanner does (gate/resolve.ts).
+  const [pending, setPending] = useState<Map<string, string>>(() => new Map())
+  useEffect(() => {
+    if (!snapshot) return
+    let live = true
+    void gateDb.outbox.where('status').anyOf('pending', 'syncing').toArray().then((rows) => {
+      if (!live) return
+      const byToken = new Map(snapshot.roster.map((row) => [row.passToken, row.personId]))
+      const queuedAt = new Map<string, string>()
+      for (const row of rows) {
+        const action = gateIssueSchema.safeParse(row.payload)
+        if (!action.success || action.data.kind !== 'wristband') continue
+        const personId = byToken.get(action.data.passToken)
+        if (personId) queuedAt.set(personId, action.data.occurredAt ?? new Date(row.createdAt).toISOString())
+      }
+      setPending(queuedAt)
+    })
+    return () => { live = false }
+  }, [snapshot, queued])
+
   useEffect(() => {
     const timer = window.setTimeout(() => void loadCache(), 0)
     return () => window.clearTimeout(timer)
@@ -178,13 +213,18 @@ export default function GatePage() {
       }
     }
     try {
-      setResolution(resolveScan(raw, roster, byPerson, pending))
+      const next = resolveScan(raw, roster, byPerson, pending)
+      setResolution(next)
+      setScanSeq((n) => n + 1)
+      signalVerdict(next.status)
     } catch {
       // resolveScan Zod-parses the cached rows. A malformed cache must not
       // leave the volunteer staring at an unchanged screen: fail closed, say
       // why, and point at the fix.
       setResolution({ status: 'red', reason: 'invalid_token' })
-      setMessage('This device’s cached list could not be read. Do not issue — re-run gate setup.')
+      setScanSeq((n) => n + 1)
+      signalVerdict('red')
+      setMessage('This phone’s saved list could not be read. Do not issue. Reload this page with signal to fetch it again.')
       setSerial('')
       setIssuedTo(null)
       return
@@ -204,9 +244,22 @@ export default function GatePage() {
       setCameraActive(true)
     } catch {
       setCameraActive(false)
-      setCameraError('Camera unavailable. Use the scan field below or check browser permission.')
+      setCameraError('The camera did not start. Allow camera access for this site, or search by name.')
     }
   }, [])
+
+  // The camera used to need a tap on every visit. Once this site has camera
+  // permission, getUserMedia needs no gesture, so start it straight away;
+  // before that, the "Start camera" button asks (1 Oct review, item 4).
+  const hasRoster = (snapshot?.roster.length ?? 0) > 0
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (!hasRoster || autoStarted.current) return
+    autoStarted.current = true
+    void navigator.permissions?.query({ name: 'camera' as PermissionName })
+      .then((permission) => { if (permission.state === 'granted') void startCamera() })
+      .catch(() => { /* Not queryable here (older Safari): the button stays. */ })
+  }, [hasRoster, startCamera])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -219,7 +272,12 @@ export default function GatePage() {
       if (!context) return
       context.drawImage(video, 0, 0)
       canvas.toBlob((blob) => {
-        if (blob) void scanFrame(blob).then((value) => { if (value) void resolve(value) }).catch(() => setCameraError('Scanner could not load its local decoder.'))
+        if (blob) void scanFrame(blob).then((value) => {
+          if (!value) return
+          const read = acceptCameraRead(value, showingRef.current, lastReadRef.current, Date.now())
+          lastReadRef.current = read.last
+          if (read.accept) void resolve(value)
+        }).catch(() => setCameraError('Scanner could not load its local decoder.'))
       }, 'image/jpeg', 0.8)
     }, 700)
     return () => window.clearInterval(timer)
@@ -238,12 +296,15 @@ export default function GatePage() {
       isReissue: false,
     }
     await enqueueIssue(action)
+    // Online, the verdict's own "Band issued" line is the confirmation; a
+    // second green line saying "Syncing now" repeated it (1 Oct review). Only
+    // the cases where it has not left the phone get a word.
     setMessage(
       !canSync
-        ? 'Wristband recorded on this device. It cannot sync until you sign in again.'
+        ? 'Saved on this phone. It cannot send until you sign in again.'
         : online
-          ? 'Wristband recorded. Syncing now.'
-          : 'Wristband recorded on this device. It syncs when signal returns.',
+          ? null
+          : 'Saved on this phone. It sends when signal returns.',
     )
     await refresh()
     await sync()
@@ -266,15 +327,38 @@ export default function GatePage() {
     setMessage(null)
   }
 
-  const theme = useDomTheme()
-  const colour = resolution?.status === 'green' ? 'var(--grn,#00F5A5)' : resolution?.status === 'amber' ? 'var(--gold,#E3BB72)' : resolution ? 'var(--bad,#FF6B5A)' : 'var(--ink3)'
+  // The theme's own verdict colours, so the banner holds its contrast in light.
+  const colour = resolution?.status === 'green' ? 'var(--go)' : resolution?.status === 'amber' ? 'var(--gold)' : resolution ? 'var(--bad)' : 'var(--ink-3)'
   const verdict = resolution?.status === 'green' ? 'Approved' : resolution?.status === 'amber' ? 'Collected' : resolution?.status === 'red' ? 'Refuse' : 'Ready'
   const outcome = resolution?.status === 'green' ? 'ok' : resolution?.status === 'amber' ? 'col' : resolution?.status === 'red' ? 'bad' : undefined
   const person = resolution?.status === 'red' ? null : resolution?.person
   const stickerDue = resolution?.status === 'green' ? resolution.stickerDue : false
   const issued = resolution?.status === 'green' && issuedTo === resolution.person.passToken
-  const recent = useMemo(() => snapshot?.ledger.slice(-3).reverse() ?? [], [snapshot])
-  const personById = useMemo(() => new Map(snapshot?.roster.map((row) => [row.personId, row]) ?? []), [snapshot])
+  // gate/scan-guard.ts: Approved with no band yet is locked against the next
+  // pass in view; anything else gives way to it.
+  useEffect(() => {
+    showingRef.current = !resolution ? 'none' : resolution.status === 'green' && !issued ? 'locked' : 'open'
+  }, [resolution, issued])
+  useEffect(() => {
+    const panel = scanPanelRef.current
+    if (!panel || resolution || searchOpen) return
+    const observer = new ResizeObserver(() => setScanHeight(panel.offsetHeight))
+    observer.observe(panel)
+    return () => observer.disconnect()
+  }, [resolution, searchOpen, snapshot])
+  // One sentence under the verdict, and the only place it is said: the note
+  // boxes that repeated it are gone (1 Oct review, items 13 and 14).
+  const sub = !resolution
+    ? ''
+    : resolution.status === 'green'
+      ? issued ? 'Band issued. Send them through.' : `${gateBandCard(resolution.person.typeCode).handOver}.`
+      : resolution.status === 'amber'
+        ? resolution.source === 'outbox'
+          ? `Band issued on this phone${resolution.issue.occurredAt ? ` at ${formatLedgerTime(resolution.issue.occurredAt)}` : ''}, not sent yet.`
+          : `Band issued ${resolution.issue.occurredAt ? `${formatLedgerTime(resolution.issue.occurredAt)} ` : ''}at ${resolution.issue.gateLabel}${resolution.issue.bandSerial ? `, serial ${formatBandSerial(resolution.issue.bandSerial)}` : ''}.`
+        : resolution.reason === 'invalid_token'
+          ? 'This is not a BOA pass code. Ask for the pass on their phone and scan that.'
+          : 'This pass is not on the approved list. Send them to the accreditation desk.'
 
   /**
    * ACC-131: this sr-only input is where a hardware (keyboard-wedge) scanner's
@@ -295,20 +379,20 @@ export default function GatePage() {
     return (
       <>
         <div className="gate-screen" aria-busy="true">
-          <GateTabs />
           <div className="gate-split">
             <div className="panel panel-scan">
-              <div className="scan-head"><h2 className="display-md verdict">Ready</h2><p className="body-sm ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>
+              <div className="scan-head"><h2 className="display-sm verdict">Scan a pass</h2></div>
               <div className="viewfinder" data-camera="off">
                 <i className="vf-corner tl" /><i className="vf-corner tr" /><i className="vf-corner bl" /><i className="vf-corner br" />
+                {/* The loaded screen's own disc, waiting: it is not live until the list is read. */}
+                <button type="button" className="btn btn-primary btn-gate vf-start vf-disc" aria-label="Start camera" disabled>
+                  <Icon name="scan" />
+                </button>
               </div>
-              <div className="scan-copy" aria-hidden="true">
-                <h3 className="label">Scan a pass</h3>
-                <p className="body-sm ink-2"><SkeletonText w="17ch" /></p>
-                <p className="mono"><SkeletonText w="18ch" /></p>
-              </div>
-              <div className="scan-meta mono" aria-hidden="true">
-                <span><SkeletonText w="26ch" /></span>
+              {/* The status line's own <p>, its text held as a skeleton (.sk draws it
+                  transparent), so the row is its loaded height and nothing under it moves. */}
+              <div className="gate-status mono" aria-hidden="true">
+                <p><span className="sk">Last synced 00:00</span></p>
               </div>
               <button type="button" className="btn btn-gate btn-block" disabled>
                 <Icon name="magnifying-glass" />Can&apos;t scan? Search by name
@@ -316,6 +400,17 @@ export default function GatePage() {
             </div>
             <div className="panel panel-result">
             </div>
+          </div>
+          {/* The folds' headers, so they are there before the list is, not
+              popped in under the card a moment later. */}
+          <div className="gate-folds" aria-hidden="true">
+            <section className="gate-fold" data-open="">
+              <h2 className="gate-fold-h"><button type="button" disabled><span>Just now</span><span className="gate-fold-n"><SkeletonText w="1ch" /><Icon name="caret-down" /></span></button></h2>
+              <div className="gate-fold-body"><div className="gate-fold-inner"><p className="gate-fold-empty"><span className="sk">Bands handed over today show here. Tap one to see that person again.</span></p></div></div>
+            </section>
+            <section className="gate-fold">
+              <h2 className="gate-fold-h"><button type="button" disabled><span>Still to collect</span><span className="gate-fold-n"><SkeletonText w="2ch" /><Icon name="caret-down" /></span></button></h2>
+            </section>
           </div>
         </div>
         <style jsx global>{GATE_CSS}</style>
@@ -359,26 +454,27 @@ export default function GatePage() {
     )
   }
 
-  const issuedCount = snapshot.ledger.filter((row) => row.kind === 'wristband').length
   const resultKey = resolution?.status === 'green' ? 'green' : resolution?.status === 'amber' ? 'amber' : resolution ? 'red' : undefined
 
   return (
     <>
-      <div className="gate-screen">
-        {/* r8-gate.html opens with this segmented control, not a hero header:
-            the nav island above already names the screen. */}
-        <GateTabs />
-        <div className="gate-split" data-resolution={resultKey} data-search={searchOpen ? 'open' : undefined}>
-          <div className="panel panel-scan">
-            <div className="scan-head"><h2 className="display-md verdict">Ready</h2><p className="body-sm ink-2">Hold the pass code inside the frame. Works with the radio off.</p></div>
+      {/* The first tap on the gate lets it make sound (gate/feedback.ts). */}
+      <div className="gate-screen" onPointerDown={unlockFeedback}>
+        <div ref={splitRef} className="gate-split" data-resolution={resultKey} data-search={searchOpen ? 'open' : undefined}>
+          <div ref={scanPanelRef} className="panel panel-scan">
+            {/* An instruction, in ink, not a green verdict-sized "Ready": green
+                is kept for "let them in" (1 Oct review, items 1 to 3). */}
+            <div className="scan-head"><h2 className="display-sm verdict">Scan a pass</h2></div>
             <div className="viewfinder" data-camera={cameraActive ? 'on' : 'off'}>
               <i className="vf-corner tl" /><i className="vf-corner tr" /><i className="vf-corner bl" /><i className="vf-corner br" />
               <div className="vf-sweep" aria-hidden="true" />
               <video ref={videoRef} muted playsInline aria-label="Gate camera scanner" className="vf-video" />
               {/* getUserMedia needs a user gesture; r8-gate.html draws the same
-                  "Start camera" disc inside the viewfinder. */}
+                  "Start camera" disc inside the viewfinder: the icon alone, its
+                  name for screen readers (2 Oct, Vipin; a little larger than
+                  the mock's 88px). */}
               {!cameraActive && (
-                <button type="button" onClick={() => void startCamera()} className="vf-start" aria-label="Start camera">
+                <button type="button" onClick={() => void startCamera()} className="btn btn-primary btn-gate vf-start vf-disc" aria-label="Start camera">
                   <Icon name="scan" />
                 </button>
               )}
@@ -388,15 +484,7 @@ export default function GatePage() {
                 this gets focused — it exists to catch a hardware (keyboard-wedge) scanner's
                 keystrokes, not to be typed into by hand. */}
             <input ref={scannerInputRef} aria-label="Pass-code input for hardware scanner" tabIndex={-1} inputMode="none" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
-            <div className="scan-copy">
-              <h3 className="label">Scan a pass</h3>
-              <p className="body-sm ink-2">{snapshot.roster.length} passes on this phone</p>
-              <SyncStatus onSynced={loadCache} />
-            </div>
-            <div className="scan-meta mono">
-              <span>{snapshot.meta.gateLabel}, {snapshot.meta.volunteerName}</span>
-              <span className={online ? 'q' : 'q wait'}>{online ? 'Online' : 'Offline'} | {queued} queued{canSync ? '' : ' | not syncing, sign in again'}</span>
-            </div>
+            <GateStatus online={online} queued={queued} canSync={canSync} onSynced={loadCache} />
             <PersonSearch roster={snapshot.roster} onOpen={() => { setCameraError(null); setSearchOpen(true) }} onClose={() => setSearchOpen(false)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <p role="alert" className="g-note bad">{cameraError}</p>}
           </div>
@@ -404,55 +492,46 @@ export default function GatePage() {
           {/* ACC-130: the mock's Scanning/Approved/Collected/Refuse tabs were rendered as
               buttons with no click handler, so they were removed; the verdict heading and
               aria-live on this panel carry the outcome. */}
-          <div className="panel panel-result" id="gres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--c': colour } as CSSProperties}>
-            {resolution && <div className="result-body">
+          <div className="panel panel-result" id="gres" data-o={outcome} aria-live="polite" aria-atomic="true" style={{ '--c': colour, minHeight: scanHeight ?? undefined } as CSSProperties}>
+            {resolution && <div key={scanSeq} className="result-body">
               <div className="g-hero">
                 <span className="mark" aria-hidden="true"><svg viewBox="0 0 40 40">{resolution.status === 'green' ? <path d="M10 21l7 7 14-15" /> : resolution.status === 'amber' ? <><path d="M20 9v14" /><path d="M20 30v.5" /></> : <><path d="M12 12l16 16" /><path d="M28 12L12 28" /></>}</svg></span>
                 <div>
                   <h2 className="display-md verdict g-verdict">{verdict}</h2>
-                  <p className="body-sm g-sub">{issued ? 'Band issued · send them through' : resolution.status === 'green' ? 'Not yet collected · issue a band' : resolution.status === 'amber' ? 'A band was already issued to this person' : 'Unknown, rejected or voided token'}</p>
+                  <p className="body-sm g-sub">{sub}</p>
                 </div>
               </div>
               {/* The person as their pass shows them: band, name, tier and
                   days, and only the zones they may enter (Vipin, 29 Sep). */}
               {person && <GateTicket fullName={person.fullName} orgName={person.orgName} role={person.roleText} typeCode={person.typeCode} dayValidity={person.dayValidity} vehicleReg={person.vehicleReg ?? null} stickerDue={stickerDue} tshirtSize={person.tshirtSize ?? null} tshirtGivenAt={snapshot.roster.find((row) => row.personId === person.personId)?.tshirtGivenAt ?? person.tshirtGivenAt ?? null} onTshirtGiven={() => void giveTshirt()} />}
-              {resolution.status === 'amber' && <div className="g-note"><b>Already collected.</b> An issue is already recorded or queued. A reissue needs a supervisor note.</div>}
-              {resolution.status === 'red' && <div className="g-note bad"><b>Do not let them in.</b> This token is not on the approved list.</div>}
+              {/* What to do, which the verdict cannot say on its own. Reissue
+                  at the gate is ACC-189b; until it lands, a lead handles it. */}
+              {resolution.status === 'amber' && <div className="g-note">Do not hand over a second band. If theirs is lost or broken, call a lead.</div>}
               <div className="g-dock">
                 {resolution.status === 'green' && <>
-                  <label className="field g-field"><span className="label-sm">Band serial</span><input className="input input-mono" aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} placeholder="OPTIONAL" autoComplete="off" /></label>
-                  <button type="button" onClick={() => void issue()} disabled={issued} className="btn btn-primary btn-gate"><Icon name="check" />{issued ? 'Wristband issued' : 'Issue wristband'}</button>
+                  {/* Typed as the band is handed over, or left blank
+                      (non-negotiable #6). A compact field, so it does not
+                      push "Issue wristband" down the screen. */}
+                  {!issued && <label className="field g-field"><span className="label-sm">Band serial <span className="ink-3">(optional)</span></span><input className="input input-mono" aria-label="Wristband serial, optional" value={serial} onChange={(event) => setSerial(event.target.value)} autoComplete="off" inputMode="text" /></label>}
+                  <button type="button" onClick={() => void issue()} disabled={issued} className="btn btn-primary btn-gate"><Icon name="check-circle" />{issued ? 'Wristband issued' : 'Issue wristband'}</button>
                 </>}
-                <button type="button" onClick={nextPerson} className="btn btn-gate">Next person</button>
+                {/* Before a band is issued this button abandons the scan;
+                    after, it moves on. Different jobs, different words. */}
+                <button type="button" onClick={nextPerson} className="btn btn-gate">{resolution.status === 'green' && !issued ? 'Cancel' : 'Next person'}</button>
                 {message && <div role="status" className={`mono g-message${resolution.status === 'red' ? ' bad' : ''}`}>{message}</div>}
               </div>
             </div>}
           </div>
         </div>
 
-        <section className="last-issued">
-          <h2 className="label gold">Last issued at this gate</h2>
-          <div className="last-list">
-            {recent.map((row) => {
-              const holder = personById.get(row.personId)
-              const rowSerial = row.bandSerial ?? row.stickerNo
-              const history = row.kind === 'wristband' || row.kind === 'vehicle_sticker'
-                ? formatRecentLedgerRow({
-                  kind: row.kind,
-                  holderName: holder?.fullName ?? null,
-                  holderLabel: holder ? gateBandCard(holder.typeCode).label : null,
-                  serial: rowSerial,
-                  occurredAt: row.occurredAt,
-                })
-                : { name: 'Ledger event', detail: `void, ${row.occurredAt}` }
-              // ACC-130: the mock's "Void" button here did nothing — no handler, and
-              // voiding a check-in is a real desk action (non-negotiable #2, the
-              // ledger is append-only), not something to fake at the gate.
-              return <div key={row.id} className="last-row"><span className="bar" style={{ '--c': holder ? tierColour(holder.typeCode, theme) : 'var(--ink-3)' } as CSSProperties} /><div><div className="nm">{history.name}</div><div className="sub">{history.detail}</div></div></div>
-            })}
-          </div>
-          <p className="last-meta mono"><span>{issuedCount} issued today</span><span>Ledger append-only</span></p>
-        </section>
+        {/* Under the scanner, while it is waiting (Vipin, 1 Oct, prototype
+            option A): today's bands and who is still to come, by team. Out
+            of the way while a result or the name search has the card. */}
+        {!resolution && !searchOpen && <PeopleFolds roster={snapshot.roster} ledger={snapshot.ledger} pending={pending} onOpen={(token) => {
+          void resolve(passPayload(token))
+          // A row far down the list: bring the result card, at the top, into view.
+          splitRef.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+        }} />}
       </div>
       <style jsx global>{GATE_CSS}</style>
     </>
@@ -464,15 +543,17 @@ const GATE_CSS = `
      phone): the nav is sticky at top 12px, so it overlaps its slot by 12px
      and the old 16px left the tabs 4px under it (Vipin, 29 Sep). The two
      tabs share one grid, columns the width of the wider label. */
-  .r10 .gate-screen { padding-block: var(--s-10) var(--s-10); }
-  @media (max-width: 700px) { .r10 .gate-screen { padding-top: var(--s-6); } }
+  .r10 .gate-screen { padding-block: 0 var(--s-10); }
 
   /* One widget (Vipin, 30 Sep): the camera, the result and the name search
      take turns in the same card, so the eye never has to find where the
      answer went. Same 600px column, centred, on a phone and on a desk. */
   .r10 .gate-screen { max-width: 600px; margin-inline: auto; }
   .r10 .gate-split { display: grid; gap: var(--s-5); grid-template-columns: 1fr; align-items: start; }
-  @media (max-width: 520px) { .r10 .gate-screen .panel { padding: 18px; } }
+  /* --pad is the tray's padding, so the verdict banner can bleed to the
+     plate's edge (the plate is inset 6px inside it, base.css). */
+  .r10 .gate-screen .panel { --pad: calc(6px + 28px); padding: var(--pad); }
+  @media (max-width: 520px) { .r10 .gate-screen .panel { --pad: 18px; } }
   /* The gate's panels are the shared .panel (base.css): the tray and glass
      plate the vehicle screen and the desk cards draw. A flat box with its own
      hairline here read as a different component (Vipin, 29 Sep). */
@@ -482,16 +563,14 @@ const GATE_CSS = `
      clipped, not display:none, so the camera keeps decoding behind a result. */
   .r10 .gate-split[data-resolution] .panel-scan { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .r10 .panel-result { display: none; }
-  .r10 .gate-split[data-resolution] .panel-result { display: block; }
-  .r10 .scan-head { padding-bottom: var(--s-4); text-align: left; }
+  .r10 .scan-head { padding-bottom: var(--s-4); text-align: center; }
   .r10 .scan-head > * { margin: 0; }
-  .r10 .scan-head .verdict { color: var(--go); }
+  .r10 .scan-head .verdict { color: var(--ink); }
   /* Searching by name: the list is the widget. The camera, its copy and the
      opener step aside so the matches are not pushed below the keyboard. */
   .r10 .gate-split[data-search] .scan-head,
   .r10 .gate-split[data-search] .viewfinder,
-  .r10 .gate-split[data-search] .scan-copy,
-  .r10 .gate-split[data-search] .scan-meta,
+  .r10 .gate-split[data-search] .gate-status,
   .r10 .gate-split[data-search] .panel-scan > .btn[aria-expanded="true"] { display: none; }
   .r10 .gate-split[data-search] .name-search { margin-top: 0; }
 
@@ -513,15 +592,9 @@ const GATE_CSS = `
   @keyframes gate-sweep { 0% { top: 4%; } 50% { top: 94%; } 100% { top: 4%; } }
   @media (prefers-reduced-motion: reduce) { .r10 .viewfinder[data-camera="on"] .vf-sweep { animation: none; top: 50%; opacity: .5; } }
   /* app/v2.css's bare .vf-start is inset:0 with a transparent ink3 glyph. */
-  .r10 .vf-start { position: absolute; inset: 0; z-index: 2; width: 88px; height: 88px; margin: auto; padding: 0; border-radius: 50%; border: 0; background: var(--go); color: var(--on-go); display: grid; place-items: center; font-size: 30px; line-height: 1; cursor: pointer; transition: transform var(--d-instant) var(--e-out); }
-  .r10 .vf-start:active { transform: scale(.95); }
+  /* A labelled button, not a bare green disc: it is the screen's first action. */
+  .r10 .viewfinder .vf-start { position: relative; inset: auto; z-index: 2; width: auto; margin: 0; padding-inline: var(--s-6); }
 
-  .r10 .scan-copy { margin-top: var(--s-4); text-align: center; }
-  .r10 .scan-copy h3 { margin: 0 0 4px; }
-  .r10 .scan-copy p { margin: 0; }
-  .r10 .scan-copy .mono { margin-top: var(--s-2); color: var(--ink-3); font-size: var(--t-label-sm); text-align: center; }
-  .r10 .scan-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-3); margin-top: var(--s-3); color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
-  .r10 .scan-meta .q.wait { color: var(--gold); }
   .r10 .panel-scan > .btn { margin-top: var(--s-5); }
   .r10 .panel-scan .btn { padding-inline: var(--s-3); }
   @media (max-width: 400px) { .r10 .panel-scan .btn { font-size: 14px; letter-spacing: .04em; } }
@@ -539,17 +612,44 @@ const GATE_CSS = `
   .r10 .name-search-result small { display: block; color: var(--ink-3); font-size: var(--t-body-sm); }
   .r10 .name-search .btn.wide { width: 100%; min-height: var(--h-control-gate); }
 
-  .r10 .g-hero { display: flex; align-items: center; gap: var(--s-4); padding-bottom: var(--s-4); text-align: left; }
-  .r10 .mark { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 18%, transparent); box-shadow: inset 0 0 0 2px var(--c); }
-  .r10 .mark svg { width: 32px; height: 32px; stroke: var(--c); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .r10 .g-verdict { margin: 0; color: var(--ink); }
-  .r10 .panel-result[data-o] .g-verdict { color: var(--c); }
-  .r10 .g-sub { margin: 2px 0 0; color: var(--ink-2); }
+  /* The verdict banner (Vipin, 1 Oct, prototype option B): the top of the
+     card fills with the verdict colour, so it reads from arm's length in
+     sun. Refuse has no ticket to show, so the whole card turns red. */
+  .r10 .gate-screen .panel-result { flex-direction: column; }
+  .r10 .gate-split[data-resolution] .panel-result { display: flex; }
+  .r10 .result-body { flex: 1; display: flex; flex-direction: column; }
+  .r10 .g-hero { display: flex; align-items: center; gap: var(--s-4); margin: calc(6px - var(--pad)) calc(6px - var(--pad)) var(--s-4); padding: calc(var(--pad) - 6px + var(--s-2)) calc(var(--pad) - 6px) calc(var(--pad) - 6px); border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--c); color: var(--bg); text-align: left; }
+  .r10 .g-hero > div { min-width: 0; }
+  .r10 .mark { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 14%, transparent); box-shadow: inset 0 0 0 2px var(--bg); }
+  .r10 .mark svg { width: 30px; height: 30px; stroke: var(--bg); stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .r10 .panel-result .g-verdict { margin: 0; color: var(--bg); font-size: clamp(44px, 12vw, 60px); line-height: .95; }
+  .r10 .g-sub { margin: var(--s-2) 0 0; color: var(--bg); font: 600 var(--t-body)/1.3 var(--f-body); }
+
+  .r10 .gate-screen .panel-result[data-o="bad"]::before { background: var(--bad); background-image: none; }
+  .r10 .panel-result[data-o="bad"] .g-hero { flex-direction: column; align-items: flex-start; margin-bottom: 0; background: none; }
+  .r10 .panel-result[data-o="bad"] .g-sub { font-size: 18px; }
+  .r10 .panel-result[data-o="bad"] .g-dock { position: static; margin-inline: 0; padding: 0; background: none; }
+  .r10 .gate-screen .panel-result[data-o="bad"] .g-dock .btn.btn { --btn-fill: color-mix(in srgb, var(--bg) 80%, var(--ink)); background: var(--bg); color: var(--ink); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .r10 .panel-result[data-o="bad"] .g-message.bad { color: var(--bg); }
+
+  /* A new verdict arrives, it does not just appear: a short rise on the
+     card's own easing, re-run per scan (keyed on scanSeq). */
+  .r10 .result-body { animation: gate-verdict-in .34s var(--e-out) both; }
+  .r10 .g-hero .mark { animation: gate-mark-in .42s var(--e-out) both; }
+  .r10 .gate-screen .panel-result::before { transition: background-color var(--d-base) var(--e-out); }
+  @keyframes gate-verdict-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+  @keyframes gate-mark-in { from { transform: scale(.6); } }
+  @media (prefers-reduced-motion: reduce) {
+    .r10 .result-body, .r10 .g-hero .mark { animation: none; }
+    .r10 .gate-screen .panel-result::before { transition: none; }
+  }
   .r10 .g-note { margin: var(--s-4) 0 0; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--raised); color: var(--ink-2); }
   .r10 .g-note.bad { background: var(--bad-tint); color: var(--ink); }
   .r10 .panel-scan > .g-note { margin-top: var(--s-4); }
   .r10 .g-field { margin-top: 0; }
-  .r10 .g-dock { display: grid; gap: var(--s-3); margin-top: var(--s-4); }
+  .r10 .g-field .label-sm .ink-3 { text-transform: none; letter-spacing: normal; font-weight: 400; }
+  .r10 .g-field .input { min-height: var(--h-control); }
+  .r10 .g-dock { display: grid; gap: var(--s-3); margin-top: auto; padding-top: var(--s-4); }
   .r10 .g-dock .btn { width: 100%; }
   /* Phone: the buttons stay in thumb reach however tall the ticket is. */
   @media (max-width: 700px) {
@@ -558,21 +658,14 @@ const GATE_CSS = `
   .r10 .g-message { color: var(--go); }
   .r10 .g-message.bad { color: var(--bad); }
 
-  .r10 .last-issued { margin-top: var(--s-8); }
-  .r10 .last-issued h2 { margin: 0 0 var(--s-2); }
-  .r10 .last-row { display: grid; grid-template-columns: 3px 1fr; align-items: center; gap: var(--s-4); min-height: 56px; padding: var(--s-2) 0; }
-  .r10 .last-row .bar { align-self: stretch; border-radius: var(--r-pill); background: var(--c, var(--ink-3)); }
-  .r10 .last-row .nm { font-family: var(--f-body); font-weight: 600; font-size: var(--t-body); letter-spacing: normal; text-transform: none; color: var(--ink); }
-  .r10 .last-row .sub { color: var(--ink-3); font-size: var(--t-body-sm); }
-  .r10 .last-meta { display: flex; justify-content: space-between; gap: var(--s-3); margin: var(--s-3) 0 0; color: var(--ink-3); font-size: var(--t-label-sm); text-transform: uppercase; }
 
   /* app/v2.css's unscoped .sub/.name-search* leak into this markup. */
-  .r10 .gate-screen .last-row .sub { margin: 0; font-family: var(--f-body); font-size: var(--t-body-sm); letter-spacing: normal; color: var(--ink-3); }
   .r10 .gate-screen .name-search { margin-top: var(--s-4); padding: 0; border-radius: 0; background: none; box-shadow: none; }
   .r10 .gate-screen .name-search-results { gap: var(--s-2); background: none; }
   .r10 .gate-screen .name-search-results[hidden] { display: none; }
   .r10 .gate-screen .name-search-result { border: 0; color: var(--ink); text-align: left; background: var(--raised); }
   .r10 .gate-screen .name-search-result b { font-family: var(--f-body); font-size: var(--t-body); text-transform: none; }
   .r10 .gate-screen .name-search-result small { margin-top: 0; font-family: var(--f-body); font-size: var(--t-body-sm); letter-spacing: normal; }
+  .r10 .gate-screen .name-search-result small.ns-tags { display: flex; flex-wrap: wrap; gap: 0 var(--s-3); margin-top: 2px; color: var(--ink-2); }
   .r10 .gate-screen .name-search .field input { min-height: var(--h-control); }
 `

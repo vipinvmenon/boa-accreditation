@@ -42,6 +42,8 @@ function TicketFace(
     deskLine: boolean
     showBand: boolean
     vehicleNote?: string | undefined
+    /** The gate knows the show's dates; it needs which days, not the calendar. */
+    datesShown?: boolean
   },
 ) {
   const type = tier(p.typeCode)
@@ -65,14 +67,14 @@ function TicketFace(
         <div>
           <Name className="tk-name">{p.fullName}</Name>
           <p className="tk-who">
-            {p.orgName}, {p.role}
+            {p.orgName} · {p.role}
           </p>
           {p.deskLine && <p className="tk-desk">{PUBLIC_PASS_DESK_LINE}</p>}
         </div>
         <p className="tk-line">
           <span className="tk-tier">{type.label}</span>
           <span className="tk-valid">
-            {validity.label}, {validity.dates}
+            {p.datesShown === false ? validity.label : `${validity.label}, ${validity.dates}`}
           </span>
         </p>
         <ul className="tk-zones" aria-label="Zones this pass enters">
@@ -147,7 +149,7 @@ export function GateTicket({
 }) {
   return (
     <div className="tk tk--gate" style={{ '--c': tierColour(p.typeCode, 'dark') } as React.CSSProperties}>
-      <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} showBand vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
+      <TicketFace {...p} Name="h3" className="tk-top" deskLine={false} showBand datesShown={false} vehicleNote={p.stickerDue ? 'Sticker due' : undefined} />
       {/* ACC-197: a cue for the volunteer only. The holder's PassTicket never renders it. */}
       {tshirtSize ? (
         <div className={tshirtGivenAt ? 'tk-tshirt tk-tshirt--given' : 'tk-tshirt'} role="status">

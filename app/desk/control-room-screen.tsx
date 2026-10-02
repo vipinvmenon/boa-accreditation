@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
+import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { dashboardResponseSchema, type DashboardResponse } from '@/lib/schemas/dashboard'
@@ -10,6 +11,7 @@ import { Icon } from '@/components/icon'
 import { Button, Card, CountDot, EmptyState, Skeleton, SkeletonText } from '@/components/r10'
 import { copyForError, ERROR_COPY } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
+import { useSkeletonMemory } from '@/lib/skeleton-memory'
 import styles from './control-room/control-room-screen.module.css'
 
 /**
@@ -64,8 +66,14 @@ function timelineProgress(now: Date): number {
   return (gap + Math.min(1, Math.max(0, within))) * step
 }
 
+/** Calendar days, not hours: rounding hours to midnight said "1 day to gate
+ *  live" from noon on 2 Oct, while the footer said "in 2 days". */
 function daysBetween(from: Date, to: Date): number {
-  return Math.round((to.getTime() - from.getTime()) / 86_400_000)
+  const start = new Date(from)
+  const end = new Date(to)
+  start.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000)
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -105,6 +113,9 @@ function heroKickerText(now: Date): string {
   return `Show day. ${sinceGate}`
 }
 
+/** Tiers that go to the band shelf's last row, in this order. */
+const SHELF_LAST: readonly string[] = ['artist', 'general_admission']
+
 function ratio(value: number, total: number): number {
   return total > 0 ? Math.min(1, Math.max(0, value / total)) : 0
 }
@@ -143,6 +154,21 @@ function StatTile({ label, value, detail, width, numberColour, meterColour, href
 }
 
 /**
+ * What the screen last loaded with, so the skeleton reserves the same space
+ * (lib/skeleton-memory.ts): the band notes (database copy, so the skeleton
+ * cannot know them), how many feed rows there were, and how many digits the
+ * hero's two counts had. Never shown as a value.
+ */
+const controlRoomShapeSchema = z.object({
+  notes: z.record(z.string(), z.string().max(400)),
+  feedRows: z.number().int().min(0).max(100),
+  issuedDigits: z.number().int().min(1).max(6),
+  totalDigits: z.number().int().min(1).max(6),
+  bandDigits: z.record(z.string(), z.number().int().min(1).max(6)),
+})
+type ControlRoomShape = z.infer<typeof controlRoomShapeSchema>
+
+/**
  * `dash` is null while /api/desk/dashboard is in flight. The screen still
  * renders its real cards, poster, timeline and band shelf, with only the
  * values as <SkeletonText>, so nothing moves when the numbers land.
@@ -158,21 +184,48 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
   const issuedRatio = dash ? ratio(dash.bandsIssued, dash.approvedTotal) : 0
   const issuedPct = Math.round(issuedRatio * 100)
   const vehicles = dash ? dash.stickersActive + dash.stickersPending : null
-  const behind = dash
+  // Collected counts come from the ledger (lib/collection.ts via the route's
+  // `collection`), never from the RPC's approved/submitted counts: the 1 Oct
+  // review found "22 collected" and "1 of 500 collected" on a day nothing had
+  // been handed over. r8-control-room.html: left = approved - collected.
+  const collection = dash?.collection ?? null
+  const orgCounts = new Map((collection?.orgs ?? []).map((org) => [org.id, org]))
+  const tierCounts = new Map((collection?.tiers ?? []).map((t) => [t.code, t]))
+  const behind = dash && collection
     ? dash.orgs
-      .map((org) => ({ ...org, remaining: Math.max(org.quota - org.used, 0) }))
+      .map((org) => {
+        const counts = orgCounts.get(org.id) ?? { approved: 0, collected: 0 }
+        return { id: org.id, name: org.name, approved: counts.approved, collected: counts.collected, remaining: counts.approved - counts.collected }
+      })
+      .filter((org) => org.approved > 0)
       .sort((a, b) => b.remaining - a.remaining)
       .slice(0, 3)
     : null
+  const aaa = tierCounts.get('aaa') ?? { approved: 0, collected: 0 }
   // Every boa_acc_type row comes back, in sort_order (the dashboard RPC's
   // `types` aggregate) — TIERS is that order, so the shelf is laid out
-  // before the counts arrive.
-  const types = dash ? dash.types : TIERS.map((t) => ({ code: t.code, count: null, note: null }))
+  // before the counts arrive. `issued` is null until the counts land, and
+  // stays null (a dash) if the collection read failed.
+  const shelf = dash
+    ? dash.types.map((t) => ({ code: t.code, note: t.note ?? null, issued: collection ? (tierCounts.get(t.code)?.collected ?? 0) : null }))
+    : TIERS.map((t) => ({ code: t.code, note: null, issued: null }))
+  // Shelf order (Vipin, 1 Oct): the bands the desk hands out lead, and Artist
+  // (handled at the hotel) and General Admission (ticketing's band) share the
+  // last row. Display only: boa_acc_type.sort_order is untouched.
+  const types = [...shelf].sort((a, b) => Number(SHELF_LAST.includes(a.code)) - Number(SHELF_LAST.includes(b.code)))
+  const shape = useSkeletonMemory<ControlRoomShape>('control-room', controlRoomShapeSchema, dash ? {
+    notes: Object.fromEntries(dash.types.flatMap((t) => (t.note ? [[t.code, t.note]] : []))),
+    feedRows: dash.latestIssues?.length ?? 0,
+    issuedDigits: String(dash.bandsIssued).length,
+    totalDigits: String(dash.approvedTotal).length,
+    bandDigits: Object.fromEntries(shelf.map((item) => [item.code, String(item.issued ?? 0).length])),
+  } : null)
+  const feedSkeletonRows = shape?.feedRows ?? 4
 
   return (
     <main id="main-content" tabIndex={-1} className={styles['controlRoom']} aria-busy={dash ? undefined : true}>
       <h1 className="sr-only">Control room</h1>
-      {dash ? <h2 className="sr-only">{dash.submittedOrgs} companies on site</h2> : <p className="sr-only" role="status">Loading the control room</p>}
+      {dash ? <h2 className="sr-only">{dash.submittedOrgs} organisations sending people</h2> : <p className="sr-only" role="status">Loading the control room</p>}
 
       <section className={styles['hero']} aria-label="Collection">
         <div className={styles['heroClip']}>
@@ -188,10 +241,9 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
                 <span className={styles['heroUnit']}>still to collect a band</span>
               </div>
               <p className={styles['heroSub']}>
-                {dash ? dash.bandsIssued : <SkeletonText w="3ch" />} of {dash ? dash.approvedTotal : <SkeletonText w="3ch" />} bands handed over.
-                {daysToShow === null
-                  ? <> The show is in <b><SkeletonText w="2ch" /> days</b>, and everyone collects in person.</>
-                  : daysToShow > 0 && <> The show is in <b>{daysToShow} day{daysToShow === 1 ? '' : 's'}</b>, and everyone collects in person.</>}
+                {/* The show countdown is the ring's pill, and the gate countdown
+                    the line above: this sentence no longer repeats either. */}
+                {dash ? dash.bandsIssued : <SkeletonText w={`${shape?.issuedDigits ?? 2}ch`} />} of {dash ? dash.approvedTotal : <SkeletonText w={`${shape?.totalDigits ?? 2}ch`} />} bands handed over. Everyone collects in person.
               </p>
               <div className={styles['heroActions']}>
                 <Link href="/desk/master?status=not_collected" className="btn btn-primary">
@@ -200,9 +252,12 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
               </div>
             </div>
             <div className={`glass ${styles['ringWrap']}`} aria-label={dash ? `Bands issued: ${issuedPct} percent` : undefined}>
-              <svg className={styles['ring']} viewBox="0 0 188 188" aria-hidden="true">
-                <circle className={styles['ringTrack']} cx="94" cy="94" r="80" />
-                <circle className={styles['ringValue']} cx="94" cy="94" r="80" transform="rotate(-90 94 94)" pathLength="1" style={{ strokeDasharray: 1, strokeDashoffset: 1 - issuedRatio }} />
+              {/* Size and fill as attributes too: arriving from /gate, a frame can
+                  paint before this module's CSS, and SVG's defaults drew the
+                  ring as a black disc the width of the page (2 Oct). */}
+              <svg className={styles['ring']} viewBox="0 0 188 188" width="132" height="132" aria-hidden="true">
+                <circle className={styles['ringTrack']} cx="94" cy="94" r="80" fill="none" />
+                <circle className={styles['ringValue']} cx="94" cy="94" r="80" fill="none" transform="rotate(-90 94 94)" pathLength="1" style={{ strokeDasharray: 1, strokeDashoffset: 1 - issuedRatio }} />
               </svg>
               <div className={styles['ringLabel']}>
                 <span className="number">{dash ? `${issuedPct}%` : <SkeletonText w="2.2ch" />}</span>
@@ -251,8 +306,8 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
           <StatTile
             label="AAA named list"
             value={dash ? dash.aaaNominatedApproved : null}
-            detail={<>approved by Salman · {dash ? dash.aaaStamped : <SkeletonText w="2ch" />} collected</>}
-            width={dash ? ratio(dash.aaaStamped, dash.aaaNominatedApproved) : 0}
+            detail={<>approved by Salman · {!dash ? <SkeletonText w="2ch" /> : collection ? aaa.collected : '–'} collected</>}
+            width={collection ? ratio(aaa.collected, aaa.approved) : 0}
             meterColour={tierColour('aaa', theme)}
             href="/desk/master?tier=aaa"
           />
@@ -263,16 +318,20 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
               <Link href="/desk/orgs" className="btn-link body-sm" style={{ minHeight: 0 }}>All {dash ? dash.orgs.length : <SkeletonText w="2ch" />} organisations <Icon name="arrow-right" /></Link>
             </div>
             <div className={styles['behindList']}>
-              {behind ? behind.map((org) => (
+              {dash && !collection ? (
+                <p className="body-sm ink-3">Collection counts aren&apos;t available right now.</p>
+              ) : behind && behind.length === 0 ? (
+                <p className="body-sm ink-3">No one approved yet.</p>
+              ) : behind ? behind.map((org) => (
                 <Link key={org.id} href={`/desk/master?org=${encodeURIComponent(org.id)}&status=not_collected`} className={styles['behindLink']}>
-                  <span className={styles['behindN']}>{org.remaining}</span>
+                  <span className={styles['behindN']}>{org.remaining}<span className={styles['behindUnit']}>to collect</span></span>
                   <span className={styles['nm']}>{org.name}</span>
-                  <span className="body-sm ink-3">{org.used} of {org.quota} collected</span>
-                  <div className="meter" style={{ marginTop: 'var(--s-2)' }} aria-hidden="true"><i style={{ '--w': ratio(org.used, org.quota), '--c': 'var(--gold)' } as CSSProperties} /></div>
+                  <span className="body-sm ink-3">{org.collected} of {org.approved} collected</span>
+                  <div className="meter" style={{ marginTop: 'var(--s-2)' }} aria-hidden="true"><i style={{ '--w': ratio(org.collected, org.approved), '--c': 'var(--gold)' } as CSSProperties} /></div>
                 </Link>
               )) : [18, 14, 16].map((w, i) => (
                 <div key={i} className={styles['behindLink']} aria-hidden="true">
-                  <span className={styles['behindN']}><SkeletonText w="2ch" /></span>
+                  <span className={styles['behindN']}><SkeletonText w="2ch" /><span className={styles['behindUnit']}>to collect</span></span>
                   <span className={styles['nm']}><SkeletonText w={`${w}ch`} /></span>
                   <span className="body-sm ink-3"><SkeletonText w="13ch" /></span>
                   <div className="meter" style={{ marginTop: 'var(--s-2)' }}><i style={{ '--w': 0 } as CSSProperties} /></div>
@@ -282,16 +341,21 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
           </Card>
         </div>
 
-        <Card className={styles['feed'] ?? ''}>
+        <Card className={`${styles['feed'] ?? ''} ${(dash ? dash.latestIssues === null || dash.latestIssues.length === 0 : feedSkeletonRows === 0) ? styles['feedEmpty'] ?? '' : ''}`}>
           <div className="card-label">
             <h2 className="label-sm gold" style={{ margin: 0 }}>At the gates today</h2>
             <Link href="/desk/master?status=collected" className="btn-link body-sm" style={{ minHeight: 0 }}>All <Icon name="arrow-right" /></Link>
           </div>
           {/* The card stretches to the left column's height, so however many
               rows land here, nothing around it moves. */}
-          {!dash ? (
+          {!dash && feedSkeletonRows === 0 ? (
+            // Last time the feed was empty: hold the empty message's two lines.
+            <p className={`${styles['feedSub']} ${styles['feedEmptyMsg']}`} aria-hidden="true"><SkeletonText w="36ch" /><br /><SkeletonText w="44ch" /></p>
+          ) : !dash ? (
+            <>
+            <div className={styles['gates']} aria-hidden="true"><span className="chip"><SkeletonText w="9ch" /></span></div>
             <ul className={styles['feedList']} aria-hidden="true">
-              {[15, 12, 17, 13].map((w, i) => (
+              {Array.from({ length: feedSkeletonRows }, (_, i) => [15, 12, 17, 13][i % 4]!).map((w, i) => (
                 <li key={i} className={styles['feedItem']} style={{ animation: 'none' }}>
                   <Skeleton shape="dot" />
                   <div>
@@ -302,10 +366,11 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
                 </li>
               ))}
             </ul>
+            </>
           ) : dash.gateCounts === null || dash.latestIssues === null ? (
-            <p className={styles['feedSub']}>Today&apos;s gate activity isn&apos;t available right now.</p>
+            <p className={`${styles['feedSub']} ${styles['feedEmptyMsg']}`}>Today&apos;s gate activity isn&apos;t available right now.</p>
           ) : dash.latestIssues.length === 0 ? (
-            <p className={styles['feedSub']}>No bands or stickers issued yet today.</p>
+            <p className={`${styles['feedSub']} ${styles['feedEmptyMsg']}`}>No bands or stickers issued yet today.<br />Each one appears here as the gate hands it over.</p>
           ) : (
             <>
               <div className={styles['gates']}>
@@ -351,10 +416,14 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
                 <div className={styles['bandBody']}>
                   <div className={styles['bandRow']}>
                     <h3 className="display-sm">{currentTier.label}</h3>
-                    <span><span className={styles['bandIssued']}>{item.count ?? <SkeletonText w="2ch" />}</span> <span className={styles['bandOf']}>/ {currentTier.printQty ?? 'TBC'}</span></span>
+                    <span><span className={styles['bandIssued']}>{item.issued ?? (dash ? '–' : <SkeletonText w={`${shape?.bandDigits[item.code] ?? 1}ch`} />)}</span> <span className={styles['bandOf']}>/ {currentTier.printQty ?? 'TBC'}</span></span>
                   </div>
-                  <div className="meter" style={{ margin: 0 }} aria-label={item.count === null ? undefined : `${item.count} issued`}><i style={{ '--w': item.count !== null && currentTier.printQty ? ratio(item.count, currentTier.printQty) : 0, '--c': colour } as CSSProperties} /></div>
-                  {item.note && <p className={styles['feedSub']}>{item.note}</p>}
+                  <div className="meter" style={{ margin: 0 }} aria-label={item.issued === null ? undefined : `${item.issued} issued`}><i style={{ '--w': item.issued !== null && currentTier.printQty ? ratio(item.issued, currentTier.printQty) : 0, '--c': colour } as CSSProperties} /></div>
+                  {item.note
+                    ? <p className={styles['feedSub']}>{item.note}</p>
+                    // The last note, set in a skeleton (.sk draws text transparent):
+                    // it wraps exactly as the note will, so the card keeps its height.
+                    : !dash && shape?.notes[item.code] ? <p className={styles['feedSub']} aria-hidden="true"><span className="sk">{shape.notes[item.code]}</span></p> : null}
                   {/* Held zones only, dot + name, like the pass ticket and the mockup's zonesHtml(). */}
                   <ul className={styles['zones']}>
                     {item.code === 'aaa' ? <li>All zones</li> : zoneStrip(item.code).filter((zone) => zone.held).map((zone) => {

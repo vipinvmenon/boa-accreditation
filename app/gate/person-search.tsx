@@ -84,8 +84,13 @@ export function PersonSearch({ roster, onPick, onOpen, onClose }: Props) {
   }
 
   const trimmed = query.trim()
+  // One letter is not a search yet (gate/search.ts needs MIN_NAME_QUERY, or
+  // MIN_PHONE_DIGITS digits): keep the hint, not "no one matches".
+  const tooShort = /\p{L}/u.test(trimmed)
+    ? trimmed.length < MIN_NAME_QUERY
+    : trimmed.replace(/\D/g, '').length < MIN_PHONE_DIGITS
   const status =
-    trimmed.length === 0
+    tooShort
       ? hasPhones
         ? `Type ${MIN_NAME_QUERY}+ letters of a name, or the last ${MIN_PHONE_DIGITS} digits of a phone.`
         : `Type ${MIN_NAME_QUERY}+ letters of a name.`
@@ -149,12 +154,15 @@ export function PersonSearch({ roster, onPick, onOpen, onClose }: Props) {
                 onMouseEnter={() => setActive(position)}
                 onClick={() => pick(row)}
               >
+                {/* Who they are on one line, what tells two namesakes apart
+                    (band, phone, shirt) on the next, spaced not dotted. */}
                 <span>
                   <b>{row.fullName}</b>
-                  <small>
-                    {row.orgName} · {row.roleText} · {gateBandCard(row.typeCode).label}
-                    {row.tshirtSize ? ` · T-shirt ${row.tshirtSize}` : ''}
-                    {row.phone ? ` · ${maskPhone(row.phone)}` : ''}
+                  <small>{row.orgName}, {row.roleText}</small>
+                  <small className="ns-tags">
+                    <span>{gateBandCard(row.typeCode).label}</span>
+                    {row.phone && <span>{maskPhone(row.phone)}</span>}
+                    {row.tshirtSize && <span>T-shirt {row.tshirtSize}</span>}
                   </small>
                 </span>
                 <Icon name="arrow-right" />

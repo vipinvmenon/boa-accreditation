@@ -116,7 +116,7 @@ async function phone(browser: Browser, server: FixtureServer, volunteerName: str
   })
 
   await page.goto('/gate')
-  await expect(page.locator('[data-sync-status]')).toHaveText(/^Last synced \d\d:\d\d$/)
+  await expect(page.locator('[data-sync-status]')).toHaveText(/^Synced (just now|\d+ min ago)$/)
   return { context, page, pulls }
 }
 
@@ -139,7 +139,7 @@ test.describe('two phones converge when there is signal (ACC-149)', () => {
     // B has the person as not yet collected.
     await scan(b.page, `BOA26:${PEOPLE[0].passToken}`)
     await expectVerdict(b.page, 'Approved')
-    await b.page.getByRole('button', { name: 'Next person' }).click()
+    await b.page.getByRole('button', { name: 'Cancel' }).click()
 
     // A issues while online: the outbox drains straight away.
     await scan(a.page, `BOA26:${PEOPLE[0].passToken}`)
@@ -147,13 +147,13 @@ test.describe('two phones converge when there is signal (ACC-149)', () => {
     await a.page.getByLabel('Wristband serial, optional').fill('0412')
     await a.page.getByRole('button', { name: 'Issue wristband' }).click()
     await expect.poll(() => server.issued.length).toBe(1)
-    await expect(a.page.locator('[data-sync-status]')).toHaveText(/^Last synced \d\d:\d\d$/)
+    await expect(a.page.locator('[data-sync-status]')).toHaveText(/^Synced (just now|\d+ min ago)$/)
 
     // B has not pulled since; it still says green.
     const pullsBefore = b.pulls.count
     await scan(b.page, `BOA26:${PEOPLE[0].passToken}`)
     await expectVerdict(b.page, 'Approved')
-    await b.page.getByRole('button', { name: 'Next person' }).click()
+    await b.page.getByRole('button', { name: 'Cancel' }).click()
     expect(b.pulls.count).toBe(pullsBefore)
 
     // B's pull timer comes due. Nothing else happens on B: no reload, no
@@ -165,7 +165,8 @@ test.describe('two phones converge when there is signal (ACC-149)', () => {
       await scan(b.page, `BOA26:${PEOPLE[0].passToken}`)
       await expectVerdict(b.page, 'Collected')
     }).toPass({ timeout: 10_000 })
-    await expect(b.page.getByText('A band was already issued to this person')).toBeVisible()
+    // Collected says when, where and which band, not three ways of "already".
+    await expect(b.page.locator('#gres')).toContainText('serial #0412')
 
     // The other person is still green on B: the pull did not over-reach.
     await b.page.getByRole('button', { name: 'Next person' }).click()

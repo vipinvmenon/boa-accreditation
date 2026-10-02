@@ -113,6 +113,15 @@
   font: 400 var(--t-body)/1.2 var(--f-body);
   transition: box-shadow var(--d-quick) var(--e-out);
 }
+/* Phones (Vipin, 2 Oct: "looks zoomed in on all the pages"): iOS zooms on
+   focus into any field under 16px, and the desk navigates client-side, so the
+   zoom from the sign-in field carried onto every page after it. 16px on touch
+   screens only; the pointer keeps the design's 14px. :where() keeps this below
+   .input and .input-mono, which set their own size. */
+@media (hover: none) and (pointer: coarse) {
+  .r10 :where(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: 16px; }
+  .r10 .input { font-size: 16px; }
+}
 .r10 .input::placeholder { color: var(--ink-3); }
 @media (hover: hover) { .r10 .input:hover:not(:focus) { box-shadow: var(--edge-hover); } }
 .r10 .input:focus { outline: 0; box-shadow: var(--edge-focus); }
@@ -161,6 +170,10 @@
 .r10 input[type="checkbox"]:focus-visible { outline: 0; box-shadow: var(--edge-focus); }
 .r10 input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .4; }
 .r10 .input-mono { min-height: 64px; text-align: center; font: 500 22px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+/* 2 Oct (Vipin): the hint is a ghost plate in the plate's own face and size,
+   so the field shows what goes in it. Kept faint, under --ink-3, so it never
+   passes for a typed plate (the 1 Oct worry). */
+.r10 .input-mono::placeholder { font: inherit; letter-spacing: inherit; text-transform: inherit; color: color-mix(in srgb, var(--ink-3) 55%, transparent); opacity: 1; }
 .r10 .select { position: relative; }
 .r10 .select-trigger { display: flex; align-items: center; padding-right: var(--s-10); text-align: left; cursor: pointer; }
 .r10 .select-trigger:disabled { cursor: not-allowed; opacity: .5; }
@@ -207,6 +220,8 @@
 .r10 .search { position: relative; flex: 1; min-width: 220px; display: block; padding: 0; background: none; box-shadow: none; border-radius: 0; }
 .r10 .search .input { padding-left: 44px; padding-right: 40px; border-radius: var(--r-pill); }
 .r10 .search .ph { position: absolute; z-index: 1; top: 50%; left: var(--s-4); color: var(--ink-3); transform: translateY(-50%); }
+/* The "/" shortcut hint means nothing on a touch screen (1 Oct review). */
+@media (hover: none) and (pointer: coarse) { .r10 .search kbd { display: none; } .r10 .search .input { padding-right: var(--s-4); } }
 .r10 .search kbd {
   position: absolute;
   z-index: 1;
@@ -223,8 +238,10 @@
 /* People / Vehicles (GateTabs). One pill slides between the two tabs. */
 .r10 .segmented { position: relative; isolation: isolate; display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: var(--edge); margin-bottom: var(--s-5); }
 .r10 .segmented a { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; transition: color var(--d-base) var(--e-out); }
-.r10 .segmented a[aria-current="page"] { color: var(--ink); }
-.r10 .segmented .seg-pip { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 8px) / 2); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--edge); transition: transform 420ms var(--e-out); }
+.r10 .segmented a[aria-current="page"],
+.r10 .segmented a[data-on] { color: var(--ink); }
+.r10 .segmented:has(a[data-on]) a[aria-current="page"]:not([data-on]) { color: var(--ink-2); }
+.r10 .segmented .seg-pip { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 8px) / 2); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--edge); transition: transform var(--d-slow) var(--e-out); }
 .r10 .segmented .seg-pip[data-pos="1"] { transform: translateX(calc(100% + 2px)); }
 /* The gate screens no longer ease in (Vipin, 30 Sep). They used to fade up from
    transparent on every mount, and the people screen mounts twice (the skeleton,
@@ -237,6 +254,12 @@
 .r10 .filterbar-row,
 .r10 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .r10 .chips { gap: var(--s-2); min-height: var(--h-chip); }
+/* Phones: "Add filter" keeps its name for assistive tech but shows only the
+   funnel, so it sits beside the search instead of taking a row of its own. */
+@media (max-width: 700px) {
+  .r10 .filterbar .btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .r10 .filterbar .search { min-width: 0; }
+}
 .r10 .chip {
   display: inline-flex;
   align-items: center;
@@ -374,7 +397,7 @@
 .r10 .empty p { max-width: 52ch; margin: 0; color: var(--ink-2); }
 .r10 .empty-error .ph { color: var(--bad); }
 .r10 .sk { position: relative; overflow: hidden; border-radius: var(--r-xs); background: var(--raised); color: transparent; }
-.r10 .sk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 5%, transparent), transparent); animation: r10-sk 1.6s var(--e-spring) infinite; }
+.r10 .sk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 5%, transparent), transparent); animation: r10-sk 1.6s linear infinite; }
 @keyframes r10-sk { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 .r10 .sk-line { height: 12px; }
 /* In-line value placeholder (Skeleton shape="text"): inline-block with
