@@ -80,3 +80,8 @@
 .ph-light.ph-calendar-blank:before { content: '\e10a'; }
 .ph-light.ph-headset:before { content: '\e584'; }
 .ph-light.ph-device-mobile:before { content: '\e1e0'; }
+/* Icon review (2 Oct): the r10 mock's own glyphs for these actions, codepoints
+   from design/source/r10/r8/tokens.css, same font. */
+.ph-light.ph-buildings:before { content: '\e102'; }
+.ph-light.ph-check-circle:before { content: '\e184'; }
+.ph-light.ph-user-plus:before { content: '\e4d0'; }

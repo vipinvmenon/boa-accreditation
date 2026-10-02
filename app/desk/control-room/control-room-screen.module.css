@@ -154,22 +154,23 @@
 
 .ringLabel {
   position: relative;
-  margin-top: -96px;
-  margin-bottom: 40px;
+  margin-top: -102px;
+  margin-bottom: 46px;
   text-align: center;
 }
 
 .ringLabel :global(.number) {
   display: block;
-  font-size: 24px;
+  font-size: 30px;
 }
 
-/* Smaller text in the ring (Vipin, 29 Sep). The label is already at the 12px
-   floor (DESIGN.md), so it tightens its tracking instead of its size, and
-   clears the stroke with room to spare. */
+/* Smaller text in the ring (Vipin, 29 Sep; smaller again 2 Oct, with a wider
+   gap under a larger number). 10px is under DESIGN.md's 12px floor, on
+   Vipin's call: it is a caption to the number, not text to read. */
 .ringLabel :global(.label-sm) {
   display: block;
-  margin-top: 2px;
+  margin-top: 8px;
+  font-size: 10px;
   letter-spacing: .06em;
 }
 
@@ -390,6 +391,9 @@
   display: flex;
   align-items: baseline;
   gap: var(--s-2);
+  /* One line of the number even while it is a skeleton bar, so the row
+     does not grow 9px when the count lands. */
+  min-height: 31px;
   font: 400 31px/1 var(--f-display);
   color: var(--gold);
 }

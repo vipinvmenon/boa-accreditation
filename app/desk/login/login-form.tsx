@@ -58,17 +58,22 @@ import styles from './login.module.css'
  * button at their real sizes, so nothing moves when the form arrives.
  */
 function LoginFormSkeleton() {
+  // The form's own field and label markup (Field's .field, PasswordField's
+  // label), so each row is its loaded height; and the "Forgot password?"
+  // line, which the skeleton used to leave out: the centred column was 66px
+  // short and jumped up when the form arrived (2 Oct).
   return (
     <div className={styles['form']} aria-hidden="true">
-      <div className={styles['skField']}>
-        <span className="body-sm"><SkeletonText w="5ch" /></span>
+      <div className="field">
+        <span>Email</span>
         <Skeleton shape="btn" style={{ '--sk-w': '100%' } as CSSProperties} />
       </div>
-      <div className={styles['skField']}>
-        <span className="body-sm"><SkeletonText w="8ch" /></span>
+      <div className="field">
+        <span className={styles['pwLabel']}>Password</span>
         <Skeleton shape="btn" style={{ '--sk-w': '100%' } as CSSProperties} />
       </div>
       <Skeleton shape="btn" className="btn-block" style={{ '--sk-w': '100%' } as CSSProperties} />
+      <span className={`btn-link ${styles['back']}`}><SkeletonText w="16ch" /></span>
     </div>
   )
 }

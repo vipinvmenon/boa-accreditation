@@ -163,7 +163,6 @@
   box-shadow: inset 0 1px 0 var(--hair);
 }
 
-.skField { display: grid; gap: var(--s-2); }
 
 @keyframes settle { from { transform: scale(1.045); } to { transform: none; } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }

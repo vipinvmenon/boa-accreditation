@@ -86,8 +86,7 @@
 .r10 .search kbd,
 .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
 .r10 .sk,
-.r10 .g-note.g-note:not(.bad),
-.r10 .segmented.segmented a[aria-current="page"] {
+.r10 .g-note.g-note:not(.bad) {
   background: var(--gl-fill-soft);
 }
 
@@ -205,8 +204,7 @@
   .r10 .search kbd,
   .r10 .pill:not(.pill-ok):not(.pill-wait):not(.pill-bad),
   .r10 .sk,
-  .r10 .g-note.g-note:not(.bad),
-  .r10 .segmented.segmented a[aria-current="page"] {
+  .r10 .g-note.g-note:not(.bad) {
     background: var(--raised);
   }
 

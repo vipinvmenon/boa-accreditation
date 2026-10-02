@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Icon } from '@/components/icon'
 import { Button, Field, Select, StatusPill } from '@/components/r10/primitives-a'
 import { EmptyState, Sheet, Skeleton, SkeletonText, Table, TableCell } from '@/components/r10/primitives-b'
+import { useSkeletonMemory } from '@/lib/skeleton-memory'
 import { copyForError } from '@/lib/error-copy'
 import { loginHref } from '@/gate/session'
 import { OPERATOR_ROLE_COPY, operatorRoleSchema, operatorRowSchema, setOperatorActiveResultSchema, type OperatorRow } from '@/lib/schemas/operator'
@@ -39,14 +40,19 @@ function Note({ note, scope }: { note: UsersNote; scope: string }) {
   if (!note || note.scope !== scope) return null
   return (
     <p className={note.error ? 'users-note bad' : 'users-note'} role={note.error ? 'alert' : 'status'}>
-      <Icon name={note.error ? 'x' : 'check'} />{note.text}
+      <Icon name={note.error ? 'warning-circle' : 'check'} />{note.text}
     </p>
   )
 }
 
+/** lib/skeleton-memory.ts: how many rows the table last had. */
+const rowCountSchema = z.number().int().min(1).max(200)
+const USER_NAME_WIDTHS = [16, 12, 18, 14]
+
 export function UsersScreen() {
   const router = useRouter()
   const [operators, setOperators] = useState<OperatorRow[] | null>(null)
+  const skeletonRows = useSkeletonMemory('users', rowCountSchema, operators && operators.length > 0 ? operators.length : null) ?? 4
   const [callerId, setCallerId] = useState<string | null>(null)
   const [selected, setSelected] = useState<OperatorRow | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -168,19 +174,19 @@ export function UsersScreen() {
           <h1 className="display-lg">Users</h1>
           <p className="lede">Who can sign in to the desk and the gate, and what each of them can do.</p>
         </div>
-        <Button variant="primary" onClick={() => { setNote(null); setInviteOpen(true) }}>Invite operator <Icon name="plus" /></Button>
+        <Button variant="primary" onClick={() => { setNote(null); setInviteOpen(true) }}>Invite operator <Icon name="user-plus" /></Button>
       </header>
 
-      {loadError && <EmptyState error title="Operators didn’t load" icon={<Icon name="x" />}>
+      {loadError && <EmptyState error title="Operators didn’t load" icon={<Icon name="warning-circle" />}>
         <p>{loadError}</p>
-        <Button onClick={() => { setOperators(null); void load() }}>Try again <Icon name="arrow-right" /></Button>
+        <Button icon={<Icon name="arrows-clockwise" />} onClick={() => { setOperators(null); void load() }}>Try again</Button>
       </EmptyState>}
       {operators === null && !loadError && (
         // The loaded table's header and row markup with skeleton values, so
         // each row is its real height and the header does not appear late.
         <div role="status" aria-label="Loading operators" aria-busy="true">
           <Table label="Loading operators" columns={USER_COLUMNS} className="users-table card">
-            {[16, 12, 18, 14].map((w, index) => (
+            {Array.from({ length: Math.min(skeletonRows, 20) }, (_, i) => USER_NAME_WIDTHS[i % USER_NAME_WIDTHS.length]!).map((w, index) => (
               <div key={index} className="user-row user-row-skeleton" role="row" aria-hidden="true">
                 <TableCell><strong className="users-nm"><SkeletonText w={`${w}ch`} /></strong><span className="mono ink-2"><SkeletonText w="10ch" /></span></TableCell>
                 <TableCell><SkeletonText w="9ch" /></TableCell>
@@ -191,7 +197,7 @@ export function UsersScreen() {
           </Table>
         </div>
       )}
-      {operators?.length === 0 && <EmptyState title="Only you so far" icon={<Icon name="plus" />}>
+      {operators?.length === 0 && <EmptyState title="Only you so far" icon={<Icon name="user-plus" />}>
         Invite the desk and the gate issuers. Each gets an email to set a password.
       </EmptyState>}
       {operators && operators.length > 0 && (

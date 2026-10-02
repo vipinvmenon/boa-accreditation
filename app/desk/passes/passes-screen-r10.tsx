@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useRouter } from 'next/navigation'
 import { TIERS, tier, tierColour } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
+import { useSkeletonMemory } from '@/lib/skeleton-memory'
+import { z } from 'zod'
 import { Button, Chip, EmptyState, HoldButton, Sheet, Skeleton, SkeletonText, Table, TableCell } from '@/components/r10'
 import { Icon } from '@/components/icon'
 import { PassTicket } from '@/components/pass-ticket'
@@ -88,6 +90,13 @@ function readUrlState(): { query: string; filters: Filters } {
   }
   return { query: params.get('q') ?? '', filters }
 }
+
+/** lib/skeleton-memory.ts: the digit counts the header last loaded with. */
+const passesShapeSchema = z.object({
+  approvedDigits: z.number().int().min(1).max(6),
+  unsentDigits: z.number().int().min(1).max(6),
+  chipDigits: z.array(z.number().int().min(1).max(6)).max(12),
+})
 
 export function PassesScreenR10() {
   const theme = useDomTheme()
@@ -378,6 +387,11 @@ export function PassesScreenR10() {
   const selectedSend = selected ? sendByPerson.get(selected.id) : undefined
   const selectedStamp = sentStamp(selectedSend?.last?.requestedAt)
   const unsentLabel = `Send ${unsent.length} unsent passes`
+  const shape = useSkeletonMemory('passes', passesShapeSchema, loading ? null : {
+    approvedDigits: String(passes.length).length,
+    unsentDigits: String(unsent.length).length,
+    chipDigits: PRESETS.map((preset) => String(passes.filter((pass) => matches(pass, preset.filters)).length).length),
+  })
 
   return (
     <main id="main-content" tabIndex={-1} ref={rootRef} className="passes-page">
@@ -385,7 +399,7 @@ export function PassesScreenR10() {
         <div>
           <h1 className="display-lg">Passes</h1>
           {loading
-            ? <p className="lede" aria-hidden="true"><SkeletonText w="3ch" /> approved people. <SkeletonText w="3ch" /> haven&apos;t got their pass yet.</p>
+            ? <p className="lede" aria-hidden="true"><SkeletonText w={`${shape?.approvedDigits ?? 2}ch`} /> approved people. <SkeletonText w={`${shape?.unsentDigits ?? 2}ch`} /> haven&apos;t got their pass yet.</p>
             : <p className="lede">{passes.length} approved people. {unsent.length} haven&apos;t got their pass yet.</p>}
           {sends && !sends.configured && <p className="passes-note">WhatsApp isn&apos;t set up yet, so passes can&apos;t be sent from here. Copy a pass&apos;s WhatsApp link from its sheet instead.</p>}
         </div>
@@ -493,7 +507,7 @@ export function PassesScreenR10() {
                 <Chip
                   key={preset.label}
                   preset
-                  count={loading ? <SkeletonText w="1ch" /> : passes.filter((pass) => matches(pass, preset.filters)).length}
+                  count={loading ? <SkeletonText w={`${shape?.chipDigits[PRESETS.indexOf(preset)] ?? 1}ch`} /> : passes.filter((pass) => matches(pass, preset.filters)).length}
                   onActivate={() => changeFilters(structuredClone(preset.filters))}
                 >
                   {preset.label}
@@ -514,7 +528,7 @@ export function PassesScreenR10() {
           </div>
           <span className="count body-sm" aria-live="polite">
             {loading
-              ? <><strong><SkeletonText w="3ch" /></strong> people</>
+              ? <><strong><SkeletonText w={`${shape?.approvedDigits ?? 2}ch`} /></strong> people</>
               : hasFilter ? <><strong>{filteredPasses.length}</strong> of {passes.length}</> : <><strong>{passes.length}</strong> people</>}
           </span>
         </div>

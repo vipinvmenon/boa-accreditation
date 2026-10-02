@@ -9,6 +9,8 @@ import { loginHref } from '@/gate/session'
 import { Icon } from '@/components/icon'
 import { Button, FilterBar } from '@/components/r10/primitives-a'
 import { EmptyState, Skeleton, SkeletonText } from '@/components/r10/primitives-b'
+import { useSkeletonMemory } from '@/lib/skeleton-memory'
+import { z } from 'zod'
 
 /**
  * r10 (ACC-186): reskinned onto design/source/r10/r8-orgs.html, which is now
@@ -86,9 +88,14 @@ function OrgsHead({ sort, onSort, disabled = false }: { sort: OrgsSort; onSort: 
   )
 }
 
+/** lib/skeleton-memory.ts: how many rows the table last had. */
+const rowCountSchema = z.number().int().min(1).max(200)
+const ORG_NAME_WIDTHS = [22, 16, 19, 14, 20, 17]
+
 export function OrgsScreen() {
   const router = useRouter()
   const [orgs, setOrgs] = useState<OrgRowWithCounts[] | null>(null)
+  const skeletonRows = useSkeletonMemory('orgs', rowCountSchema, orgs && orgs.length > 0 ? orgs.length : null) ?? 6
   const [loadError, setLoadError] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -191,7 +198,7 @@ export function OrgsScreen() {
           <p className="lede">Every organisation sending people. Open one to see its people in the Master list.</p>
         </div>
         <Button disabled={!orgs || orgs.length === 0} onClick={() => void handleCopyOrgNames()}>
-          <Icon name="paper-plane-tilt" /> Copy names for the form
+          <Icon name="copy" /> Copy names for the form
         </Button>
       </header>
 
@@ -206,7 +213,7 @@ export function OrgsScreen() {
 
       {copyStatus && <p className="orgs-copy-status" role="status">{copyStatus}</p>}
       {loadError && (
-        <EmptyState error title="The list didn’t load" icon={<Icon name="x" />}>
+        <EmptyState error title="The list didn’t load" icon={<Icon name="warning-circle" />}>
           <p>{loadError}</p>
           <Button onClick={() => { setLoadError(null); setOrgs(null); setReloadKey((key) => key + 1) }}>
             Try again <Icon name="arrow-right" />
@@ -219,7 +226,7 @@ export function OrgsScreen() {
         <div className="orgs-table table" role="status" aria-label="Loading organisations" aria-busy="true">
           <OrgsHead sort={sort} onSort={setSort} disabled />
           <div aria-hidden="true">
-            {[22, 16, 19, 14, 20, 17].map((w, index) => (
+            {Array.from({ length: Math.min(skeletonRows, 20) }, (_, i) => ORG_NAME_WIDTHS[i % ORG_NAME_WIDTHS.length]!).map((w, index) => (
               <div className="org-row org-row-skeleton" key={index}>
                 <span><strong className="nm"><SkeletonText w={`${w}ch`} /></strong><span className="sub"><SkeletonText w="6ch" /></span></span>
                 <span className="org-people"><SkeletonText w="7ch" /></span>
@@ -236,7 +243,7 @@ export function OrgsScreen() {
         </div>
       )}
       {orgs !== null && orgs.length === 0 && (
-        <EmptyState title="No organisations yet" icon={<Icon name="plus" />}>
+        <EmptyState title="No organisations yet" icon={<Icon name="buildings" />}>
           Organisations appear here as soon as people are imported from the response sheet.
         </EmptyState>
       )}
@@ -282,7 +289,7 @@ export function OrgsScreen() {
         .r10 .orgs-filterbar { margin-bottom: var(--s-5); }
         .r10 .orgs-copy-status { color: var(--ink-2); margin: 0 0 var(--s-4); }
         .r10 .orgs-table { --c: var(--ink-3); }
-        .r10 .orgs-thead, .r10 .org-row { display: grid; grid-template-columns: minmax(220px, 2fr) 120px minmax(150px, 1.2fr) minmax(190px, 1.4fr) 44px; align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
+        .r10 .orgs-thead, .r10 .org-row { display: grid; grid-template-columns: minmax(200px, 2fr) 110px minmax(140px, 1.2fr) minmax(170px, 1.4fr) 44px; align-items: center; gap: var(--s-4); padding-inline: var(--s-6); }
         .r10 .orgs-thead { min-height: 48px; color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; box-shadow: inset 0 -1px 0 var(--hair); }
         .r10 .orgs-thead .orgs-sort { display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--hit); padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
         .r10 .org-row { min-height: 64px; padding-block: var(--s-3); color: inherit; text-decoration: none; box-shadow: inset 0 -1px 0 var(--hair); transition: background-color var(--d-quick) var(--e-hover), transform var(--d-quick) var(--e-hover); }
@@ -310,6 +317,11 @@ export function OrgsScreen() {
         @media (max-width: 700px) {
           .r10 .orgs-head { align-items: start; flex-direction: column; gap: var(--s-5); margin-bottom: var(--s-6); }
           .r10 .orgs-head .btn { width: 100%; }
+        }
+        /* The five columns need about 870px of screen; below that the rows
+           stack as on a phone, instead of the contact running off the card
+           (2 Oct). */
+        @media (max-width: 880px) {
           .r10 .orgs-thead { display: none; }
           .r10 .org-row { grid-template-columns: 1fr; gap: var(--s-1); padding: var(--s-4) var(--s-5); min-height: 0; }
           .r10 .org-row > .org-people, .r10 .org-row > .orgs-collected, .r10 .org-row > .org-contact, .r10 .org-row > .org-arrow { display: none; }

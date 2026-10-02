@@ -55,6 +55,16 @@ input, button { font-family:inherit; }
  * floor and must not zoom on focus. 16px is the iOS no-zoom threshold; the
  * design's own inputs are larger than this everywhere except the search field. */
 input, button, select, textarea { font-size:16px; }
+/* r10 overrides the rule above for the pointer; app/r10/primitives.css puts
+ * 16px back on touch screens. v2's search field is 15px — under the line. */
+@media (hover: none) and (pointer: coarse) { .search input { font-size:16px; } }
+
+/* A phone never zooms out to fit something wider than itself: iOS sets its
+ * minimum scale from the widest box, fixed layers included. `clip`, not
+ * `hidden`, so body is not a scroll container and sticky headers still stick.
+ * text-size-adjust stops iOS inflating text in landscape. */
+html { overflow-x:clip; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+body { overflow-x:clip; }
 
 /* The design has no focus states because a canvas has no keyboard. A gate
  * volunteer in gloves and an approver on a laptop both need them. Only

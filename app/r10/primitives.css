@@ -113,6 +113,15 @@
   font: 400 var(--t-body)/1.2 var(--f-body);
   transition: box-shadow var(--d-quick) var(--e-out);
 }
+/* Phones (Vipin, 2 Oct: "looks zoomed in on all the pages"): iOS zooms on
+   focus into any field under 16px, and the desk navigates client-side, so the
+   zoom from the sign-in field carried onto every page after it. 16px on touch
+   screens only; the pointer keeps the design's 14px. :where() keeps this below
+   .input and .input-mono, which set their own size. */
+@media (hover: none) and (pointer: coarse) {
+  .r10 :where(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: 16px; }
+  .r10 .input { font-size: 16px; }
+}
 .r10 .input::placeholder { color: var(--ink-3); }
 @media (hover: hover) { .r10 .input:hover:not(:focus) { box-shadow: var(--edge-hover); } }
 .r10 .input:focus { outline: 0; box-shadow: var(--edge-focus); }
@@ -161,9 +170,10 @@
 .r10 input[type="checkbox"]:focus-visible { outline: 0; box-shadow: var(--edge-focus); }
 .r10 input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .4; }
 .r10 .input-mono { min-height: 64px; text-align: center; font: 500 22px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
-/* The hint must not read as a typed plate (1 Oct review): body face, normal
-   case, no tracking, the faint ink. */
-.r10 .input-mono::placeholder { font: 400 var(--t-body)/1 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink-3); opacity: 1; }
+/* 2 Oct (Vipin): the hint is a ghost plate in the plate's own face and size,
+   so the field shows what goes in it. Kept faint, under --ink-3, so it never
+   passes for a typed plate (the 1 Oct worry). */
+.r10 .input-mono::placeholder { font: inherit; letter-spacing: inherit; text-transform: inherit; color: color-mix(in srgb, var(--ink-3) 55%, transparent); opacity: 1; }
 .r10 .select { position: relative; }
 .r10 .select-trigger { display: flex; align-items: center; padding-right: var(--s-10); text-align: left; cursor: pointer; }
 .r10 .select-trigger:disabled { cursor: not-allowed; opacity: .5; }
@@ -228,8 +238,10 @@
 /* People / Vehicles (GateTabs). One pill slides between the two tabs. */
 .r10 .segmented { position: relative; isolation: isolate; display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--raised); box-shadow: var(--edge); margin-bottom: var(--s-5); }
 .r10 .segmented a { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 var(--s-5); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); font: 600 var(--t-label)/1 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; transition: color var(--d-base) var(--e-out); }
-.r10 .segmented a[aria-current="page"] { color: var(--ink); }
-.r10 .segmented .seg-pip { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 8px) / 2); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--edge); transition: transform 420ms var(--e-out); }
+.r10 .segmented a[aria-current="page"],
+.r10 .segmented a[data-on] { color: var(--ink); }
+.r10 .segmented:has(a[data-on]) a[aria-current="page"]:not([data-on]) { color: var(--ink-2); }
+.r10 .segmented .seg-pip { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 8px) / 2); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--edge); transition: transform var(--d-slow) var(--e-out); }
 .r10 .segmented .seg-pip[data-pos="1"] { transform: translateX(calc(100% + 2px)); }
 /* The gate screens no longer ease in (Vipin, 30 Sep). They used to fade up from
    transparent on every mount, and the people screen mounts twice (the skeleton,

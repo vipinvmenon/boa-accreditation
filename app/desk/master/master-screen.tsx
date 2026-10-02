@@ -6,6 +6,8 @@ import { masterResponseSchema, type MasterRow } from '@/lib/schemas/master'
 import { dashboardResponseSchema } from '@/lib/schemas/dashboard'
 import { bandArtSrc, tier, tierColour, zoneStrip, ZONES, type Theme } from '@/lib/design'
 import { useDomTheme } from '@/lib/use-theme'
+import { useSkeletonMemory } from '@/lib/skeleton-memory'
+import { z } from 'zod'
 import { formatLedgerTime, formatMasterCollected, masterCountLabel } from '@/lib/format'
 import {
   MASTER_DAY_LABELS,
@@ -33,6 +35,14 @@ import { EmptyState, Sheet, Skeleton, SkeletonText } from '@/components/r10/prim
 const PAGE = 60
 type SortKey = 'default' | 'name' | 'collected'
 type MenuState = { open: false } | { open: true; field: MasterFilterKey | null }
+
+/** lib/skeleton-memory.ts: the digit counts the header last loaded with. */
+const masterShapeSchema = z.object({
+  approvedDigits: z.number().int().min(1).max(6),
+  pendingDigits: z.number().int().min(0).max(6),
+  chipDigits: z.array(z.number().int().min(1).max(6)).max(12),
+  totalDigits: z.number().int().min(1).max(6),
+})
 
 export function MasterScreen() {
   const router = useRouter()
@@ -170,6 +180,16 @@ export function MasterScreen() {
     [rows],
   )
 
+  // How wide the counts were last time, and whether the lede had its
+  // "still waiting" clause, so the skeleton header is the loaded header's
+  // size (lib/skeleton-memory.ts). Digit counts only, never the numbers.
+  const shape = useSkeletonMemory('master', masterShapeSchema, dashboardCounts && !loading ? {
+    approvedDigits: String(dashboardCounts.approvedTotal).length,
+    pendingDigits: dashboardCounts.pendingTotal > 0 ? String(dashboardCounts.pendingTotal).length : 0,
+    chipDigits: presetCounts.map((n) => String(n).length),
+    totalDigits: String(total).length,
+  } : null)
+
   const exportHref = useMemo(() => {
     const params = new URLSearchParams({ format: 'csv' })
     if (query) params.set('q', query)
@@ -252,7 +272,7 @@ export function MasterScreen() {
             </p>
           ) : countsLoading && (
             <p className="lede" aria-hidden="true">
-              <SkeletonText w="3ch" /> approved people. <SkeletonText w="2ch" /> more are still waiting in the response sheet.
+              <SkeletonText w={`${shape?.approvedDigits ?? 2}ch`} /> approved people.{(shape === null || shape.pendingDigits > 0) && <> <SkeletonText w={`${shape?.pendingDigits ?? 2}ch`} /> more are still waiting in the response sheet.</>}
             </p>
           )}
         </div>
@@ -319,7 +339,7 @@ export function MasterScreen() {
         <div className="chips" aria-label="Active filters">
           {activeKeys.length === 0
             ? MASTER_PRESETS.map((preset, index) => (
-              <Chip key={preset.label} preset count={loading ? <SkeletonText w="1ch" /> : presetCounts[index] ?? 0} onActivate={() => changeFilters(presetFilters(preset.filters))}>
+              <Chip key={preset.label} preset count={loading ? <SkeletonText w={`${shape?.chipDigits[index] ?? 1}ch`} /> : presetCounts[index] ?? 0} onActivate={() => changeFilters(presetFilters(preset.filters))}>
                 {preset.label}
               </Chip>
             ))
@@ -344,7 +364,7 @@ export function MasterScreen() {
         {!error && (
           <span className="count body-sm" aria-live="polite">
             {loading
-              ? <><strong><SkeletonText w="3ch" /></strong> people</>
+              ? <><strong><SkeletonText w={`${shape?.totalDigits ?? 2}ch`} /></strong> people</>
               : hasFilter ? <><strong>{list.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
           </span>
         )}
@@ -365,7 +385,7 @@ export function MasterScreen() {
         <div className="table master" aria-busy="true" aria-label="Loading the master list">
           <div className="thead" aria-hidden="true">
             <span><button type="button" disabled tabIndex={-1}>Person <Icon name="caret-down" /></button></span>
-            <span>Tier</span><span>Days</span><span>Band</span><span>Vehicle</span><span>BMS</span>
+            <span>Tier</span><span className="wide-only">Days</span><span>Band</span><span className="wide-only">Vehicle</span><span>BMS</span>
             <span className="cell-r"><button type="button" disabled tabIndex={-1}>Collected</button></span>
           </div>
           <div aria-hidden="true">
@@ -373,9 +393,9 @@ export function MasterScreen() {
               <div className="tr master-row-skeleton" key={index}>
                 <div><div className="nm"><SkeletonText w={`${w}ch`} /></div><div className="sub"><SkeletonText w={`${w + 14}ch`} /></div></div>
                 <div className="hide-s"><span className="tier"><SkeletonText w="5ch" /></span></div>
-                <div className="days hide-s"><SkeletonText w="8ch" /></div>
+                <div className="days hide-s wide-only"><SkeletonText w="8ch" /></div>
                 <div className="hide-s"><span className="mono"><SkeletonText w="5ch" /></span></div>
-                <div className="hide-s"><span className="mono"><SkeletonText w={index % 3 ? '2ch' : '13ch'} /></span></div>
+                <div className="hide-s wide-only"><span className="mono"><SkeletonText w={index % 3 ? '2ch' : '13ch'} /></span></div>
                 <div className="hide-s"><Skeleton shape="pill" /></div>
                 <div className="cell-r hide-s"><span className="body-sm"><SkeletonText w={index % 2 ? '2ch' : '14ch'} /></span></div>
                 <div className="row2">
@@ -401,9 +421,9 @@ export function MasterScreen() {
               <button type="button" onClick={() => setSort(sort === 'name' ? 'default' : 'name')}>Person <Icon name="caret-down" /></button>
             </span>
             <span role="columnheader">Tier</span>
-            <span role="columnheader">Days</span>
+            <span role="columnheader" className="wide-only">Days</span>
             <span role="columnheader">Band</span>
-            <span role="columnheader">Vehicle</span>
+            <span role="columnheader" className="wide-only">Vehicle</span>
             <span role="columnheader">BMS</span>
             <span role="columnheader" className="cell-r" aria-sort={sort === 'collected' ? 'descending' : 'none'}>
               <button type="button" onClick={() => setSort(sort === 'collected' ? 'default' : 'collected')}>Collected</button>
@@ -508,10 +528,22 @@ export function MasterScreen() {
         .r10 .master-screen .menu .n { display: inline-flex; margin-left: auto; color: var(--ink-3); font: 500 var(--t-label-sm)/1 var(--f-mono); }
         .r10 .master-screen .swatch { width: 12px; height: 12px; border-radius: var(--r-xs); background: var(--c, var(--ink-3)); flex: none; }
 
-        @media (max-width: 700px) {
-          .r10 .master-screen .tr { grid-template-columns: 1fr; }
+        /* Seven columns need about 1100px. Below that, Days and Vehicle leave
+           the table (both are in the person sheet), and below 820px, where five
+           no longer fit, it is the stacked phone layout: the columns had been clipped off the card's
+           right edge, BMS and Collected with them (Vipin, 2 Oct). */
+        @media (max-width: 1100px) {
+          .r10 .master-screen .table.master { --cols: minmax(200px, 2fr) minmax(110px, 1fr) 88px 104px minmax(120px, 1fr); }
+          .r10 .master-screen .wide-only { display: none; }
+        }
+        @media (max-width: 820px) {
+          .r10 .master-screen .thead { display: none; }
+          .r10 .master-screen .tr { grid-template-columns: 1fr; gap: var(--s-1) var(--s-3); padding: var(--s-4) var(--s-5); }
+          .r10 .master-screen .tr > .hide-s { display: none; }
           .r10 .master-screen .tr > .row2 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; }
           .r10 .master-screen .tr .tier { font-size: var(--t-label-sm); }
+        }
+        @media (max-width: 700px) {
           /* r8-master.html anchors the menu to the button's right edge, which
              pushes it off the left of a 390px screen: open it rightwards here. */
           .r10 .master-screen .menu { left: 0; right: auto; transform-origin: top left; max-width: calc(100vw - 32px); }
@@ -569,9 +601,9 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
     >
       <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}{row.tshirtSize ? ` · T-shirt ${row.tshirtSize}` : ''}</div></div>
       <div role="cell" className="hide-s"><span className="tier">{tierLabel}</span></div>
-      <div role="cell" className="days hide-s">{row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : <span className="muted">–</span>}</div>
+      <div role="cell" className="days hide-s wide-only">{row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : <span className="muted">–</span>}</div>
       <div role="cell" className="hide-s">{band}</div>
-      <div role="cell" className="hide-s">
+      <div role="cell" className="hide-s wide-only">
         {row.vehicleReg
           ? <><span className="mono">{row.vehicleReg}</span>{!row.stickerNo && <span className="pill pill-wait pill-sticker">Sticker</span>}</>
           : <span className="muted">–</span>}

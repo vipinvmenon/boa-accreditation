@@ -278,7 +278,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
           }}>{item.label}</Link>)}
         </div>
         <div className="frame page">{children}</div>
-        <SiteFooter signedInAs={me ? `${me.display_name} (${ROLE_LABEL[me.role]})` : null} />
+        <SiteFooter />
       </div>
     </div>
   )

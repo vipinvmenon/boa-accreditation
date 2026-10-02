@@ -430,6 +430,9 @@
    (room for a v2 bottom dock the r10 desk doesn't have). */
 .r10 footer.site-footer { padding-bottom: 0; }
 .r10 .site-footer {
+  /* .app is a full-height column: on a screen taller than the page the
+     footer sits on the bottom edge, not above a band of empty page. */
+  margin-top: auto;
   border-top: 1px solid var(--gold-hair);
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   color: var(--ink-2);
@@ -437,20 +440,25 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
 }
-.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: var(--s-6) var(--s-14); max-width: var(--frame); margin: 0 auto; padding: var(--s-8) var(--gutter) var(--s-5); }
+.r10 .site-footer .sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: var(--s-6) var(--s-14); max-width: var(--frame); margin: 0 auto; padding: var(--s-8) var(--gutter) var(--s-6); }
 .r10 .site-footer .sf-brand { display: block; }
 /* The nav's logo size: the footer is a sign-off, not a second masthead. */
 .r10 .site-footer .sf-brand img { display: block; width: 104px; filter: var(--logo-filter); }
 .r10 .site-footer .sf-cols h2 { color: var(--gold); }
-.r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, max-content) minmax(0, 1fr); gap: var(--s-10); }
+/* 2 Oct: the dates spread to the right edge, one line each. */
+.r10 .site-footer .sf-cols { display: flex; justify-content: flex-end; gap: var(--s-14); }
 .r10 .site-footer .sf-cols h2 { margin: 0 0 var(--s-1); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
-.r10 .site-footer .sf-cols p { max-width: 40ch; margin: 0; color: var(--ink-2); font-size: var(--t-body-sm); }
+.r10 .site-footer .sf-cols p { margin: 0; color: var(--ink); font-size: var(--t-body); white-space: nowrap; }
+.r10 .site-footer .sf-cols .sf-when { color: var(--ink-3); }
+.r10 .site-footer .sf-cols .sf-when::before { content: ' · '; }
 /* The base row shares the columns' left and right edges: it had the gutter
    twice (max-width already took it off, then padding added it again). */
 .r10 .site-footer .sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2) var(--s-4); max-width: calc(var(--frame) - 2 * var(--gutter)); margin: 0 auto; padding: var(--s-3) 0 var(--s-5); border-top: 1px solid var(--hair); color: var(--ink-3); font: 600 var(--t-label-sm)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
 .r10 .site-footer .sf-base a { color: inherit; text-decoration: none; }
+/* The data rule is a sentence, so it is set as one, not as a label. */
+.r10 .site-footer .sf-keep { margin: 0; font: 400 var(--t-body-sm)/1.4 var(--f-body); letter-spacing: 0; text-transform: none; }
 .r10 .site-footer .sf-base a:hover { color: var(--ink); }
-@media (max-width: 1100px) { .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-5); } }
+@media (max-width: 1100px) { .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-5); } .r10 .site-footer .sf-cols { justify-content: flex-start; gap: var(--s-10); } }
 
 /* mock: the nav collapses to the burger below 900px (ui.css:77-83) */
 @media (max-width: 900px) {
@@ -518,8 +526,10 @@
   .r10 .island { width: 100%; justify-content: space-between; }
   .r10 .brand span { display: none; }
   .r10 .site-footer .sf-in { grid-template-columns: 1fr; gap: var(--s-5); padding: var(--s-6) var(--s-5) var(--s-4); }
-  .r10 .site-footer .sf-cols { grid-template-columns: 1fr 1fr; gap: var(--s-4) var(--s-5); }
-  .r10 .site-footer .sf-cols > :last-child { grid-column: 1 / -1; }
+  .r10 .site-footer .sf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
+  .r10 .site-footer .sf-cols p { white-space: normal; font-size: var(--t-body-sm); }
+  .r10 .site-footer .sf-cols .sf-when { display: block; }
+  .r10 .site-footer .sf-cols .sf-when::before { content: none; }
   .r10 .site-footer .sf-base { flex-direction: column; margin: 0 var(--s-5); padding-inline: 0; }
 }
 
