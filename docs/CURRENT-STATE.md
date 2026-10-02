@@ -3,7 +3,28 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 2 October 2026 (UX review fixes on branch `fix/ux-review-1-oct`)._
+_Last updated: 2 October 2026 (UX review fixes merged to `main` and deployed)._
+
+## Deployed: `fix/ux-review-1-oct` merged to `main`, 2 Oct 2026
+
+- **What (Vipin):** back up `main`, merge the current work, deploy.
+  `backup/main-pre-ux-review-2026-10-02` on origin = the old `main`
+  (`1a89f88`), the rollback point. Merge commit `47e8ee9` (`--no-ff`, so
+  `git revert -m 1 47e8ee9` undoes it).
+- **Checked before the push** on the final tree: typecheck, lint (0 errors),
+  332 unit tests, build, `test:e2e` 70/70 locally (aeroplane-mode included).
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction:** the same known
+  `main .num` Control room timeout (`scripts/visual-check.mjs:500`), so
+  `test:visual` did **not** check this deploy.
+- **Checked after:** Vercel deploy success; `deploy-verify.yml` passed;
+  `corepack pnpm verify:deploy` 18/18 against the live site; live
+  `/icon.png` and `/apple-icon.png` are byte-identical to the committed files;
+  `db:state` read (no migrations in this merge). **Not checked:** the screens
+  signed in on the live site.
+- **CI on `main` is red, as it was before:** `design fidelity` (the same
+  `.num` timeout) and `gate aeroplane-mode suite` (3 failed / 67 passed; the
+  runner has no Supabase URL/key). Old `main` `1a89f88` failed the same two
+  jobs with the same count.
 
 ## Favicon is the wordmark (branch `fix/ux-review-1-oct`), 2 Oct 2026
 
