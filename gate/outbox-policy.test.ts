@@ -10,6 +10,7 @@ import {
   selectDrainBatch,
   type OutboxEntryState,
 } from './outbox-policy'
+import { RequestTimeoutError } from './fetch-timeout'
 
 const NOW = 1_760_000_000_000
 const KEY = '44444444-4444-4444-8444-444444444444'
@@ -51,7 +52,7 @@ describe('selectDrainBatch', () => {
     ).toEqual([])
   })
 
-  it('stops at terminal or syncing work', () => {
+  it('skips a failed entry: the server has answered it, so it holds nothing back (6 Oct)', () => {
     expect(
       selectDrainBatch(
         [
@@ -59,8 +60,17 @@ describe('selectDrainBatch', () => {
           entry({ id: 'later', createdAt: NOW }),
         ],
         NOW,
-      ),
-    ).toEqual([])
+      ).map((item) => item.id),
+    ).toEqual(['later'])
+  })
+
+  it('keeps retrying a pending entry past MAX_ATTEMPTS (no signal is never terminal)', () => {
+    expect(
+      selectDrainBatch([entry({ id: 'waiting', attempts: MAX_ATTEMPTS + 12 })], NOW).map((item) => item.id),
+    ).toEqual(['waiting'])
+  })
+
+  it('stops at syncing work', () => {
     expect(
       selectDrainBatch(
         [entry({ id: 'syncing', status: 'syncing' }), entry({ id: 'later', createdAt: NOW })],
@@ -112,6 +122,27 @@ describe('classifyFailure', () => {
   it('treats invalid gate payloads as terminal', () => {
     expect(classifyFailure({ message: 'missing supervisor note', code: '22023' })).toBe('invalid')
     expect(classifyFailure({ message: 'person is not approved', code: '23514' })).toBe('invalid')
+  })
+
+  it('treats no signal as network, never as the entry\'s fault (6 Oct)', () => {
+    expect(classifyFailure(new TypeError('Failed to fetch'))).toBe('network')
+    expect(classifyFailure(new TypeError('Load failed'))).toBe('network')
+    expect(classifyFailure(new DOMException('The operation was aborted.', 'AbortError'))).toBe('network')
+    expect(classifyFailure(new RequestTimeoutError('/api/gate/issue', 20_000))).toBe('network')
+    for (const code of ['408', '425', '429', '502', '503', '504']) {
+      expect(classifyFailure({ message: '{"error":"x"}', code })).toBe('network')
+    }
+  })
+
+  it('treats the gate routes\' own refusals as invalid, not as something to retry (6 Oct)', () => {
+    expect(classifyFailure({ message: '{"error":"not_found"}', code: '404' })).toBe('invalid')
+    expect(classifyFailure({ message: '{"error":"invalid_action"}', code: '422' })).toBe('invalid')
+    expect(classifyFailure({ message: '{"error":"invalid_body"}', code: '400' })).toBe('invalid')
+    expect(classifyFailure({ message: '{"error":"invalid_vehicle_event"}', code: '400' })).toBe('invalid')
+  })
+
+  it('keeps an unexplained 500 transient (bounded by MAX_ATTEMPTS)', () => {
+    expect(classifyFailure({ message: '{"error":"internal"}', code: '500' })).toBe('transient')
   })
 
   it('keeps person-not-found transient', () => {

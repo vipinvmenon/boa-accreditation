@@ -116,6 +116,16 @@ describe('sync scheduler (ACC-149)', () => {
     scheduler.stop()
   })
 
+  it('counts refused (failed) entries apart from pending ones, and keeps pulling (6 Oct)', async () => {
+    const { scheduler, pull, state } = harness({ queue: [entry('e1', { status: 'failed', lastError: 'HTTP 404: {"error":"not_found"}' }), entry('e2')] })
+    scheduler.start()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(scheduler.getStatus()).toMatchObject({ pending: 0, failed: 1, needsLogin: false })
+    expect(pull).toHaveBeenCalledTimes(1)
+    expect(state.queue.find((row) => row.id === 'e2')?.status).toBe('done')
+    scheduler.stop()
+  })
+
   it('does nothing offline and syncs immediately on the online event', async () => {
     const { scheduler, drain, pull, state, fire } = harness({ queue: [entry('e1'), entry('e2')] })
     state.online = false

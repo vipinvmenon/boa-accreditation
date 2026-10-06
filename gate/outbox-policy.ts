@@ -6,9 +6,22 @@
  * the outbox, online or offline; this module never posts, deletes, or mutates
  * an entry.
  *
- * The guarantee that matters is ordering. Replay stops at the first blocked
- * entry. Without that, a reissue can post before its original issue and the
- * ledger's causal history is wrong.
+ * The guarantee that matters is ordering. Replay stops at the first entry
+ * whose server result is unknown. Without that, a reissue can post before its
+ * original issue and the ledger's causal history is wrong.
+ *
+ * What it must never do is stop for good (6 Oct pre-festival test pass,
+ * findings 6 and 7). Until then eight failed sends of any kind — eight
+ * "Load failed" on a phone that thinks it has signal, about four minutes —
+ * marked the head entry 'failed', and a 'failed' entry blocked everything
+ * behind it for the rest of the day, with nothing on screen to say so. Now:
+ *   - no signal (a network error, a timeout, a gateway 5xx, a 429) is never
+ *     terminal: it backs off, capped at a minute, and keeps trying;
+ *   - a refusal (any other 4xx: the person was withdrawn, the payload was
+ *     malformed) is terminal at once, because sending it again changes
+ *     nothing;
+ *   - a 'failed' entry has a known answer, so it no longer holds back the
+ *     work behind it. It is retained and counted on screen.
  */
 import type { OutboxRow } from './db'
 
@@ -17,8 +30,29 @@ export type OutboxEntryState = Pick<
   'id' | 'idempotencyKey' | 'status' | 'attempts' | 'nextAttemptAt' | 'createdAt' | 'lastError'
 >
 
-/** How a drain failure should be treated. */
-export type FailureKind = 'auth' | 'duplicate' | 'invalid' | 'transient'
+/**
+ * How a drain failure should be treated. `network` means the request never got
+ * an answer from the app (no signal, a timeout, a gateway in front of it
+ * failing): never terminal. `transient` means the app answered with an error
+ * it did not explain: retried, terminal after MAX_ATTEMPTS.
+ */
+export type FailureKind = 'auth' | 'duplicate' | 'invalid' | 'network' | 'transient'
+
+/**
+ * HTTP answers that say nothing about the entry itself: a timeout, too many
+ * requests, or a gateway (Vercel, Supabase) in front of the route failing.
+ */
+const NO_SIGNAL_STATUS = new Set(['408', '425', '429', '502', '503', '504'])
+
+/**
+ * `fetch` rejects with a TypeError when the request could not be made at all
+ * ("Failed to fetch", Safari's "Load failed"); an abort or gate/fetch-timeout.ts's
+ * limit is the same thing seen from the other side.
+ */
+function isNoSignal(error: unknown): boolean {
+  if (error instanceof TypeError) return true
+  return isRecord(error) && ['AbortError', 'TimeoutError', 'RequestTimeoutError'].includes(String(error['name']))
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -46,9 +80,11 @@ function failureParts(error: unknown): { message: string; code: string } {
  *
  * Duplicate is success because a lost response can leave the server holding
  * the write already. Auth stops the drain without consuming an attempt.
- * Invalid is terminal but retained for human review. Everything else retries
- * with bounded backoff; in particular, "person not found" is transient because
- * the approval may have reached the server before this device's roster refresh.
+ * Invalid (a 4xx the route chose, or a database refusal) is terminal but
+ * retained for human review. No signal is `network` and retries forever with
+ * capped backoff. Anything else unexplained is `transient`: retried, terminal
+ * after MAX_ATTEMPTS. The bare prose "person not found" stays transient; the
+ * gate routes never send it (they answer 404, which is `invalid`).
  */
 export function classifyFailure(error: unknown): FailureKind {
   const { message, code } = failureParts(error)
@@ -71,6 +107,14 @@ export function classifyFailure(error: unknown): FailureKind {
   ) {
     return 'auth'
   }
+
+  if (isNoSignal(error) || NO_SIGNAL_STATUS.has(code)) return 'network'
+
+  // Any other 4xx is the route refusing this entry: a person withdrawn or
+  // re-tokened after this phone's pull (404), a malformed or mismatched
+  // action (400, 422). Sending it again gets the same answer, so it stops
+  // now rather than after eight tries, and no longer blocks the queue.
+  if (/^4\d\d$/.test(code)) return 'invalid'
 
   if (/person not found/.test(message)) return 'transient'
 
@@ -97,7 +141,10 @@ export function nextAttemptDelayMs(attempts: number, jitter = 1): number {
 
 export const MAX_ATTEMPTS = 8
 
-/** Terminal means stop retrying and retain the entry for human resolution. */
+/**
+ * Terminal means stop retrying and retain the entry for human resolution.
+ * Applies to `transient` failures only; `network` ones are never terminal.
+ */
 export function isTerminal(attempts: number): boolean {
   return attempts >= MAX_ATTEMPTS
 }
@@ -105,9 +152,11 @@ export function isTerminal(attempts: number): boolean {
 /**
  * Select eligible entries in causal order, stopping at the first blockage.
  *
- * Completed rows are retained as local evidence and skipped. No entry is
- * removed here, and the idempotency key travels with the returned row unchanged
- * for every retry.
+ * Completed rows are retained as local evidence and skipped. So are 'failed'
+ * rows: the server has answered them, so nothing behind them can overtake an
+ * unknown result, and holding the queue behind one would stop this phone
+ * sending for the rest of the day. No entry is removed here, and the
+ * idempotency key travels with the returned row unchanged for every retry.
  */
 export function selectDrainBatch(entries: OutboxEntryState[], now: number): OutboxEntryState[] {
   const ordered = [...entries].sort(
@@ -116,8 +165,9 @@ export function selectDrainBatch(entries: OutboxEntryState[], now: number): Outb
   const batch: OutboxEntryState[] = []
 
   for (const entry of ordered) {
-    if (entry.status === 'done' || entry.status === 'resolved') continue
-    if (entry.status === 'failed' || isTerminal(entry.attempts)) break
+    if (entry.status === 'done' || entry.status === 'resolved' || entry.status === 'failed') continue
+    // drainOutbox resets an orphaned 'syncing' row before it selects, so one
+    // seen here is another tab's send in flight: its result is unknown.
     if (entry.status === 'syncing') break
     if (entry.nextAttemptAt > now) break
     batch.push(entry)

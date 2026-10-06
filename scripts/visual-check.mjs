@@ -234,7 +234,7 @@ async function seedGateDexie(page, { vehicle = false } = {}) {
   // 503 is the right answer, not 200-with-a-payload: the approved reference
   // draws an OFFLINE gate ("Offline, 3 queued"), the capture puts the context
   // offline a moment later, and non-negotiable #7 says every read comes from
-  // Dexie anyway. `classifyFailure` treats 503 as 'transient', so the three
+  // Dexie anyway. `classifyFailure` treats 503 as 'network', so the three
   // queued entries stay pending and the counter still reads 3 — whereas a
   // 200 would make `pullGate` clear and replace the seeded roster, measuring
   // the mock instead of the cache. Nothing here relaxes a comparison; it

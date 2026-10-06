@@ -3,7 +3,63 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; importer reads both)._
+_Last updated: 6 October 2026 (pre-festival test pass; gate outbox can no longer stop sending for good)._
+
+## Pre-festival test pass and gate outbox fix, 6 Oct 2026 (not deployed)
+
+- **What (Vipin):** "do a proper test… find issues now rather than live",
+  then "fix 5 to 8". No roadmap ID. **Not committed or deployed** at the
+  time of writing.
+- **Gates run first, on `e606caf`:** typecheck, lint (0 errors), 336 unit,
+  `check:sql`, `test:e2e` 71/71, `verify:deploy` 18/18 against the live site.
+  `test:db` **not run** here (it runs against the live database); GitHub's
+  `database (pgTAP)` job passed for `c4c8cf9`. `test:visual` not run.
+- **Live database, read-only aggregates, 6 Oct ~21:00 IST (no names):** 48
+  approved, 14 submitted; 0 check-in rows of any kind; 0 people with a vehicle
+  registration (the form column is empty in all 64 sheet rows); 3 vehicle
+  events, all `turned_away`; active operators: 1 lead, 2 admin, **0 issuers**
+  (one issuer exists, inactive); 3 `pass_send` rows `queued`; `in_bms` false
+  for all 48; 22 of the 48 approved are AAA.
+- **Found, for Vipin to decide (not code defects, not fixed):**
+  1. No active gate issuer accounts.
+  2. Nothing in the app records a vehicle sticker: the crew gate shows
+     "Sticker due" with no control, and no code path posts
+     `kind: 'vehicle_sticker'`. The vehicle gate's `stickerOk` derives from
+     those rows (ACC-153), so it refuses every vehicle.
+  3. No gate reissue for a lost or broken band (ACC-189b in flight).
+  4. Roster far short of ~641; WhatsApp sends blocked on ACC-151.
+  - Also open: the gate RPC clamps `occurred_at` to ±15 min of the post
+    time, so an offline check-in synced hours later records the sync time;
+    and the gate says Approved to a show-only person on a build day (policy
+    question).
+- **Fixed, findings 5–8 (`gate/outbox.ts`, `gate/outbox-policy.ts`,
+  `gate/fetch-timeout.ts`, `gate/roster.ts`, `gate/sync-scheduler.ts`):**
+  - 5: an entry left `syncing` by a page reloaded or killed mid-send blocked
+    the queue forever. Each drain now returns `syncing` rows to `pending`
+    and re-sends them with the same idempotency key.
+  - 6: eight failed sends of any kind (about 4 min of no real signal) made the
+    head `failed`, and `failed` blocked everything behind it for good, with
+    nothing on screen. Now no-signal failures (TypeError, timeout,
+    408/425/429/502/503/504) are a new `network` kind, never terminal;
+    `failed` rows are skipped, not blocking; `failed` rows from the old code
+    (no `HTTP nnn` in `lastError`) are retried once per page load.
+  - 7: every 4xx from the gate routes was `transient`. Now any 4xx other than
+    401/403/409 (and the no-signal ones) is `invalid`: terminal at once.
+  - 8: no time limit on sends or pulls. Now 20 s and 45 s.
+  - Visible: the gate status row says `N not accepted · tell a lead`, and a
+    refused wristband still scans amber on that phone (`app/gate/page.tsx`
+    reads `failed` as well as `pending`/`syncing`).
+  - Docs: `docs/OFFLINE-SYNC.md` outbox section rewritten to match.
+- **Verified:** the six new drain tests in `gate/outbox.test.ts` fail on the
+  old `outbox.ts`/`outbox-policy.ts` (6/6) and pass on the new; typecheck,
+  lint (0 errors), 352 unit tests, `test:e2e` 72/72 (a new aeroplane-mode
+  test: a 404-refused band fails alone, the next band sends, the line shows,
+  the person stays Collected). Screenshot of the line at 390px taken from that
+  test. **Not verified:** a real phone, a real network timeout, the deployed
+  site, `test:visual`, `test:db`.
+- **Not done:** no list of which entries were refused; a lead has to look at
+  the phone. "Saved on this phone. It sends when signal returns." stays on
+  the result after signal returns (seen in the screenshot; pre-existing).
 
 ## Deployed: `main` at `c4c8cf9`, 6 Oct 2026
 

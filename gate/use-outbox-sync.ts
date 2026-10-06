@@ -12,6 +12,8 @@ import {
 export type OutboxSync = {
   online: boolean
   queued: number
+  /** entries the server refused: kept on this phone, not sent again */
+  failed: number
   /** false when the server refused the last drain (401/403): queued work waits for a login */
   canSync: boolean
   /** the scheduler's full status, for callers that need more than the fields above (e.g. SyncStatus's "last synced" line) */
@@ -108,6 +110,7 @@ export function useOutboxSync(onSynced?: () => void | Promise<void>): OutboxSync
   return {
     online: status?.online ?? (typeof navigator !== 'undefined' ? navigator.onLine : true),
     queued: status?.pending ?? 0,
+    failed: status?.failed ?? 0,
     canSync: !(status?.needsLogin ?? false),
     status,
     sync,

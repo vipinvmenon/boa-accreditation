@@ -2,7 +2,8 @@ import { gateIssueResultSchema } from '@/lib/schemas/gate'
 import { vehicleEventResponseSchema } from '@/lib/schemas/vehicle'
 import { tshirtResponseSchema } from '@/lib/schemas/tshirt'
 import { gateDb } from './db'
-import { classifyFailure, nextAttemptDelayMs, selectDrainBatch } from './outbox-policy'
+import { fetchJsonWithTimeout, SEND_TIMEOUT_MS } from './fetch-timeout'
+import { classifyFailure, failureMessage, isTerminal, nextAttemptDelayMs, selectDrainBatch } from './outbox-policy'
 import { rebuildStickerIndex } from './roster'
 
 /**
@@ -26,7 +27,64 @@ export function drainOutbox(): Promise<void> {
   return inFlight
 }
 
+/**
+ * POST one queued action. Throws `{ code, message }` with the HTTP status on a
+ * non-2xx answer, so gate/outbox-policy.ts can classify it.
+ */
+async function post(url: string, payload: unknown): Promise<unknown> {
+  const { response, body } = await fetchJsonWithTimeout(
+    url,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+    SEND_TIMEOUT_MS,
+  )
+  if (!response.ok) {
+    throw { code: String(response.status), message: typeof body === 'object' && body !== null ? JSON.stringify(body) : 'sync failed' }
+  }
+  return body
+}
+
+/** What a failure is stored as. An HTTP answer keeps its status in front. */
+function describeFailure(error: unknown): string {
+  const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
+  return /^\d{3}$/.test(code) ? `HTTP ${code}: ${failureMessage(error)}` : failureMessage(error)
+}
+
+let legacyRevived = false
+
+/**
+ * Put back to work what an earlier page left behind (6 Oct pre-festival test
+ * pass, finding 5).
+ *
+ *  - 'syncing' is only ever set by a drain, and drains are single-flight per
+ *    page, so a 'syncing' row seen before this page's drain starts belongs to
+ *    a page that was reloaded or killed mid-send (iOS does this to a locked
+ *    phone's tab). Left alone it blocked the queue forever. Its result is
+ *    unknown, so it is sent again with the same idempotency key: the server
+ *    returns the row it already holds, or writes it now. If a second gate
+ *    tab is genuinely mid-send, the repeat is equally harmless.
+ *  - Before this fix, eight sends without signal made a row 'failed' for
+ *    good. Those rows never had an HTTP status (describeFailure was not
+ *    writing one), so a 'failed' row without one is retried once per page
+ *    load. A real refusal comes back as one and stays failed.
+ */
+async function recoverOrphans(): Promise<void> {
+  await gateDb.outbox.where('status').equals('syncing').modify({ status: 'pending', nextAttemptAt: 0 })
+  if (legacyRevived) return
+  legacyRevived = true
+  await gateDb.outbox
+    .where('status')
+    .equals('failed')
+    .filter((row) => !/^HTTP \d{3}\b/.test(row.lastError ?? ''))
+    .modify({ status: 'pending', attempts: 0, nextAttemptAt: 0 })
+}
+
 async function drainOnce(): Promise<void> {
+  await recoverOrphans()
   const entries = await gateDb.outbox.toArray()
   const batch = selectDrainBatch(entries, Date.now())
   // ACC-153: a sticker confirmed by the server adds a ledger row here, between
@@ -45,17 +103,7 @@ async function drainOnce(): Promise<void> {
       // — because a failed action blocks everything behind it — stalled every
       // wristband issue queued after the first vehicle event on the device.
       if (entry.kind === 'vehicle_event') {
-        const response = await fetch('/api/gate/vehicle', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(entry.payload),
-        })
-        const body: unknown = await response.json().catch(() => null)
-        if (!response.ok) {
-          throw { code: String(response.status), message: typeof body === 'object' && body !== null ? JSON.stringify(body) : 'sync failed' }
-        }
-        const result = vehicleEventResponseSchema.parse(body)
+        const result = vehicleEventResponseSchema.parse(await post('/api/gate/vehicle', entry.payload))
         await gateDb.outbox.update(entry.id, { status: 'done', result })
         continue
       }
@@ -63,17 +111,7 @@ async function drainOnce(): Promise<void> {
       // server's answer (the first hand-over, if another phone got there first)
       // is what the roster keeps.
       if (entry.kind === 'tshirt_given') {
-        const response = await fetch('/api/gate/tshirt', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(entry.payload),
-        })
-        const body: unknown = await response.json().catch(() => null)
-        if (!response.ok) {
-          throw { code: String(response.status), message: typeof body === 'object' && body !== null ? JSON.stringify(body) : 'sync failed' }
-        }
-        const result = tshirtResponseSchema.parse(body)
+        const result = tshirtResponseSchema.parse(await post('/api/gate/tshirt', entry.payload))
         await gateDb.transaction('rw', gateDb.outbox, gateDb.roster, async () => {
           await gateDb.outbox.update(entry.id, { status: 'done', result })
           await gateDb.roster.where('personId').equals(result.personId).modify((row) => {
@@ -82,17 +120,7 @@ async function drainOnce(): Promise<void> {
         })
         continue
       }
-      const response = await fetch('/api/gate/issue', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(entry.payload),
-      })
-      const body: unknown = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw { code: String(response.status), message: typeof body === 'object' && body !== null ? JSON.stringify(body) : 'sync failed' }
-      }
-      const result = gateIssueResultSchema.parse(body)
+      const result = gateIssueResultSchema.parse(await post('/api/gate/issue', entry.payload))
       await gateDb.transaction('rw', gateDb.outbox, gateDb.ledger, async () => {
         await gateDb.outbox.update(entry.id, { status: 'done', result })
         if (result.kind !== 'void') {
@@ -129,15 +157,20 @@ async function drainOnce(): Promise<void> {
         break
       }
       const attempts = entry.attempts + 1
+      // No signal is never terminal: the entry waits, capped at a minute
+      // between tries, for as long as it takes (gate/outbox-policy.ts).
+      const terminal = kind === 'invalid' || (kind === 'transient' && isTerminal(attempts))
       await gateDb.outbox.update(entry.id, {
-        status: kind === 'invalid' || attempts >= 8 ? 'failed' : 'pending',
+        status: terminal ? 'failed' : 'pending',
         attempts,
         nextAttemptAt: Date.now() + nextAttemptDelayMs(attempts),
-        lastError: error instanceof Error ? error.message : String(error),
+        lastError: describeFailure(error),
       })
-      // A failed action blocks every later action in the causal queue. Do not
-      // let a reissue or vehicle event overtake work whose server result is
-      // unknown, even when the failure is transient.
+      // The server has answered a terminal entry, so the work behind it may
+      // go. An entry still waiting blocks every later action in the causal
+      // queue: a reissue or vehicle event must not overtake work whose server
+      // result is unknown.
+      if (terminal) continue
       break
     }
   }

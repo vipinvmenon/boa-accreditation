@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { gatePullSchema } from '@/lib/schemas/gate'
 import { gateDb, ledgerRowSchema, metaRowSchema, rosterRowSchema, stickerRowSchema, type LedgerRow, type RosterRow, type StickerRow } from './db'
+import { fetchJsonWithTimeout, PULL_TIMEOUT_MS } from './fetch-timeout'
 import { normalizePlate } from './vehicle-flow'
 
 export type GateSnapshot = {
@@ -91,12 +92,14 @@ function localLedger(row: z.infer<typeof gatePullSchema>['ledger'][number]): Led
  * 401 and `not_authorized` on a 403 let the gate send the person to log in.
  */
 export async function pullGate(): Promise<GateSnapshot> {
-  const response = await fetch('/api/gate/pull', {
-    method: 'POST',
-    credentials: 'same-origin',
-    cache: 'no-store',
-  })
-  const body: unknown = await response.json().catch(() => null)
+  // A time limit, so a pull on a congested network cannot hold the sync cycle
+  // open indefinitely (gate/fetch-timeout.ts). A timeout is an ordinary failed
+  // pull: the cache is kept and the scheduler backs off.
+  const { response, body } = await fetchJsonWithTimeout(
+    '/api/gate/pull',
+    { method: 'POST', credentials: 'same-origin', cache: 'no-store' },
+    PULL_TIMEOUT_MS,
+  )
   if (!response.ok) {
     throw new Error(response.status === 401 ? 'not_signed_in' : response.status === 403 ? 'not_authorized' : 'pull_failed')
   }

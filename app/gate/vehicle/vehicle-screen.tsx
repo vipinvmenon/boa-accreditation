@@ -101,7 +101,7 @@ export function VehicleScreen() {
   const otherRef = useRef<HTMLInputElement>(null)
   /** Bumped after each logged decision so the folds re-read the outbox. */
   const [logged, setLogged] = useState(0)
-  const { online, queued, canSync, sync, refresh } = useOutboxSync()
+  const { online, queued, failed, canSync, sync, refresh } = useOutboxSync()
 
   const normalized = useMemo(() => {
     try {
@@ -339,7 +339,7 @@ export function VehicleScreen() {
                 </div>}
               </div>}
             </div>
-            <GateStatus online={online} queued={queued} canSync={canSync} />
+            <GateStatus online={online} queued={queued} failed={failed} canSync={canSync} />
           </section>
         </div>
         {/* With the plate field empty (Vipin, 1 Oct, prototype option A):

@@ -48,6 +48,12 @@ export type SyncStatus = {
   syncing: boolean
   /** outbox entries still pending or syncing — the same count as queuedCount() */
   pending: number
+  /**
+   * outbox entries the server refused ('failed'). Kept on the phone, never
+   * re-sent, and no longer blocking the queue, so the gate must say so: before
+   * the 6 Oct fix nothing on screen showed them.
+   */
+  failed: number
   /** epoch ms of the last successful roster pull (persisted across reloads) */
   lastPullAt: number | null
   /** epoch ms of the last drain that left nothing pending (persisted) */
@@ -98,6 +104,7 @@ export function createSyncScheduler(deps: SyncDeps): SyncScheduler {
     online: deps.isOnline(),
     syncing: false,
     pending: 0,
+    failed: 0,
     lastPullAt: null,
     lastDrainAt: null,
     needsLogin: false,
@@ -129,9 +136,13 @@ export function createSyncScheduler(deps: SyncDeps): SyncScheduler {
     }, TICK_MS)
   }
 
-  async function readQueueState(): Promise<{ pending: number; authStopped: boolean }> {
+  async function readQueueState(): Promise<{ pending: number; failed: number; authStopped: boolean }> {
     const queue = await deps.readQueue()
-    return { pending: queue.filter(isPending).length, authStopped: hasAuthStoppedEntry(queue) }
+    return {
+      pending: queue.filter(isPending).length,
+      failed: queue.filter((entry) => entry.status === 'failed').length,
+      authStopped: hasAuthStoppedEntry(queue),
+    }
   }
 
   async function cycle(trigger: SyncTrigger): Promise<void> {
@@ -139,7 +150,7 @@ export function createSyncScheduler(deps: SyncDeps): SyncScheduler {
     const online = deps.isOnline()
     let queue = await readQueueState()
     const credentials = deps.hasCredentials()
-    emit({ online, pending: queue.pending, needsLogin: !credentials || queue.authStopped || pullAuthFailed })
+    emit({ online, pending: queue.pending, failed: queue.failed, needsLogin: !credentials || queue.authStopped || pullAuthFailed })
 
     if (!online || !credentials) return
     // Paused on 401: timers do nothing; an explicit trigger tries once.
@@ -164,7 +175,7 @@ export function createSyncScheduler(deps: SyncDeps): SyncScheduler {
       if (queue.authStopped) {
         // The queue is intact (drainOutbox kept every entry pending and did
         // not consume an attempt). Surface it and stop; do not pull either.
-        emit({ syncing: false, pending: queue.pending, needsLogin: true, lastError: 'authentication required' })
+        emit({ syncing: false, pending: queue.pending, failed: queue.failed, needsLogin: true, lastError: 'authentication required' })
         return
       }
       if (queue.pending < before) changed = true
@@ -173,7 +184,7 @@ export function createSyncScheduler(deps: SyncDeps): SyncScheduler {
         emit({ lastDrainAt })
         await deps.saveTimestamps?.({ lastDrainAt })
       }
-      emit({ pending: queue.pending })
+      emit({ pending: queue.pending, failed: queue.failed })
     }
 
     if (forced || changed || startedAt >= nextPullAt) {

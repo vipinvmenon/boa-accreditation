@@ -118,7 +118,19 @@ message table. Keep the structure and keep its header comment.
   backoff had elapsed, so an entry in backoff was skipped while entries behind it
   went ahead. Here that posts a reissue before its own original, and the ledger's
   account of who got a band first becomes wrong.
-- **`classifyFailure`**, four kinds:
+  **Except a `failed` entry, which is skipped (6 Oct).** The server has
+  answered it, so nothing behind it can overtake an unknown result; until then
+  one failed entry stopped the phone sending for the rest of the day.
+- **Orphaned sends are re-sent (6 Oct).** A page reloaded or killed mid-send
+  (iOS does this to a locked phone's tab) left its entry `syncing`, which
+  blocked the queue forever. Each drain first returns any `syncing` row to
+  `pending`; the idempotency key makes the repeat harmless. Drains are
+  single-flight per page, so this page never has a send of its own in flight
+  at that moment.
+- **Every send and every pull has a time limit (6 Oct):** 20 s and 45 s
+  (`gate/fetch-timeout.ts`). A hung request used to hold the single-flight
+  cycle open, so nothing was sent and no pull ran. A timeout is no signal.
+- **`classifyFailure`**, five kinds:
   - `duplicate` (23505, key already present) → **success**. The normal outcome of
     a reply lost on a festival network.
   - `auth` (28000/42501, or the gate routes' own HTTP 401 *not_authenticated* /
@@ -129,15 +141,30 @@ message table. Keep the structure and keep its header comment.
     `lastError: 'authentication required'` and is held for one backoff step so
     a trigger does not re-post it in a tight loop. (Until ACC-149 a 401's JSON
     body matched none of the auth prose, so it was classified `transient`.)
-  - `invalid` (22023/23514, missing supervisor note, person not approved) →
-    terminal immediately.
-  - `transient` → backoff, capped 60s, `MAX_ATTEMPTS = 8`.
-    **`person not found` is transient, not invalid** — a device whose roster
-    predates an approval can legitimately scan someone the server knows about.
+  - `network` (6 Oct): no answer from the app — `fetch`'s TypeError ("Failed
+    to fetch", Safari's "Load failed"), an abort or timeout, or HTTP
+    408/425/429/502/503/504 from a gateway in front of it → backoff, capped
+    60 s, **never terminal.** Until 6 Oct these counted towards
+    `MAX_ATTEMPTS`, so about four minutes of a phone that thought it had
+    signal made the head entry `failed` for good.
+  - `invalid` (22023/23514, missing supervisor note, person not approved, and
+    since 6 Oct **any other 4xx from the gate routes**: 404 for a person
+    withdrawn or re-tokened after this phone's pull, 400/422 for a malformed or
+    mismatched action) → terminal immediately. These used to be `transient`
+    and burned eight tries first.
+  - `transient` (an unexplained 500, anything else) → backoff, capped 60 s,
+    terminal at `MAX_ATTEMPTS = 8`. The bare prose `person not found` is still
+    transient; the gate routes never send it.
+- A failure is stored as `HTTP <status>: <body>` when the route answered.
+  A `failed` row without that prefix can only be from before 6 Oct (no
+  signal, eight times), and is retried once per page load.
 - **Idempotency keys identify the user's ACTION**, minted once when the flow
   starts, persisted with the entry, reused on every retry. Never one per network
   call.
-- Terminal means *stop and show somebody*, never *discard*.
+- Terminal means *stop and show somebody*, never *discard*. Since 6 Oct the
+  gate status row says `N not accepted · tell a lead` (`app/gate/gate-status.tsx`),
+  and a refused wristband still scans **amber** on that phone: the band is on a
+  wrist even though the server does not have it.
 - Completed entries are **retained**, not deleted: they carry the server's reply
   and are the device's only local evidence a write landed.
 - `Offline | 3 queued` reads from **one** `getQueueSummary()`. One source of truth

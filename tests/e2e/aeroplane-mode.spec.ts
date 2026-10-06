@@ -47,7 +47,7 @@ const PULL = {
   ledgerAsOf: '2026-09-12T12:00:00.000Z',
 }
 
-type IssueMode = 'success' | 'duplicate' | 'unauthorized' | 'server'
+type IssueMode = 'success' | 'duplicate' | 'unauthorized' | 'server' | 'refused'
 
 function issueResult(action: GateIssue) {
   return gateIssueResultSchema.parse({
@@ -101,6 +101,11 @@ async function installFixture(
     }
     if (mode === 'duplicate') {
       await route.fulfill({ status: 409, contentType: 'application/json', json: { error: 'duplicate' } })
+      return
+    }
+    if (mode === 'refused') {
+      // What /api/gate/issue answers for a person withdrawn after this phone's pull.
+      await route.fulfill({ status: 404, contentType: 'application/json', json: { error: 'not_found' } })
       return
     }
     await route.fulfill({ status: 201, contentType: 'application/json', json: issueResult(action) })
@@ -404,6 +409,28 @@ test.describe('gate aeroplane mode', () => {
     expect(requests[0]).toBe(requests[1])
     expect(requests[2]).not.toBe(requests[0])
     await expect.poll(() => outboxStatuses(gate)).toEqual(['done', 'done', 'done'])
+  })
+
+  test('a refused band stops alone: the next one sends, the line says so, and the person stays Collected (6 Oct)', async ({ page }) => {
+    const fixture = await installFixture(page, ['refused', 'success'])
+    const gate = fixture.page
+    const { requests } = fixture
+    await reloadColdOffline(gate)
+    await queueWristband(gate, PEOPLE[0].passToken)
+    await queueWristband(gate, PEOPLE[1].passToken)
+
+    await gate.context().setOffline(false)
+    await gate.waitForFunction(() => navigator.onLine)
+    // Until 6 Oct the refused head blocked the second band for good, with
+    // nothing on screen but a queue count that never fell.
+    await expect.poll(async () => (await outboxStatuses(gate)).sort()).toEqual(['done', 'failed'])
+    await expect(gate.getByText('1 not accepted · tell a lead')).toBeVisible()
+    await expect(gate.getByText(/waiting to send/)).toHaveCount(0)
+    expect(requests).toHaveLength(2)
+
+    // The band is on a wrist even though the server refused it: never green again.
+    await scan(gate, `BOA26:${PEOPLE[0].passToken}`)
+    await expectVerdict(gate, 'Collected')
   })
 
   test('an idle gate asks for a scan, not Refuse, and Next person returns to it', async ({ page }) => {

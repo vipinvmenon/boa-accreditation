@@ -155,15 +155,17 @@ export default function GatePage() {
     }
   }, [loadCache])
 
-  const { online, queued, canSync, sync, refresh } = useOutboxSync(loadCache)
+  const { online, queued, failed, canSync, sync, refresh } = useOutboxSync(loadCache)
 
   // Wristbands queued on this phone and not yet in the ledger: the folds
   // count them as handed over, as the scanner does (gate/resolve.ts).
+  // 'failed' too: the server refused the write, but the band is on a wrist,
+  // and dropping it here showed that person green again on this phone.
   const [pending, setPending] = useState<Map<string, string>>(() => new Map())
   useEffect(() => {
     if (!snapshot) return
     let live = true
-    void gateDb.outbox.where('status').anyOf('pending', 'syncing').toArray().then((rows) => {
+    void gateDb.outbox.where('status').anyOf('pending', 'syncing', 'failed').toArray().then((rows) => {
       if (!live) return
       const byToken = new Map(snapshot.roster.map((row) => [row.passToken, row.personId]))
       const queuedAt = new Map<string, string>()
@@ -193,7 +195,8 @@ export default function GatePage() {
       byPerson.set(row.personId, rows)
     }
     const pending = new Map<string, PendingActionProjection>()
-    const pendingRows = await gateDb.outbox.where('status').anyOf('pending', 'syncing').toArray()
+    // A refused ('failed') band is still on a wrist: amber, as in the folds.
+    const pendingRows = await gateDb.outbox.where('status').anyOf('pending', 'syncing', 'failed').toArray()
     for (const row of pendingRows) {
       const action = gateIssueSchema.safeParse(row.payload)
       if (!action.success || action.data.kind === 'void') continue
@@ -484,7 +487,7 @@ export default function GatePage() {
                 this gets focused — it exists to catch a hardware (keyboard-wedge) scanner's
                 keystrokes, not to be typed into by hand. */}
             <input ref={scannerInputRef} aria-label="Pass-code input for hardware scanner" tabIndex={-1} inputMode="none" onKeyDown={(event) => { if (event.key === 'Enter') void resolve(event.currentTarget.value) }} className="sr-only" />
-            <GateStatus online={online} queued={queued} canSync={canSync} onSynced={loadCache} />
+            <GateStatus online={online} queued={queued} failed={failed} canSync={canSync} onSynced={loadCache} />
             <PersonSearch roster={snapshot.roster} onOpen={() => { setCameraError(null); setSearchOpen(true) }} onClose={() => setSearchOpen(false)} onPick={(payload) => void resolve(payload)} />
             {cameraError && <p role="alert" className="g-note bad">{cameraError}</p>}
           </div>
