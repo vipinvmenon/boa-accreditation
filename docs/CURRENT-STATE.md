@@ -3,7 +3,35 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 6 October 2026 (gate outbox fix deployed, `77d93a4`)._
+_Last updated: 6 October 2026 (desk nav loading skeleton reverted)._
+
+## Desk nav loading skeleton reverted, 6 Oct 2026
+
+- **What (Vipin):** "It is really slow now", then "why is there 2
+  skeletons… it was working perfectly when it had only one skeleton", then
+  "go with A, revert and deploy".
+- **Measured first, in Vipin's own signed-in Chrome on the live site:**
+  Control room reload to numbers on screen ~0.4–0.5 s (3 reloads, tab in
+  front); `/api/desk/dashboard` 155–390 ms over 5 calls; the page response
+  ~80 ms; desk tab switches 0.3–0.8 s; no long animation frames. Live
+  database, read-only: 62 people, 17 MB, `boa_acc_desk_dashboard` mean 8 ms.
+  So the data is not the cause. A background tab defers the Control room
+  fetch until it paints (4–6 s of grey); that is Chrome, not the app. One
+  first load waited ~2 s before the request went out; seen once, not
+  explained.
+- **Cause of "slow":** `c4c8cf9` added `app/desk/loading.tsx`, a generic
+  skeleton shown before each screen's own skeleton, so every nav click
+  showed two differently shaped placeholders in a row.
+- **Changed:** `git revert` of `c4c8cf9`'s code: `app/desk/loading.tsx` and
+  `tests/e2e/desk-nav-loading.spec.ts` deleted, the skip-link wait in
+  `tests/e2e/chrome-interactions.spec.ts` removed. The 6 Oct entry below
+  for that change is kept as history.
+- **Risk accepted:** the "highlight moves, page stays" report may come back.
+  With an ~80 ms page response it is more likely a failed request than a
+  slow one; chase it as that.
+- **Verified:** typecheck, lint (0 errors), 352 unit tests, `test:e2e`
+  71/71 (72 less the deleted test; the skip-link test passes without the
+  wait). **Not verified:** a real phone, `test:visual`.
 
 ## Deployed: `main` at `77d93a4`, 6 Oct 2026
 

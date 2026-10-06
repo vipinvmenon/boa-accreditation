@@ -162,10 +162,6 @@ test.describe('shared chrome interactions', () => {
     const skipLink = page.getByRole('link', { name: 'Skip to main content' })
     const main = page.locator('main#main-content')
     await expect(main).toHaveCount(1)
-    // app/desk/loading.tsx streams the page in behind a skeleton, so the screen
-    // is briefly busy after load. A keyboard user reaches the skip link once it
-    // has settled; pressing it mid-swap is not what this test is about.
-    await expect(main).not.toHaveAttribute('aria-busy', 'true')
 
     // Off-screen at rest (not merely visually hidden forever): out of the
     // viewport above the fold until it is the focused element.
