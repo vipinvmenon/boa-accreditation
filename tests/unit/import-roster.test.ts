@@ -95,6 +95,41 @@ describe('the column contract', () => {
   })
 })
 
+describe('a question re-added in the form editor leaves Google\'s repeat column (6 Oct)', () => {
+  // The live sheet on 6 Oct: a second "Crew type" at I, the desk's columns pushed to J–L.
+  const TSHIRT = 'T-Shirt,T-Shirt Size'
+  const repeatSheet = (...rows: [string, string, string][]) =>
+    [`${HEADER},Crew type,${DESK_HEADER},${TSHIRT}`, ...rows.map(([r, again, deskCell]) => `${r},${csvCell(again)},${csvCell(deskCell)},,`)].join('\r\n') + '\r\n'
+
+  it('is accepted, with a warning naming both columns, and the desk columns still read', () => {
+    const v = validateRoster(repeatSheet([row(), '', 'Stage']))
+    expect(v.fatal).toBeNull()
+    expect(v.errors).toEqual([])
+    expect(v.rows[0]).toMatchObject({ type_code: 'stage', crewType: 'Security' })
+    expect(v.warnings.join('\n')).toMatch(/second "Crew type" column \(I\).*Both E and I are read/)
+  })
+
+  it('takes the answer from whichever copy holds it, so nothing is lost', () => {
+    const v = validateRoster(repeatSheet([row(), '', 'Crew'], [row({ 'Crew type': '', 'WhatsApp number': '9876543211' }), 'Bar Crew', '']))
+    expect(v.errors).toEqual([])
+    expect(v.rows.map((r) => r.crewType)).toEqual(['Security', 'Bar Crew'])
+    expect(v.rows.map((r) => r.type_code)).toEqual(['crew', null])
+  })
+
+  it('refuses a row with an answer in both copies rather than pick one', () => {
+    const v = validateRoster(repeatSheet([row(), 'Bar Crew', 'Stage']))
+    expect(v.rows).toEqual([])
+    expect(v.errors[0]?.errors).toEqual(['Crew type has an answer in both E and I; clear the wrong one in the sheet'])
+  })
+
+  it('a repeat is only an exact form title — Timestamp, or an unknown column, is still refused', () => {
+    for (const bad of ['Timestamp', 'crew type', 'Aadhaar']) {
+      const csv = [`${HEADER},${bad},${DESK_HEADER}`, `${row()},,Stage`].join('\n') + '\n'
+      expect(validateRoster(csv).fatal, bad).toMatch(/Invalid header/)
+    }
+  })
+})
+
 describe('column I, Accreditation Type, is the approval (ACC-141)', () => {
   it('is accepted as the one extra column, to the right of the form\'s', () => {
     const v = validateRoster(deskSheet([row(), 'Stage']))
@@ -262,6 +297,8 @@ describe('crew-type write-ins (ACC-143)', () => {
     expect(normaliseCrewType(' bar   crew ')).toBe('Bar Crew')
     expect(normaliseCrewType('BOA internal crew')).toBe('BOA Internal Crew')
     expect(normaliseCrewType('sound & lights')).toBe('Sound & Lights')
+    // the live form's hand-typed spelling since 2 Oct is the same fixed choice
+    expect(normaliseCrewType('Family and Friends')).toBe('Family & Friends')
     expect(normaliseCrewType('DJ crew')).toBe('DJ Crew')
   })
 

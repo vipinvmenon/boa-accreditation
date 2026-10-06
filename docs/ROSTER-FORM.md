@@ -200,6 +200,29 @@ the first seven, so any deviation means the tab is not the raw responses sheet
 or someone has edited it — worth refusing over. A person types column I, so its
 capitalisation is not worth refusing over.
 
+### A repeated column: Google's, after a question is re-added (6 Oct 2026)
+
+If a question is deleted and re-added, or duplicated and the original deleted,
+in the **form editor**, Google keeps the old column with every answer already in
+it. It then inserts a new column with the same title after the form's last
+column, ahead of the desk's. On 6 Oct the sheet had a second `Crew type` at I,
+with the desk's columns pushed to J–L.
+
+`lib/roster-import.ts` accepts an **exact** repeat of a form title in that
+position. Each row takes the answer from whichever copy holds it. A row with an
+answer in both is refused with both column letters. Do not cut and paste
+answers between the two columns, and do not delete the newer one until **Responses ▸
+Question** in the form editor shows which copy the live question writes to.
+
+Two causes, both avoidable:
+
+- **Re-run the script only from the whole repo file.** On 1 Oct an Apps Script
+  copy patched for one question was run. Its older `CREW_TYPES` removed
+  "Family & Friends" and "Media / Photo" from the live form.
+- **Do not fix the form in the form editor.** Retyping a choice changes its
+  spelling (the live form says "Family and Friends"). Re-adding a question
+  creates the repeat column.
+
 ### File ▸ Settings: one must be India, the other must not
 
 Verified in the live sheet on 25 Sep 2026. Both are already correct. They look

@@ -3,7 +3,71 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 2 October 2026 (UX review fixes merged to `main` and deployed)._
+_Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; importer reads both)._
+
+## Roster sheet: a second `Crew type` column, 6 Oct 2026
+
+- **What (Vipin):** "Family & Friends" and "Media / Photo" went missing from
+  the form a few days ago, and now the response sheet has a duplicate column.
+- **Found, by reading the live form and sheet, 6 Oct** (headers, counts and
+  timestamps only, no names):
+  - Sheet header is now `…, Loading vehicle registration, Crew type,
+    Accreditation Type, T-Shirt, T-Shirt Size`. Google inserted a second
+    `Crew type` at **I** and pushed the desk's columns to **J–L**.
+  - **No data is split.** All 64 responses, the newest from 5 Oct 18:55, have
+    their crew type in **E**. Column I is empty in every row.
+  - The live form has one `Crew type` question. Its choice now reads
+    **"Family and Friends"**, not the script's "Family & Friends", so it was
+    retyped by hand in the form editor.
+  - **The missing choices:** the 1 Oct re-run of `buildRosterForm` used an
+    Apps Script copy that was only patched for the phone question (see
+    "Form, 1 Oct" below). That copy predates the 29 Sep `CREW_TYPES`, so the
+    re-run removed both choices. Responses on 2 Oct typed "Photography" under
+    Other (rows 52–56). By 2 Oct 22:09 the choices were back, retyped in the
+    form editor.
+  - **The column:** a duplicate column means Google saw a new question with the
+    same title. Only deleting and re-adding (or duplicating) a question does
+    that. Changing the choices does not. It happened after the 2 Oct 14:01
+    export, whose header was clean. **Not established:** which edit did it,
+    and whether the live question now writes to E or I. Neither can be read
+    from a view-only link.
+- **Effect:** `import-roster` refused the whole sheet (`Invalid header`), so
+  nothing submitted since the 2 Oct import could be loaded.
+- **Fixed (`lib/roster-import.ts`):** an exact repeat of a form column, between
+  H and the desk's columns, is accepted with a warning. Each row takes that
+  answer from whichever copy holds it. A row with an answer in both copies is
+  refused, not guessed. Timestamp, or anything that is not an exact form
+  title, is still refused. "Family and Friends" is shown as
+  "Family & Friends" (display only). 4 new unit tests.
+- **Verified:** `import-roster --offline` on a fresh `roster:fetch` of the live
+  sheet: 64 valid, 0 refused, 49 decided (read from J, which matches the 49
+  filled cells counted in the sheet). typecheck, lint (0 errors), 336 unit
+  tests. **Not run:** a real load (`--as`), `test:e2e`, `test:visual`.
+- **Re-checked by a second session, 6 Oct (what it did and did not verify):**
+  - **Not verified live.** `fetch-roster` now returns **401** (the sheet is no
+    longer readable without credentials, and no `GOOGLE_SERVICE_ACCOUNT_KEY_FILE`
+    is set here) and Claude in Chrome was not connected. The form, the sheet and
+    the Apps Script copy were not opened. Everything above marked "live" rests on
+    the other session's reading and on the 14:34 local copy below.
+  - **Verified on `data/roster-2026-10-06.local.csv`** (saved 6 Oct 14:34):
+    header has `Crew type` at E and I; 64 rows, 21 Sep–5 Oct 18:55; E filled in
+    64, I in 0, no row with both; J 49, K 50, L 44 filled. The 2 Oct copy has one
+    `Crew type`, desk columns at I–K. So the repeat appeared after 2 Oct 14:01.
+  - **Verified:** the importer change reviewed and kept as is. `import-roster
+    --offline` on that copy: accepted, with the repeat-column note. typecheck,
+    lint, 336 unit tests pass.
+  - **Verified on the public form view, 6 Oct (signed out):** one `Crew type`
+    question, 15 choices plus Other. Both "Family and Friends" and "Media /
+    Photo" are present (so the choices are back, spelled "and", not "&").
+    Responses tab not visible without edit access.
+  - **Still open:** which of E or I the live question writes to, and who
+    deleted or re-added the question.
+- **Open, for whoever owns the form (Vipin):** in the form editor go to
+  **Responses ▸ Question ▸ Crew type**. If it shows all 64 answers, column I
+  is an orphan and the empty column can be deleted. If it shows 0, the
+  question was re-created and new answers will land in I. Leave both columns
+  in place; the importer handles that. **Do not move data between E and I by
+  hand.**
 
 ## Deployed: `fix/ux-review-1-oct` merged to `main`, 2 Oct 2026
 
