@@ -23,6 +23,16 @@ _Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; impo
   phones and the Meta/Interakt setup. ACC-170, ACC-174b and ACC-188 not
   checked against their acceptance text yet.
 
+## Human items, as reported by Vipin, 6 Oct 2026
+
+Reported in chat; no agent saw any of it.
+- **ACC-053b** (zxing-wasm on a real iPhone): done. Ticked.
+- **ACC-058** (rehearsal): done **with 2 phones**, not the 3+ the task asks
+  for. Left open.
+- **ACC-026a** (invites): Salman and Bhoopesh invited; the other 5 issuers
+  not yet confirmed. Left open.
+- **ACC-059** (paper fallback): tentative. Left open.
+
 ## Roster sheet: a second `Crew type` column, 6 Oct 2026
 
 - **What (Vipin):** "Family & Friends" and "Media / Photo" went missing from

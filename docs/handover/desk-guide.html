@@ -1,0 +1,181 @@
+<title>BOA Desk Guide</title>
+<meta name="description" content="How Bhoopesh and Salman run the BOA 2026 accreditation desk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column of the app's tray-and-plate panels, real screens set
+   beside the words. Dark only, the app's default. Tokens: app/r10/tokens.css. */
+:root {
+  --bg: #0a0a0a; --surface: #101012; --raised: #16161a;
+  --ink: #f2efe2; --ink-2: rgb(242 239 226 / 74%); --ink-3: rgb(242 239 226 / 60%);
+  --hair: rgb(242 239 226 / 10%); --hair-strong: rgb(242 239 226 / 22%);
+  --gold: #e3bb72; --gold-hair: rgb(227 187 114 / 30%);
+  --go: #00f5a5;
+  --bg-gradient: linear-gradient(160deg, #070808 0%, #090a0a 60%, #0a0f0d 85%, #0c1a14 100%);
+  --f-display: 'Anton', Impact, sans-serif;
+  --f-label: 'Oswald', 'Arial Narrow', sans-serif;
+  --f-body: 'Instrument Sans', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --r-md: 14px; --r-lg: 22px; --r-tray: 28px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; padding: 40px 16px 56px;
+  background: radial-gradient(60% 45% at 100% 100%, rgb(0 245 165 / 4.5%), transparent 70%), var(--bg-gradient), var(--bg);
+  background-attachment: fixed;
+  background-color: #0a0a0a;
+  color: var(--ink); font: 400 15px/1.55 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: var(--col, 760px); margin: 0 auto; display: grid; gap: 20px; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--go); outline-offset: 3px; }
+img { display: block; max-width: 100%; height: auto; }
+p { margin: 0; text-wrap: pretty; }
+b, strong { font-weight: 600; }
+.ink-2 { color: var(--ink-2); }
+
+.display { margin: 0; font: 400 clamp(38px, 8vw, 56px)/.9 var(--f-display); text-transform: uppercase; text-wrap: balance; }
+h2 { margin: 0; font: 400 21px/1 var(--f-display); text-transform: uppercase; letter-spacing: .01em; }
+h3 { margin: 0; font: 400 17px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .01em; }
+.label { margin: 0; font: 600 12px/1.2 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.mono { font: 500 13px/1.3 var(--f-mono); letter-spacing: .04em; }
+.ui { font: 600 12px/1.2 var(--f-label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; padding: 3px 8px; border-radius: 999px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair-strong); }
+
+header { display: grid; gap: 18px; padding-bottom: 8px; }
+.logo { width: 168px; filter: drop-shadow(0 0 16px rgb(0 245 165 / 30%)); }
+.lede { color: var(--ink-2); max-width: 60ch; }
+
+.panel { position: relative; isolation: isolate; border-radius: var(--r-tray); padding: 30px 28px; background: color-mix(in srgb, var(--ink) 3.5%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 40px 80px -40px rgb(0 0 0 / 75%), 0 12px 24px -16px rgb(0 0 0 / 60%); display: grid; gap: 18px; min-width: 0; }
+.panel::before { content: ""; position: absolute; inset: 6px; z-index: -1; border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: inset 0 1px 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
+@media (max-width: 520px) { .panel { padding: 24px 18px; } }
+
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: baseline; }
+ol.steps li::before { content: counter(s, decimal-leading-zero); font: 500 12px/1 var(--f-mono); color: var(--gold); }
+
+/* Screens: a phone shot beside its words, or a desk shot under them */
+.duo { display: grid; grid-template-columns: 1fr 230px; gap: 24px; align-items: start; }
+.duo > :first-child { min-width: 0; }
+@media (max-width: 640px) { .duo { grid-template-columns: 1fr; } .duo .phone { max-width: 260px; margin-inline: auto; } }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+figcaption { font-size: 13px; color: var(--ink-3); text-align: center; text-wrap: balance; }
+.phone img { border-radius: 24px; box-shadow: 0 0 0 1px var(--hair-strong), 0 24px 48px -24px rgb(0 0 0 / 80%); }
+.screen img { border-radius: 14px; box-shadow: 0 0 0 1px var(--hair-strong), 0 24px 48px -24px rgb(0 0 0 / 80%); }
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .trio { grid-template-columns: 1fr; } .trio figure { grid-template-columns: 44% 1fr; align-items: center; gap: 16px; } .pair figure { grid-template-columns: none; } }
+.pair { grid-template-columns: repeat(2, 1fr); max-width: 470px; }
+.pair figcaption { text-align: center !important; }
+.trio figcaption { text-align: left; color: var(--ink-2); font-size: 14px; }
+.trio figcaption b { display: block; color: var(--ink); }
+
+.bands { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 8px; }
+.band { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); }
+.band i { flex: none; width: 22px; height: 10px; border-radius: 999px; background: var(--sw); }
+.band span { font-size: 14px; }
+.band small { display: block; color: var(--ink-3); font-size: 12px; }
+
+.tiers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tier { display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px 5px 9px; border-radius: 999px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); font: 500 12px/1.3 var(--f-mono); }
+.tier i { width: 10px; height: 10px; border-radius: 50%; background: var(--sw); }
+
+.roles { display: grid; border-radius: var(--r-md); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); }
+.roles > div { display: grid; grid-template-columns: 104px 1fr; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--hair); align-items: baseline; }
+.roles > div:first-child { border-top: 0; }
+.roles .label { color: var(--gold); }
+.roles span:last-child { font-size: 14px; color: var(--ink-2); }
+
+.contact { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; padding: 12px 14px; border-radius: var(--r-md); background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); }
+.contact .mono { user-select: all; font-size: 15px; }
+
+footer.sf { margin-top: 20px; border-top: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); }
+.sf-in { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 24px 48px; padding: 32px 0 22px; }
+.sf-in img { width: 150px; filter: drop-shadow(0 0 16px rgb(0 245 165 / 30%)); }
+.sf-cols { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 24px; }
+.sf-cols h3 { margin: 0 0 6px; font: 600 12px/1.2 var(--f-label); letter-spacing: .12em; color: var(--gold); }
+.sf-cols p { font-size: 14px; line-height: 1.5; color: var(--ink); }
+.sf-cols small { display: block; font-size: 13px; color: var(--ink-3); }
+.sf-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; padding: 14px 0 0; border-top: 1px solid var(--hair); font: 600 11px/1.5 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.sf-base span:first-child { color: var(--ink-2); }
+.sf-base span:last-child { font: 400 13px/1.5 var(--f-body); letter-spacing: 0; text-transform: none; }
+@media (max-width: 640px) {
+  .sf-in { grid-template-columns: 1fr; gap: 22px; }
+  .sf-in img { width: 130px; }
+  .sf-cols { grid-template-columns: 1fr 1fr; gap: 18px; }
+  .sf-base { flex-direction: column; }
+}
+</style>
+<div class="wrap" style="--col:960px">
+
+  <header>
+    <img class="logo" src="img/logo.png" alt="Bangalore Open Air">
+    <p class="label">Desk guide · BOA 2026</p>
+    <h1 class="display">Running the desk</h1>
+    <p class="lede">For Bhoopesh and Salman. Sign in at <span class="mono">accred.bangaloreopenair.com/desk</span> with your email and password. Forgot it? Tap <span class="ui">Forgot password?</span> on the sign-in page. The screenshots use sample people.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="h-loop">
+    <h2 id="h-loop">The daily loop</h2>
+    <ol class="steps">
+      <li><div><p><b>Salman decides.</b> In the response sheet, fill column I, <b>Accreditation Type</b>, for each new row. Unsure? Leave it blank and the person waits.</p>
+        <div class="tiers" aria-label="The seven labels column I accepts">
+          <span class="tier"><i style="--sw:#39E639"></i>AAA</span><span class="tier"><i style="--sw:#F0169A"></i>Artist</span><span class="tier"><i style="--sw:#F07A2A"></i>Stage</span><span class="tier"><i style="--sw:#4371FF"></i>Promoters Lounge</span><span class="tier"><i style="--sw:#A64DFF"></i>Crew</span><span class="tier"><i style="--sw:#F2D21C"></i>Photo</span><span class="tier"><i style="--sw:#FF4A3D"></i>Eddie's Lounge</span>
+        </div></div></li>
+      <li><p><b>Vipin loads the sheet.</b> Everyone with a type is approved, gets a pass, and appears on the Master list.</p></li>
+      <li><p><b>Send passes.</b> On Passes, tap <span class="ui">Send N unsent passes</span>, check the list, then <span class="ui">Hold to send N</span>.</p></li>
+      <li><p><b>Bhoopesh enters BookMyShow.</b> On the Master list, the <span class="ui">Not in BMS</span> chip is the worklist.</p></li>
+      <li><p><b>Check the Control room.</b> Who still has to collect, and which organisations are furthest behind.</p></li>
+    </ol>
+  </section>
+
+  <section class="panel" aria-labelledby="h-cr">
+    <h2 id="h-cr">Control room</h2>
+    <p class="ink-2">The numbers: bands still to collect, not in BookMyShow, vehicle stickers, the AAA list, and who came through the gates today. Every tile opens the matching list.</p>
+    <figure class="screen"><img src="img/control.jpg" alt="Control room"></figure>
+  </section>
+
+  <section class="panel" aria-labelledby="h-master">
+    <h2 id="h-master">Master list</h2>
+    <p class="ink-2">Everyone approved. Search by name, phone, plate or band, or tap a chip: <span class="ui">Not in BMS</span>, <span class="ui">Not collected</span>, <span class="ui">Has a vehicle</span>. Tap a person for <span class="ui">Open pass</span> and <span class="ui">Copy phone</span>. <span class="ui">Export CSV</span> for a printout.</p>
+    <figure class="screen"><img src="img/master.jpg" alt="Master list"></figure>
+  </section>
+
+  <section class="panel" aria-labelledby="h-passes">
+    <h2 id="h-passes">Passes</h2>
+    <p class="ink-2">Send each pass on WhatsApp and see what happened to it: Sent, Delivered, Read or Failed. A row&rsquo;s <span class="ui">Send</span> asks once more before it goes. For a number outside India, open the pass and use <span class="ui">Copy WhatsApp link</span>.</p>
+    <figure class="screen"><img src="img/passes.jpg" alt="Passes"></figure>
+  </section>
+
+  <section class="panel" aria-labelledby="h-orgs">
+    <h2 id="h-orgs">Organisations</h2>
+    <p class="ink-2">Each organisation, how many are approved and collected, and its contact. Tap one to see its people on the Master list.</p>
+    <figure class="screen"><img src="img/orgs.jpg" alt="Organisations"></figure>
+  </section>
+
+  <section class="panel" aria-labelledby="h-users">
+    <h2 id="h-users">Users and issuers</h2>
+    <p class="ink-2">In the avatar menu, top right. To add an issuer:</p>
+    <ol class="steps">
+      <li><p><span class="ui">Invite operator</span>. Their name, their real email, role <b>Issuer</b>, then <span class="ui">Send invitation</span>.</p></li>
+      <li><p>They set a password from the email and sign in on their own phone, with signal, before their shift.</p></li>
+      <li><p>One account per person, never shared. When someone is done, open them and tap <span class="ui">Deactivate</span>.</p></li>
+    </ol>
+    <figure class="screen"><img src="img/invite.jpg" alt="Invite operator sheet"></figure>
+    <div class="roles" role="table" aria-label="Roles">
+      <div role="row"><span role="cell" class="label">Lead, Admin</span><span role="cell">Run the desk, send passes, invite people, use the gate.</span></div>
+      <div role="row"><span role="cell" class="label">Issuer</span><span role="cell">The gate only.</span></div>
+      <div role="row"><span role="cell" class="label">Approver</span><span role="cell">Reads the desk. Can't send passes or use the gate.</span></div>
+    </div>
+  </section>
+
+  <footer class="sf">
+    <div class="sf-in">
+      <img src="img/logo.png" alt="Bangalore Open Air">
+      <div class="sf-cols" style="--n:4"><div><h3>Gate live</h3><p>Sun 4 Oct<small>Issuers signed in and synced</small></p></div><div><h3>Build</h3><p>5 to 9 Oct<small>On site</small></p></div><div><h3>Crew check-in</h3><p>Fri 9 Oct<small>11:00 to 21:00</small></p></div><div><h3>Show</h3><p>Sat 10 Oct<small>Guest check-in 11:00 to 17:00</small></p></div></div>
+    </div>
+    <div class="sf-base"><span>Something broken? WhatsApp Vipin · +91 88487 24976</span><span>We keep name, phone, role and vehicle number. Never an ID number, address or photo.</span></div>
+  </footer>
+</div>
