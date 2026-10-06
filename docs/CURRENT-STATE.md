@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 6 October 2026 (desk nav loading skeleton reverted)._
+_Last updated: 6 October 2026 (desk nav loading skeleton reverted and deployed, `936107a`)._
 
 ## Desk nav loading skeleton reverted, 6 Oct 2026
 
@@ -32,6 +32,15 @@ _Last updated: 6 October 2026 (desk nav loading skeleton reverted)._
 - **Verified:** typecheck, lint (0 errors), 352 unit tests, `test:e2e`
   71/71 (72 less the deleted test; the skip-link test passes without the
   wait). **Not verified:** a real phone, `test:visual`.
+- **Deployed `936107a` (with the unpushed docs commit `1ef5374`).** Pushed
+  with `SKIP_VISUAL=1`, on Vipin's instruction for this push: the pre-push
+  `design fidelity` gate failed on the same known `main .num` timeout
+  (`scripts/visual-check.mjs:500`), so `test:visual` did **not** check this
+  deploy. The hook's build and `check:sql` passed. After: Vercel status
+  `success` for `936107a`; `verify:deploy` 18/18; in Vipin's signed-in
+  Chrome on the live site, Master list, Organisations and Control room each
+  showed only their own skeleton on a nav click, and the generic one did not
+  appear. **Rollback:** `git revert 936107a` restores the generic skeleton.
 
 ## Deployed: `main` at `77d93a4`, 6 Oct 2026
 
