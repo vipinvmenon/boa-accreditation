@@ -60,6 +60,18 @@ _Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; impo
     question, 15 choices plus Other. Both "Family and Friends" and "Media /
     Photo" are present (so the choices are back, spelled "and", not "&").
     Responses tab not visible without edit access.
+  - **Column I deleted by Vipin (reported), then verified live, 6 Oct:** read
+    the live sheet signed in as Vipin in the built-in browser (gviz CSV; headers,
+    counts and timestamps only). Header is now `Timestamp … Loading vehicle
+    registration, Accreditation Type, T-Shirt, T-Shirt Size` with one `Crew
+    type` (E). 64 rows, 21 Sep–5 Oct 18:55, E filled in all 64; desk columns at
+    I–K (49 / 50 / 44 filled), the same counts as before the delete. gviz shows 3
+    blank phone cells (rows 59, 60, 63) because they begin with `+` and that
+    export drops them from a mixed column; the earlier CSV has them. **Not
+    run:** `import-roster --offline` on this exact sheet (no CSV download yet).
+    Vipin reports the duplicate was only ever in the sheet, not the form, and
+    that the Accreditation Type dropdown shows on desktop but not in the mobile
+    app (not investigated).
   - **Still open:** which of E or I the live question writes to, and who
     deleted or re-added the question.
 - **Open, for whoever owns the form (Vipin):** in the form editor go to
