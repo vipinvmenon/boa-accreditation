@@ -175,6 +175,12 @@ export type Validation = {
   errors: RowError[]
   /** Not refusals: facts the desk should see before loading. */
   warnings: string[]
+  /**
+   * Rows whose phone already appeared in an earlier valid row of the sheet. The
+   * earliest submission is kept; these are left out of `rows`, whichever
+   * organisation they name, so the same person cannot reach two rosters.
+   */
+  duplicates: { row_no: number; organisation: string; duplicate_of: number }[]
   /** Valid rows with no column I decision: they import as submitted, for Salman. */
   undecided: number[]
   /** Write-in crew types, as normalised for display → the rows carrying them. */
@@ -373,7 +379,7 @@ export function resolveOrganisation(name: string, aliases: OrgAliases): { name: 
 // ---------------------------------------------------------------------------
 
 export function validateRoster(csv: string): Validation {
-  const out: Validation = { rows: [], errors: [], warnings: [], undecided: [], writeIns: new Map(), fatal: null }
+  const out: Validation = { rows: [], errors: [], duplicates: [], warnings: [], undecided: [], writeIns: new Map(), fatal: null }
 
   let table: string[][]
   try {
@@ -556,12 +562,15 @@ export function validateRoster(csv: string): Validation {
       return
     }
 
+    // One person, one submission. The database already refuses a phone twice on
+    // the same roster; a repeat that names a differently spelled organisation
+    // would get past that, so the sheet is checked across all of them here.
     const first = seen.get(phone)
     if (first !== undefined) {
-      out.warnings.push(`row ${row_no}: same phone as row ${first}; the database will refuse one of them as duplicate_phone`)
-    } else {
-      seen.set(phone, row_no)
+      out.duplicates.push({ row_no, organisation, duplicate_of: first })
+      return
     }
+    seen.set(phone, row_no)
 
     const writeIn = !(FORM_CREW_TYPES as readonly string[]).includes(crewType)
     if (writeIn) {
@@ -573,6 +582,12 @@ export function validateRoster(csv: string): Validation {
     out.rows.push({ ...checked.data, organisation, crewType, writeIn })
   })
 
+  if (out.duplicates.length > 0) {
+    out.warnings.push(
+      `${out.duplicates.length} row(s) repeat a phone already in an earlier row and are not imported ` +
+        `(${out.duplicates.map((d) => `row ${d.row_no} = row ${d.duplicate_of}`).join(', ')}). The earliest is kept.`,
+    )
+  }
   if (out.undecided.length > 0 && hasDesk) {
     out.warnings.push(
       `${out.undecided.length} row(s) have no ${DESK_HEADER}: they import as submitted, for Salman to decide ` +

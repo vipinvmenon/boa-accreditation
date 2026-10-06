@@ -388,10 +388,13 @@ describe('organisations: aliases and matching (ACC-142)', () => {
     expect(() => parseOrgAliases({ source: 'x', aliases: {}, extra: 1 })).toThrow()
   })
 
-  it('flags a phone repeated anywhere in the sheet; the database refuses one of them', () => {
+  it('keeps the first of a phone repeated anywhere in the sheet, whatever organisation it names', () => {
     const v = validateRoster(sheet(row(), row({ 'Full name': 'Ravi K', Organisation: 'Other Org' })))
-    expect(v.rows).toHaveLength(2)
-    expect(v.warnings.join('\n')).toMatch(/row 3: same phone as row 2/)
+    expect(v.rows).toHaveLength(1)
+    expect(v.rows[0]?.row_no).toBe(2)
+    expect(v.duplicates).toEqual([{ row_no: 3, organisation: 'Other Org', duplicate_of: 2 }])
+    expect(v.errors).toEqual([])
+    expect(v.warnings.join('\n')).toMatch(/row 3 = row 2/)
   })
 })
 

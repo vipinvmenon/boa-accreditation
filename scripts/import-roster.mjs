@@ -96,6 +96,7 @@ async function main() {
   console.log(`\nimport-roster — ${file}`)
   console.log('Timestamps are read as Asia/Kolkata (the sheet exports M/D/YYYY with no zone).')
   console.log(`${v.rows.length} valid row(s): ${decided} decided in column I (to approve), ${v.undecided.length} undecided (to import as submitted).`)
+  console.log(`${v.duplicates.length} repeat submission(s) skipped.`)
   console.log(`${v.errors.length} refused row(s). Organisation aliases: ${aliases.size} from ${aliasFile}`)
   for (const e of v.errors) console.log(`  [refused] row ${e.row_no} (${e.organisation || 'no organisation'}): ${e.errors.join('; ')}`)
   for (const w of v.warnings) console.log(`  [note] ${w}`)
@@ -246,6 +247,7 @@ async function main() {
     }
   }
   for (const e of v.errors) report.push([e.row_no, e.organisation, 'refused_by_validator', e.errors.join('; ')])
+  for (const d of v.duplicates) report.push([d.row_no, d.organisation, 'duplicate_submission', `same phone as row ${d.duplicate_of}`])
   for (const [name, rows] of unmatched) for (const n of rows) report.push([n, name, 'unmatched_organisation', ''])
 
   console.log(`\nTotal: ${IMPORT_OUTCOMES.map((o) => `${totals[o]} ${o}`).join(', ')}.`)
