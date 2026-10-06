@@ -3,13 +3,36 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 6 October 2026 (pre-festival test pass; gate outbox can no longer stop sending for good)._
+_Last updated: 6 October 2026 (gate outbox fix deployed, `77d93a4`)._
 
-## Pre-festival test pass and gate outbox fix, 6 Oct 2026 (not deployed)
+## Deployed: `main` at `77d93a4`, 6 Oct 2026
+
+- **What (Vipin):** "commit and push" the gate outbox fix below (one commit,
+  `e606caf..77d93a4`).
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction for this push:** the
+  pre-push `design fidelity` gate failed on the same known `main .num`
+  timeout (`scripts/visual-check.mjs:500`). `test:visual` did **not** check
+  this deploy.
+- **Checked after:** Vercel status `success`; `corepack pnpm verify:deploy`
+  18/18 against the live site; the live gate chunks (fetched via the URLs in
+  the live `/gate/sw.js`) contain the new `not accepted · tell a lead` line
+  and the timeout message, so the new code is what is served.
+- **GitHub CI on `77d93a4`:** `app` and `database (pgTAP)` success;
+  `design fidelity` failed (same `.num` timeout); `gate aeroplane-mode suite`
+  3 failed / 69 passed: the two `login-return-path` tests (runner has no
+  Supabase URL/key, as on every run) and `the index survives the radio going
+  off` (ACC-153). That last one also failed on `e606caf`, `47e8ee9`,
+  `1a89f88` and `91d7968`, before this change, and passes locally (72/72);
+  it goes offline without waiting for the vehicle pull to land, so it reads
+  as a race in the test. **Not fixed, not proven to be only that.**
+- **Not checked:** a real phone, signed-in screens on the live site.
+- **Rollback:** `git revert 77d93a4`.
+
+## Pre-festival test pass and gate outbox fix, 6 Oct 2026
 
 - **What (Vipin):** "do a proper test… find issues now rather than live",
-  then "fix 5 to 8". No roadmap ID. **Not committed or deployed** at the
-  time of writing.
+  then "fix 5 to 8". No roadmap ID. Committed as `77d93a4` and deployed
+  (entry above).
 - **Gates run first, on `e606caf`:** typecheck, lint (0 errors), 336 unit,
   `check:sql`, `test:e2e` 71/71, `verify:deploy` 18/18 against the live site.
   `test:db` **not run** here (it runs against the live database); GitHub's
