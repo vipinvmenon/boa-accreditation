@@ -44,11 +44,14 @@ export async function GET() {
   // The collected counts (per tier, per organisation) are read the same way
   // GET /api/desk/orgs and GET /api/desk/master read them — two RLS-guarded
   // tables any active operator can already see — rather than a new RPC.
-  const [{ data, error }, { data: feedData, error: feedError }, { data: personRows, error: personError }, { data: checkinRows, error: checkinError }] = await Promise.all([
+  // The tier notes (below) ride in the same batch: a read after it was one more
+  // serial round trip to the database on every Control room load.
+  const [{ data, error }, { data: feedData, error: feedError }, { data: personRows, error: personError }, { data: checkinRows, error: checkinError }, { data: typeRows }] = await Promise.all([
     supabase.rpc('boa_acc_desk_dashboard'),
     supabase.rpc('boa_acc_desk_gate_feed'),
     supabase.from('boa_acc_person').select('id,org_id,status,type_code'),
     supabase.from('boa_acc_checkin').select('id,person_id,kind,voids_checkin_id'),
+    supabase.from('boa_acc_type').select('code,note'),
   ])
 
   if (error) {
@@ -76,7 +79,6 @@ export async function GET() {
   // one RPC; the note is copy, read from the table the RPC orders by, so the
   // card text comes from the database rather than a second description in
   // TypeScript. A failed read degrades to no note — never to a failed screen.
-  const { data: typeRows } = await supabase.from('boa_acc_type').select('code,note')
   const notes = dashboardTypeNoteSchema.array().safeParse(typeRows ?? [])
   const noteByCode = new Map(notes.success ? notes.data.map((row) => [row.code, row.note]) : [])
 
