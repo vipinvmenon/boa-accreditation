@@ -5,6 +5,30 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; importer reads both)._
 
+## Deployed: `main` at `c4c8cf9`, 6 Oct 2026
+
+- **What (Vipin):** push and deploy the desk nav loading state, with the
+  roster importer fix, the ACC-190/166/053b ticks and the doc notes (6 commits,
+  `eb3cb31..c4c8cf9`). The roster itself was loaded by Vipin earlier today.
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction** (asked and approved
+  for this push): the pre-push `design fidelity` gate fails on the same known
+  `main .num` timeout (`scripts/visual-check.mjs:500`) as on 2 Oct. So
+  `test:visual` did **not** check this deploy.
+- **Checked before the push:** typecheck, lint (0 errors), 336 unit tests,
+  `test:e2e` 71/71 locally (aeroplane-mode and two-phone-sync included), the
+  static migration check.
+- **Checked after:** Vercel status `success` for `c4c8cf9`;
+  `corepack pnpm verify:deploy` 18/18 against the live site. GitHub checks at
+  the time of writing: `app`, `database (pgTAP)` and `verify` success;
+  `gate aeroplane-mode suite` and `design fidelity` still running (both were
+  red on 2 Oct). Their final result is **not recorded here**.
+- **Not checked:** the desk nav fix on the live site, signed in; a real phone.
+  The Vercel connection returned 403 for this account, so the deploy was
+  tracked through the GitHub commit status, not the Vercel API.
+- **Rollback:** `git revert c4c8cf9` undoes the loading state alone. The
+  2 Oct backup branch `backup/main-pre-ux-review-2026-10-02` is older than this
+  push and is not a rollback point for it.
+
 ## Desk nav "highlight moves, page stays": loading state, 6 Oct 2026
 
 - **What (Vipin):** on the desk top bar the highlight moves but the page
