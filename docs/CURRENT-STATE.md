@@ -5,6 +5,24 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; importer reads both)._
 
+## Roadmap reconciled: ACC-190 and ACC-166 ticked, 6 Oct 2026
+
+- **What (Vipin):** "mark done for the tasks done". Both were built and
+  merged on `main` (`35180b5`, `aba7994`) but never ticked.
+- **Ticked:** ACC-190 (vehicle on r10) and ACC-166 (absorbed by it).
+  `task done` ran typecheck, lint and 336 unit tests: pass.
+- **Basis, read from the commit messages and the 27 Sep entry (not re-run
+  today):** aeroplane-mode and two-phone-sync 30/30 green three times;
+  manual screenshots at 1440/390/360 with no horizontal overflow; the gate
+  avatar given a 44x44 hit target; the reviewer's defects fixed in `aba7994`;
+  visual numbers recorded. **Not re-verified today:** `test:e2e`,
+  `test:visual`, a real phone.
+- **Not ticked, on purpose:** ACC-160 (its acceptance needs the card ADR, an
+  e2e for the confirm, and per-card state that depends on ACC-144, which is
+  blocked on ACC-151). ACC-147 and ACC-144 stay open: released, awaiting real
+  phones and the Meta/Interakt setup. ACC-170, ACC-174b and ACC-188 not
+  checked against their acceptance text yet.
+
 ## Roster sheet: a second `Crew type` column, 6 Oct 2026
 
 - **What (Vipin):** "Family & Friends" and "Media / Photo" went missing from
