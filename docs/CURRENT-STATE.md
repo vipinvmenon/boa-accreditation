@@ -5,6 +5,31 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 6 October 2026 (roster sheet's duplicate `Crew type` column; importer reads both)._
 
+## Desk nav "highlight moves, page stays": loading state, 6 Oct 2026
+
+- **What (Vipin):** on the desk top bar the highlight moves but the page
+  sometimes stays until a reload.
+- **Cause (inferred from the code, not observed):** every `/desk/*` page is
+  `force-dynamic` (per-request nonce CSP) and there was no `loading.tsx`, so a
+  click waited on the server with the old screen up while `glidePip` had
+  already moved the highlight. **Not established:** how long the real
+  responses take on the deployed site (Vercel runtime logs returned 403), or
+  whether any stall is a failed request rather than a slow one. If it recurs
+  after this, it is the second case.
+- **Changed:** `app/desk/loading.tsx` (a generic skeleton in the page area, nav
+  and footer untouched); `tests/e2e/desk-nav-loading.spec.ts` holds the real
+  navigation request and asserts the skeleton shows, then the screen lands.
+  The test fails with `loading.tsx` removed and passes with it.
+- **Not changed, on purpose:** the highlight still moves on click (the 29 Sep
+  glide). Tying it to the route would undo that; with the skeleton the two no
+  longer disagree.
+- **Side effect:** the skip-link e2e now waits for the control room to settle
+  before pressing Tab. Pressed in the first moments of a hard load, the skip
+  link did not move focus to `<main>`; it works once settled (3/3). Not
+  chased further.
+- **Verified:** typecheck, lint (0 errors), `test:e2e` 71/71 locally.
+  **Not verified:** the deployed site, a real phone, `test:visual`.
+
 ## Roadmap reconciled: ACC-190 and ACC-166 ticked, 6 Oct 2026
 
 - **What (Vipin):** "mark done for the tasks done". Both were built and
