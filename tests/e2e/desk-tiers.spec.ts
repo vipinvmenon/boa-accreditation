@@ -87,7 +87,6 @@ test.describe('desk tiers (ACC-115)', () => {
       passes: [{
         id: PERSON_ID, fullName: 'Promoter Person', role: 'Promoter', vehicleReg: null, orgName: 'Tier Test Org',
         passRef: 'BOA26-0002', passToken: 'AAAAAAAAAAAAAAAAAAAAAA', typeCode: 'promoters_lounge', dayValidity: 'show',
-        qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>',
       }],
     })
     await page.route('**/api/desk/passes', (route: Route) => route.fulfill({ json: passes }))
@@ -103,5 +102,7 @@ test.describe('desk tiers (ACC-115)', () => {
       'Festival Area', 'Promoters Lounge', 'Backstage',
     ])
     await expect(ticket.getByText(/\+ ID|after 22:00/)).toHaveCount(0)
+    // 7 Oct: the list carries no QR codes; the sheet draws this pass's own.
+    await expect(ticket.locator('.tk-qr svg')).toBeVisible()
   })
 })

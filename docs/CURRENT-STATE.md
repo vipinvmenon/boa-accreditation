@@ -3,7 +3,33 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 6 October 2026 (desk nav loading skeleton reverted and deployed, `936107a`)._
+_Last updated: 7 October 2026 (Passes list no longer ships a QR per person; not deployed)._
+
+## Passes list: QR drawn on open, not per person, 7 Oct 2026
+
+- **What (Vipin):** "People crossed 110+ in whatsapp… Will the app get
+  laggy? Lets do lazy loading / render on demand", then "go". No roadmap ID.
+- **Found, by reading the code:** the Master list and Passes already render
+  60 rows and a "Show 60 more"; the gate's name search caps its results and
+  "Still to collect" draws only the opened team. The one cost that grew with
+  the roster: `GET /api/desk/passes` drew a QR SVG for **every** approved
+  person on every load, though only the open sheet shows one. Measured: 1,526
+  bytes of JSON per pass, so ~164 KB at 110 and ~955 KB at 641 (before
+  gzip), plus that many QR renders on the server per visit.
+- **Changed:** the route returns the list only (`passesResponseSchema` is
+  `Pass[]`, `passWithQrSchema` removed). New `lib/pass-qr.ts` holds the one
+  set of QR options; `/p/[passToken]` uses it on the server, and the desk
+  pass sheet (`SheetTicket` in `passes-screen-r10.tsx`) `import()`s it when a
+  sheet opens and draws that one code from the passToken already in the row
+  (nothing new leaves the server). `app/ticket.css` holds the 160px QR box
+  while it draws; a failed load says so under the ticket. The visual fixture
+  and the `desk-tiers` e2e mock no longer send `qrSvg`; that test now asserts
+  the sheet draws a QR.
+- **Verified:** typecheck, lint (0 errors), 352 unit tests, `test:e2e` 71/71
+  (a production build under the real CSP, so the lazy chunk loads past it).
+  **Not verified:** `test:visual`, a real phone, the live site, print from
+  the sheet.
+- **Rollback:** revert the commit.
 
 ## Desk nav loading skeleton reverted, 6 Oct 2026
 

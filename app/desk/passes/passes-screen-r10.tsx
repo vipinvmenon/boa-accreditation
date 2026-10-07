@@ -23,7 +23,6 @@ import {
 type SendTone = 'ok' | 'wait' | 'bad' | 'mute'
 type FieldKey = 'send' | 'tier' | 'org'
 type Filters = Partial<Record<FieldKey, string[]>>
-type PassWithQr = Pass & { qrSvg: string }
 type ToastState = { id: number; text: string; bad: boolean; icon: 'check-circle' | 'warning-circle' }
 
 const PAGE = 60
@@ -101,13 +100,13 @@ const passesShapeSchema = z.object({
 export function PassesScreenR10() {
   const theme = useDomTheme()
   const router = useRouter()
-  const [passes, setPasses] = useState<PassWithQr[]>([])
+  const [passes, setPasses] = useState<Pass[]>([])
   const [sends, setSends] = useState<PassSendsResponse | null>(null)
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState<Filters>({})
   const [shown, setShown] = useState(PAGE)
   const [menu, setMenu] = useState<{ field: FieldKey | null } | null>(null)
-  const [selected, setSelected] = useState<PassWithQr | null>(null)
+  const [selected, setSelected] = useState<Pass | null>(null)
   const [confirmAll, setConfirmAll] = useState(false)
   const [confirmResend, setConfirmResend] = useState(false)
   const [armed, setArmed] = useState<string | null>(null)
@@ -355,13 +354,13 @@ export function PassesScreenR10() {
     await loadSends()
   }
 
-  function sendOne(pass: PassWithQr, resend: boolean) {
+  function sendOne(pass: Pass, resend: boolean) {
     setConfirmResend(false)
     setSelected(null)
     void send({ mode: 'one', personId: pass.id, resend }, pass.id, pass.fullName)
   }
 
-  function openPass(pass: PassWithQr, confirming = false) {
+  function openPass(pass: Pass, confirming = false) {
     setSelected(pass)
     setConfirmResend(confirming)
   }
@@ -371,7 +370,7 @@ export function PassesScreenR10() {
     setConfirmResend(false)
   }
 
-  async function copyLink(pass: PassWithQr, phone: string | undefined) {
+  async function copyLink(pass: Pass, phone: string | undefined) {
     if (!phone) {
       showToast('No WhatsApp number on file for this pass', true)
       return
@@ -662,7 +661,7 @@ export function PassesScreenR10() {
           )
         ) : undefined}
       >
-        {selected && <div className="passes-ticket"><PassTicket {...selected} variant="sheet" /></div>}
+        {selected && <SheetTicket pass={selected} />}
       </Sheet>
 
       <Sheet
@@ -734,6 +733,7 @@ export function PassesScreenR10() {
         .passes-more { display: flex; justify-content: center; padding: var(--s-6) 0 0; }
         .passes-row-skeleton { cursor: default; }
         .passes-ticket { margin-bottom: var(--s-6); }
+        .passes-qr-error { margin: var(--s-3) 0 0; color: var(--bad); }
         .passes-sheet-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); width: 100%; }
         .passes-sheet-confirm p { flex: 1 1 220px; margin: 0; color: var(--ink-2); }
         .passes-label { margin: 0 0 var(--s-3); color: var(--ink-3); font: 600 var(--t-label)/1.2 var(--f-label); letter-spacing: var(--track-label); text-transform: uppercase; }
@@ -770,5 +770,31 @@ export function PassesScreenR10() {
         }
       `}</style>
     </main>
+  )
+}
+
+/**
+ * The sheet's ticket. Its QR is drawn here, for this one pass, when the sheet
+ * opens: the list carries no QR codes (app/api/desk/passes/route.ts), and the
+ * library itself is fetched on the first open, not with the page.
+ */
+function SheetTicket({ pass }: { pass: Pass }) {
+  const [qr, setQr] = useState<{ token: string; svg: string } | null>(null)
+  const [failed, setFailed] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    import('@/lib/pass-qr')
+      .then(({ passQrSvg }) => passQrSvg(pass.passToken))
+      .then((svg) => { if (live) setQr({ token: pass.passToken, svg }) })
+      .catch(() => { if (live) setFailed(pass.passToken) })
+    return () => { live = false }
+  }, [pass.passToken])
+  return (
+    <div className="passes-ticket">
+      <PassTicket {...pass} qrSvg={qr?.token === pass.passToken ? qr.svg : ''} variant="sheet" />
+      {failed === pass.passToken && (
+        <p className="body-sm passes-qr-error" role="alert">The QR code didn&apos;t load. Close this pass and open it again.</p>
+      )}
+    </div>
   )
 }

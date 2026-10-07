@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import QRCode from 'qrcode'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   passTokenParamSchema,
@@ -7,7 +6,7 @@ import {
   passViewWithQrSchema,
   type PassViewWithQr,
 } from '@/lib/schemas/pass-view'
-import { QR_DARK, QR_LIGHT, QR_SCHEME } from '@/lib/design'
+import { passQrSvg } from '@/lib/pass-qr'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -51,12 +50,7 @@ export async function resolvePassView(
   const row = passViewSchema.safeParse(data)
   if (!row.success) return { ok: false, error: { status: 500, body: { error: 'internal' } } }
 
-  const qrSvg = await QRCode.toString(`${QR_SCHEME}${token}`, {
-    type: 'svg',
-    margin: 0,
-    errorCorrectionLevel: 'M',
-    color: { dark: QR_DARK, light: QR_LIGHT },
-  })
+  const qrSvg = await passQrSvg(token)
 
   const parsed = passViewWithQrSchema.safeParse({ ...row.data, qrSvg })
   if (!parsed.success) return { ok: false, error: { status: 500, body: { error: 'internal' } } }

@@ -116,6 +116,9 @@
 .tk-qr { padding: 13px; border-radius: 14px; background: rgba(242, 239, 226, 1); }
 .tk-qr svg { display: block; width: min(200px, 52vw); height: min(200px, 52vw); }
 .tk--sheet .tk-qr svg { width: 160px; height: 160px; }
+/* The desk sheet draws its QR after it opens (lib/pass-qr.ts): hold the
+   code's size meanwhile, so the stub does not grow when it lands. */
+.tk--sheet .tk-qr:empty { box-sizing: content-box; width: 160px; height: 160px; }
 .tk-fine { margin: 0; font-size: 13px; color: var(--tk-ink); text-align: center; }
 .tk-ref { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--tk-ink3); }
 

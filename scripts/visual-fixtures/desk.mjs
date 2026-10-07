@@ -17,8 +17,6 @@
 //     below appears in app/, lib/ or components/ — so a screen can never pass
 //     by hardcoding what these fixtures supply.
 
-import QRCode from 'qrcode'
-
 /** Names that must never appear in shipped source. Read by check-bundle-content.mjs. */
 export const FIXTURE_SENTINELS = [
   'Ranjith',
@@ -177,36 +175,24 @@ const SHEET = [
 ]
 
 /**
- * `{ passes: (Pass & { qrSvg })[] }` — the ACC-097 (P7) response. The QR is a
- * real code for the fixture token, generated with the same library and options
- * as the server; the design draws a fake 13x13 pattern, so the QR region is a
- * named mask in visual-check.mjs rather than something a fixture can match.
- * Every viewport gets the same six passes as the approved source.
+ * `{ passes: Pass[] }` — the ACC-097 (P7) response. Since 7 Oct it carries no
+ * QR: the pass sheet draws the real code for the fixture token itself
+ * (lib/pass-qr.ts). The design draws a fake 13x13 pattern, so the QR region
+ * is a named mask in visual-check.mjs rather than something a fixture can
+ * match. Every viewport gets the same six passes as the approved source.
  */
 export async function passesFor() {
-  const sheet = SHEET
-  const passes = await Promise.all(
-    sheet.map(async (p, i) => {
-      const passToken = `visualPassToken${String(i).padStart(7, '0')}`
-      return {
-        id: uuid(400 + i),
-        fullName: p.name,
-        role: p.role,
-        vehicleReg: p.vehicle,
-        orgName: p.org,
-        passRef: p.ref,
-        passToken,
-        typeCode: p.type,
-        dayValidity: p.days,
-        qrSvg: await QRCode.toString(`${QR_SCHEME}${passToken}`, {
-          type: 'svg',
-          margin: 0,
-          errorCorrectionLevel: 'M',
-          color: { dark: QR_DARK, light: QR_LIGHT },
-        }),
-      }
-    }),
-  )
+  const passes = SHEET.map((p, i) => ({
+    id: uuid(400 + i),
+    fullName: p.name,
+    role: p.role,
+    vehicleReg: p.vehicle,
+    orgName: p.org,
+    passRef: p.ref,
+    passToken: `visualPassToken${String(i).padStart(7, '0')}`,
+    typeCode: p.type,
+    dayValidity: p.days,
+  }))
   return { passes }
 }
 
