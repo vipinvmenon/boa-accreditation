@@ -75,6 +75,10 @@ _Last updated: 7 October 2026 (roster synced; GA guests accredited, migration ap
   `db:push`; `test:db` all files ok. typecheck, lint, unit tests: see the
   commit. **Not verified:** a GA guest at a real gate; WhatsApp sends (none
   made); the desk screens after the load.
+- **Deployed with `514a907`** (`b49f0be` included), pushed with
+  `SKIP_VISUAL=1` on Vipin's instruction (same `main .num` timeout,
+  `scripts/visual-check.mjs:500`); build and `check:sql` passed. Vercel status
+  `success`; `verify:deploy` 18/18. `test:visual` did **not** check it.
 
 ## Passes list: QR drawn on open, not per person, 7 Oct 2026
 
