@@ -23,7 +23,7 @@ export function pendingTab(sent: TabSent | null, pathname: string): number | nul
   return sent && sent.from === pathname ? sent.to : null
 }
 
-export function GateTabs({ sent, onSend }: { sent: TabSent | null; onSend: (sent: TabSent) => void }) {
+export function GateTabs({ sent, onSend }: { sent: TabSent | null; onSend: (sent: TabSent | null) => void }) {
   const pathname = usePathname()
   const active = pathname.startsWith('/gate/vehicle') ? 1 : 0
   const pos = pendingTab(sent, pathname) ?? active
@@ -37,7 +37,10 @@ export function GateTabs({ sent, onSend }: { sent: TabSent | null; onSend: (sent
           href={tab.href}
           aria-current={index === active ? 'page' : undefined}
           data-on={index === pos ? '' : undefined}
-          onClick={() => { if (index !== active) onSend({ to: index, from: pathname }) }}
+          // Tapping the tab you are already on (e.g. People again, before
+          // Vehicles has landed) must cancel the pending switch, or the old
+          // screen stays dimmed and inert for good.
+          onClick={() => onSend(index === active ? null : { to: index, from: pathname })}
         >
           {tab.label}
         </Link>

@@ -1,7 +1,7 @@
 'use client'
 
 import { GateChrome } from './gate-chrome'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { GateTabs, pendingTab, type TabSent } from './gate-tabs'
 
@@ -18,6 +18,13 @@ export function GateShell({ children }: { children: React.ReactNode }) {
   // Dim it and take its buttons away so a person's approval card is not
   // left live under the Vehicles tab (Vipin, 7 Oct).
   const pending = pendingTab(sent, pathname) !== null
+  // A switch that never lands (radio off, navigation dropped) must not leave
+  // the screen locked: give up on it after a few seconds.
+  useEffect(() => {
+    if (!pending) return
+    const timer = setTimeout(() => setSent(null), 6000)
+    return () => clearTimeout(timer)
+  }, [pending, sent])
   return (
     <GateChrome>
       <div className="gate-tabs-bar"><GateTabs sent={sent} onSend={setSent} /></div>

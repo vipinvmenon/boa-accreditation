@@ -188,7 +188,7 @@ export function PeopleFolds({ roster, ledger, pending, onOpen }: {
   const colour = (code: TierCode) => tierColour(code, theme)
 
   return (
-    <Accordion initial="recent" folds={[
+    <Accordion initial={null} folds={[
       {
         id: 'recent',
         title: 'Just now',
@@ -285,7 +285,7 @@ export function VehicleFolds({ version, onOpen }: {
   const turned = decisions.filter((row) => row.outcome === 'turned_away')
 
   return (
-    <Accordion initial="cleared" folds={[
+    <Accordion initial={null} folds={[
       {
         id: 'cleared',
         title: 'Just now',

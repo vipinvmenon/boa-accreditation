@@ -451,7 +451,7 @@ test.describe('gate aeroplane mode', () => {
     await reloadColdOffline(gate)
     const justNow = gate.getByRole('button', { name: /^Just now/ })
     const left = gate.getByRole('button', { name: /^Still to collect/ })
-    await expect(justNow).toHaveAttribute('aria-expanded', 'true')
+    await expect(justNow).toHaveAttribute('aria-expanded', 'false') // every fold starts shut
     await expect(left).toHaveText(/Still to collect\s*4/)
 
     await queueWristband(gate, PEOPLE[0].passToken)
