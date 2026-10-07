@@ -5,6 +5,20 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
 
+## Deployed: `main` at `c564716`, 7 Oct 2026
+
+- **What (Vipin):** remove the sticker options from the master list's Vehicle
+  filter ("Sticker options only", chosen over removing the Has a vehicle
+  chip). The filter is Has a vehicle / No vehicle. The Control room's
+  "Vehicle stickers" tile linked to `?vehicle=pending`; it now opens
+  `?vehicle=yes`. An old `?vehicle=pending` link opens the unfiltered list.
+- **Checked:** master-filter unit tests 15/15, `org-filter.spec.ts` 17/17,
+  hooks green; pushed with `SKIP_VISUAL=1` (same round). Vercel `success` for
+  `c564716`; `verify:deploy` 18/18. **Not checked:** signed in on the live site.
+- **Still there:** the Control room "Vehicle stickers" tile itself (counts
+  stickers recorded in the app).
+- **Rollback:** `git revert c564716`.
+
 ## Deployed: `main` at `601c767`, 7 Oct 2026
 
 - **What (Vipin):** "remove sticker not issued too": the master list's person
@@ -41,6 +55,20 @@ _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; 
   **failed 3 s after starting**; its logs could not be read here (the Vercel
   MCP is refused for the `vipin-menon` scope, no CLI). This docs commit is
   pushed to trigger a fresh deploy; see the next entry for its result.
+
+## Two people on one phone, ADR-032: built, NOT applied, 7 Oct 2026
+
+- **What (Vipin):** Reynolds' PATRICK .A and ABHISHEK THIMMAIAH share
+  8553085354; "send both passes to same". A person is now org + phone + name.
+- **Built, uncommitted:** migration `202610071200_boa_acc_same_phone_two_people.sql`,
+  `lib/roster-import.ts` dedupe, new `same-phone-two-people.test.sql`, three
+  older tests given same-name repeats, ADR-032.
+- **Checked:** `db:dry` compiles and rolls back; every `supabase/tests` file
+  passes with the migration applied inside a transaction that was rolled back;
+  typecheck, unit tests (364) and `check:sql` pass.
+- **Not checked / not done:** the migration is **not applied to production**;
+  `test:db` has not run against it applied; nothing committed or pushed; the
+  Reynolds rows are not on the sheet or imported.
 
 ## Deployed: `main` at `471d7e6`, 7 Oct 2026
 
