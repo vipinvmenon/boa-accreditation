@@ -660,7 +660,7 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
             <dt>Phone</dt><dd className="mono">{p.phone}</dd>
             <dt>Pass</dt><dd className="mono">{p.passRef ?? '–'}</dd>
             <dt>Vehicle</dt>
-            <dd>{p.vehicleReg ? <><span className="mono">{p.vehicleReg}</span> · {p.stickerNo ? `sticker ${p.stickerNo}` : 'sticker not issued'}</> : 'None'}</dd>
+            <dd>{p.vehicleReg ? <><span className="mono">{p.vehicleReg}</span>{p.stickerNo && ` · sticker ${p.stickerNo}`}</> : 'None'}</dd>
             <dt>BMS</dt>
             <dd>{p.status !== 'approved' ? '–' : <span className={`pill ${p.inBms ? 'pill-ok' : 'pill-wait'}`}>{p.inBms ? 'In BMS' : 'Not in BMS'}</span>}</dd>
           </dl>
