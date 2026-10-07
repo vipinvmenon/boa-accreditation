@@ -493,7 +493,6 @@ export function MasterScreen() {
         .r10 .master-screen .days { color: var(--ink-2); font-size: var(--t-body-sm); }
         .r10 .master-screen .flagged { color: var(--bad); }
         .r10 .master-screen .mono { font: 500 var(--t-mono)/1.3 var(--f-mono); letter-spacing: .04em; color: var(--ink); }
-        .r10 .master-screen .tr .pill-sticker { margin-left: 4px; }
         .r10 .master-screen .master-row-skeleton { cursor: default; }
         .r10 .master-screen .thead button:disabled { cursor: default; }
         .r10 .master-screen .tr .row2 { display: none; }
@@ -605,7 +604,7 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
       <div role="cell" className="hide-s">{band}</div>
       <div role="cell" className="hide-s wide-only">
         {row.vehicleReg
-          ? <><span className="mono">{row.vehicleReg}</span>{!row.stickerNo && <span className="pill pill-wait pill-sticker">Sticker</span>}</>
+          ? <span className="mono">{row.vehicleReg}</span>
           : <span className="muted">–</span>}
       </div>
       <div role="cell" className="hide-s">{bms}</div>
