@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { gateSession, notAuthorized } from '@/lib/gate-auth'
 import {
   vehicleEventRequestSchema,
-  vehicleEventResponseSchema,
+  vehicleEventRpcSchema,
 } from '@/lib/schemas/vehicle'
 
 export const dynamic = 'force-dynamic'
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
   if (error) return errorResponse(error)
 
-  const response = vehicleEventResponseSchema.safeParse(data)
+  const response = vehicleEventRpcSchema.safeParse(data)
   if (!response.success) {
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
