@@ -5,6 +5,17 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
 
+## Deployed: `main` at `5f4293d`, 7 Oct 2026
+
+- **What:** `38271fd` (master list without the Sticker pill), whose own
+  deploy failed (below), redeployed by pushing this docs commit.
+- **Pushed with `SKIP_VISUAL=1`** (Vipin, "Skip visual", for this round of
+  vehicle pushes): `test:visual` did not check it.
+- **Checked after:** Vercel status `success` for `5f4293d`; `verify:deploy`
+  18/18 against the live site.
+- **Not checked:** the master list looked at signed in on the live site.
+- **Rollback:** `git revert 38271fd`.
+
 ## Master list: no "Sticker" pill on plates, 7 Oct 2026
 
 - **What (Vipin):** "Remove that sticker label and push it again": the amber
