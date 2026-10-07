@@ -329,6 +329,8 @@ export function VehicleScreen() {
                     </div>
                   </form>}
                 </div>}
+                {/* No decision yet and nothing logged: back to an empty plate field. */}
+                <button type="button" onClick={nextVehicle} disabled={submitting} className="btn btn-block veh-cancel">Cancel</button>
               </div>}
             </div>
             <GateStatus online={online} queued={queued} failed={failed} canSync={canSync} />

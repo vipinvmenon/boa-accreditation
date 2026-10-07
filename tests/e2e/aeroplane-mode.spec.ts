@@ -800,6 +800,20 @@ test.describe('vehicle gate (ACC-109)', () => {
     await expect.poll(() => vehicleOutbox(gate)).toEqual([['turned_away', 'Plate does not match sticker']])
   })
 
+  test('Cancel on a checked vehicle clears the plate and logs nothing', async ({ page }) => {
+    const { page: gate } = await installFixture(page, ['success'])
+    await seedVehicle(gate, 'KA05MJ8871', true)
+    await gate.context().setOffline(true)
+    await gate.goto('/gate/vehicle')
+    await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
+    await gate.getByLabel('Vehicle registration').press('Enter')
+    await expectVerdict(gate, 'Ready to clear')
+    await gate.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(gate.getByLabel('Vehicle registration')).toHaveValue('')
+    await expect(gate.getByRole('button', { name: 'Log entry and open gate' })).toHaveCount(0)
+    expect(await vehicleOutbox(gate)).toEqual([])
+  })
+
   test('Other takes a typed reason, and cannot log an empty one', async ({ page }) => {
     const { page: gate } = await installFixture(page, ['success'])
     await seedVehicle(gate, 'KA05MJ8871', true)
