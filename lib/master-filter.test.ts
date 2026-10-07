@@ -31,7 +31,9 @@ describe('parseMasterFilters / masterFiltersToParams', () => {
   it('reads the links the Control room and Organisations send', () => {
     expect(params('status=not_collected').status).toEqual(['not_collected'])
     expect(params('tier=aaa').tier).toEqual(['aaa'])
-    expect(params('vehicle=pending').vehicle).toEqual(['pending'])
+    expect(params('vehicle=yes').vehicle).toEqual(['yes'])
+    // ADR-031: the sticker states are gone; an old link opens the unfiltered list.
+    expect(params('vehicle=pending').vehicle).toEqual([])
     expect(params('org=abc&status=not_collected')).toMatchObject({ org: ['abc'], status: ['not_collected'] })
   })
 
@@ -69,11 +71,11 @@ describe('matchesMasterFilters', () => {
     expect(matchesMasterFilters(row({ status: 'voided' }), preset('Voided'))).toBe(true)
   })
 
-  it('Has a vehicle, and "pending" means a vehicle with no sticker yet', () => {
+  it('Has a vehicle, whether or not a sticker is recorded; No vehicle is the rest', () => {
     expect(matchesMasterFilters(row(), preset('Has a vehicle'))).toBe(false)
     expect(matchesMasterFilters(collected, preset('Has a vehicle'))).toBe(true)
-    expect(matchesMasterFilters(row({ vehicleReg: 'KA 02' }), params('vehicle=pending'))).toBe(true)
-    expect(matchesMasterFilters(collected, params('vehicle=pending'))).toBe(false)
+    expect(matchesMasterFilters(row({ vehicleReg: 'KA 02' }), preset('Has a vehicle'))).toBe(true)
+    expect(matchesMasterFilters(row(), params('vehicle=no'))).toBe(true)
   })
 
   it('different filters narrow, values within one widen', () => {

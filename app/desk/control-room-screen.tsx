@@ -301,7 +301,7 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
             value={dash ? dash.stickersActive : null}
             detail={<>of {vehicles ?? <SkeletonText w="2ch" />} vehicles have a sticker</>}
             width={dash && vehicles !== null ? ratio(dash.stickersActive, vehicles) : 0}
-            href="/desk/master?vehicle=pending"
+            href="/desk/master?vehicle=yes"
           />
           <StatTile
             label="AAA named list"

@@ -243,7 +243,7 @@ test.describe('the Add filter menu, presets and Control room links', () => {
     await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
     await page.goto('/desk/master?tier=crew&status=not_collected')
     await expect(page.getByText('Sound Person One')).toBeVisible()
-    await page.goto('/desk/master?vehicle=pending')
+    await page.goto('/desk/master?vehicle=yes')
     await expect(page.getByRole('heading', { name: 'No one matches' })).toBeVisible()
   })
 

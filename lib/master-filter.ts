@@ -17,7 +17,9 @@ export type MasterFilterKey = (typeof MASTER_FILTER_KEYS)[number]
 
 export const MASTER_STATUSES = ['collected', 'not_collected', 'voided', 'rejected'] as const
 export const MASTER_BMS = ['in', 'out'] as const
-export const MASTER_VEHICLES = ['yes', 'sticker', 'pending', 'no'] as const
+// ADR-031: no sticker states; a vehicle clears on its plate and the sticker
+// the officer sees, so "sticker issued / pending" is not a list to work.
+export const MASTER_VEHICLES = ['yes', 'no'] as const
 export const MASTER_DAYS = ['build', 'show', 'build_show'] as const
 
 export const masterFiltersSchema = z.object({
@@ -25,7 +27,7 @@ export const masterFiltersSchema = z.object({
   tier: z.array(z.enum(ORG_TYPE_CODES)).max(8).default([]),
   status: z.array(z.enum(MASTER_STATUSES)).max(4).default([]),
   bms: z.array(z.enum(MASTER_BMS)).max(2).default([]),
-  vehicle: z.array(z.enum(MASTER_VEHICLES)).max(4).default([]),
+  vehicle: z.array(z.enum(MASTER_VEHICLES)).max(2).default([]),
   day: z.array(z.enum(MASTER_DAYS)).max(3).default([]),
   role: z.array(z.string().trim().min(1).max(60)).max(50).default([]),
 })
@@ -94,7 +96,7 @@ export function masterStatusOf(row: MasterRow): (typeof MASTER_STATUSES)[number]
 }
 
 function vehicleStates(row: MasterRow): string[] {
-  return !row.vehicleReg ? ['no'] : ['yes', row.stickerNo ? 'sticker' : 'pending']
+  return !row.vehicleReg ? ['no'] : ['yes']
 }
 
 const TESTS: { [K in MasterFilterKey]: (row: MasterRow, values: MasterFilters[K]) => boolean } = {
@@ -149,8 +151,6 @@ const STATUS_LABELS: Record<(typeof MASTER_STATUSES)[number], string> = {
 const BMS_LABELS: Record<(typeof MASTER_BMS)[number], string> = { in: 'Entered in BMS', out: 'Not in BMS' }
 const VEHICLE_LABELS: Record<(typeof MASTER_VEHICLES)[number], string> = {
   yes: 'Has a vehicle',
-  sticker: 'Sticker issued',
-  pending: 'Sticker pending',
   no: 'No vehicle',
 }
 
