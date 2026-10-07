@@ -126,6 +126,13 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
 
   const pendingHref = pending && pending.from === pathname ? pending.href : null
 
+  // A navigation that never lands (offline, server error) must not leave the page dimmed.
+  useEffect(() => {
+    if (!pending) return
+    const timer = window.setTimeout(() => setPending(null), 8000)
+    return () => window.clearTimeout(timer)
+  }, [pending])
+
   const activeNav = DESK_NAV.find((item) => item.href === (pendingHref ?? pathname))?.id
 
   useLayoutEffect(() => {
@@ -241,7 +248,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
                   <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={(event) => {
                     glidePip(event.currentTarget)
                     // /gate swaps in GateChrome, which finishes the glide itself (see glidePip).
-                    if (!item.href.startsWith('/gate')) setPending({ href: item.href, from: pathname })
+                    if (!item.href.startsWith('/gate') && item.href !== pathname) setPending({ href: item.href, from: pathname })
                   }}>
                     {item.label}
                   </Link>
@@ -287,11 +294,11 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
         </header>
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
           {DESK_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
-            if (!item.href.startsWith('/gate')) setPending({ href: item.href, from: pathname })
+            if (!item.href.startsWith('/gate') && item.href !== pathname) setPending({ href: item.href, from: pathname })
             closeMobileMenu()
           }}>{item.label}</Link>)}
         </div>
-        <div className="frame page">{children}</div>
+        <div className="frame page" data-pending={pendingHref ? '' : undefined} aria-busy={pendingHref ? true : undefined}>{children}</div>
         <SiteFooter />
       </div>
     </div>

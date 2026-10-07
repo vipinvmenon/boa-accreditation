@@ -342,6 +342,13 @@
   box-shadow: inset 0 0 0 1px rgb(5 96 63 / 30%), inset 0 1px 0 #fff;
 }
 
+/* A nav click is waiting on the server (every desk page is force-dynamic). The page
+   stays put, dimmed after a beat, so a quick navigation never flickers. */
+.r10 .page[data-pending] { opacity: 0.55; transition: opacity var(--d-slow) var(--e-out) 150ms; }
+.r10 .page:not([data-pending]) { transition: opacity var(--d-quick) var(--e-out); }
+@media (prefers-reduced-motion: reduce) { .r10 .page[data-pending] { transition: none; } }
+.r10[data-motion="reduced"] .page[data-pending] { transition: none; }
+
 .r10 .nav-end { display: flex; align-items: center; gap: var(--s-3); margin-left: auto; padding-left: 0; }
 .r10 .av,
 .r10 .burger {
