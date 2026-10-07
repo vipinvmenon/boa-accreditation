@@ -459,6 +459,7 @@ test.describe('gate aeroplane mode', () => {
     await expect(justNow).toHaveText(/Just now\s*1/)
     await expect(left).toHaveText(/Still to collect\s*3/)
     // "Did I already give them one?" One tap answers it.
+    await justNow.click()
     await gate.getByRole('button', { name: /E2E Person 1/ }).click()
     await expectVerdict(gate, 'Collected')
     await expect(justNow).toHaveCount(0) // the folds step aside for a result
