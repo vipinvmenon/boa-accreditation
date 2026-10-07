@@ -5,6 +5,22 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
 
+## Deployed: `main` at `471d7e6`, 7 Oct 2026
+
+- **What (Vipin):** the vehicle plate change (`471d7e6`, ADR-031) and the two
+  earlier gate fixes (`2433c7e` vehicle route 500, `4e3f41d` lone failed send).
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction for this push:** the
+  pre-push `design fidelity` gate failed on the same known `main .num`
+  timeout (`scripts/visual-check.mjs:500`, the control-room capture).
+  `test:visual` did **not** check this deploy. Build and `check:sql` passed.
+- **Checked after:** Vercel status `success` for `471d7e6`; `verify:deploy`
+  18/18 against the live site.
+- **Not checked:** KA04AF2029 typed on a real phone at the vehicle gate (the
+  phone must pull once after the deploy to fill its new `vehicle` store);
+  GitHub CI's final result.
+- **Rollback:** `git revert 471d7e6` (app); the live migration stays and keeps
+  accepting the old app's calls.
+
 ## Vehicle gate: a registered plate clears, no approval (ADR-031), 7 Oct 2026
 
 - **What (Vipin):** KA04AF2029 "shows doesn't exist… but it exists"; then
