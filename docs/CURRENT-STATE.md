@@ -5,6 +5,16 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
 
+## Deployed: `main` at `601c767`, 7 Oct 2026
+
+- **What (Vipin):** "remove sticker not issued too": the master list's person
+  sheet shows the plate, and "· sticker N" only when one is recorded.
+- **Pushed with `SKIP_VISUAL=1`** (same round). Typecheck, lint, unit tests
+  passed in the hooks.
+- **Checked after:** Vercel status `success` for `601c767`; `verify:deploy`
+  18/18. **Not checked:** the sheet seen signed in on the live site.
+- **Rollback:** `git revert 601c767`.
+
 ## Deployed: `main` at `5f4293d`, 7 Oct 2026
 
 - **What:** `38271fd` (master list without the Sticker pill), whose own
