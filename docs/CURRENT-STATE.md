@@ -3,7 +3,39 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
+_Last updated: 7 October 2026 (desk nav highlight follows the click; vehicle gate clears a registered plate, ADR-031)._
+
+## Deployed: `main` at `b41b101`, 7 Oct 2026 (desk nav highlight)
+
+- **What (Vipin):** two screenshots. On /desk/users the green nav pill sat under
+  "Control room"; on /desk the pill sat under "Master list" while the page was
+  still Control room. Then, after the first fix, a blank page on navigation.
+- **Causes:** (1) `/desk/users` is reached from the avatar menu and has no nav
+  item, so `movePip` found no `aria-current`, returned early, and left the
+  geometry handed over from the last click on screen. (2) `glidePip` moved the
+  pill on click, but `aria-current` follows `usePathname()`, which only changes
+  once the server has rendered the target: every `/desk/*` page is
+  `force-dynamic` and had no `loading.tsx`, so Next did not prefetch it.
+- **Done** (`app/desk/desk-chrome.tsx`, `app/r10/base.css`): the pill is hidden
+  when no link is current; the clicked link is current at once (a pending
+  `{href, from}`, ignored once the pathname leaves `from`, cleared after 8s);
+  `.page` is dimmed after 150ms with `aria-busy` while a click is pending.
+  Gate links skip this: GateChrome finishes that glide (see `glidePip`).
+- **Tried and reverted:** `6fe7940` added `app/desk/loading.tsx` returning
+  `null` so Next would prefetch desk routes. It made every navigation blank.
+  Removed in `b41b101`. A shared fallback was not added: each screen has its
+  own skeleton (`useSkeletonMemory`) and a second one would flash over it. The
+  server wait is unchanged. `force-dynamic` stays (ARCHITECTURE.md rendering
+  table; the per-request CSP nonce also needs dynamic rendering).
+- **Checked after:** GitHub deployment status `success` for `b41b101`;
+  `deploy-verify.yml` run `success` for `b41b101`. Locally: typecheck, lint
+  (0 errors), 364 unit tests, `next build` (run on the first commit's tree,
+  not re-run after `b41b101`; its pre-push ran `check:sql` only).
+- **Not checked:** the nav in a browser, before or after. Nothing here was
+  clicked through; the 8s clear, the dimming timing and the dimmed look
+  against `design/reference/` are unseen (`test:visual` not run). CI for
+  `b41b101` was still running when this was written.
+- **Rollback:** `git revert b41b101 6fe7940`.
 
 ## Deployed: `main` at `c564716`, 7 Oct 2026
 
