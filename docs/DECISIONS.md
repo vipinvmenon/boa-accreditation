@@ -1263,3 +1263,36 @@ does not offer GA: the sheet is where these guests are decided.
 refused); the migration dry-run, then applied; `test:db` green with
 `import-approve.test.sql` now asserting a GA row is approved with a pass; a real
 load approved 4 GA guests. **Not verified:** a GA guest scanned at a real gate.
+
+## ADR-031 — A vehicle clears on a registered plate and the sticker the officer sees (7 Oct 2026)
+
+**Status:** accepted (Vipin, 7 Oct). Amends PRODUCT.md rule 6 ("security
+checks sticker **and** wristband") and narrows ADR-022's three checks.
+
+**Context.** KA04AF2029 (AMARESH, TRAVEL DESTINATION INC, Driver) was on the
+form and in `boa_acc_person`, status `submitted`. The vehicle gate said nothing
+was issued to it: the gate pull carried only approved people, and
+`boa_acc_gate_vehicle` cleared only an approved holder with a `vehicle_sticker`
+ledger row and an active wristband. On 7 Oct the database held 4 plates
+(1 approved), 0 stickers and 0 wristbands, so no vehicle could have cleared.
+Vipin: "If the number is there we need to show… No approvals like others for
+vehicles… They will have sticker… For the app we need the number". Of three
+rules put to him he chose "Plate + sticker by eye". He first chose to keep the
+wristband check; that and "no approvals" cannot both hold (a band is issued
+only to an approved person), and the follow-up choice dropped it.
+
+**Decision.** A vehicle clears when its plate is registered to someone
+`submitted` or `approved` and the officer has seen the sticker and the plate
+matches it. No approval, no sticker recorded in the app, no wristband. The
+driver's own band is checked at the people gate as usual. Draft, rejected and
+voided holders are not registered. Migration
+`202610071100_boa_acc_vehicle_plate_clears.sql`: `boa_acc_gate_pull()` gains
+`vehicles` (plate, holder name, org, role, status; no phone, no pass token),
+and `boa_acc_gate_vehicle()` checks the holder and the two officer checks; a
+sticker checkin id, when sent, must still be that holder's active sticker. The
+phone keeps a Dexie `vehicle` store (v2), and `resolvePlate` reads it, falling
+back to the sticker index for a cache from before the store was filled.
+
+**Consequence.** Gate phones now hold the name, company and role of people
+not yet approved who gave a plate. Turn-away reasons are "Not registered", "No
+sticker" and "Plate does not match sticker"; "No wristband" is gone.

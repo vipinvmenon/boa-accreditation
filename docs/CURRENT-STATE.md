@@ -3,7 +3,41 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 7 October 2026 (roster synced; GA guests accredited, migration applied live)._
+_Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
+
+## Vehicle gate: a registered plate clears, no approval (ADR-031), 7 Oct 2026
+
+- **What (Vipin):** KA04AF2029 "shows doesn't exist… but it exists"; then
+  "If the number is there we need to show… No approvals like others for
+  vehicles". Chose "Plate + sticker by eye" from three rules. He first said
+  keep the wristband check; the follow-up choice dropped it (a band needs
+  approval, so both cannot hold; ADR-031 records this).
+- **Why it said nothing:** AMARESH (TRAVEL DESTINATION INC, Driver) is
+  `submitted`; the pull carried approved people only, and a clear needed an
+  approved holder + ledger sticker + wristband. The database held 4 plates
+  (1 approved), **0 stickers, 0 wristbands**: no vehicle could clear at all.
+- **Database:** `202610071100_boa_acc_vehicle_plate_clears.sql` dry-run, then
+  **applied to production**. `boa_acc_gate_pull()` gains `vehicles`
+  (submitted + approved plates: name, org, role, status; no phone/pass token);
+  `boa_acc_gate_vehicle()` clears a submitted/approved holder of the plate with
+  the officer's sticker + plate checks. `test:db` green (vehicle.test.sql 8/8,
+  incl. a rolled-back clear of a submitted holder and the pull listing it).
+  Live pull, called as an admin, lists 4 plates incl. `KA04AF2029 AMARESH
+  submitted`.
+- **Phone:** Dexie v2 adds a `vehicle` store, filled by the pull;
+  `resolvePlate` reads it (falls back to the sticker index). Checks are now
+  Registered / Vehicle sticker / Plate matches sticker; reasons Not registered
+  / No sticker / Plate does not match sticker. "Expected" lists every
+  registered plate. 363 unit tests, 18/18 vehicle e2e (incl. a waiting
+  holder's plate found and cleared offline).
+- **Also shipped:** two uncommitted fixes from earlier today: `2433c7e` (the
+  vehicle route answered 500 for every recorded event) and `4e3f41d` (a lone
+  pre-fix failed send stuck as "1 not accepted").
+- **Not checked:** a real phone at the vehicle gate; `test:visual` on the
+  vehicle screen (its checklist rows changed).
+- **Rollback:** the app commit reverts cleanly; the database keeps accepting
+  the old app's calls (it sends sticker + wristband). To restore the old rule,
+  re-run the two function bodies from `202609301100` and `202609221201`.
 
 ## Deployed: `main` at `1b70a4b`, 7 Oct 2026
 

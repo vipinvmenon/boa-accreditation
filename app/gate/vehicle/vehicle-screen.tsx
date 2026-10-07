@@ -15,7 +15,7 @@ type Result = {
   reason?: string
   stickerNo?: string
   plate?: string
-  wristbandDetail?: string
+  holder?: string
   occurredAt?: string
 }
 
@@ -24,9 +24,10 @@ type Result = {
  * 21): typing at a barrier was slow, and the three checks below are the
  * three reasons a vehicle is refused. "Other" still takes free text. Stored
  * as the same text column as before (lib/schemas/vehicle.ts, max 240).
+ * ADR-031: no wristband reason; a vehicle is not refused for one.
  */
+const NOT_REGISTERED = 'Not registered'
 const NO_STICKER = 'No sticker'
-const NO_WRISTBAND = 'No wristband'
 const PLATE_MISMATCH = 'Plate does not match sticker'
 
 type CheckState = 'ok' | 'bad' | 'todo'
@@ -39,27 +40,20 @@ function formatIssuedAt(iso: string): string {
 }
 
 /**
- * The checks as the officer needs them before deciding. One cause shows
- * once: with no sticker there is no holder whose wristband to check and no
- * sticker to match the plate to, so those rows are not drawn as three red
- * crosses for one fact. The plate check is the officer's to make, never a
- * failure the app has found, so it is drawn as a step, not a cross.
+ * The checks as the officer needs them before deciding (ADR-031, 7 Oct): the
+ * app says whether the plate is registered and to whom; the sticker and the
+ * plate are the officer's to check, so they are drawn as steps, not crosses.
+ * An unregistered plate shows only that, not three red rows for one fact.
  */
 function checksFor(facts: PlateResolution): Check[] {
-  const checks: Check[] = [{
-    label: 'Vehicle sticker',
-    state: facts.stickerOk ? 'ok' : 'bad',
-    detail: facts.stickerOk && facts.stickerNo ? `${facts.stickerNo}, bound to ${facts.plate}` : 'No sticker is issued to this registration',
-  }]
-  if (!facts.stickerOk) return checks
-  checks.push({
-    label: 'Crew wristband',
-    state: facts.wristbandOk ? 'ok' : 'bad',
-    detail: facts.wristbandOk && facts.wristbandDetail ? facts.wristbandDetail.replaceAll(' · ', ', ') : 'The sticker holder has no active wristband',
-  })
-  if (!facts.wristbandOk) return checks
-  checks.push({ label: 'Plate matches sticker', state: 'todo', detail: 'Look at the plate yourself before you open the gate.' })
-  return checks
+  if (!facts.registered) {
+    return [{ label: 'Registered', state: 'bad', detail: 'This registration is not on the list' }]
+  }
+  return [
+    { label: 'Registered', state: 'ok', detail: [facts.holderName, facts.holderDetail].filter(Boolean).join(', ') || 'On the list' },
+    { label: 'Vehicle sticker', state: 'todo', detail: facts.stickerNo ? `Look for sticker ${facts.stickerNo} on the windscreen.` : 'Look for the vehicle sticker on the windscreen.' },
+    { label: 'Plate matches sticker', state: 'todo', detail: 'Look at the plate yourself before you open the gate.' },
+  ]
 }
 
 function CheckList({ checks }: { checks: Check[] }) {
@@ -129,10 +123,10 @@ export function VehicleScreen() {
   /**
    * The button pressed IS the officer's decision, passed in explicitly
    * (ACC-109: reading it from state logged the previous render's choice).
-   *   enter     — the officer has looked at the plate and it matches the
-   *               sticker (plateVisual: true). Clears only if the sticker
-   *               and an active wristband also check out; otherwise nothing
-   *               is logged and the screen says which check failed.
+   *   enter     — the officer has seen the sticker and the plate matches
+   *               it (sticker and plateVisual: true). Clears only if the
+   *               plate is registered (ADR-031); otherwise nothing is logged
+   *               and the screen says so.
    *   turn_away — always logs turned_away, with the reason tapped or typed.
    */
   async function recordEvent(intent: 'enter' | 'turn_away', reasonText?: string) {
@@ -148,10 +142,8 @@ export function VehicleScreen() {
       // can only confirm what the officer was told, never contradict it.
       const facts = await resolvePlate(gateDb, normalized)
       setResolved(facts)
-      const { stickerOk, wristbandOk } = facts
-
-      if (intent === 'enter' && !(stickerOk && wristbandOk)) {
-        setNotice(!stickerOk ? 'No sticker is issued to this plate. Nothing was logged.' : 'The sticker holder has no active wristband. Nothing was logged.')
+      if (intent === 'enter' && !facts.registered) {
+        setNotice('This registration is not on the list. Nothing was logged.')
         return
       }
 
@@ -163,8 +155,8 @@ export function VehicleScreen() {
         outcome,
         reason: outcome === 'cleared' ? null : reason,
         checks: {
-          sticker: stickerOk,
-          wristband: wristbandOk,
+          sticker: intent === 'enter',
+          wristband: facts.wristbandOk,
           plateVisual: intent === 'enter',
         },
       })
@@ -178,7 +170,7 @@ export function VehicleScreen() {
         plate: plate.trim().toUpperCase(),
         ...(facts.stickerNo ? { stickerNo: facts.stickerNo } : {}),
         ...(facts.stickerIssuedAt ? { occurredAt: facts.stickerIssuedAt } : {}),
-        ...(facts.wristbandDetail ? { wristbandDetail: facts.wristbandDetail } : {}),
+        ...(facts.holderName ? { holder: [facts.holderName, facts.holderDetail].filter(Boolean).join(', ') } : {}),
       })
       setLogged((n) => n + 1)
       await refresh()
@@ -231,15 +223,15 @@ export function VehicleScreen() {
   }
 
   const cleared = result?.outcome === 'cleared'
-  const clears = plateFacts !== null && plateFacts.stickerOk && plateFacts.wristbandOk
+  const clears = plateFacts !== null && plateFacts.registered
   // Before the officer decides, the verdict takes the colour of what the cache
   // says: green when both checks pass, red when the vehicle will not clear.
   const tone = result ? (cleared ? 'ok' : 'bad') : plateFacts ? (clears ? 'ok' : 'bad') : undefined
   const willNotClear = !result && plateFacts !== null && !clears
-  // Only the reasons that can apply to this vehicle, the one the checks
-  // point at first and filled: no sticker means there is no wristband or
-  // plate to fault, and a vehicle that clears can only fail the plate check.
-  const reasons = !plateFacts ? [] : !plateFacts.stickerOk ? [NO_STICKER] : !plateFacts.wristbandOk ? [NO_WRISTBAND, PLATE_MISMATCH] : [PLATE_MISMATCH]
+  // Only the reasons that can apply to this vehicle, the likely one first and
+  // filled: an unregistered plate has no sticker to fault, and a registered
+  // one fails only on what the officer sees.
+  const reasons = !plateFacts ? [] : !plateFacts.registered ? [NOT_REGISTERED] : [NO_STICKER, PLATE_MISMATCH]
   const suggested = reasons[0] ?? null
   const showReasons = !result && plateFacts !== null && (willNotClear || reasonsOpen)
   const savedOffline = online ? null : 'Saved on this phone. It sends when signal returns.'
@@ -284,8 +276,8 @@ export function VehicleScreen() {
                   : `Reason: ${result.reason ?? ''}.`}</p>
                 {savedOffline && <p className="veh-sub ink-3">{savedOffline}</p>}
                 {cleared && <CheckList checks={[
-                  { label: 'Vehicle sticker', state: 'ok', detail: result.stickerNo && result.plate ? `${result.stickerNo}, bound to ${result.plate}` : 'Bound to this registration' },
-                  { label: 'Crew wristband', state: 'ok', detail: result.wristbandDetail ? result.wristbandDetail.replaceAll(' · ', ', ') : 'Active' },
+                  { label: 'Registered', state: 'ok', detail: result.holder ?? 'On the list' },
+                  { label: 'Vehicle sticker', state: 'ok', detail: result.stickerNo ? `${result.stickerNo}, seen by you at the barrier` : 'Seen by you at the barrier' },
                   { label: 'Plate matches sticker', state: 'ok', detail: 'Checked by you at the barrier' },
                 ]} />}
                 <div className="veh-dock">
@@ -299,9 +291,9 @@ export function VehicleScreen() {
                   `resolved`, the same `resolvePlate` that `recordEvent` gates on. */}
               {!result && plateFacts && <>
                 <h2 className="display-md verdict">{clears ? 'Ready to clear' : 'Will not clear'}</h2>
-                <p className="veh-sub">{plateFacts.holderName
+                <p className="veh-sub">{plateFacts.registered && plateFacts.holderName
                   ? `${plateFacts.holderName}${plateFacts.stickerNo ? `, sticker ${plateFacts.stickerNo}` : ''}.`
-                  : 'Nothing is issued to this registration.'}</p>
+                  : 'This registration is not on the list.'}</p>
                 {notice && <p role="status" className="veh-sub veh-status-bad">{notice}</p>}
                 <CheckList checks={checksFor(plateFacts)} />
               </>}
@@ -311,7 +303,7 @@ export function VehicleScreen() {
               {!result && !plateFacts && <div className="veh-idle">
                 {tried && normalized === null
                   ? <p role="status" className="veh-status-bad">Not a valid registration format.</p>
-                  : <p role="status">Press Check to see the sticker and the wristband before you decide.</p>}
+                  : <p role="status">Press Check to see who the vehicle is registered to before you decide.</p>}
               </div>}
 
               {/* The decision. A vehicle that clears gets the green button and a

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { gatePullSchema } from '@/lib/schemas/gate'
-import { gateDb, ledgerRowSchema, metaRowSchema, rosterRowSchema, stickerRowSchema, type LedgerRow, type RosterRow, type StickerRow } from './db'
+import { gateDb, ledgerRowSchema, metaRowSchema, rosterRowSchema, stickerRowSchema, vehicleRowSchema, type LedgerRow, type RosterRow, type StickerRow, type VehicleRow } from './db'
 import { fetchJsonWithTimeout, PULL_TIMEOUT_MS } from './fetch-timeout'
 import { normalizePlate } from './vehicle-flow'
 
@@ -63,6 +63,35 @@ export function stickerRowsFrom(
 }
 
 /**
+ * ADR-031 (7 Oct) — the plates the vehicle gate may clear: the pull's
+ * `vehicles` (approved and waiting holders), plus every approved roster row
+ * with a registration, so a database without the 202610071100 migration
+ * still gives the approved ones. One row per plate; the server's row wins.
+ * A registration that does not parse is skipped, as in stickerRowsFrom.
+ */
+export function vehicleRowsFrom(
+  pulled: readonly VehicleRow[],
+  roster: readonly RosterRow[],
+): VehicleRow[] {
+  const byPlate = new Map<string, VehicleRow>()
+  for (const row of roster) {
+    if (!row.vehicleReg) continue
+    let plate: string
+    try {
+      plate = normalizePlate(row.vehicleReg)
+    } catch {
+      continue
+    }
+    byPlate.set(plate, { plate, personId: row.personId, fullName: row.fullName, orgName: row.orgName, roleText: row.roleText, status: 'approved' })
+  }
+  for (const row of pulled) {
+    const parsed = vehicleRowSchema.safeParse(row)
+    if (parsed.success) byPlate.set(parsed.data.plate, parsed.data)
+  }
+  return [...byPlate.values()]
+}
+
+/**
  * Rebuild the index from whatever this phone now holds.
  *
  * `pullGate` derives it inside its own transaction, but the ledger also grows
@@ -121,7 +150,8 @@ export async function pullGate(): Promise<GateSnapshot> {
   // is rebuilt in the same transaction. A cache where the ledger has moved on
   // and the index has not is the bug this replaces, in the other direction.
   const stickers = stickerRowsFrom(snapshot.roster, snapshot.ledger)
-  await gateDb.transaction('rw', gateDb.roster, gateDb.ledger, gateDb.sticker, gateDb.meta, async () => {
+  const vehicles = vehicleRowsFrom(parsed.data.vehicles, snapshot.roster)
+  await gateDb.transaction('rw', [gateDb.roster, gateDb.ledger, gateDb.sticker, gateDb.vehicle, gateDb.meta], async () => {
     // ACC-197b: a hand-over tapped on this phone that the server has not
     // acknowledged yet must survive the pull. The server's row is never
     // deleted, so keeping a local mark can only ever be early, never wrong.
@@ -133,9 +163,11 @@ export async function pullGate(): Promise<GateSnapshot> {
     await gateDb.roster.clear()
     await gateDb.ledger.clear()
     await gateDb.sticker.clear()
+    await gateDb.vehicle.clear()
     await gateDb.roster.bulkPut(snapshot.roster)
     await gateDb.ledger.bulkPut(snapshot.ledger)
     await gateDb.sticker.bulkPut(stickers)
+    await gateDb.vehicle.bulkPut(vehicles)
     const rows = [
       { key: 'operatorId' as const, value: parsed.data.operatorId },
       // The pull has always carried the role and thrown it away. Caching it

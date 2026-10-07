@@ -2,7 +2,9 @@
 --
 -- @proves: CRITICAL | vehicle writes are database-authorized by the operator's session (ACC-150; was a device token)
 -- @proves: HIGH     | malformed plates and turn-aways without reasons fail
--- @proves: HIGH     | clearance requires all three physical checks
+-- @proves: HIGH     | clearance requires a registered holder and the officer's sticker and plate checks
+-- @proves: HIGH     | a submitted (not yet approved) holder's plate clears with no sticker row or wristband (ADR-031)
+-- @proves: HIGH     | the gate pull lists a submitted holder's plate (ADR-031)
 --
 -- ACC-150: the device token is retired. The caller is now a logged-in
 -- operator, identified by request.jwt.claims set inside each asserted SQL
@@ -12,9 +14,11 @@
 -- still exists, and a call made only of untyped literals is ambiguous
 -- between the two (PostgREST passes named arguments, so the app is not).
 --
--- This file never commits a vehicle event. Every successful fixture call below
--- is deliberately a failing RPC validation, so the insert is rolled back by
--- pgTAP's throws_ok savepoint. The immutable event table has no cleanup path.
+-- This file never commits a vehicle event. Every fixture call below is either
+-- a failing RPC validation, or (test 7) a successful one whose answer is then
+-- cast to int so the statement fails and pgTAP's throws_ok savepoint rolls the
+-- insert back (the issuer.test.sql pattern). The immutable event table has no
+-- cleanup path.
 
 with
   wiped as materialized (
@@ -70,7 +74,7 @@ with
       json_build_object('sub', (select user_id from op)::text, 'role', 'authenticated')::text as lead
   ),
   results as materialized (
-    select 0 as n, plan(4) as line
+    select 0 as n, plan(8) as line
     where (select lead from q) is not null
     union all select 1, throws_ok(
       format((select as_user from q),
@@ -102,7 +106,45 @@ with
           gen_random_uuid(), 'KA05MJ8871', 'cleared', '{"sticker":true,"wristband":true,"plate_visual":true}'::jsonb),
         (select lead from q)),
       '22023', null,
-      'clearance requires a person and sticker evidence'
+      'clearance requires a person'
+    )
+    union all select 5, throws_ok(
+      format((select as_user from q),
+        format('public.boa_acc_gate_vehicle(%L::uuid, %L, %L, %L, null, %L, null)',
+          gen_random_uuid(), 'KA05MJ8871', 'cleared', (select id from person), '{"sticker":false,"wristband":false,"plate_visual":true}'::jsonb),
+        (select lead from q)),
+      '22023', 'sticker and plate checks required',
+      'clearance requires the officer to have seen the sticker'
+    )
+    union all select 6, throws_ok(
+      format((select as_user from q),
+        format('public.boa_acc_gate_vehicle(%L::uuid, %L, %L, %L, null, %L, null)',
+          gen_random_uuid(), 'KA05MJ9999', 'cleared', (select id from person), '{"sticker":true,"wristband":false,"plate_visual":true}'::jsonb),
+        (select lead from q)),
+      '22023', 'vehicle registration mismatch',
+      'clearance refuses a plate that is not the holder''s registration'
+    )
+    union all select 7, throws_ok(
+      format(
+        $f$select (case when r->>'outcome' = 'cleared' and r->>'personId' = %3$L and r->>'stickerCheckinId' is null
+                          then 'recorded' else 'refused' end)::int
+             from (select public.boa_acc_gate_vehicle(gen_random_uuid(), 'KA05MJ8871', 'cleared', %3$L::uuid, null,
+                                                     '{"sticker":true,"wristband":false,"plate_visual":true}'::jsonb, null) as r
+                     from (select set_config('request.jwt.claims', %2$L, true) as c) s
+                    where s.c is not null) x$f$,
+        null, (select lead from q), (select id from person)
+      ),
+      '22P02', 'invalid input syntax for type integer: "recorded"',
+      'a submitted holder''s plate clears with no sticker row and no wristband (rolled back)'
+    )
+    union all select 8, is(
+      (select (v->>'status') || ' ' || (v->>'fullName')
+         from (select jsonb_array_elements(public.boa_acc_gate_pull()->'vehicles') as v
+                 from (select set_config('request.jwt.claims', (select lead from q), true) as c) s
+                where s.c is not null) x
+        where v->>'plate' = 'KA05MJ8871'),
+      'submitted ACC055 Vehicle Person',
+      'the gate pull lists a submitted holder''s plate, name and status'
     )
   ),
   clean as materialized (

@@ -24,16 +24,18 @@ beforeEach(async () => {
   await database.open()
 })
 
-describe('GateDatabase v1', () => {
-  it('declares the five stores and their required indexes', () => {
-    expect(database.verno).toBe(1)
+describe('GateDatabase v2', () => {
+  it('declares the six stores and their required indexes (v2 adds vehicle, ADR-031)', () => {
+    expect(database.verno).toBe(2)
     expect(database.tables.map((table) => table.name)).toEqual([
       'roster',
       'ledger',
       'outbox',
       'sticker',
       'meta',
+      'vehicle',
     ])
+    expect(database.vehicle.schema.primKey.name).toBe('plate')
 
     expect(database.roster.schema.primKey.name).toBe('passToken')
     expect(database.roster.schema.indexes.map((index) => index.name)).toEqual([

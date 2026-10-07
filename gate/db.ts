@@ -93,6 +93,22 @@ export const stickerRowSchema = z.object({
 
 export type StickerRow = z.infer<typeof stickerRowSchema>
 
+/**
+ * ADR-031 (7 Oct) — every registered plate the vehicle gate may clear, from
+ * the pull's `vehicles`: the holder may be approved or still waiting. A
+ * vehicle needs no approval and no wristband; the officer checks the sticker.
+ */
+export const vehicleRowSchema = z.object({
+  plate: z.string().min(1),
+  personId: uuid,
+  fullName: z.string().min(1),
+  orgName: z.string().min(1),
+  roleText: z.string().min(1),
+  status: z.enum(['submitted', 'approved']),
+})
+
+export type VehicleRow = z.infer<typeof vehicleRowSchema>
+
 export const metaKeySchema = z.enum([
   // Written by device-token pulls before ACC-150; kept so a cache written
   // then still parses. No longer written.
@@ -132,6 +148,7 @@ export class GateDatabase extends Dexie {
   ledger!: EntityTable<LedgerRow, 'id'>
   outbox!: EntityTable<OutboxRow, 'id'>
   sticker!: EntityTable<StickerRow, 'plate'>
+  vehicle!: EntityTable<VehicleRow, 'plate'>
   meta!: EntityTable<MetaRow, 'key'>
 
   constructor(name = 'boa-accreditation-gate') {
@@ -143,6 +160,11 @@ export class GateDatabase extends Dexie {
       outbox: 'id, kind, idempotencyKey, status, nextAttemptAt, createdAt',
       sticker: 'plate, stickerNo, personId, issuedAt',
       meta: 'key',
+    })
+    // ADR-031: a new store only. Filled by the next pull; until then the
+    // vehicle screen falls back to the sticker index (gate/vehicle-flow.ts).
+    this.version(2).stores({
+      vehicle: 'plate, personId',
     })
   }
 }

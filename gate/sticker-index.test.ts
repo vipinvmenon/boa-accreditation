@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { stickerRowsFrom } from './roster'
+import { stickerRowsFrom, vehicleRowsFrom } from './roster'
 import type { LedgerRow, RosterRow } from './db'
 
 /**
@@ -119,5 +119,24 @@ describe('stickerRowsFrom', () => {
       [person(PERSON, 'KA05MJ8871')],
       [issue({ id: 'a0000000-0000-4000-8000-000000000001', personId: PERSON, kind: 'vehicle_sticker', occurredAt: '2026-10-09T08:14:00.000+05:30' })],
     )).toEqual([])
+  })
+})
+
+describe('vehicleRowsFrom (ADR-031)', () => {
+  const waiting = { plate: 'KA04AF2029', personId: OTHER, fullName: 'AMARESH', orgName: 'TRAVEL DESTINATION INC', roleText: 'Driver', status: 'submitted' as const }
+
+  it('keeps every pulled plate, including a holder still waiting for approval', () => {
+    expect(vehicleRowsFrom([waiting], [])).toEqual([waiting])
+  })
+
+  it('adds approved roster plates, normalised, so a database without the migration still gives them', () => {
+    expect(vehicleRowsFrom([], [person(PERSON, 'ka 05 mj 8871')])).toEqual([
+      { plate: 'KA05MJ8871', personId: PERSON, fullName: 'Ranjith Kumar', orgName: 'Chakra Sound & Light', roleText: 'Stage tech', status: 'approved' },
+    ])
+  })
+
+  it('one row per plate, and the server row wins; an unparseable registration is skipped', () => {
+    const rows = vehicleRowsFrom([waiting], [person(PERSON, 'KA04AF2029'), person('44444444-4444-4444-8444-444444444444', 'not a plate')])
+    expect(rows).toEqual([waiting])
   })
 })

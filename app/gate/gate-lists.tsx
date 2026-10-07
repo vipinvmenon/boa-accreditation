@@ -226,11 +226,11 @@ export function PeopleFolds({ roster, ledger, pending, onOpen }: {
 }
 
 type Decision = { id: string; plate: string; outcome: 'cleared' | 'turned_away'; reason: string | null; occurredAt: string }
-type Expected = { plate: string; stickerNo: string; holder: string | null }
+type Expected = { plate: string; detail: string }
 
 /**
- * Vehicles: what this phone cleared and turned away today, and every plate
- * with a sticker that has not been cleared today. Decisions come from the
+ * Vehicles: what this phone cleared and turned away today, and every
+ * registered plate (ADR-031) that has not been cleared today. Decisions come from the
  * outbox, which keeps a row per event after it is sent; nothing else on the
  * phone records them.
  */
@@ -248,8 +248,9 @@ export function VehicleFolds({ version, onOpen }: {
   useEffect(() => {
     let live = true
     void (async () => {
-      const [events, stickers, roster] = await Promise.all([
+      const [events, vehicles, stickers, roster] = await Promise.all([
         gateDb.outbox.where('kind').equals('vehicle_event').toArray(),
+        gateDb.vehicle.toArray(),
         gateDb.sticker.toArray(),
         gateDb.roster.toArray(),
       ])
@@ -261,9 +262,17 @@ export function VehicleFolds({ version, onOpen }: {
       }).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
       const clearedPlates = new Set(rows.filter((row) => row.outcome === 'cleared').map((row) => row.plate))
       const names = new Map(roster.map((row) => [row.personId, row.fullName]))
-      const waiting = stickers
+      // A registered plate, with its sticker number when one is recorded;
+      // the sticker index alone covers a cache from before the vehicle store.
+      const stickerOf = new Map(stickers.map((row) => [row.plate, row]))
+      const byPlate = new Map<string, Expected>()
+      for (const row of stickers) byPlate.set(row.plate, { plate: row.plate, detail: `${names.get(row.personId) ?? 'Sticker holder'}, sticker ${row.stickerNo}` })
+      for (const row of vehicles) {
+        const sticker = stickerOf.get(row.plate)
+        byPlate.set(row.plate, { plate: row.plate, detail: `${row.fullName}, ${sticker ? `sticker ${sticker.stickerNo}` : row.orgName}` })
+      }
+      const waiting = [...byPlate.values()]
         .filter((row) => !clearedPlates.has(row.plate))
-        .map((row) => ({ plate: row.plate, stickerNo: row.stickerNo, holder: names.get(row.personId) ?? null }))
         .sort((a, b) => a.plate.localeCompare(b.plate))
       if (!live) return
       setDecisions(rows)
@@ -302,9 +311,9 @@ export function VehicleFolds({ version, onOpen }: {
         title: 'Expected',
         count: expected.length,
         body: expected.length === 0
-          ? <p className="gate-fold-empty">Vehicles with a sticker that have not come in today show here.</p>
+          ? <p className="gate-fold-empty">Registered vehicles that have not come in today show here.</p>
           : <div className="gate-rows">{expected.map((row) => (
-            <Row key={row.plate} mono onClick={() => onOpen(row.plate)} title={row.plate} detail={`${row.holder ?? 'Sticker holder'}, sticker ${row.stickerNo}`} />
+            <Row key={row.plate} mono onClick={() => onOpen(row.plate)} title={row.plate} detail={row.detail} />
           ))}</div>,
       },
     ]} />

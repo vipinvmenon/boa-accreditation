@@ -157,4 +157,47 @@ describe('vehicle gate flow', () => {
       expect(facts.wristbandDetail).toBe('Crew · purple · band blank serial')
     })
   })
+
+  /**
+   * ADR-031 (Vipin, 7 Oct) — KA04AF2029 was on the form but the gate said
+   * nothing was issued to it. A registered plate clears on the officer's
+   * sticker and plate checks: no approval, no recorded sticker, no wristband.
+   */
+  describe('resolvePlate on a registered plate (ADR-031)', () => {
+    const PLATE = 'KA04AF2029'
+    const personId = '55555555-5555-4555-8555-000000002029'
+
+    it('a waiting holder with no sticker and no band is registered, with name, company and role', async () => {
+      await db.vehicle.add({ plate: PLATE, personId, fullName: 'AMARESH', orgName: 'TRAVEL DESTINATION INC', roleText: 'Driver', status: 'submitted' })
+      const facts = await resolvePlate(db, PLATE)
+      expect(facts).toMatchObject({
+        plate: PLATE,
+        registered: true,
+        stickerOk: false,
+        wristbandOk: false,
+        personId,
+        holderName: 'AMARESH',
+        holderDetail: 'TRAVEL DESTINATION INC, Driver',
+        stickerCheckinId: null,
+      })
+    })
+
+    it('a plate nobody registered is not registered', async () => {
+      const facts = await resolvePlate(db, PLATE)
+      expect(facts.registered).toBe(false)
+      expect(facts.personId).toBeNull()
+      expect(facts.holderName).toBeNull()
+    })
+
+    it('a recorded sticker belonging to someone else is not named for this holder', async () => {
+      await db.vehicle.add({ plate: PLATE, personId, fullName: 'AMARESH', orgName: 'TRAVEL DESTINATION INC', roleText: 'Driver', status: 'submitted' })
+      const other = '55555555-5555-4555-8555-000000000001'
+      await db.sticker.add({ plate: PLATE, stickerNo: 'V-0001', personId: other, issuedAt: '2026-10-09T02:00:00.000Z' })
+      await db.ledger.add({ id: crypto.randomUUID(), personId: other, kind: 'vehicle_sticker', stickerNo: 'V-0001', occurredAt: '2026-10-09T02:00:00.000Z', gateLabel: 'Gate 1', volunteerName: 'Ravi', isReissue: false })
+      const facts = await resolvePlate(db, PLATE)
+      expect(facts.registered).toBe(true)
+      expect(facts.personId).toBe(personId)
+      expect(facts.stickerCheckinId).toBeNull()
+    })
+  })
 })

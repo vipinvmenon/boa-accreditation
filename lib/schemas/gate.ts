@@ -52,6 +52,16 @@ const gateLedgerRowSchema = z.object({
   isReissue: z.boolean(),
 })
 
+/** ADR-031: a registered plate whose holder is submitted or approved. */
+const gateVehicleRowSchema = z.object({
+  plate: z.string().min(1),
+  personId: z.string().uuid(),
+  fullName: z.string().min(1),
+  orgName: z.string().min(1),
+  roleText: z.string().min(1),
+  status: z.enum(['submitted', 'approved']),
+})
+
 /**
  * boa_acc_gate_pull() (202609221201, ACC-150): answered for the calling
  * operator's own session. `volunteerName` is the signed-in operator's display
@@ -66,6 +76,8 @@ export const gatePullSchema = z.object({
   ledger: gateLedgerRowSchema.array(),
   rosterAsOf: isoDateTime.nullable(),
   ledgerAsOf: isoDateTime.nullable(),
+  /** ADR-031 (202610071100). Absent from a database without that migration. */
+  vehicles: gateVehicleRowSchema.array().default([]),
 })
 
 export const gateIssueResultSchema = z.object({

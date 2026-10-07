@@ -9,6 +9,9 @@
 
 Salman's brief, 29 Aug 2026.
 
+For vehicles this was amended on 7 Oct (ADR-031): a registered plate and a
+sticker the officer sees. The holder's approval is not required.
+
 ## What happens today
 
 Crew accreditation runs on WhatsApp and a BookMyShow dashboard. Names arrive in
@@ -32,8 +35,10 @@ photo ID**; and no collection on anyone else's behalf.
    physical check-in = one wristband.
 5. Wristbands cannot be collected on behalf of anyone else.
 6. Vehicles are registered to a plate and carry a sticker bound to that plate.
-   **No vehicle enters without the sticker**, and security checks sticker **and**
-   wristband — both, or neither.
+   **No vehicle enters without the sticker.** Since 7 Oct (ADR-031) security
+   checks the plate is registered and sees the sticker; the holder need not be
+   approved and the vehicle is not refused for a wristband. The driver's band
+   is checked at the people gate.
 7. **Artists are the exception to all of it.** Their accreditation is handled at
    their hotel and never touches this system.
 

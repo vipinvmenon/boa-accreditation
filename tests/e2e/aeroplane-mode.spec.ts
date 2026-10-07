@@ -675,6 +675,24 @@ async function seedVehicle(page: Page, plate: string, withSticker: boolean, with
   }, { plate, withSticker, withWristband, personId: PEOPLE[0].personId })
 }
 
+/** ADR-031: a registration only — no sticker, no band, holder not yet approved. */
+async function seedRegistration(page: Page, plate: string) {
+  await page.evaluate(async ({ plate }) => {
+    const request = indexedDB.open('boa-accreditation-gate')
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction('vehicle', 'readwrite')
+      transaction.objectStore('vehicle').put({ plate, personId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2029', fullName: 'AMARESH', orgName: 'TRAVEL DESTINATION INC', roleText: 'Driver', status: 'submitted' })
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => reject(transaction.error)
+    })
+    database.close()
+  }, { plate })
+}
+
 async function vehicleOutbox(page: Page) {
   return page.evaluate(async () => {
     const request = indexedDB.open('boa-accreditation-gate')
@@ -712,12 +730,12 @@ test.describe('vehicle gate (ACC-109)', () => {
 
     await gate.getByLabel('Vehicle registration').fill('KA 01 AB 1234')
     await gate.getByLabel('Vehicle registration').press('Enter')
-    await gate.getByRole('button', { name: 'No sticker' }).click()
+    await gate.getByRole('button', { name: 'Not registered' }).click()
     await gate.getByRole('button', { name: 'Next vehicle' }).click()
     const turned = gate.getByRole('button', { name: /^Turned away/ })
     await expect(turned).toHaveText(/Turned away\s*1/)
     await turned.click()
-    await expect(gate.getByRole('button', { name: /KA01AB1234/ })).toContainText('No sticker')
+    await expect(gate.getByRole('button', { name: /KA01AB1234/ })).toContainText('Not registered')
   })
 
   test('Log entry with a valid sticker and wristband logs exactly one CLEARED event, in one press', async ({ page }) => {
@@ -742,7 +760,7 @@ test.describe('vehicle gate (ACC-109)', () => {
     await expect(gate.getByLabel('Vehicle registration')).toBeFocused()
   })
 
-  test('Without a sticker entry is not offered; Turn away with a reason logs TURNED AWAY', async ({ page }) => {
+  test('An unregistered plate is not offered entry; Turn away with a reason logs TURNED AWAY', async ({ page }) => {
     const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
     await gate.goto('/gate/vehicle')
     await gate.context().setOffline(true)
@@ -750,16 +768,16 @@ test.describe('vehicle gate (ACC-109)', () => {
     await gate.getByLabel('Vehicle registration').press('Enter')
     await expectVerdict(gate, 'Will not clear')
     // 1 Oct UX review: no "open gate" under a red verdict, not even disabled,
-    // and only the reason that applies: no sticker, so no wristband or plate to fault.
+    // and only the reason that applies: not registered, so no sticker or plate to fault.
     await expect(gate.getByRole('button', { name: 'Log entry and open gate' })).toHaveCount(0)
-    await expect(gate.getByRole('button', { name: 'No wristband' })).toHaveCount(0)
-    await expect(gate.locator('#vres .nm')).toHaveText(['Vehicle sticker'])
+    await expect(gate.getByRole('button', { name: 'No sticker' })).toHaveCount(0)
+    await expect(gate.locator('#vres .nm')).toHaveText(['Registered'])
     expect(await vehicleOutbox(gate)).toEqual([])
 
-    await gate.getByRole('button', { name: 'No sticker' }).click()
+    await gate.getByRole('button', { name: 'Not registered' }).click()
     await expectVerdict(gate, 'Turned away')
-    await expect(gate.locator('#vres')).toContainText('Reason: No sticker.')
-    await expect.poll(() => vehicleOutbox(gate)).toEqual([['turned_away', 'No sticker']])
+    await expect(gate.locator('#vres')).toContainText('Reason: Not registered.')
+    await expect.poll(() => vehicleOutbox(gate)).toEqual([['turned_away', 'Not registered']])
     await gate.context().setOffline(false)
     await expect.poll(() => vehiclePosts.map((post) => post.outcome)).toEqual(['turned_away'])
   })
@@ -822,18 +840,18 @@ test.describe('vehicle gate: told before deciding (ACC-159, lookup on Check sinc
     await expectVerdict(gate, 'Ready to clear')
     await expect(gate.locator('#vres')).toContainText('E2E Person 1')
     await expect(gate.locator('#vres')).toContainText('#V-0001')
-    await expect(gate.locator('#vres')).toContainText('#V-0001, bound to KA05MJ8871')
-    await expect(gate.locator('#vres')).toContainText('Crew, purple, band #0001')
-    for (const label of ['Vehicle sticker', 'Crew wristband', 'Plate matches sticker']) {
+    await expect(gate.locator('#vres')).toContainText('Look for sticker #V-0001 on the windscreen.')
+    for (const label of ['Registered', 'Vehicle sticker', 'Plate matches sticker']) {
       await expect(gate.locator('#vres .nm').filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible()
     }
     await expect(gate.locator('#vres .veh-mark.bad')).toHaveCount(0)
-    await expect(gate.locator('#vres .veh-mark.todo')).toHaveCount(1)
+    // ADR-031: the sticker and the plate are the officer's two checks.
+    await expect(gate.locator('#vres .veh-mark.todo')).toHaveCount(2)
     // Resolving is a read. Nothing is logged until the officer decides.
     expect(await vehicleOutbox(gate)).toEqual([])
   })
 
-  test('a sticker with no wristband says so before the press — the rule the screen exists for', async ({ page }) => {
+  test('ADR-031: a holder with no wristband still clears; the vehicle is not refused for a band', async ({ page }) => {
     const { page: gate } = await installFixture(page, ['success'])
     await seedVehicle(gate, 'KA05MJ8871', true, false)
     await gate.context().setOffline(true)
@@ -841,9 +859,27 @@ test.describe('vehicle gate: told before deciding (ACC-159, lookup on Check sinc
     await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
     await gate.getByLabel('Vehicle registration').press('Enter')
 
-    await expectVerdict(gate, 'Will not clear')
-    await expect(gate.locator('#vres')).toContainText('The sticker holder has no active wristband')
+    await expectVerdict(gate, 'Ready to clear')
+    await expect(gate.locator('#vres .nm').filter({ hasText: /wristband/i })).toHaveCount(0)
     expect(await vehicleOutbox(gate)).toEqual([])
+  })
+
+  test('ADR-031: a plate registered by someone not yet approved, with no sticker on record, is found and clears', async ({ page }) => {
+    const { page: gate, vehiclePosts } = await installFixture(page, ['success'])
+    await seedRegistration(gate, 'KA04AF2029')
+    await gate.context().setOffline(true)
+    await gate.goto('/gate/vehicle')
+    await gate.getByLabel('Vehicle registration').fill('KA04AF2029')
+    await gate.getByLabel('Vehicle registration').press('Enter')
+
+    await expectVerdict(gate, 'Ready to clear')
+    await expect(gate.locator('#vres')).toContainText('AMARESH, TRAVEL DESTINATION INC, Driver')
+    await gate.getByRole('button', { name: 'Log entry and open gate' }).click()
+    await expectVerdict(gate, 'Cleared')
+    await expect.poll(() => vehicleOutbox(gate)).toEqual([['cleared', null]])
+    await gate.context().setOffline(false)
+    await expect.poll(() => vehiclePosts.map((post) => post.outcome)).toEqual(['cleared'])
+    expect(vehiclePosts[0]?.checks).toEqual({ sticker: true, wristband: false, plateVisual: true })
   })
 
   test('the Check button looks the plate up, and Enter does the same', async ({ page }) => {
@@ -867,13 +903,13 @@ test.describe('vehicle gate: told before deciding (ACC-159, lookup on Check sinc
     await gate.context().setOffline(true)
     await gate.goto('/gate/vehicle')
     await gate.getByLabel('Vehicle registration').fill('KA 05 MJ 8871')
-    await expect(gate.getByText('Press Check to see the sticker and the wristband before you decide.')).toBeVisible()
+    await expect(gate.getByText('Press Check to see who the vehicle is registered to before you decide.')).toBeVisible()
     await expect(gate.getByRole('heading', { name: 'Ready to clear' })).toHaveCount(0)
     await gate.getByRole('button', { name: 'Check' }).click()
     await expectVerdict(gate, 'Ready to clear')
   })
 
-  test('an unknown plate says nothing is issued to it, before the press', async ({ page }) => {
+  test('an unknown plate says it is not on the list, before the press', async ({ page }) => {
     const { page: gate } = await installFixture(page, ['success'])
     await gate.goto('/gate/vehicle')
     await gate.context().setOffline(true)
@@ -881,7 +917,7 @@ test.describe('vehicle gate: told before deciding (ACC-159, lookup on Check sinc
     await gate.getByLabel('Vehicle registration').press('Enter')
 
     await expectVerdict(gate, 'Will not clear')
-    await expect(gate.locator('#vres')).toContainText('No sticker is issued to this registration')
+    await expect(gate.locator('#vres')).toContainText('This registration is not on the list')
     expect(await vehicleOutbox(gate)).toEqual([])
   })
 
@@ -908,7 +944,7 @@ test.describe('vehicle gate: told before deciding (ACC-159, lookup on Check sinc
     await gate.context().setOffline(true)
 
     // Empty: readable text, and no decision buttons yet (r8-vehicle.html's idle panel).
-    await expect(gate.getByText('Press Check to see the sticker and the wristband before you decide.')).toBeVisible()
+    await expect(gate.getByText('Press Check to see who the vehicle is registered to before you decide.')).toBeVisible()
     await expect(gate.getByRole('button', { name: 'Log entry and open gate' })).toHaveCount(0)
 
     // Invalid: the existing format line, still visible.
