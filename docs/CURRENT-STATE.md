@@ -5,6 +5,21 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (roster synced; GA guests accredited, migration applied live)._
 
+## Deployed: `main` at `1b70a4b`, 7 Oct 2026
+
+- **What (Vipin):** "push it": `eddac8a` (Passes QR on open) and `1b70a4b`
+  (guest crew types).
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction for this push:** the
+  pre-push `design fidelity` gate failed on the same known `main .num`
+  timeout (`scripts/visual-check.mjs:500`). `test:visual` did **not** check
+  this deploy. The hook's build and `check:sql` (46 migrations) passed.
+- **Checked after:** Vercel status `success` for `1b70a4b`;
+  `verify:deploy` 18/18 against the live site.
+- **Not checked:** the Passes QR change signed in on the live site, a real
+  phone, GitHub CI's final result.
+- **Rollback:** `git revert 1b70a4b` (roster lists only) and/or
+  `git revert eddac8a` (Passes QR).
+
 ## Crew types "Guest (Salman)" and "Guest (Saurabh)", 7 Oct 2026
 
 - **What (Vipin):** add guest **crew types** (form question, column E), not
