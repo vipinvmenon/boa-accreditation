@@ -3,7 +3,7 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 7 October 2026 (Passes list no longer ships a QR per person; not deployed)._
+_Last updated: 7 October 2026 (roster synced; GA guests accredited, migration applied live)._
 
 ## Crew types "Guest (Salman)" and "Guest (Saurabh)", 7 Oct 2026
 
@@ -30,6 +30,36 @@ _Last updated: 7 October 2026 (Passes list no longer ships a QR per person; not 
 - **Not checked:** whether those four are already imported. The importer never
   rewrites an existing person's role text, so if they are, their role stays
   "Family & Friends" in the app. Tier (column I) is unaffected either way.
+
+## Roster sync and GA guests, 7 Oct 2026
+
+- **What (Vipin):** "Sync the form to data base", then for the six `GA` rows
+  "Add that as well… Those are guests who have GA passes", then "A pass, band
+  at the desk"; "Reynolds" is the same company as Reynolds Sound & Lighting.
+- **Sheet:** `roster:fetch` worked without credentials again (the sheet is
+  back to "anyone with the link"; the script warns). 118 rows, saved as
+  `data/roster-2026-10-07.local.csv`.
+- **Load 1, as vipinmenon16@gmail.com (admin), `--partial`:** 33 approved,
+  26 inserted (waiting), 48 unchanged, 0 tier_changed/duplicate/invalid; 8
+  organisations created. The 6 GA rows were held back.
+- **Reynolds:** `"Reynolds" → "Reynolds Sound & Lighting Services Pvt. Ltd"`
+  added to `data/org-aliases.json`. `scripts/import-roster.mjs` changed so an
+  answer with an alias is never itself minted as a new org (it was, because
+  the alias's target was being created in the same run).
+- **GA (ADR-030):** migration `202610071000_boa_acc_import_general_admission.sql`
+  (the 30 Sep `boa_acc_import_approve` minus the GA refusal) dry-run, then
+  **applied to production**; `lib/roster-import.ts` accepts `General
+  Admission` and `GA`; `import-approve.test.sql` now asserts a GA row is
+  approved with a pass. Docs: ROSTER-FORM, OPERATIONS.
+- **Load 2:** 4 approved (GATC 2, BOA 1, BMS 1), 107 unchanged, 0 problems.
+- **Not loaded, needs the sheet fixed:** rows 88, 89 (GA) and 91 (Promoters
+  Lounge) are three different people using row 84's WhatsApp number; the
+  importer keys a person by phone, so they are skipped as repeats. Each needs
+  its own number, then a re-sync. Row 84 itself is undecided.
+- **Verified:** 58 importer unit tests; `check:sql`; `db:push --dry` then
+  `db:push`; `test:db` all files ok. typecheck, lint, unit tests: see the
+  commit. **Not verified:** a GA guest at a real gate; WhatsApp sends (none
+  made); the desk screens after the load.
 
 ## Passes list: QR drawn on open, not per person, 7 Oct 2026
 

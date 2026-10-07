@@ -1240,3 +1240,26 @@ trailing digits, so it should work). **The live Google Form still refuses `+`
 numbers**: `build-roster-form.gs` was changed but the live form was not; it is
 edited by hand or the script re-run.
 
+## ADR-030 — Named GA guests are accredited (7 Oct 2026)
+
+**Status:** accepted (Vipin, 7 Oct). Amends the 21 Sep rule (accreditation
+pack, above) that General Admission is "ticketing, never accredited here".
+
+**Context.** The response sheet's column I says `GA` for friends-and-family
+guests (GATC, BMS, BOA rows). The importer and `boa_acc_import_approve` refused
+them, so they were in no list at all. Vipin: "Those are guests who have GA
+passes… GA isn't a desk pass but still we need those", and chose a pass with
+the band collected at the desk over a list entry with no pass.
+
+**Decision.** `General Admission` (or `GA`) in column I approves the person as
+`general_admission` through the same RPC as every other tier: a pass, the GA
+band (Festival area only) handed over at accreditation, the same ledger.
+Migration `202610071000_boa_acc_import_general_admission.sql` removes only the
+refusal; `private.boa_acc_decide_one` never had one. The 3,000 public GA bands
+stay with ticketing. The desk's single-decision picker (`DECIDABLE_TIERS`) still
+does not offer GA: the sheet is where these guests are decided.
+
+**Verified:** 58 importer unit tests (GA and `GA` approve, a lower-case `ga`
+refused); the migration dry-run, then applied; `test:db` green with
+`import-approve.test.sql` now asserting a GA row is approved with a pass; a real
+load approved 4 GA guests. **Not verified:** a GA guest scanned at a real gate.

@@ -56,8 +56,10 @@ export const TSHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '3XL'] as const
 export type TshirtSize = (typeof TSHIRT_SIZES)[number]
 
 /** Column I's dropdown labels → tier codes: the pack's tier labels, pinned to
- *  lib/design.ts by the unit test. General Admission is not a choice. AAA and
- *  Artist ARE (ACC-140b): choosing them in the sheet is their approval. */
+ *  lib/design.ts by the unit test. AAA and Artist are choices (ACC-140b):
+ *  choosing them in the sheet is their approval. So is General Admission
+ *  since 7 Oct (Vipin): named GA guests get a pass and collect the GA band at
+ *  accreditation. */
 export const DESK_TIERS = {
   AAA: 'aaa',
   Artist: 'artist',
@@ -66,6 +68,12 @@ export const DESK_TIERS = {
   Crew: 'crew',
   Photo: 'photo',
   "Eddie's Lounge": 'eddies_lounge',
+  'General Admission': 'general_admission',
+} as const
+
+/** Short forms the desk actually types in column I, beside the labels. */
+export const DESK_TIER_SHORT = {
+  GA: 'general_admission',
 } as const
 
 export const DESK_TIER_CODES = [
@@ -76,6 +84,7 @@ export const DESK_TIER_CODES = [
   'crew',
   'photo',
   'eddies_lounge',
+  'general_admission',
 ] as const
 export type DeskTier = (typeof DESK_TIER_CODES)[number]
 
@@ -448,6 +457,7 @@ export function validateRoster(csv: string): Validation {
 
   const seen = new Map<string, number>() // phone -> first row_no
   const deskTiers = DESK_TIERS as Record<string, DeskTier>
+  const deskShort = DESK_TIER_SHORT as Record<string, DeskTier>
 
   table.forEach((cells, index) => {
     const row_no = index + 2 // the sheet's own row number
@@ -514,7 +524,7 @@ export function validateRoster(csv: string): Validation {
     // default tier. Anything not exactly one of the labels refuses the row
     // (a curly apostrophe in Eddie’s Lounge included).
     const deskRaw = hasDesk ? (cells[deskStart] ?? '').trim() : ''
-    const type_code = deskRaw === '' ? null : (deskTiers[deskRaw] ?? null)
+    const type_code = deskRaw === '' ? null : (deskTiers[deskRaw] ?? deskShort[deskRaw] ?? null)
     if (deskRaw !== '' && type_code === null) {
       errors.push(`${DESK_HEADER} "${deskRaw}" is not one of the desk's choices`)
     }

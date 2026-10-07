@@ -281,8 +281,9 @@ person, recorded next to the response:
 
 The dropdown's choices must be exactly the pack's tier labels, with a straight
 apostrophe: AAA · Artist · Stage · Promoters Lounge · Crew · Photo · Eddie's
-Lounge. **General Admission is not a choice**: it is the public ticket band, not
-an accreditation.
+Lounge · General Admission, plus the short form `GA`. **General Admission is a
+choice since 7 Oct (ADR-030)**: named guests on GA get a pass and collect the GA
+band at accreditation. The public ticket band is still ticketing's.
 
 **The importer accepts it** (`lib/roster-import.ts`, `DESK_HEADER`): the header
 may be the eight form columns *optionally followed by this one*, and nothing
@@ -302,9 +303,9 @@ ACC-140a/b):**
   nomination guard the desk uses. `/desk/aaa` is not part of this path.
 - A blank cell means *not yet decided*: the row imports as `submitted`, with
   no pass, and the importer lists it for Salman.
-- Anything that is not exactly one of the seven labels refuses that row — a
-  curly apostrophe in `Eddie’s Lounge`, a lower-case `stage` and
-  `General Admission` included.
+- Anything that is not exactly one of the eight labels (or `GA`) refuses that
+  row — a curly apostrophe in `Eddie’s Lounge` and a lower-case `stage`
+  included.
 - Changing a cell for someone **already approved** is reported by the next
   import (`tier_changed`) and **not applied**: their pass may already be out.
   The desk changes it, not the sheet.
@@ -415,7 +416,7 @@ or a phone.
 | `skipped` | the person was rejected by the desk (or is a web-form draft); column I is not applied over it |
 | `refused` | a guard refused the approval (e.g. `aaa_not_nominated` when that phone's AAA nomination is already stamped to someone else). A new person stays imported as `submitted` |
 | `duplicate_phone` | the phone is earlier in the same call, or live on **another** organisation's roster |
-| `invalid` | a field rule failed, no days, or `general_admission` |
+| `invalid` | a field rule failed, or no days (`general_admission` was invalid until 7 Oct, ADR-030) |
 
 - **Idempotent on phone.** A person is matched by organisation and phone
   (non-voided). Re-running the same file approves rows decided since the last

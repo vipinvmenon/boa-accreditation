@@ -8,7 +8,8 @@
 -- @proves: HIGH     | re-running the same rows is a no-op (unchanged), and a later run approves only the newly decided row
 -- @proves: CRITICAL | AAA whose nomination is already stamped to someone else is still refused by decide_one (the guard is live, not bypassed)
 -- @proves: HIGH     | Artist from the sheet is approved as artist
--- @proves: HIGH     | a phone repeated in one call, or live on another org, is refused as duplicate_phone; general_admission and a missing day are invalid
+-- @proves: HIGH     | a phone repeated in one call, or live on another org, is refused as duplicate_phone; a missing day is invalid
+-- @proves: HIGH     | general_admission from the sheet is approved with a pass (named GA guests, 7 Oct)
 --
 -- ONE statement, cleanup in the same statement — the shape of
 -- import-roster.test.sql and decide.test.sql. Every JWT-dependent call is its
@@ -206,7 +207,7 @@ with
     union all select 1, is(
       (select array_agg(outcome order by row_no) from call1),
       array['approved','inserted','approved','approved','duplicate_phone',
-            'invalid','invalid','approved','duplicate_phone','refused'],
+            'approved','invalid','approved','duplicate_phone','refused'],
       'first run: decided rows approved, the blank row inserted, duplicates and bad rows refused per row')
     union all select 2, ok(
       (select (r).status = 'approved' and (r).type_code = 'stage' and (r).day_validity = 'build'
@@ -238,8 +239,10 @@ with
       (select detail ~ 'another organisation' and person_id is null from call1 where row_no = 10),
       'a phone live on another org is refused, and nothing is written for it')
     union all select 9, ok(
-      (select detail ~ 'general_admission' from call1 where row_no = 7),
-      'general_admission is refused: not an accreditation')
+      (select (r).status = 'approved' and (r).type_code = 'general_admission' and (r).day_validity = 'show'
+              and (r).pass_token is not null
+         from reads1 where row_no = 7),
+      'column I "General Admission" → approved as general_admission with a pass')
     union all select 10, ok(
       (select detail ~ 'day_validity' from call1 where row_no = 8),
       'a row with no days is refused')
@@ -263,11 +266,11 @@ with
     union all select 14, is(
       (select array_agg(outcome order by row_no) from call2),
       array['unchanged','unchanged','unchanged','unchanged','duplicate_phone',
-            'invalid','invalid','unchanged','duplicate_phone','refused'],
+            'unchanged','invalid','unchanged','duplicate_phone','refused'],
       're-running the same sheet changes nothing')
     union all select 15, is(
       (select array_agg(person_id order by row_no) from call2 where outcome = 'unchanged'),
-      (select array_agg(person_id order by row_no) from call1 where row_no in (2, 3, 4, 5, 9)),
+      (select array_agg(person_id order by row_no) from call1 where row_no in (2, 3, 4, 5, 7, 9)),
       'a re-run matches the same people by phone, never a second row')
 
     -- A later export: one newly decided row, three changes

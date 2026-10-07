@@ -210,10 +210,12 @@ sends what, when.
 <https://docs.google.com/spreadsheets/d/1i8lwUIDdZ3BNuAN-QsTM0UsHceDXStGmINjb3bIVFXs/edit>.
 For each new row without a value in column I ("Accreditation Type"), decide which
 band colour goes with this person: **AAA · Artist · Stage · Promoters Lounge ·
-Crew · Photo · Eddie's Lounge**. Type the exact label from that list, with a
-straight apostrophe. If you are not sure yet, leave the cell blank — that person
-is imported but waits, and gets no pass until you fill it in. General Admission is
-not a choice (it is the public ticket band, not an accreditation).
+Crew · Photo · Eddie's Lounge · General Admission**. Type the exact label from
+that list, with a straight apostrophe; `GA` also works for General Admission. If
+you are not sure yet, leave the cell blank — that person is imported but waits,
+and gets no pass until you fill it in. General Admission is for **named guests**
+(friends and family) who collect a GA band at accreditation (ADR-030); the public
+GA bands are still issued by ticketing.
 
 **Sync.** One command pulls the sheet, validates it, and dry-runs it against the
 database. It writes nothing:
@@ -298,7 +300,7 @@ another tier or days, or the cell was cleared — **reported, never silently app
 **duplicate_phone** (the same number twice in this sheet or already on another org),
 **skipped** (already rejected by the desk), **refused** (approval guard failed, e.g.
 AAA nomination already stamped to someone else), or **invalid** (field rule failed,
-e.g. a curly apostrophe in `Eddie's Lounge`, or `General Admission`).
+e.g. a curly apostrophe in `Eddie's Lounge`, or a lower-case `ga`).
 
 Every outcome goes in the report file with the row number, organisation, and reason.
 The file never holds a name or a phone number.

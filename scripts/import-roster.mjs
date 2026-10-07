@@ -131,7 +131,12 @@ async function main() {
   // restores the old rule (report by row, never guess).
   const newOrgs = new Map() // pseudo id → { name, rows }
   if (match.unmatched.size > 0 && !noCreateOrgs) {
-    const rec = reconcileOrganisations(match.unmatched, orgs.map((o) => o.name))
+    // An answer with an alias names its org already: it waits for that org
+    // (created below, or reported as unknown), and is never a new org itself
+    // (7 Oct: "Reynolds" would otherwise have been minted beside the
+    // "Reynolds Sound & Lighting…" this same run creates).
+    const loose = new Map([...match.unmatched].filter(([name]) => !resolveOrganisation(name, aliases).aliased))
+    const rec = reconcileOrganisations(loose, orgs.map((o) => o.name))
     const extended = new Map(aliases)
     for (const m of rec.merges) {
       extended.set(orgKey(m.from), m.to)

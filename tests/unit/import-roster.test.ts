@@ -66,7 +66,7 @@ const deskSheet = (...rows: [string, string][]) =>
   [`${HEADER},${DESK_HEADER}`, ...rows.map(([r, desk]) => `${r},${csvCell(desk)}`)].join('\r\n') + '\r\n'
 
 const migration = readFileSync(
-  new URL('../../supabase/migrations/202609301000_boa_acc_crew_tshirt.sql', import.meta.url),
+  new URL('../../supabase/migrations/202610071000_boa_acc_import_general_admission.sql', import.meta.url),
   'utf8',
 )
 
@@ -188,17 +188,24 @@ describe('column I, Accreditation Type, is the approval (ACC-141)', () => {
     for (const p of toRpcPayload(v.rows)) expect(importRowSchema.safeParse(p).success).toBe(true)
   })
 
-  it('refuses a value that is not exactly one of the labels, by row — General Admission and a curly apostrophe included', () => {
+  it('General Admission, and the desk\'s own "GA", approve as general_admission (7 Oct)', () => {
+    const v = validateRoster(deskSheet([row(), 'GA'], [row({ 'WhatsApp number': '9876543211' }), 'General Admission']))
+    expect(v.errors).toEqual([])
+    expect(v.rows.map((r) => r.type_code)).toEqual(['general_admission', 'general_admission'])
+    for (const p of toRpcPayload(v.rows)) expect(importRowSchema.safeParse(p).success).toBe(true)
+  })
+
+  it('refuses a value that is not exactly one of the labels, by row — a lower-case "ga" and a curly apostrophe included', () => {
     const v = validateRoster(
       deskSheet(
-        [row(), 'General Admission'],
+        [row(), 'ga'],
         [row({ 'WhatsApp number': '9876543211' }), 'Eddie’s Lounge'],
         [row({ 'WhatsApp number': '9876543212' }), 'stage'],
         [row({ 'WhatsApp number': '9876543213' }), "Eddie's Lounge"],
       ),
     )
     expect(v.errors.map((e) => e.row_no)).toEqual([2, 3, 4])
-    expect(v.errors[0]!.errors.join()).toMatch(/Accreditation type "General Admission" is not one of the desk's choices/)
+    expect(v.errors[0]!.errors.join()).toMatch(/Accreditation type "ga" is not one of the desk's choices/)
     expect(v.rows.map((r) => r.type_code)).toEqual(['eddies_lounge'])
   })
 
@@ -476,12 +483,11 @@ describe('pinned to the form, the pack and the migration', () => {
     expect(Object.keys(DAYS_ANSWERS)).toEqual(ctx['DAYS'])
   })
 
-  it('the desk column\'s choices are the pack\'s tier labels, minus General Admission', () => {
+  it('the desk column\'s choices are the pack\'s tier labels, General Admission included (7 Oct)', () => {
     for (const [label, code] of Object.entries(DESK_TIERS)) {
       expect(TIERS.find((t) => t.code === code)?.label, label).toBe(label)
     }
-    expect(Object.values(DESK_TIERS)).not.toContain('general_admission')
-    expect(Object.keys(DESK_TIERS)).toHaveLength(TIERS.length - 1)
+    expect(Object.keys(DESK_TIERS)).toHaveLength(TIERS.length)
     expect([...DESK_TIER_CODES].sort()).toEqual(Object.values(DESK_TIERS).sort())
   })
 
