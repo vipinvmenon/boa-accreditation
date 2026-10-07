@@ -5,6 +5,22 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; migration applied live)._
 
+## Master list: no "Sticker" pill on plates, 7 Oct 2026
+
+- **What (Vipin):** "Remove that sticker label and push it again": the amber
+  `Sticker` pill beside a plate with no sticker recorded (master list, Vehicle
+  column). Since ADR-031 that is not a pending item. The column shows the
+  plate only; the person sheet still says "sticker not issued".
+- **Commit `38271fd`:** typecheck, lint, 363 unit tests (pre-commit). Not
+  looked at in a browser.
+- **Push:** GitHub refused every push from 20:39 to 20:46 with "Internal
+  Server Error" (any branch); retried with `--no-verify` once the hook's
+  build and `check:sql` had passed for this commit. Landed 20:47.
+- **Deploy:** Vercel `dpl_4aBkp3oABA9sStJwjgqC9rcN151U` for `38271fd`
+  **failed 3 s after starting**; its logs could not be read here (the Vercel
+  MCP is refused for the `vipin-menon` scope, no CLI). This docs commit is
+  pushed to trigger a fresh deploy; see the next entry for its result.
+
 ## Deployed: `main` at `471d7e6`, 7 Oct 2026
 
 - **What (Vipin):** the vehicle plate change (`471d7e6`, ADR-031) and the two
