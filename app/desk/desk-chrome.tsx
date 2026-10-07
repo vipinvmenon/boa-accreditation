@@ -43,6 +43,9 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  // Desk pages are force-dynamic, so the URL only changes once the server has rendered the
+  // target. The clicked link is current straight away; the pathname takes over on arrival.
+  const [pending, setPending] = useState<{ href: string; from: string } | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const profileButtonRef = useRef<HTMLButtonElement>(null)
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
@@ -121,7 +124,9 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
 
-  const activeNav = DESK_NAV.find((item) => item.href === pathname)?.id
+  const pendingHref = pending && pending.from === pathname ? pending.href : null
+
+  const activeNav = DESK_NAV.find((item) => item.href === (pendingHref ?? pathname))?.id
 
   useLayoutEffect(() => {
     const links = document.getElementById('desk-links')
@@ -130,13 +135,17 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
 
     const movePip = () => {
       const active = links.querySelector<HTMLElement>('[aria-current="page"]')
+      // /desk/users is reached from the operator menu and has no nav item: with
+      // nothing current there is nothing for the pill to sit under.
+      pip.hidden = !active
       if (!active) return
       pip.style.width = `${active.offsetWidth}px`
       pip.style.transform = `translateX(${active.offsetLeft}px)`
     }
 
     const previous = window.sessionStorage.getItem('boa-pip')
-    if (previous) {
+    // The handed-over geometry is for gliding to a nav link; skip it when this page has none.
+    if (previous && links.querySelector('[aria-current="page"]')) {
       try {
         const geometry = JSON.parse(previous) as { left?: number; width?: number }
         if (typeof geometry.left === 'number' && typeof geometry.width === 'number') {
@@ -229,7 +238,11 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
               {DESK_NAV.map((item) => {
                 const active = item.id === activeNav
                 return (
-                  <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={(event) => glidePip(event.currentTarget)}>
+                  <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} onClick={(event) => {
+                    glidePip(event.currentTarget)
+                    // /gate swaps in GateChrome, which finishes the glide itself (see glidePip).
+                    if (!item.href.startsWith('/gate')) setPending({ href: item.href, from: pathname })
+                  }}>
                     {item.label}
                   </Link>
                 )
@@ -274,6 +287,7 @@ export function DeskChrome({ children }: { children: React.ReactNode }) {
         </header>
         <div id="desk-menu" className="menu" aria-hidden={!mobileOpen} hidden={!mobileOpen} inert={!mobileOpen}>
           {DESK_NAV.map((item, index) => <Link key={item.id} href={item.href} aria-current={item.id === activeNav ? 'page' : undefined} tabIndex={mobileOpen ? 0 : -1} style={{ '--i': index } as React.CSSProperties} onClick={() => {
+            if (!item.href.startsWith('/gate')) setPending({ href: item.href, from: pathname })
             closeMobileMenu()
           }}>{item.label}</Link>)}
         </div>
