@@ -103,7 +103,7 @@ with
       jsonb_build_object('row_no', 3,  'full_name', 'Blank Person',  'phone', '+919141000003', 'role_text', 'Security', 'type_code', null,     'day_validity', 'show'),
       jsonb_build_object('row_no', 4,  'full_name', 'Aaa Person',    'phone', '+919141000004', 'role_text', 'Director', 'type_code', 'aaa',    'day_validity', 'build_show'),
       jsonb_build_object('row_no', 5,  'full_name', 'Artist Person', 'phone', '+919141000005', 'role_text', 'Guitar',   'type_code', 'artist', 'day_validity', 'show'),
-      jsonb_build_object('row_no', 6,  'full_name', 'Blank Again',   'phone', '+919141000003', 'role_text', 'Security', 'type_code', 'crew',   'day_validity', 'show'),
+      jsonb_build_object('row_no', 6,  'full_name', 'blank  person',  'phone', '+919141000003', 'role_text', 'Security', 'type_code', 'crew',   'day_validity', 'show'),
       jsonb_build_object('row_no', 7,  'full_name', 'Ticket Person', 'phone', '+919141000007', 'role_text', 'Guest',    'type_code', 'general_admission', 'day_validity', 'show'),
       jsonb_build_object('row_no', 8,  'full_name', 'No Days',       'phone', '+919141000008', 'role_text', 'Crew',     'type_code', 'crew'),
       jsonb_build_object('row_no', 9,  'full_name', 'Pending Aaa',   'phone', '+919141000009', 'role_text', 'Manager',  'type_code', 'aaa',    'day_validity', 'build_show'),

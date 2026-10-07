@@ -1296,3 +1296,34 @@ back to the sticker index for a cache from before the store was filled.
 **Consequence.** Gate phones now hold the name, company and role of people
 not yet approved who gave a plate. Turn-away reasons are "Not registered", "No
 sticker" and "Plate does not match sticker"; "No wristband" is gone.
+
+
+## ADR-032 — Two people may share one phone in one organisation (7 Oct 2026)
+
+**Status:** proposed, migration dry-run only (Vipin, 7 Oct). Amends the "one
+number, one person" rule in OPERATIONS.md. **Not applied to production.**
+
+**Context.** Reynolds' crew list (64 people) gave PATRICK .A and ABHISHEK
+THIMMAIAH the same number, 8553085354. A person was identified by
+organisation + phone, so the second would be refused as `duplicate_phone`
+(database) and dropped as a repeat (importer). Vipin: "put the same number for
+those rather than skipping... send both passes to same".
+
+**Decision.** A person is identified by organisation + phone + name (trimmed,
+spaces collapsed, case-folded). The same phone under a different name is a
+second person with their own pass; the same phone and name is still one
+person and a repeat is still `duplicate_phone`. Migration
+`202610071200_boa_acc_same_phone_two_people.sql`: the unique index
+`boa_acc_person_org_phone_idx` gains the name key, and `boa_acc_import_approve`
+and `boa_acc_import_roster` match on phone and name. `lib/roster-import.ts`
+dedupes the sheet on phone and name.
+
+**Unchanged on purpose.** A phone live on another organisation's roster is
+still refused. `boa_acc_aaa_nomination` stays keyed on phone alone, so two AAA
+nominations on one phone are not supported. `boa_acc_submit` is untouched; its
+`duplicate_phone` now fires on the same phone and name.
+
+**Consequence.** Both passes go by WhatsApp to the one number and arrive as
+two messages; each pass names its holder. A person typed twice with different
+spellings is no longer caught as a repeat, so the desk checks the list by
+eye. The BMS ticket key is still per person.

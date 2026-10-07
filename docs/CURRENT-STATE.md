@@ -56,19 +56,25 @@ _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; 
   MCP is refused for the `vipin-menon` scope, no CLI). This docs commit is
   pushed to trigger a fresh deploy; see the next entry for its result.
 
-## Two people on one phone, ADR-032: built, NOT applied, 7 Oct 2026
+## Two people on one phone, ADR-032: applied, 7 Oct 2026
 
 - **What (Vipin):** Reynolds' PATRICK .A and ABHISHEK THIMMAIAH share
   8553085354; "send both passes to same". A person is now org + phone + name.
-- **Built, uncommitted:** migration `202610071200_boa_acc_same_phone_two_people.sql`,
-  `lib/roster-import.ts` dedupe, new `same-phone-two-people.test.sql`, three
-  older tests given same-name repeats, ADR-032.
-- **Checked:** `db:dry` compiles and rolls back; every `supabase/tests` file
-  passes with the migration applied inside a transaction that was rolled back;
-  typecheck, unit tests (364) and `check:sql` pass.
-- **Not checked / not done:** the migration is **not applied to production**;
-  `test:db` has not run against it applied; nothing committed or pushed; the
-  Reynolds rows are not on the sheet or imported.
+- **Database:** `202610071200_boa_acc_same_phone_two_people.sql` dry-run, then
+  **applied to production** (`db:push`; listed by `db:state`). The code that
+  uses it is in the commit that carries this note, **not yet deployed**.
+- **Checked:** every `supabase/tests` file passed with the migration applied
+  inside a rolled-back transaction; typecheck, 364 unit tests and `check:sql`
+  pass. Live: both people are `approved` with their own pass (Patrick `aaa`,
+  Abhishek `stage`).
+- **Roster load, as vipinmenon16@gmail.com:** 43 Reynolds rows pasted at sheet
+  rows 128-170, all column I `Stage` (BACK STAGE and FOH alike, Vipin).
+  `roster:sync` loaded 9 inserted, 64 approved, 91 unchanged, 2 `duplicate_phone`
+  (BMS friends & Family rows 88-89, phones on another org). Of the 64, 43 are
+  these rows; 21 were already decided in the sheet by someone else.
+- **Not checked / not done:** `test:db` against production with the migration
+  applied; the passes are not sent (Vipin's click on `/desk/passes`);
+  ACC-151 (WhatsApp Cloud API) is still listed as blocked.
 
 ## Deployed: `main` at `471d7e6`, 7 Oct 2026
 

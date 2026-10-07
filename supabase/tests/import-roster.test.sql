@@ -101,13 +101,13 @@ with
         jsonb_build_array(
           jsonb_build_object('row_no', 2,  'full_name', 'Small A', 'phone', '+919001100001', 'role_text', 'Security'),
           jsonb_build_object('row_no', 3,  'full_name', 'Small B', 'phone', '+919001100002', 'role_text', 'Stage hand', 'requested_type_code', 'stage', 'vehicle_reg', 'ka01 ab 1234'),
-          jsonb_build_object('row_no', 4,  'full_name', 'Small C', 'phone', '+919001100001', 'role_text', 'Security'),
+          jsonb_build_object('row_no', 4,  'full_name', 'Small A', 'phone', '+919001100001', 'role_text', 'Security'),
           jsonb_build_object('row_no', 5,  'full_name', 'Small D', 'phone', '+919001100003', 'role_text', 'Security'),
           jsonb_build_object('row_no', 6,  'full_name', 'Small E', 'phone', '+919001100004', 'role_text', 'Security'),
           jsonb_build_object('row_no', 7,  'full_name', 'Small F', 'phone', '12345',         'role_text', 'Security'),
           jsonb_build_object('row_no', 8,  'full_name', 'Small G', 'phone', '+919001100005', 'role_text', 'Security', 'requested_type_code', 'aaa'),
           jsonb_build_object('row_no', 9,  'full_name', 'Small H', 'phone', '+919001100006', 'role_text', 'Security', 'submitted_at', '2026-09-21 10:00:00'),
-          jsonb_build_object('row_no', 10, 'full_name', 'Small I', 'phone', '+919001100002', 'role_text', 'Security')
+          jsonb_build_object('row_no', 10, 'full_name', 'Small B', 'phone', '+919001100002', 'role_text', 'Security')
         )
       ) r
      where (select count(*) from big) = 500

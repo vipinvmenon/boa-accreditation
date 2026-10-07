@@ -243,7 +243,7 @@ remember:
 | New row, column I blank | Imported as `submitted` — no pass until Salman decides |
 | A row already imported | `unchanged` |
 | Column I changed **after** that person was approved | `tier_changed` — **reported, never applied** |
-| Same phone twice in one organisation | `duplicate_phone`, refused |
+| Same phone **and name** twice in one organisation | `duplicate_phone`, refused. The same phone under a different name is a second person (ADR-032, once applied) |
 
 The fourth row is the one to watch. Someone already holding a pass never has it
 silently swapped; the database reports it and a person decides. **Those reports

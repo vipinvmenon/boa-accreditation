@@ -65,10 +65,12 @@ const sheet = (...rows: string[]) => [HEADER, ...rows].join('\r\n') + '\r\n'
 const deskSheet = (...rows: [string, string][]) =>
   [`${HEADER},${DESK_HEADER}`, ...rows.map(([r, desk]) => `${r},${csvCell(desk)}`)].join('\r\n') + '\r\n'
 
-const migration = readFileSync(
-  new URL('../../supabase/migrations/202610071000_boa_acc_import_general_admission.sql', import.meta.url),
+// The live boa_acc_import_approve (ADR-032); the file also carries import_roster, which reads other keys.
+const migrationFile = readFileSync(
+  new URL('../../supabase/migrations/202610071200_boa_acc_same_phone_two_people.sql', import.meta.url),
   'utf8',
 )
+const migration = migrationFile.slice(migrationFile.indexOf('create or replace function public.boa_acc_import_approve'))
 
 describe('the column contract', () => {
   it('accepts the exact header and refuses a renamed column', () => {
@@ -395,13 +397,20 @@ describe('organisations: aliases and matching (ACC-142)', () => {
     expect(() => parseOrgAliases({ source: 'x', aliases: {}, extra: 1 })).toThrow()
   })
 
-  it('keeps the first of a phone repeated anywhere in the sheet, whatever organisation it names', () => {
-    const v = validateRoster(sheet(row(), row({ 'Full name': 'Ravi K', Organisation: 'Other Org' })))
+  it('keeps the first of a phone and name repeated anywhere in the sheet, whatever organisation it names', () => {
+    const v = validateRoster(sheet(row(), row({ 'Full name': ' RAVI   KUMAR ', Organisation: 'Other Org' })))
     expect(v.rows).toHaveLength(1)
     expect(v.rows[0]?.row_no).toBe(2)
     expect(v.duplicates).toEqual([{ row_no: 3, organisation: 'Other Org', duplicate_of: 2 }])
     expect(v.errors).toEqual([])
     expect(v.warnings.join('\n')).toMatch(/row 3 = row 2/)
+  })
+
+  it('keeps two different people who share one phone (ADR-032)', () => {
+    const v = validateRoster(sheet(row(), row({ 'Full name': 'Ravi K' })))
+    expect(v.rows.map((r) => r.row_no)).toEqual([2, 3])
+    expect(v.duplicates).toEqual([])
+    expect(v.errors).toEqual([])
   })
 })
 

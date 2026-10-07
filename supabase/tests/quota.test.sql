@@ -113,11 +113,11 @@ with
     union all select 5, throws_ok(
       format(
         'select public.boa_acc_submit(%L, %L, %L, %L)',
-        (select token from spare_tok), 'Second', '+919877777777', 'Stage'
+        (select token from spare_tok), 'first ', '+919877777777', 'Stage'
       ),
       'P0001',
       'duplicate_phone',
-      'same phone in the same org is refused while quota remains'
+      'same phone and name in the same org is refused while quota remains'
     )
     union all select 6, throws_ok(
       format(

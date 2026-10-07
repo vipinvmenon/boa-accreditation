@@ -187,9 +187,10 @@ export type Validation = {
   /** Not refusals: facts the desk should see before loading. */
   warnings: string[]
   /**
-   * Rows whose phone already appeared in an earlier valid row of the sheet. The
-   * earliest submission is kept; these are left out of `rows`, whichever
-   * organisation they name, so the same person cannot reach two rosters.
+   * Rows whose phone AND name already appeared in an earlier valid row of the
+   * sheet. The earliest submission is kept; these are left out of `rows`,
+   * whichever organisation they name, so the same person cannot reach two
+   * rosters. Two different names on one phone are two people (ADR-032).
    */
   duplicates: { row_no: number; organisation: string; duplicate_of: number }[]
   /** Valid rows with no column I decision: they import as submitted, for Salman. */
@@ -455,7 +456,7 @@ export function validateRoster(csv: string): Validation {
     out.warnings.push(`No "${DESK_HEADER}" column: every row imports as submitted, none is approved.`)
   }
 
-  const seen = new Map<string, number>() // phone -> first row_no
+  const seen = new Map<string, number>() // phone|name -> first row_no
   const deskTiers = DESK_TIERS as Record<string, DeskTier>
   const deskShort = DESK_TIER_SHORT as Record<string, DeskTier>
 
@@ -574,15 +575,18 @@ export function validateRoster(csv: string): Validation {
       return
     }
 
-    // One person, one submission. The database already refuses a phone twice on
-    // the same roster; a repeat that names a differently spelled organisation
-    // would get past that, so the sheet is checked across all of them here.
-    const first = seen.get(phone)
+    // One person, one submission. The database already refuses a phone and name
+    // twice on the same roster; a repeat that names a differently spelled
+    // organisation would get past that, so the sheet is checked across all of
+    // them here. The same phone under a different name is a different person
+    // (ADR-032: two people may share a number, and each gets a pass).
+    const personKey = `${phone}|${nameRaw.trim().replace(/\s+/g, ' ').toLowerCase()}`
+    const first = seen.get(personKey)
     if (first !== undefined) {
       out.duplicates.push({ row_no, organisation, duplicate_of: first })
       return
     }
-    seen.set(phone, row_no)
+    seen.set(personKey, row_no)
 
     const writeIn = !(FORM_CREW_TYPES as readonly string[]).includes(crewType)
     if (writeIn) {
@@ -596,7 +600,7 @@ export function validateRoster(csv: string): Validation {
 
   if (out.duplicates.length > 0) {
     out.warnings.push(
-      `${out.duplicates.length} row(s) repeat a phone already in an earlier row and are not imported ` +
+      `${out.duplicates.length} row(s) repeat a phone and name already in an earlier row and are not imported ` +
         `(${out.duplicates.map((d) => `row ${d.row_no} = row ${d.duplicate_of}`).join(', ')}). The earliest is kept.`,
     )
   }
