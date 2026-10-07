@@ -70,10 +70,22 @@ let legacyRevived = false
  *  - Before this fix, eight sends without signal made a row 'failed' for
  *    good. Those rows never had an HTTP status (describeFailure was not
  *    writing one), so a 'failed' row without one is retried once per page
- *    load. A real refusal comes back as one and stays failed.
+ *    load (reviveLegacyFailures). A real refusal comes back as one and stays
+ *    failed.
  */
 async function recoverOrphans(): Promise<void> {
   await gateDb.outbox.where('status').equals('syncing').modify({ status: 'pending', nextAttemptAt: 0 })
+  await reviveLegacyFailures()
+}
+
+/**
+ * The once-per-page half of recoverOrphans, exported for the sync scheduler.
+ * The scheduler drains only when something is pending, so a device whose
+ * only stuck row was one of these old failures never drained, never revived
+ * it, and showed "1 not accepted · tell a lead" for good (7 Oct). The
+ * scheduler now calls this before it counts the queue.
+ */
+export async function reviveLegacyFailures(): Promise<void> {
   if (legacyRevived) return
   legacyRevived = true
   await gateDb.outbox

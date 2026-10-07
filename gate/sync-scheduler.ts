@@ -34,6 +34,7 @@
  */
 import { gateIssueResultSchema } from '@/lib/schemas/gate'
 import { gateDb, ledgerRowSchema, metaRowSchema } from './db'
+import { reviveLegacyFailures } from './outbox'
 import { hasAuthStoppedEntry, nextAttemptDelayMs, type OutboxEntryState } from './outbox-policy'
 
 export const TICK_MS = 5_000
@@ -328,7 +329,10 @@ export function createGateSyncDeps(options: {
   return {
     drain: options.drain,
     pull: () => pullAndReconcile(options.pull),
-    readQueue: () => gateDb.outbox.where('status').anyOf('pending', 'syncing', 'failed').toArray(),
+    readQueue: async () => {
+      await reviveLegacyFailures()
+      return gateDb.outbox.where('status').anyOf('pending', 'syncing', 'failed').toArray()
+    },
     hasCredentials: options.hasCredentials,
     isOnline: () => navigator.onLine,
     isVisible: () => document.visibilityState === 'visible',

@@ -225,4 +225,29 @@ describe('a gate phone never stops sending for good (6 Oct)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(await statuses()).toEqual(['done', 'done'])
   })
+
+  it('revives an old failure when it is the only row, so the scheduler sees it as pending (7 Oct)', async () => {
+    await queueTwo()
+    await gateDb.outbox.where('idempotencyKey').equals(KEYS[1]!).delete()
+    // The pre-fix drain's lastError for a thrown plain object, and the only row left.
+    await gateDb.outbox.where('idempotencyKey').equals(KEYS[0]!).modify({ status: 'failed', attempts: 8, lastError: '[object Object]' })
+    vi.resetModules()
+    const { createGateSyncDeps } = await import('./sync-scheduler')
+    const deps = createGateSyncDeps({ drain: async () => {}, pull: async () => {}, hasCredentials: () => true })
+
+    const queue = await deps.readQueue()
+
+    expect(queue.map((row) => row.status)).toEqual(['pending'])
+  })
+
+  it('leaves a real refusal (an HTTP answer) failed when the scheduler counts the queue', async () => {
+    await queueTwo()
+    await gateDb.outbox.where('idempotencyKey').equals(KEYS[1]!).delete()
+    await gateDb.outbox.where('idempotencyKey').equals(KEYS[0]!).modify({ status: 'failed', attempts: 1, lastError: 'HTTP 404: {"error":"not_found"}' })
+    vi.resetModules()
+    const { createGateSyncDeps } = await import('./sync-scheduler')
+    const deps = createGateSyncDeps({ drain: async () => {}, pull: async () => {}, hasCredentials: () => true })
+
+    expect((await deps.readQueue()).map((row) => row.status)).toEqual(['failed'])
+  })
 })
