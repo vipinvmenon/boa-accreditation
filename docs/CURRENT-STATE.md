@@ -56,13 +56,26 @@ _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; 
   MCP is refused for the `vipin-menon` scope, no CLI). This docs commit is
   pushed to trigger a fresh deploy; see the next entry for its result.
 
+## Deployed: `main` at `e48592d`, 7 Oct 2026
+
+- **What (Vipin):** "push it": the ADR-032 commit (two people on one phone).
+- **Pushed with `SKIP_VISUAL=1`, on Vipin's instruction for this push:** the
+  pre-push `design fidelity` gate failed on the same known `main .num`
+  timeout (`scripts/visual-check.mjs:500`). `test:visual` did **not** check
+  this deploy. Build and `check:sql` passed.
+- **Checked after:** Vercel status `success` for `e48592d`; `verify:deploy`
+  18/18 against the live site.
+- **Not checked:** GitHub CI's final result; the Reynolds passes (not sent).
+- **Rollback:** `git revert e48592d` (app). The live migration stays; the old
+  importer would then drop a repeated phone as before.
+
 ## Two people on one phone, ADR-032: applied, 7 Oct 2026
 
 - **What (Vipin):** Reynolds' PATRICK .A and ABHISHEK THIMMAIAH share
   8553085354; "send both passes to same". A person is now org + phone + name.
 - **Database:** `202610071200_boa_acc_same_phone_two_people.sql` dry-run, then
   **applied to production** (`db:push`; listed by `db:state`). The code that
-  uses it is in the commit that carries this note, **not yet deployed**.
+  uses it is deployed (`e48592d`, below).
 - **Checked:** every `supabase/tests` file passed with the migration applied
   inside a rolled-back transaction; typecheck, 364 unit tests and `check:sql`
   pass. Live: both people are `approved` with their own pass (Patrick `aaa`,
