@@ -93,9 +93,11 @@ Three layers, so nothing reaches production unverified:
 
 1. **pre-commit** (`.githooks/pre-commit`) — typecheck, design gates, unit
    tests. Fast, because a hook people bypass is not a hook.
-2. **pre-push** (`.githooks/pre-push`) — full build, then `test:visual`, then
-   `check:sql` if migrations exist. This is the last point before a push
-   triggers a real Vercel deploy. Skip deliberately with `SKIP_VISUAL=1 git push`.
+2. **pre-push** (`.githooks/pre-push`) — full build, then `check:sql` if
+   migrations exist. This is the last point before a push triggers a real
+   Vercel deploy. `test:visual` was **removed from this hook on 7 Oct 2026**
+   (Vipin): it timed out on `main .num` and blocked every push. It still runs
+   in CI and by hand; run it for any UI change.
 3. **CI + deployment_status** — `ci.yml` on every push; `deploy-verify.yml` when
    Vercel reports a successful production deploy, plus daily at 08:00 IST.
 

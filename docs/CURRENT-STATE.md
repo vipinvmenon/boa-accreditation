@@ -56,6 +56,17 @@ _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; 
   MCP is refused for the `vipin-menon` scope, no CLI). This docs commit is
   pushed to trigger a fresh deploy; see the next entry for its result.
 
+## Pre-push no longer runs `test:visual`, 7 Oct 2026
+
+- **What (Vipin):** "Just remove this visual gate from the push", then "Yes,
+  remove it from the hook". The gate timed out on `main .num`
+  (`scripts/visual-check.mjs:500`) and blocked each push.
+- **Done:** `.githooks/pre-push` runs the build and `check:sql` only;
+  `SKIP_VISUAL` is gone; TOOLING.md says so. `test:visual` and the CI
+  `design fidelity` job are unchanged.
+- **Not fixed:** the `main .num` timeout itself. Nothing now stops a push that
+  breaks design fidelity locally; only CI and a manual run catch it.
+
 ## Deployed: `main` at `e48592d`, 7 Oct 2026
 
 - **What (Vipin):** "push it": the ADR-032 commit (two people on one phone).

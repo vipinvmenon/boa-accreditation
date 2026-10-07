@@ -1,18 +1,14 @@
 #!/bin/sh
 # The expensive gates. This is the last point before a push triggers a real
-# Vercel deployment, so it runs the full build and the design-fidelity check.
+# Vercel deployment, so it runs the full build and the migration check.
 #
-# Skip deliberately with:  SKIP_VISUAL=1 git push
+# test:visual (design fidelity) is NOT run here: removed on Vipin's
+# instruction, 7 Oct 2026, because it timed out on `main .num` and blocked
+# every push. It still runs in CI (.github/workflows/ci.yml) and by hand:
+#   corepack pnpm test:visual
 set -e
 echo "pre-push: full build"
 corepack pnpm build
-
-if [ "$SKIP_VISUAL" = "1" ]; then
-  echo "pre-push: SKIP_VISUAL=1 — design fidelity NOT checked for this push"
-else
-  echo "pre-push: design fidelity"
-  corepack pnpm test:visual
-fi
 
 if [ -d supabase/migrations ] && ls supabase/migrations/*.sql >/dev/null 2>&1; then
   echo "pre-push: static migration check"
