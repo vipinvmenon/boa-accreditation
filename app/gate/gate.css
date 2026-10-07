@@ -65,3 +65,8 @@
 
 /* The vehicle hint sits centred under the centred field and button (2 Oct). */
 .r10 .veh-idle p { text-align: center; }
+
+/* A People / Vehicles switch is in flight: the old screen is still showing. */
+.gate-content[data-pending] { opacity: 0.45; pointer-events: none; transition: opacity var(--d-slow) var(--e-out) 120ms; }
+.gate-content:not([data-pending]) { transition: opacity var(--d-quick) var(--e-out); }
+@media (prefers-reduced-motion: reduce) { .gate-content[data-pending] { transition: none; } }

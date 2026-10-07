@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
 
 const TABS = [
   { href: '/gate', label: 'People' },
@@ -17,12 +16,17 @@ const TABS = [
  * the route then agrees with it (Vipin, 29 Sep: "make the people vehicle
  * switcher smooth").
  */
-export function GateTabs() {
+export type TabSent = { to: number; from: string }
+
+/** The tab the pill was sent to, while the route it was sent from is still on screen. */
+export function pendingTab(sent: TabSent | null, pathname: string): number | null {
+  return sent && sent.from === pathname ? sent.to : null
+}
+
+export function GateTabs({ sent, onSend }: { sent: TabSent | null; onSend: (sent: TabSent) => void }) {
   const pathname = usePathname()
   const active = pathname.startsWith('/gate/vehicle') ? 1 : 0
-  /** Where the pill was sent, for the route it was sent from. */
-  const [sent, setSent] = useState<{ to: number; from: string } | null>(null)
-  const pos = sent && sent.from === pathname ? sent.to : active
+  const pos = pendingTab(sent, pathname) ?? active
 
   return (
     <nav className="segmented" aria-label="Check in people or vehicles">
@@ -33,7 +37,7 @@ export function GateTabs() {
           href={tab.href}
           aria-current={index === active ? 'page' : undefined}
           data-on={index === pos ? '' : undefined}
-          onClick={() => { if (index !== active) setSent({ to: index, from: pathname }) }}
+          onClick={() => { if (index !== active) onSend({ to: index, from: pathname }) }}
         >
           {tab.label}
         </Link>
