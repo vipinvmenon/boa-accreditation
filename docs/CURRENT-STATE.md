@@ -3,7 +3,27 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 7 October 2026 (desk nav highlight follows the click; vehicle gate clears a registered plate, ADR-031)._
+_Last updated: 7 October 2026 (gate People/Vehicles switch dims the old screen; desk nav highlight follows the click; vehicle gate clears a registered plate, ADR-031)._
+
+## Deployed: `main` at `4e2da64`, 7 Oct 2026 (gate tab switch)
+
+- **What (Vipin):** a screenshot taken after tapping Vehicles while an approved
+  person's card was open: tab said Vehicles, screen still showed the person's
+  Issue wristband card.
+- **Cause:** `GateTabs` moves the pill on tap, but `/gate/vehicle` is
+  server-rendered (`force-dynamic`), so the old screen stayed live until the
+  route landed. Its buttons could be tapped in that gap.
+- **Done** (`app/gate/gate-shell.tsx`, `gate-tabs.tsx`, `gate.css`): the sent-tab
+  state moved up into `GateShell`; while a switch is pending the content is
+  wrapped in `.gate-content[data-pending]` (dimmed, `aria-busy`, `inert`).
+  Cleared when the pathname changes. The wait itself is unchanged.
+- **Checked:** typecheck, lint (0 errors), 364 unit tests, `next build`, `check:sql`
+  (hooks). GitHub deployment status `success` (Production) and `Verify
+  deployment` run `success` for `4e2da64`. The `CI` run was still in progress
+  when this was written.
+- **Not checked:** the switch in a browser, before or after: the dim timing and
+  look, and that `inert` blocks taps, are unseen. `test:visual` not run.
+- **Rollback:** `git revert 4e2da64`.
 
 ## Deployed: `main` at `b41b101`, 7 Oct 2026 (desk nav highlight)
 
