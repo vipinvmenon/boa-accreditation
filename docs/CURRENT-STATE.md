@@ -56,6 +56,26 @@ _Last updated: 7 October 2026 (vehicle gate clears a registered plate, ADR-031; 
   MCP is refused for the `vipin-menon` scope, no CLI). This docs commit is
   pushed to trigger a fresh deploy; see the next entry for its result.
 
+## Deployed: `main` at `4d234e9`, 7 Oct 2026 (vehicle gate Cancel)
+
+- **What (Vipin):** a screenshot of /gate/vehicle at "Ready to clear" with the
+  note "No option to cancel". After Check, the only ways out were to log
+  entry or to turn away.
+- **Done:** a **Cancel** button under the decision buttons, on both "Ready to
+  clear" and "Will not clear". It runs `nextVehicle()`: the plate and the
+  result are cleared, the field is focused, nothing is logged
+  (`app/gate/vehicle/vehicle-screen.tsx`). New e2e test: Cancel empties the
+  plate, offers no entry button, leaves the outbox empty.
+- **Pushed without `test:visual`:** the pre-push hook no longer runs it (entry
+  above). Build and `check:sql` passed; typecheck passed; the 19 vehicle-gate
+  e2e tests passed.
+- **Checked after:** Vercel status `success` for `4d234e9`; `verify:deploy`
+  18/18 against the live site.
+- **Not checked:** how the button looks against the vehicle screen's
+  `design/reference/` (`test:visual` has not run on it); a real phone (a gate
+  phone must reload to pick up the screen); GitHub CI's final result.
+- **Rollback:** `git revert 4d234e9`.
+
 ## Pre-push no longer runs `test:visual`, 7 Oct 2026
 
 - **What (Vipin):** "Just remove this visual gate from the push", then "Yes,
