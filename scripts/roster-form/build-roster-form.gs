@@ -91,6 +91,8 @@ var CREW_TYPES = [
   'BOA Internal Crew',
   'Family & Friends',
   'Media / Photo',
+  'Guest (Salman)',
+  'Guest (Saurabh)',
 ];
 
 /** Mirrors the boa_acc_day_validity enum: build / show / build_show. */

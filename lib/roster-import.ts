@@ -96,6 +96,8 @@ export const FORM_CREW_TYPES = [
   'BOA Internal Crew',
   'Family & Friends',
   'Media / Photo',
+  'Guest (Salman)',
+  'Guest (Saurabh)',
 ] as const
 
 /** Another spelling of a fixed choice → the script's spelling. Lower-case keys.

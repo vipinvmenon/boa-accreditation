@@ -231,6 +231,8 @@ describe('roster form — what it asks', () => {
       'BOA Internal Crew',
       'Family & Friends',
       'Media / Photo',
+      'Guest (Salman)',
+      'Guest (Saurabh)',
     ])
   })
 

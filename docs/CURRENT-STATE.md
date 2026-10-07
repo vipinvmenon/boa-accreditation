@@ -5,6 +5,32 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 7 October 2026 (Passes list no longer ships a QR per person; not deployed)._
 
+## Crew types "Guest (Salman)" and "Guest (Saurabh)", 7 Oct 2026
+
+- **What (Vipin):** add guest **crew types** (form question, column E), not
+  an Accreditation Type; the four `BOA` "Family and Friends" responses of
+  7 Oct 18:45–18:48 (sheet rows 116–119) are guests. No data to be lost.
+  First a single "Guest", then "Add Guest (Salman) and Guest (Saurabh)
+  rather than just Guest".
+- **Live form, done in the form editor** (signed in as Vipin, 7 Oct): the
+  "Guest" choice renamed `Guest (Salman)`, and `Guest (Saurabh)` added after
+  it, both after `Media / Photo`. Read back in the editor and on the
+  published `viewform`: the other 15 choices unchanged ("Family and Friends"
+  spelling kept). Changing choices does not create a response column; the
+  script was **not** re-run.
+- **Repo:** both added to `CREW_TYPES` (`build-roster-form.gs`),
+  `FORM_CREW_TYPES` (`lib/roster-import.ts`), the form test and
+  ROSTER-FORM.md, so a re-run keeps them. 75 roster unit tests pass.
+- **Sheet E116:E119:** set to "Guest" by Vipin (the edit was blocked on
+  Claude's side) and read back: those four say Guest, no other row does; 17
+  earlier rows still say Family and Friends, by design. Then re-set by Vipin
+  and read back (gviz CSV, column E): rows 116–117 `Guest (Salman)`, rows
+  118–119 `Regular Crew` (not a form choice: imports as an Other write-in;
+  kept on purpose, Vipin confirmed). No other row says Guest.
+- **Not checked:** whether those four are already imported. The importer never
+  rewrites an existing person's role text, so if they are, their role stays
+  "Family & Friends" in the app. Tier (column I) is unaffected either way.
+
 ## Passes list: QR drawn on open, not per person, 7 Oct 2026
 
 - **What (Vipin):** "People crossed 110+ in whatsapp… Will the app get
