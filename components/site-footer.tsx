@@ -36,12 +36,18 @@ function showClock(): string {
   return formatCountdown(SHOW.date).replace(/^in /, '')
 }
 
+/** "v1.606": major from package.json, then the commit count, set at build time. */
+function buildVersion(): string {
+  return `v${process.env['NEXT_PUBLIC_APP_VERSION'] ?? '1.0'}`
+}
+
 export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="sf-in">
         <div className="sf-brand">
           <img src="/assets/boa-logo.png" alt="Bangalore Open Air" />
+          <p className="sf-ver">{buildVersion()}</p>
         </div>
         <section className="sf-block">
           <h2>Show clock</h2>
