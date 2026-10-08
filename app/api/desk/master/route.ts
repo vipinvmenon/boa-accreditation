@@ -63,7 +63,7 @@ function toCsv(rows: MasterRow[]): string {
     row.role,
     row.typeCode ?? '',
     row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : '',
-    row.bandSerial ?? 'Not issued',
+    row.bandSerial ?? (row.collectedAt ? 'Issued, no serial' : 'Not issued'),
     row.vehicleReg ?? '—',
     row.inBms ? 'In BMS' : 'Not in BMS',
     row.collectedAt ?? 'Not collected',

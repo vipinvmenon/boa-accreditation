@@ -92,7 +92,9 @@ export function masterStatusOf(row: MasterRow): (typeof MASTER_STATUSES)[number]
   if (row.status === 'voided') return 'voided'
   if (row.status === 'rejected') return 'rejected'
   if (row.status !== 'approved') return 'other'
-  return row.bandSerial ? 'collected' : 'not_collected'
+  // A band row exists once the issuer taps Issue, serial typed or not
+  // (non-negotiable #6: serials may be blank), so collectedAt decides.
+  return row.collectedAt ? 'collected' : 'not_collected'
 }
 
 function vehicleStates(row: MasterRow): string[] {

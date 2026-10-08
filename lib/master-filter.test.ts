@@ -64,6 +64,12 @@ describe('matchesMasterFilters', () => {
     expect(matchesMasterFilters(collected, preset('Not in BMS'))).toBe(false)
   })
 
+  it('a band issued with no serial typed still counts as Collected', () => {
+    const blank = row({ bandSerial: null, collectedAt: '2026-10-08T07:55:00Z' })
+    expect(matchesMasterFilters(blank, presetFilters({ status: ['collected'] }))).toBe(true)
+    expect(matchesMasterFilters(blank, preset('Not collected'))).toBe(false)
+  })
+
   it('Not collected is approved and no band; Voided is its own status', () => {
     expect(matchesMasterFilters(row(), preset('Not collected'))).toBe(true)
     expect(matchesMasterFilters(collected, preset('Not collected'))).toBe(false)

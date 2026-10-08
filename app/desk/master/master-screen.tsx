@@ -584,7 +584,9 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
       ? <span className="flagged label-sm">Rejected</span>
       : row.bandSerial
         ? <span className="mono">{row.bandSerial.startsWith('#') ? row.bandSerial : `#${row.bandSerial}`}</span>
-        : <span className="muted">–</span>
+        : row.collectedAt
+          ? <span className="muted">Issued</span>
+          : <span className="muted">–</span>
   const bms = row.status !== 'approved'
     ? <span className="muted">–</span>
     : <span className={`pill ${row.inBms ? 'pill-ok' : 'pill-wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span>
@@ -667,7 +669,7 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
           <h3 className="label">History</h3>
           <ul className="person-ledger body-sm">
             {state === 'collected' && (
-              <li style={{ ['--c' as string]: 'var(--go)' }}><span><b>Band {p.bandSerial} issued</b><br /><span className="ink-3">{formatMasterCollected(p)}</span></span></li>
+              <li style={{ ['--c' as string]: 'var(--go)' }}><span><b>{p.bandSerial ? `Band ${p.bandSerial} issued` : 'Band issued, serial not typed'}</b><br /><span className="ink-3">{formatMasterCollected(p)}</span></span></li>
             )}
             {p.status === 'voided' && (
               <li style={{ ['--c' as string]: 'var(--bad)' }}><span><b>Pass voided</b></span></li>
