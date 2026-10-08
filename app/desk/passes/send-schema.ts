@@ -42,6 +42,9 @@ export type PassSendsResponse = z.infer<typeof passSendsResponseSchema>
 export const sendRequestSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('one'), personId: z.string().uuid(), resend: z.boolean().default(false) }),
   z.object({ mode: z.literal('all') }),
+  // One organisation's rollout: the client names the people, the database still
+  // decides each one (approved, not already sent, caller is a lead or admin).
+  z.object({ mode: z.literal('ids'), personIds: z.array(z.string().uuid()).min(1).max(300) }),
 ])
 export type SendRequest = z.input<typeof sendRequestSchema>
 

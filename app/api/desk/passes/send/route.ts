@@ -117,12 +117,17 @@ export async function POST(request: Request) {
       return respond({ results: [result], remaining: 0 })
     }
 
-    const unsent = await supabase.rpc('boa_acc_pass_send_unsent')
-    if (unsent.error) {
-      if (unsent.error.code === '42501') return errorResponse('not_authorized', 403)
-      return errorResponse('internal', 500)
+    let ids: string[]
+    if (body.data.mode === 'ids') {
+      ids = Array.from(new Set(body.data.personIds))
+    } else {
+      const unsent = await supabase.rpc('boa_acc_pass_send_unsent')
+      if (unsent.error) {
+        if (unsent.error.code === '42501') return errorResponse('not_authorized', 403)
+        return errorResponse('internal', 500)
+      }
+      ids = Array.isArray(unsent.data) ? unsent.data.filter((v): v is string => typeof v === 'string') : []
     }
-    const ids = Array.isArray(unsent.data) ? unsent.data.filter((v): v is string => typeof v === 'string') : []
     // Nothing fires on zero people.
     if (ids.length === 0) return respond({ results: [], remaining: 0 })
 

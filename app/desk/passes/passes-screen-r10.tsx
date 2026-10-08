@@ -108,6 +108,7 @@ export function PassesScreenR10() {
   const [menu, setMenu] = useState<{ field: FieldKey | null } | null>(null)
   const [selected, setSelected] = useState<Pass | null>(null)
   const [confirmAll, setConfirmAll] = useState(false)
+  const [confirmOrg, setConfirmOrg] = useState(false)
   const [confirmResend, setConfirmResend] = useState(false)
   const [armed, setArmed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -249,6 +250,12 @@ export function PassesScreenR10() {
   }, [filters, matches, passes, query])
 
   const activeFields = FIELD_KEYS.filter((field) => (filters[field]?.length ?? 0) > 0)
+
+  // Organisation rollout: only while exactly one organisation is filtered. It
+  // covers the whole organisation, not the search box or other filters.
+  const rolloutOrg = filters.org?.length === 1 ? filters.org[0] ?? null : null
+  const orgPeople = useMemo(() => (rolloutOrg ? passes.filter((pass) => pass.orgName === rolloutOrg) : []), [passes, rolloutOrg])
+  const orgUnsent = useMemo(() => orgPeople.filter((pass) => !sendByPerson.get(pass.id)?.live), [orgPeople, sendByPerson])
   const hasFilter = query.trim() !== '' || activeFields.length > 0
   const canSend = Boolean(sends?.canSend && sends.configured)
 
@@ -316,7 +323,7 @@ export function PassesScreenR10() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  async function send(request: { mode: 'all' } | { mode: 'one'; personId: string; resend: boolean }, key: string, personName?: string) {
+  async function send(request: { mode: 'all' } | { mode: 'ids'; personIds: string[] } | { mode: 'one'; personId: string; resend: boolean }, key: string, personName?: string) {
     const parsedRequest = sendRequestSchema.safeParse(request)
     if (!parsedRequest.success) return
     setBusy(key)
@@ -327,7 +334,9 @@ export function PassesScreenR10() {
         const response = await fetch('/api/desk/passes/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(parsedRequest.data),
+          body: JSON.stringify(parsedRequest.data.mode === 'ids'
+            ? { mode: 'ids', personIds: parsedRequest.data.personIds.filter((id) => !collected.some((result) => result.personId === id)) }
+            : parsedRequest.data),
         })
         if (!response.ok) {
           const body: unknown = await response.json().catch(() => null)
@@ -533,6 +542,26 @@ export function PassesScreenR10() {
         </div>
       </div>
 
+      {!loading && !error && rolloutOrg && orgUnsent.length > 0 && (
+        <div className="passes-strip">
+          <i className="ph-light ph-paper-plane-tilt" aria-hidden="true" />
+          <span>
+            {orgUnsent.length === 1 ? '1 person' : `${orgUnsent.length} people`} at {rolloutOrg} {orgUnsent.length === 1 ? 'hasn’t' : 'haven’t'} got their pass yet.
+            {orgPeople.length > orgUnsent.length && ` ${orgPeople.length - orgUnsent.length} already sent.`}
+          </span>
+          <Button
+            variant="sm"
+            className="passes-strip-btn"
+            onClick={() => setConfirmOrg(true)}
+            disabled={!canSend || busy !== null}
+            title={sends && !sends.canSend ? 'Only a lead or admin can send passes' : undefined}
+            icon={<Icon name="paper-plane-tilt" />}
+          >
+            Send to {rolloutOrg}
+          </Button>
+        </div>
+      )}
+
       {loading && (
         <div className="passes-table-wrap" aria-busy="true">
           <Table label="Loading passes" className="passes-table" columns={PASS_COLUMNS}>
@@ -689,6 +718,31 @@ export function PassesScreenR10() {
         <p className="body-sm passes-foot-note">Sent from the festival&apos;s WhatsApp number. Each message is personalised.</p>
       </Sheet>
 
+      <Sheet
+        open={confirmOrg && rolloutOrg !== null}
+        onClose={() => setConfirmOrg(false)}
+        title={`Send ${orgUnsent.length} to ${rolloutOrg ?? ''}`}
+        className="passes-confirm-sheet"
+        footer={(
+          <HoldButton
+            variant="primary"
+            className="btn-block"
+            icon={<Icon name="paper-plane-tilt" />}
+            onDone={() => { setConfirmOrg(false); void send({ mode: 'ids', personIds: orgUnsent.map((pass) => pass.id) }, 'org') }}
+            disabled={!canSend || busy !== null}
+          >
+            Hold to send {orgUnsent.length}
+          </HoldButton>
+        )}
+      >
+        <h3 className="passes-label">Who</h3>
+        <ul className="passes-namelist body-sm">
+          {orgUnsent.slice(0, 5).map((pass) => <li key={pass.id}>{pass.fullName} <span>· {pass.role}</span></li>)}
+          {orgUnsent.length > 5 && <li className="passes-more-names">and {orgUnsent.length - 5} more</li>}
+        </ul>
+        <p className="body-sm passes-foot-note">Only {rolloutOrg}. Nobody else is messaged. Sent from the festival&apos;s WhatsApp number; each message is personalised.</p>
+      </Sheet>
+
       <div className="toasts" role="status" aria-live="polite">
         {toast && (
           <div key={toast.id} className={`toast${toast.bad ? ' bad' : ''}`}>
@@ -718,6 +772,9 @@ export function PassesScreenR10() {
         .passes-banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-bottom: var(--s-6); padding: var(--s-4) var(--s-5); border-radius: var(--r-md); background: var(--bad-tint); color: var(--ink); }
         .passes-banner .ph-light { color: var(--bad); font-size: 20px; }
         .passes-banner-btn { margin-left: auto; }
+        .passes-strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-bottom: var(--s-6); padding: var(--s-4) var(--s-5); border-radius: var(--r-md); background: color-mix(in srgb, var(--go) 14%, transparent); color: var(--ink); }
+        .passes-strip .ph-light { font-size: 20px; }
+        .passes-strip-btn { margin-left: auto; }
         .passes-table { --cols: minmax(220px, 2.4fr) minmax(110px, .9fr) minmax(170px, 1.3fr) 120px; }
         .passes-table-wrap { min-width: 0; }
         .passes-row { cursor: pointer; --c: var(--ink-3); }

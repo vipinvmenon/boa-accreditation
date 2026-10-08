@@ -3,7 +3,60 @@
 **Read this first, every session. Do not trust any other document over it.**
 If you cannot verify a claim here, say so plainly rather than removing it.
 
-_Last updated: 7 October 2026 (gate People/Vehicles switch dims the old screen; desk nav highlight follows the click; vehicle gate clears a registered plate, ADR-031)._
+_Last updated: 8 October 2026 (roster sync loaded twice; gate People/Vehicles switch dims the old screen; desk nav highlight follows the click; vehicle gate clears a registered plate, ADR-031)._
+
+## Organisation pass rollout on /desk/passes, 8 Oct 2026
+
+- **What (Vipin):** send passes to one organisation only (to leave Reynolds out).
+  Option B of the mockup: with exactly one Organisation filter, a strip shows
+  "N people at X haven't got their pass yet. M already sent." and a
+  "Send to X" button, then a hold-to-confirm sheet.
+- **Done:** `sendRequestSchema` gains `mode: 'ids'` (1-300 person ids);
+  `/api/desk/passes/send` sends them through the same `sendOne` and time-boxed
+  batch as "Send all"; `passes-screen-r10.tsx` has the strip and sheet. The
+  database still decides each person (approved, not already sent, lead/admin).
+  "Send all" is unchanged.
+- **Checked:** typecheck, lint (0 errors), 364 unit tests.
+- **Not checked:** the screen in a browser (needs a signed-in lead/admin);
+  `test:visual`; any real send; whether WhatsApp (Interakt) is configured in
+  production. No test covers `mode: 'ids'`.
+
+## Roster sync, 8 Oct 2026
+
+- **What (Vipin):** "sync the roster form again". `roster:sync` dry run first
+  (216 sheet rows, 209 valid, 7 repeat submissions skipped, 0 refused), then
+  `roster:sync --as vipinmenon16@gmail.com` against production.
+- **Result:** 31 inserted, 28 approved, 145 unchanged, 3 `tier_changed`,
+  2 `duplicate_phone`, 0 refused, 0 invalid.
+- **New organisations (10):** Dream Cast, SANKYS BURGER HOUSE, STOK, Praveen
+  Kumar photography, Dominos, Domino's Pizza(Jubilant FoodWorks Ltd), Infinite
+  Dreams Entertainment, GRAPHFX, Photography, California Burrito.
+- **Newly approved (28):** SANKYS BURGER HOUSE 10, Domino's pizza 5, Bangalore
+  Open Air 5, TRAVEL DESTINATION INC 4, Nizaams kaati rolls 2, Dream Cast 1,
+  BMS 1. Passes minted, **not sent**.
+- **Imported as submitted, no pass until Salman decides (31):** rows with no
+  Accreditation type, mainly California Burrito 8, Praveen Kumar photography 4,
+  STOK 2, GRAPHFX 2, Dominos 2.
+- **Needs a person (reported, never applied):** `tier_changed` BOA rows 51 and
+  52 (approved crew/build_show, sheet now aaa/build_show) and Goblinsomnia
+  row 24 (approved photo/show, sheet now aaa/show). `duplicate_phone` BMS
+  friends & Family rows 80-81 (phones on another org).
+- **Open:** "Dominos" and "Domino's Pizza(Jubilant FoodWorks Ltd)" were created
+  as separate orgs from the existing "Domino's pizza"; merge via
+  `data/org-aliases.json` if they are the same.
+- **Second run, same day (Vipin: "I see 177 on the app, 218 in the sheet"):**
+  the database held 208 people: 177 `approved` (what the app lists) and 31
+  `submitted` (no column I decision). Sheet had since grown to 217 data rows.
+  Re-ran `roster:sync --as vipinmenon16@gmail.com`: 210 valid, 7 repeat
+  submissions skipped, 0 refused; 1 inserted (Bangalore Open Air, undecided),
+  0 approved, 204 unchanged, 3 `tier_changed`, 2 `duplicate_phone`. Now 209
+  people: 177 approved, 32 submitted. The app stays at 177 until the 32 get a
+  decision. Gap to the sheet count is the 7 repeats plus the 2 BMS phone clashes;
+  not reconciled row by row. Vipin counted 218, the sheet export has 217: the
+  extra one is unexplained.
+- **Not checked / not done:** passes not sent (`/desk/passes`); the
+  `tier_changed` rows are unresolved; sheet is still read without credentials
+  (link-shared), as `fetch-roster` warns.
 
 ## Deployed: `main` at `4e2da64`, 7 Oct 2026 (gate tab switch)
 
