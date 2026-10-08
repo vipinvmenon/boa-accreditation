@@ -25,7 +25,7 @@ export default function PassNotFound() {
         {/* The same help line the valid pass carries, so a holder with a
             broken link still has a number to call. */}
         <p className="lede" style={{ marginTop: 12 }}>
-          {CHECKIN_GUIDE.help}, <a href={`tel:${CHECKIN_GUIDE.helpPhone.replace(/\s+/g, '')}`} style={{ whiteSpace: 'nowrap' }}>{CHECKIN_GUIDE.helpPhone}</a>.
+          {CHECKIN_GUIDE.help}: <a href={`tel:${CHECKIN_GUIDE.helpPhone.replace(/\s+/g, '')}`} style={{ whiteSpace: 'nowrap' }}>{CHECKIN_GUIDE.helpPhone}</a>
         </p>
       </div>
     </main>

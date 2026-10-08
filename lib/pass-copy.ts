@@ -73,7 +73,7 @@ export const CHECKIN_GUIDE = {
       'https://www.google.com/maps/search/?api=1&query=BITS+Club%2C+Doddagubbi+Main+Road%2C+Anagalapura%2C+Bengaluru+560077',
   },
   signOff: 'See you at the Home Of Heavy metal In India!',
-  help: 'Questions: contact Bhupesh',
+  help: 'Questions? Contact Bhupesh',
   // Bhupesh (production), given by Vipin 30 Sep 2026.
   helpPhone: '+91 70103 90385' as string,
   cue: 'Check-in guide',
