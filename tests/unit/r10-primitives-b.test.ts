@@ -46,6 +46,13 @@ describe('r10 primitives B', () => {
     expect(markup).toContain('role="cell"')
   })
 
+  it('puts an empty state\'s action below its text, not inside the paragraph', () => {
+    const markup = renderToStaticMarkup(
+      createElement(EmptyState, { title: 'No one matches', action: createElement('button', null, 'Clear filters') }, 'Remove a filter.'),
+    )
+    expect(markup).toContain('<p>Remove a filter.</p><button>Clear filters</button>')
+  })
+
   it('renders empty, widget-shaped skeletons, toast, and count-up', () => {
     const markup = renderToStaticMarkup(createElement(Fragment, null,
       createElement(EmptyState, { title: 'No one approved yet' }, 'People appear here as soon as they are approved.'),

@@ -177,9 +177,13 @@ export function UsersScreen() {
         <Button variant="primary" onClick={() => { setNote(null); setInviteOpen(true) }}>Invite operator <Icon name="user-plus" /></Button>
       </header>
 
-      {loadError && <EmptyState error title="Operators didn’t load" icon={<Icon name="warning-circle" />}>
-        <p>{loadError}</p>
-        <Button icon={<Icon name="arrows-clockwise" />} onClick={() => { setOperators(null); void load() }}>Try again</Button>
+      {loadError && <EmptyState
+        error
+        title="Operators didn’t load"
+        icon={<Icon name="warning-circle" />}
+        action={<Button icon={<Icon name="arrows-clockwise" />} onClick={() => { setOperators(null); void load() }}>Try again</Button>}
+      >
+        {loadError}
       </EmptyState>}
       {operators === null && !loadError && (
         // The loaded table's header and row markup with skeleton values, so

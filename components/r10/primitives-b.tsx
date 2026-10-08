@@ -214,14 +214,17 @@ export type EmptyStateProps = ClassName & {
   children?: ReactNode
   icon?: ReactNode
   error?: boolean
+  /** A button under the text. Never put one in `children`: that is a paragraph, and the button would sit inline after the last word. */
+  action?: ReactNode
 }
 
-export function EmptyState({ title, children, icon, error = false, className }: EmptyStateProps) {
+export function EmptyState({ title, children, icon, error = false, action, className }: EmptyStateProps) {
   return (
     <section className={joinClassNames('empty', error && 'empty-error', className)} role={error ? 'alert' : undefined}>
       {icon && <span aria-hidden="true">{icon}</span>}
       <h2 className="display-sm">{title}</h2>
       {children && <p>{children}</p>}
+      {action}
     </section>
   )
 }

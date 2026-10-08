@@ -491,9 +491,12 @@ export function ControlRoomScreen() {
   if (loadError) {
     return (
       <main id="main-content" tabIndex={-1}>
-        <EmptyState title={loadError} error className={styles['error'] ?? ''}>
-          <Button variant="link" onClick={() => { setLoadError(null); setReloadKey((k) => k + 1) }}>Retry</Button>
-        </EmptyState>
+        <EmptyState
+          title={loadError}
+          error
+          className={styles['error'] ?? ''}
+          action={<Button variant="link" onClick={() => { setLoadError(null); setReloadKey((k) => k + 1) }}>Retry</Button>}
+        />
       </main>
     )
   }

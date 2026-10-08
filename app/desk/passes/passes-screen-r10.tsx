@@ -604,9 +604,8 @@ export function PassesScreenR10() {
         </div>
       )}
       {!loading && error && (
-        <EmptyState title="The list didn't load" error>
+        <EmptyState title="The list didn't load" error action={<Button onClick={() => void loadPasses()}>Try again</Button>}>
           Your connection or the server stopped answering. Nothing you did was lost.
-          <Button onClick={() => void loadPasses()}>Try again</Button>
         </EmptyState>
       )}
       {!loading && !error && passes.length === 0 && (
@@ -615,9 +614,8 @@ export function PassesScreenR10() {
         </EmptyState>
       )}
       {!loading && !error && passes.length > 0 && filteredPasses.length === 0 && (
-        <EmptyState title="No one matches">
+        <EmptyState title="No one matches" action={<Button onClick={clearFilters}>Clear filters</Button>}>
           {query ? `No one matches "${query}". Try a name or a pass ref, or remove a filter.` : 'Remove a filter to see more people.'}
-          <Button onClick={clearFilters}>Clear filters</Button>
         </EmptyState>
       )}
       {!loading && !error && filteredPasses.length > 0 && (

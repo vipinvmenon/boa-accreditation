@@ -213,11 +213,17 @@ export function OrgsScreen() {
 
       {copyStatus && <p className="orgs-copy-status" role="status">{copyStatus}</p>}
       {loadError && (
-        <EmptyState error title="The list didn’t load" icon={<Icon name="warning-circle" />}>
-          <p>{loadError}</p>
-          <Button onClick={() => { setLoadError(null); setOrgs(null); setReloadKey((key) => key + 1) }}>
-            Try again <Icon name="arrow-right" />
-          </Button>
+        <EmptyState
+          error
+          title="The list didn’t load"
+          icon={<Icon name="warning-circle" />}
+          action={(
+            <Button onClick={() => { setLoadError(null); setOrgs(null); setReloadKey((key) => key + 1) }}>
+              Try again <Icon name="arrow-right" />
+            </Button>
+          )}
+        >
+          {loadError}
         </EmptyState>
       )}
       {orgs === null && !loadError && (
@@ -248,9 +254,12 @@ export function OrgsScreen() {
         </EmptyState>
       )}
       {orgs !== null && orgs.length > 0 && visibleOrgs.length === 0 && (
-        <EmptyState title="No organisations match" icon={<Icon name="magnifying-glass" />}>
-          <p>Try the organisation’s name or its contact.</p>
-          <Button variant="ghost" onClick={() => setQuery('')}>Clear search</Button>
+        <EmptyState
+          title="No organisations match"
+          icon={<Icon name="magnifying-glass" />}
+          action={<Button variant="ghost" onClick={() => setQuery('')}>Clear search</Button>}
+        >
+          Try the organisation’s name or its contact.
         </EmptyState>
       )}
       {orgs !== null && visibleOrgs.length > 0 && (
