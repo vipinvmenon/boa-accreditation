@@ -39,7 +39,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(147) as line
+  select 0 as n, plan(150) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -144,6 +144,10 @@ select line from (
   union all select 1472, function_privs_are('public', 'boa_acc_gate_tshirt', array['uuid','uuid','timestamptz'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_tshirt')
   union all select 1473, function_privs_are('public', 'boa_acc_gate_tshirt', array['uuid','uuid','timestamptz'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_gate_tshirt (gate operators; role checked inside)')
   union all select 1474, ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.boa_acc_tshirt_handover'::regclass), 'RLS enabled and forced on boa_acc_tshirt_handover')
+  -- A pass sent by hand (wa.me): same shape as boa_acc_pass_send_begin.
+  union all select 1480, function_privs_are('public', 'boa_acc_pass_send_manual', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_manual')
+  union all select 1481, function_privs_are('public', 'boa_acc_pass_send_manual', array['uuid'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_pass_send_manual')
+  union all select 1482, function_privs_are('public', 'boa_acc_pass_send_manual', array['uuid'], 'service_role', array[]::text[], 'service_role: zero EXECUTE on boa_acc_pass_send_manual')
   union all select 40, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_wipe_org')
   union all select 41, function_privs_are('private', 'boa_acc_wipe_org', array['text'], 'authenticated', array[]::text[], 'authenticated: zero EXECUTE on boa_acc_wipe_org')
   union all select 42, function_privs_are('private', 'boa_acc_revoke_invite', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_revoke_invite')

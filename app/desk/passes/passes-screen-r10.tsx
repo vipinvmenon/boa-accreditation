@@ -57,7 +57,8 @@ const SEND_ERROR_OVERRIDES = {
   not_authenticated: 'Your session has ended. Log in again.',
 }
 
-function statusFor(status: string | undefined): { label: string; tone: SendTone } {
+function statusFor(status: string | undefined, manual = false): { label: string; tone: SendTone } {
+  if (manual && status === 'sent') return { label: 'Sent manually', tone: 'ok' }
   return SEND_COPY[status ?? 'none'] ?? { label: 'Not sent', tone: 'mute' }
 }
 
@@ -379,6 +380,28 @@ export function PassesScreenR10() {
     setConfirmResend(false)
   }
 
+  async function markSentByHand(pass: Pass) {
+    setBusy(pass.id)
+    try {
+      const response = await fetch('/api/desk/passes/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'manual', personId: pass.id }),
+      })
+      const parsed = response.ok ? sendResponseSchema.safeParse(await response.json()) : null
+      if (parsed?.success && parsed.data.results[0]?.outcome === 'marked') {
+        setSelected(null)
+        showToast(`Marked as sent to ${pass.fullName}`)
+      } else {
+        showToast('Could not mark it as sent. Try again.', true)
+      }
+    } catch {
+      showToast('Network error. Not marked as sent.', true)
+    }
+    setBusy(null)
+    await loadSends()
+  }
+
   async function copyLink(pass: Pass, phone: string | undefined) {
     if (!phone) {
       showToast('No WhatsApp number on file for this pass', true)
@@ -602,7 +625,7 @@ export function PassesScreenR10() {
           <Table label="Passes" className="passes-table" columns={PASS_COLUMNS}>
             {filteredPasses.slice(0, shown).map((pass) => {
               const sendState = sendByPerson.get(pass.id)
-              const sendStatus = statusFor(sendState?.last?.status)
+              const sendStatus = statusFor(sendState?.last?.status, sendState?.last?.manual)
               const stamp = sentStamp(sendState?.last?.requestedAt)
               const tierLabel = tier(pass.typeCode).label
               const tierStyle = { '--c': tierColour(pass.typeCode, theme) } as CSSProperties
@@ -683,6 +706,11 @@ export function PassesScreenR10() {
               <Button variant="ghost" onClick={() => void copyLink(selected, selectedSend?.phone)}>
                 <i className="ph-light ph-copy" aria-hidden="true" />Copy WhatsApp link
               </Button>
+              {canSend && !selectedSend?.live && (
+                <Button variant="ghost" onClick={() => void markSentByHand(selected)} disabled={busy !== null}>
+                  <Icon name="check-circle" />Mark sent manually
+                </Button>
+              )}
               <Button variant="ghost" onClick={() => window.print()}>
                 <Icon name="printer" />Print this pass
               </Button>

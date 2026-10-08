@@ -20,6 +20,8 @@ export const personSendSchema = z.object({
       statusAt: z.string(),
       failureReason: z.string().nullable(),
       hasMessageId: z.boolean(),
+      /** A lead sent it from their own phone and marked it here. */
+      manual: z.boolean().default(false),
       sentBy: z.string().nullable(),
     })
     .nullable(),
@@ -42,6 +44,8 @@ export type PassSendsResponse = z.infer<typeof passSendsResponseSchema>
 export const sendRequestSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('one'), personId: z.string().uuid(), resend: z.boolean().default(false) }),
   z.object({ mode: z.literal('all') }),
+  // Sent by hand from the desk's phone (the wa.me link): records it, sends nothing.
+  z.object({ mode: z.literal('manual'), personId: z.string().uuid() }),
   // One organisation's rollout: the client names the people, the database still
   // decides each one (approved, not already sent, caller is a lead or admin).
   z.object({ mode: z.literal('ids'), personIds: z.array(z.string().uuid()).min(1).max(300) }),
@@ -49,6 +53,7 @@ export const sendRequestSchema = z.discriminatedUnion('mode', [
 export type SendRequest = z.input<typeof sendRequestSchema>
 
 export const sendOutcomeSchema = z.enum([
+  'marked', // recorded as sent by hand
   'queued', // Meta accepted it; the webhook moves it on from here
   'failed', // Meta refused it, or never answered — reason says which
   'already_sent',

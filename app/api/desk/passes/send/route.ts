@@ -107,6 +107,17 @@ export async function POST(request: Request) {
   const body = sendRequestSchema.safeParse(await request.json().catch(() => null))
   if (!body.success) return errorResponse('invalid_body', 400)
 
+  if (body.data.mode === 'manual') {
+    const marked = await supabase.rpc('boa_acc_pass_send_manual', { p_person_id: body.data.personId })
+    if (marked.error) {
+      const { code, message } = marked.error
+      if (code === '42501') return errorResponse('not_authorized', 403)
+      const outcome = code === 'P0002' ? 'not_found' : code === 'P0001' && message.includes('not_approved') ? 'not_approved' : 'error'
+      return respond({ results: [{ personId: body.data.personId, outcome, reason: null }], remaining: 0 })
+    }
+    return respond({ results: [{ personId: body.data.personId, outcome: 'marked', reason: null }], remaining: 0 })
+  }
+
   const maybeConfig = interaktConfig()
   if (!maybeConfig) return errorResponse('whatsapp_not_configured', 503)
   const config: InteraktConfig = maybeConfig
