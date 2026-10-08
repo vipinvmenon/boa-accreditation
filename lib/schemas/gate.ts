@@ -97,6 +97,14 @@ export const gateIssueResultSchema = z.object({
   isReissue: z.boolean(),
   supervisorNote: z.string().nullable(),
   voidsCheckinId: z.string().uuid().nullable(),
+  /** Other live bands this person already holds, seen when the row was written. Absent on older servers. */
+  otherBands: z.array(z.object({
+    id: z.string().uuid(),
+    bandSerial: z.string().nullable(),
+    gateLabel: z.string(),
+    volunteerName: z.string(),
+    occurredAt: isoDateTime,
+  })).default([]),
 })
 
 export type GatePull = z.infer<typeof gatePullSchema>

@@ -6,6 +6,7 @@ import { gateIssueSchema, type GateIssue } from '@/lib/schemas/gate'
 import { gateDb, type LedgerRow } from '@/gate/db'
 import { resolveScan, type GateResolution, type PendingActionProjection } from '@/gate/resolve'
 import { enqueueIssue, pullGate, readGateSnapshot, type GateSnapshot } from '@/gate/client'
+import { readOtherBands } from '@/gate/other-bands'
 import { queueTshirtGiven } from '@/gate/tshirt-flow'
 import { GATE_PATH, loginHref, redirectIfSignedOut } from '@/gate/session'
 import { useOutboxSync } from '@/gate/use-outbox-sync'
@@ -30,6 +31,10 @@ export default function GatePage() {
   // "Next person" so a second tap cannot queue a duplicate issue.
   const [issuedTo, setIssuedTo] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  // Set when the server says this person already held a band from another
+  // phone. Online it arrives with the issue; offline, when the queue drains.
+  const [doubleWarning, setDoubleWarning] = useState<string | null>(null)
+  const issuedKeyRef = useRef<string | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
   /**
@@ -290,8 +295,11 @@ export default function GatePage() {
     if (!resolution || resolution.status !== 'green' || issuedTo === resolution.person.passToken) return
     const token = resolution.person.passToken
     setIssuedTo(token)
+    const idempotencyKey = crypto.randomUUID()
+    issuedKeyRef.current = idempotencyKey
+    setDoubleWarning(null)
     const action: GateIssue = {
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey,
       passToken: token,
       kind: 'wristband',
       bandSerial: serial,
@@ -311,7 +319,17 @@ export default function GatePage() {
     )
     await refresh()
     await sync()
+    await checkDouble()
   }
+
+  const checkDouble = useCallback(async () => {
+    const key = issuedKeyRef.current
+    if (!key) return
+    const warning = await readOtherBands(key)
+    if (warning && issuedKeyRef.current === key) setDoubleWarning(warning)
+  }, [])
+  // An issue made offline reaches the server later; look again as the queue drains.
+  useEffect(() => { void checkDouble() }, [queued, checkDouble])
 
   // ACC-197b: hand-over state comes from the live cache, not the scan-time copy,
   // so the tap is reflected at once (and survives a pull before the server acks).
@@ -326,6 +344,8 @@ export default function GatePage() {
   const nextPerson = () => {
     setResolution(null)
     setIssuedTo(null)
+    issuedKeyRef.current = null
+    setDoubleWarning(null)
     setSerial('')
     setMessage(null)
   }
@@ -510,6 +530,7 @@ export default function GatePage() {
               {/* What to do, which the verdict cannot say on its own. Reissue
                   at the gate is ACC-189b; until it lands, a lead handles it. */}
               {resolution.status === 'amber' && <div className="g-note">Do not hand over a second band. If theirs is lost or broken, call a lead.</div>}
+              {doubleWarning && issued && <div className="g-note" role="alert"><b>Second band.</b> {doubleWarning}</div>}
               <div className="g-dock">
                 {resolution.status === 'green' && <>
                   {/* Typed as the band is handed over, or left blank
