@@ -7,6 +7,8 @@ _Last updated: 8 October 2026 (roster sync loaded twice; gate People/Vehicles sw
 
 ## T-shirt given on the Master list (ACC-199), 9 Oct 2026
 
+- **Follow-up, mark given later (Vipin):** Lavaansh and Marwin collected their passes after being scanned, so the shirt went out later. The person panel on `/desk/master` has "Mark T-shirt given" (approved, has a size, not yet given). It POSTs `/api/desk/master/tshirt`, which calls the same `boa_acc_gate_tshirt` RPC as the gate with the desk user's own session (issuer/lead/admin; idempotent per person). No migration. Typecheck and lint pass. **Not checked:** the button in a browser, the RPC against a database, any test of the new route.
+
 - **What (Vipin):** "add given status to Master list and a count".
 - **Done:** `/api/desk/master` reads `boa_acc_tshirt_handover` (`person_id,
   occurred_at`) and returns `tshirtGivenAt`. Row and person panel say

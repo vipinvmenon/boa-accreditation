@@ -253,6 +253,31 @@ export function MasterScreen() {
   function showToast(text: string, bad = false) {
     setToast({ id: Date.now(), text, bad })
   }
+  async function markShirtGiven(person: MasterRow) {
+    try {
+      const response = await fetch('/api/desk/master/tshirt', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ personId: person.id }),
+      })
+      if (response.status === 401) {
+        router.replace(loginHref(window.location.pathname + window.location.search))
+        return
+      }
+      const parsed = z.object({ occurredAt: z.string() }).safeParse(await response.json().catch(() => null))
+      if (!response.ok || !parsed.success) {
+        showToast('Could not mark the T-shirt given', true)
+        return
+      }
+      const given = { ...person, tshirtGivenAt: parsed.data.occurredAt }
+      setRows((current) => current.map((row) => (row.id === person.id ? given : row)))
+      setSelectedPerson((current) => (current?.id === person.id ? given : current))
+      setSheetPerson((current) => (current?.id === person.id ? given : current))
+      showToast(`T-shirt marked given to ${person.fullName}`)
+    } catch {
+      showToast('Could not mark the T-shirt given', true)
+    }
+  }
   useEffect(() => {
     if (!toast) return
     const timer = window.setTimeout(() => setToast(null), 4000)
@@ -455,6 +480,7 @@ export function MasterScreen() {
         open={selectedPerson !== null}
         theme={theme}
         onClose={() => setSelectedPerson(null)}
+        onMarkShirt={(person) => void markShirtGiven(person)}
         onCopy={(phone) => {
           navigator.clipboard.writeText(phone).then(
             () => showToast('Phone number copied'),
@@ -624,7 +650,7 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
   )
 }
 
-function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: MasterRow | null; open: boolean; theme: Theme; onClose: () => void; onCopy: (phone: string) => void }) {
+function PersonSheet({ person: p, open, theme, onClose, onCopy, onMarkShirt }: { person: MasterRow | null; open: boolean; theme: Theme; onClose: () => void; onCopy: (phone: string) => void; onMarkShirt: (person: MasterRow) => void }) {
   const type = p?.typeCode ? tier(p.typeCode) : null
   const colour = p?.typeCode ? tierColour(p.typeCode, theme) : 'var(--ink-3)'
   const state = p ? masterStatusOf(p) : 'other'
@@ -639,6 +665,9 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
       footer={p && (
         <>
           <a className="btn" href={`/desk/passes?person=${encodeURIComponent(p.id)}`}>Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>
+          {p.status === 'approved' && p.tshirtSize && !p.tshirtGivenAt && (
+            <Button variant="ghost" onClick={() => onMarkShirt(p)}><Icon name="check" /> Mark T-shirt given</Button>
+          )}
           <Button variant="ghost" onClick={() => onCopy(p.phone)}><Icon name="copy" /> Copy phone</Button>
         </>
       )}
