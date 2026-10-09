@@ -5,6 +5,23 @@ If you cannot verify a claim here, say so plainly rather than removing it.
 
 _Last updated: 8 October 2026 (roster sync loaded twice; gate People/Vehicles switch dims the old screen; desk nav highlight follows the click; vehicle gate clears a registered plate, ADR-031)._
 
+## T-shirt given on the Master list (ACC-199), 9 Oct 2026
+
+- **What (Vipin):** "add given status to Master list and a count".
+- **Done:** `/api/desk/master` reads `boa_acc_tshirt_handover` (`person_id,
+  occurred_at`) and returns `tshirtGivenAt`. Row and person panel say
+  "T-shirt L given" / "not given"; the header adds "T-shirts N of M given";
+  the CSV gains two columns. Migration `202610090900` adds an operator read
+  policy and column-level SELECT on those two columns only (`volunteer_name`,
+  `operator_id`, keys stay unreadable; `anon` unchanged). **Not applied to the
+  live database yet:** the screen will fail to load the list until it is, because
+  the route's new read is refused. Apply before deploying.
+- **Checked:** typecheck, lint (0 errors), `check:sql`; unit tests 368/369, the
+  one failure (`assets.test.ts`, 5 s timeout) also fails without my change.
+- **Not checked:** `test:db` (no database credential here; four new column-grant
+  checks in `privileges.test.sql`, plan 150 to 154, never run); the screen in a
+  browser; e2e; `test:visual`.
+
 ## Organisation pass rollout on /desk/passes, 8 Oct 2026
 
 - **What (Vipin):** send passes to one organisation only (to leave Reynolds out).

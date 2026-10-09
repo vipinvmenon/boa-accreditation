@@ -20,7 +20,7 @@ import type { MasterRow } from './schemas/master'
 
 function row(over: Partial<MasterRow> = {}): MasterRow {
   return {
-    id: 'p', fullName: 'A', orgId: 'org-1', phone: '+91', orgName: 'Sound', role: 'Rigger', tshirtSize: null, dayValidity: 'show',
+    id: 'p', fullName: 'A', orgId: 'org-1', phone: '+91', orgName: 'Sound', role: 'Rigger', tshirtSize: null, tshirtGivenAt: null, dayValidity: 'show',
     orgKind: 'vendor', typeCode: 'crew', status: 'approved', passRef: 'BOA26-0001', vehicleReg: null,
     bandSerial: null, stickerNo: null, inBms: false, collectedAt: null, gateLabel: null, decidedAt: null, ...over,
   }
@@ -89,6 +89,17 @@ describe('matchesMasterFilters', () => {
     expect(matchesMasterFilters(row(), params('tier=aaa'))).toBe(false)
     expect(matchesMasterFilters(row(), params('tier=crew&org=other'))).toBe(false)
     expect(matchesMasterFilters(row(), EMPTY_MASTER_FILTERS)).toBe(true)
+  })
+
+  it('the T-shirt filter splits people marked for a shirt, and leaves out those who are not', () => {
+    const given = row({ tshirtSize: 'M', tshirtGivenAt: '2026-10-09T08:00:00Z' })
+    const due = row({ tshirtSize: 'L' })
+    const none = row()
+    expect(matchesMasterFilters(given, params('shirt=given'))).toBe(true)
+    expect(matchesMasterFilters(due, params('shirt=given'))).toBe(false)
+    expect(matchesMasterFilters(due, params('shirt=not_given'))).toBe(true)
+    expect(matchesMasterFilters(none, params('shirt=not_given'))).toBe(false)
+    expect(masterFilterOptions([given, due, none], 'shirt').map((o) => o.count)).toEqual([1, 1])
   })
 
   it('the Add-filter counts come from the same predicates', () => {

@@ -60,7 +60,7 @@ async function installDeskFixtures(page: Page) {
           orgId: ORG_ID,
           phone: '+919000000001',
           orgName: 'Sound',
-          role: 'Rigger', tshirtSize: null,
+          role: 'Rigger', tshirtSize: null, tshirtGivenAt: null,
           dayValidity: 'show',
           orgKind: 'vendor',
           typeCode: 'crew',

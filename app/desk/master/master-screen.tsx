@@ -385,7 +385,7 @@ export function MasterScreen() {
         <div className="table master" aria-busy="true" aria-label="Loading the master list">
           <div className="thead" aria-hidden="true">
             <span><button type="button" disabled tabIndex={-1}>Person <Icon name="caret-down" /></button></span>
-            <span>Tier</span><span className="wide-only">Days</span><span>Band</span><span className="wide-only">Vehicle</span><span>BMS</span>
+            <span>Tier</span><span className="wide-only">Days</span><span>Band</span><span className="wide-only">Vehicle</span><span>T-shirt given</span>
             <span className="cell-r"><button type="button" disabled tabIndex={-1}>Collected</button></span>
           </div>
           <div aria-hidden="true">
@@ -424,7 +424,7 @@ export function MasterScreen() {
             <span role="columnheader" className="wide-only">Days</span>
             <span role="columnheader">Band</span>
             <span role="columnheader" className="wide-only">Vehicle</span>
-            <span role="columnheader">BMS</span>
+            <span role="columnheader">T-shirt given</span>
             <span role="columnheader" className="cell-r" aria-sort={sort === 'collected' ? 'descending' : 'none'}>
               <button type="button" onClick={() => setSort(sort === 'collected' ? 'default' : 'collected')}>Collected</button>
             </span>
@@ -587,9 +587,9 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
         : row.collectedAt
           ? <span className="muted">Issued</span>
           : <span className="muted">–</span>
-  const bms = row.status !== 'approved'
+  const bms = row.status !== 'approved' || !row.tshirtSize
     ? <span className="muted">–</span>
-    : <span className={`pill ${row.inBms ? 'pill-ok' : 'pill-wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span>
+    : <span className={`pill ${row.tshirtGivenAt ? 'pill-ok' : 'pill-wait'}`}>{row.tshirtGivenAt ? 'Given' : 'Not given'}</span>
   const tierLabel = type?.label ?? '–'
   return (
     <div
@@ -600,7 +600,7 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
       onClick={onOpen}
       onKeyDown={(event) => { if (event.key === 'Enter') onOpen() }}
     >
-      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}{row.tshirtSize ? ` · T-shirt ${row.tshirtSize}` : ''}</div></div>
+      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}{row.tshirtSize ? ` · T-shirt ${row.tshirtSize}${row.tshirtGivenAt ? ' given' : ' not given'}` : ''}</div></div>
       <div role="cell" className="hide-s"><span className="tier">{tierLabel}</span></div>
       <div role="cell" className="days hide-s wide-only">{row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : <span className="muted">–</span>}</div>
       <div role="cell" className="hide-s">{band}</div>
@@ -635,7 +635,7 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
       open={open}
       onClose={onClose}
       className="person-sheet"
-      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}{p.tshirtSize ? ` · T-shirt ${p.tshirtSize}` : ''}</span></> : 'Person details'}
+      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}{p.tshirtSize ? ` · T-shirt ${p.tshirtSize}${p.tshirtGivenAt ? ' given' : ' not given'}` : ''}</span></> : 'Person details'}
       footer={p && (
         <>
           <a className="btn" href={`/desk/passes?person=${encodeURIComponent(p.id)}`}>Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>

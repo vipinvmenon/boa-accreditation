@@ -70,7 +70,7 @@ test.describe('desk tiers (ACC-115)', () => {
     const master = masterResponseSchema.parse({
       rows: [{
         id: PERSON_ID, fullName: 'Lounge Person', orgId: 'org-tier-test', phone: '+91 90000 00000', orgName: 'Tier Test Org',
-        role: 'Host', tshirtSize: null, dayValidity: 'show', orgKind: 'media',
+        role: 'Host', tshirtSize: null, tshirtGivenAt: null, dayValidity: 'show', orgKind: 'media',
         typeCode: 'eddies_lounge', status: 'approved', passRef: 'BOA26-0001', vehicleReg: null, bandSerial: null,
         stickerNo: null, inBms: false, collectedAt: null, gateLabel: null, decidedAt: null,
       }],

@@ -34,6 +34,11 @@ const orgSchema = z.object({
   kind: z.enum(ORG_KINDS),
 })
 
+const handoverSchema = z.object({
+  person_id: z.string(),
+  occurred_at: z.string(),
+})
+
 const checkinSchema = z.object({
   id: z.string(),
   person_id: z.string(),
@@ -55,7 +60,7 @@ function csvCell(value: string | number | boolean | null): string {
 }
 
 function toCsv(rows: MasterRow[]): string {
-  const header = ['Name', 'Phone', 'Organisation', 'Role', 'Type', 'Days', 'Band', 'Vehicle', 'BMS', 'Collected', 'Gate']
+  const header = ['Name', 'Phone', 'Organisation', 'Role', 'Type', 'Days', 'Band', 'Vehicle', 'BMS', 'Collected', 'Gate', 'T-shirt', 'T-shirt given']
   const body = rows.map((row) => [
     row.fullName,
     row.phone,
@@ -68,6 +73,8 @@ function toCsv(rows: MasterRow[]): string {
     row.inBms ? 'In BMS' : 'Not in BMS',
     row.collectedAt ?? 'Not collected',
     row.gateLabel ?? '',
+    row.tshirtSize ?? '',
+    row.tshirtSize ? (row.tshirtGivenAt ?? 'Not given') : '',
   ].map(csvCell).join(','))
   return [header.map(csvCell).join(','), ...body].join('\n') + '\n'
 }
@@ -87,7 +94,7 @@ export async function GET(request: Request) {
   })
   if (!query.success) return errorResponse('invalid_query', 400)
 
-  const [{ data: people, error: peopleError }, { data: orgs, error: orgsError }, { data: checkins, error: checkinsError }] =
+  const [{ data: people, error: peopleError }, { data: orgs, error: orgsError }, { data: checkins, error: checkinsError }, { data: handovers, error: handoversError }] =
     await Promise.all([
       supabase
         .from('boa_acc_person')
@@ -100,10 +107,13 @@ export async function GET(request: Request) {
         .from('boa_acc_checkin')
         .select('id,person_id,kind,band_serial,sticker_no,occurred_at,gate_label,voids_checkin_id')
         .order('occurred_at', { ascending: true }),
+      supabase
+        .from('boa_acc_tshirt_handover')
+        .select('person_id,occurred_at'),
     ])
 
-  if (peopleError || orgsError || checkinsError) {
-    if ([peopleError, orgsError, checkinsError].some((error) => error?.code === '42501')) {
+  if (peopleError || orgsError || checkinsError || handoversError) {
+    if ([peopleError, orgsError, checkinsError, handoversError].some((error) => error?.code === '42501')) {
       return errorResponse('not_authorized', 403)
     }
     return errorResponse('internal', 500)
@@ -112,10 +122,12 @@ export async function GET(request: Request) {
   const parsedPeople = z.array(personSchema).safeParse(people)
   const parsedOrgs = z.array(orgSchema).safeParse(orgs)
   const parsedCheckins = z.array(checkinSchema).safeParse(checkins)
-  if (!parsedPeople.success || !parsedOrgs.success || !parsedCheckins.success) {
+  const parsedHandovers = z.array(handoverSchema).safeParse(handovers)
+  if (!parsedPeople.success || !parsedOrgs.success || !parsedCheckins.success || !parsedHandovers.success) {
     return errorResponse('internal', 500)
   }
 
+  const shirtGivenAt = new Map(parsedHandovers.data.map((row) => [row.person_id, row.occurred_at]))
   const orgById = new Map(parsedOrgs.data.map((org) => [org.id, org]))
   const voidedIds = new Set(
     parsedCheckins.data
@@ -141,6 +153,7 @@ export async function GET(request: Request) {
       orgName: org.name,
       role: person.role_text,
       tshirtSize: person.tshirt_size,
+      tshirtGivenAt: person.tshirt_size ? shirtGivenAt.get(person.id) ?? null : null,
       dayValidity: person.day_validity,
       orgKind: org.kind,
       typeCode: person.type_code,
