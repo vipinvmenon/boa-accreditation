@@ -45,5 +45,5 @@ describe('extracted logo asset', () => {
     expect(output.height).toBe(source.height)
     expect(output.data).toEqual(source.data)
     expect(statSync(outputPath).size).toBeLessThan(sourceBytes.length)
-  })
+  }, 30_000) // re-extracts the bundle: ~7 s on a slow CI/cloud box, over vitest's 5 s default
 })

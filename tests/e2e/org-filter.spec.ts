@@ -49,7 +49,7 @@ const orgs = {
 
 function person(id: string, fullName: string, orgName: string, orgId: string) {
   return {
-    id, fullName, orgId, phone: '+919000000009', orgName, role: 'Rigger', tshirtSize: null, dayValidity: 'show' as const, orgKind: 'vendor' as const,
+    id, fullName, orgId, phone: '+919000000009', orgName, role: 'Rigger', tshirtSize: null, tshirtGivenAt: null, dayValidity: 'show' as const, orgKind: 'vendor' as const,
     typeCode: 'crew' as const, status: 'approved' as const, passRef: 'BOA26-0001',
     vehicleReg: null, bandSerial: null, stickerNo: null, inBms: false,
     collectedAt: null, gateLabel: null, decidedAt: null,
@@ -72,7 +72,7 @@ async function installDesk(page: Page, seen: string[]) {
       // this fixture the way it splits the real roster.
       { ...person('p1', 'Sound Person One', 'Sound', ORG_A), inBms: true },
       // ACC-197: the one person with a crew T-shirt.
-      { ...person('p2', 'Sound Person Two', 'Sound', ORG_A), tshirtSize: 'M' as const },
+      { ...person('p2', 'Sound Person Two', 'Sound', ORG_A), tshirtSize: 'M' as const, tshirtGivenAt: null },
       person('p3', 'Soundcheck Person', 'Soundcheck Ltd', ORG_B),
     ]
     // ACC-162: `all` IS the unfiltered population here.

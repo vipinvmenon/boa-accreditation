@@ -25,6 +25,8 @@ export const masterRowSchema = z.object({
   role: z.string(),
   /** ACC-197: the crew T-shirt size the desk chose, else null. */
   tshirtSize: z.enum(['S', 'M', 'L', 'XL', 'XXL', '3XL']).nullable(),
+  /** ACC-199: when the shirt was handed over at the gate (`boa_acc_tshirt_handover`), else null. */
+  tshirtGivenAt: z.string().nullable(),
   /** `boa_acc_person.day_validity`; null until the person is approved. */
   dayValidity: z.enum(['build', 'show', 'build_show']).nullable(),
   orgKind: z.enum(ORG_KINDS),

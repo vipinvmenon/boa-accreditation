@@ -39,7 +39,7 @@
 -- transports and noticing one produced no output at all.
 
 select line from (
-  select 0 as n, plan(150) as line
+  select 0 as n, plan(154) as line
 
   -- ---------------------------------------------------------------------
   -- anon: nothing, anywhere. This is what ACC-021 fixed after the schema
@@ -144,6 +144,11 @@ select line from (
   union all select 1472, function_privs_are('public', 'boa_acc_gate_tshirt', array['uuid','uuid','timestamptz'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_gate_tshirt')
   union all select 1473, function_privs_are('public', 'boa_acc_gate_tshirt', array['uuid','uuid','timestamptz'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_gate_tshirt (gate operators; role checked inside)')
   union all select 1474, ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.boa_acc_tshirt_handover'::regclass), 'RLS enabled and forced on boa_acc_tshirt_handover')
+  -- ACC-199: the desk reads two columns (who, when) behind the operator policy; nothing else.
+  union all select 1475, column_privs_are('public', 'boa_acc_tshirt_handover', 'person_id', 'authenticated', array['SELECT'], 'authenticated: SELECT person_id on boa_acc_tshirt_handover (desk Master list)')
+  union all select 1476, column_privs_are('public', 'boa_acc_tshirt_handover', 'occurred_at', 'authenticated', array['SELECT'], 'authenticated: SELECT occurred_at on boa_acc_tshirt_handover (desk Master list)')
+  union all select 1477, column_privs_are('public', 'boa_acc_tshirt_handover', 'volunteer_name', 'authenticated', array[]::text[], 'authenticated: zero on boa_acc_tshirt_handover.volunteer_name')
+  union all select 1478, column_privs_are('public', 'boa_acc_tshirt_handover', 'person_id', 'anon', array[]::text[], 'anon: zero on boa_acc_tshirt_handover.person_id')
   -- A pass sent by hand (wa.me): same shape as boa_acc_pass_send_begin.
   union all select 1480, function_privs_are('public', 'boa_acc_pass_send_manual', array['uuid'], 'anon', array[]::text[], 'anon: zero EXECUTE on boa_acc_pass_send_manual')
   union all select 1481, function_privs_are('public', 'boa_acc_pass_send_manual', array['uuid'], 'authenticated', array['EXECUTE'], 'authenticated: EXECUTE on boa_acc_pass_send_manual')

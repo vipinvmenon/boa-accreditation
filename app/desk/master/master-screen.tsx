@@ -170,6 +170,10 @@ export function MasterScreen() {
   }, [rows, query, filters, sort])
   const activeKeys = MASTER_FILTER_KEYS.filter((key) => filters[key].length > 0)
   const hasFilter = query.trim() !== '' || hasMasterFilters(filters)
+  // ACC-199: shirts handed over, of everyone the desk marked for one (not
+  // narrowed by the search or filters, like `total`).
+  const shirtsDue = useMemo(() => rows.filter((row) => row.tshirtSize && row.status === 'approved'), [rows])
+  const shirtsGiven = shirtsDue.filter((row) => row.tshirtGivenAt).length
   const countLabel = masterCountLabel(list.length, total)
   const showTable = !loading && !error && list.length > 0
   const presetCounts = useMemo(
@@ -366,6 +370,7 @@ export function MasterScreen() {
             {loading
               ? <><strong><SkeletonText w={`${shape?.totalDigits ?? 2}ch`} /></strong> people</>
               : hasFilter ? <><strong>{list.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
+            {!loading && shirtsDue.length > 0 && <> · T-shirts <strong>{shirtsGiven}</strong> of {shirtsDue.length} given</>}
           </span>
         )}
       </div>
@@ -600,7 +605,7 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
       onClick={onOpen}
       onKeyDown={(event) => { if (event.key === 'Enter') onOpen() }}
     >
-      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}{row.tshirtSize ? ` · T-shirt ${row.tshirtSize}` : ''}</div></div>
+      <div role="cell"><div className="nm">{row.fullName}</div><div className="sub">{row.orgName} · {row.role}{row.tshirtSize ? ` · T-shirt ${row.tshirtSize}${row.tshirtGivenAt ? ' given' : ' not given'}` : ''}</div></div>
       <div role="cell" className="hide-s"><span className="tier">{tierLabel}</span></div>
       <div role="cell" className="days hide-s wide-only">{row.dayValidity ? MASTER_DAY_LABELS[row.dayValidity] : <span className="muted">–</span>}</div>
       <div role="cell" className="hide-s">{band}</div>
@@ -635,7 +640,7 @@ function PersonSheet({ person: p, open, theme, onClose, onCopy }: { person: Mast
       open={open}
       onClose={onClose}
       className="person-sheet"
-      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}{p.tshirtSize ? ` · T-shirt ${p.tshirtSize}` : ''}</span></> : 'Person details'}
+      title={p ? <>{p.fullName}<span className="master-who">{p.orgName} · {p.role}{p.tshirtSize ? ` · T-shirt ${p.tshirtSize}${p.tshirtGivenAt ? ' given' : ' not given'}` : ''}</span></> : 'Person details'}
       footer={p && (
         <>
           <a className="btn" href={`/desk/passes?person=${encodeURIComponent(p.id)}`}>Open pass<span className="ic" aria-hidden="true"><Icon name="ticket" /></span></a>
