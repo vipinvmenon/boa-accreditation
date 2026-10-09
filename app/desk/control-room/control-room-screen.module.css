@@ -203,6 +203,13 @@
 .week,
 .behind { grid-column: 1 / -1; }
 .feed { grid-column: span 4; }
+/* The feed matches the left column's height rather than setting it: size
+   containment drops its rows from the grid row's sizing, and the list
+   scrolls inside the card. Stacked (<=1100px) it grows as normal. */
+@media (min-width: 1101px) {
+  .feed { display: flex; flex-direction: column; contain: size; }
+  .feed > .feedList { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+}
 /* An empty feed still stretches to the left column's height (a short card
    left a hole beside the tiles, Vipin 1 Oct); its one line sits in the
    middle of the space the feed will fill on show days. */
@@ -372,6 +379,9 @@
 
 .behindLink {
   display: grid;
+  /* The name row soaks up the slack so a wrapped org name in one column
+     does not push its count and meter below its neighbours'. */
+  grid-template-rows: auto 1fr auto auto;
   gap: var(--s-2);
   padding: var(--s-2) var(--s-4) var(--s-2) 0;
   color: inherit;
