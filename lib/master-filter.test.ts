@@ -91,6 +91,17 @@ describe('matchesMasterFilters', () => {
     expect(matchesMasterFilters(row(), EMPTY_MASTER_FILTERS)).toBe(true)
   })
 
+  it('the T-shirt filter splits people marked for a shirt, and leaves out those who are not', () => {
+    const given = row({ tshirtSize: 'M', tshirtGivenAt: '2026-10-09T08:00:00Z' })
+    const due = row({ tshirtSize: 'L' })
+    const none = row()
+    expect(matchesMasterFilters(given, params('shirt=given'))).toBe(true)
+    expect(matchesMasterFilters(due, params('shirt=given'))).toBe(false)
+    expect(matchesMasterFilters(due, params('shirt=not_given'))).toBe(true)
+    expect(matchesMasterFilters(none, params('shirt=not_given'))).toBe(false)
+    expect(masterFilterOptions([given, due, none], 'shirt').map((o) => o.count)).toEqual([1, 1])
+  })
+
   it('the Add-filter counts come from the same predicates', () => {
     const rows = [row(), collected, row({ role: 'Driver' })]
     expect(masterFilterOptions(rows, 'status').find((o) => o.value === 'collected')?.count).toBe(1)

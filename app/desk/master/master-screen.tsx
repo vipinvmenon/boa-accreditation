@@ -170,10 +170,6 @@ export function MasterScreen() {
   }, [rows, query, filters, sort])
   const activeKeys = MASTER_FILTER_KEYS.filter((key) => filters[key].length > 0)
   const hasFilter = query.trim() !== '' || hasMasterFilters(filters)
-  // ACC-199: shirts handed over, of everyone the desk marked for one (not
-  // narrowed by the search or filters, like `total`).
-  const shirtsDue = useMemo(() => rows.filter((row) => row.tshirtSize && row.status === 'approved'), [rows])
-  const shirtsGiven = shirtsDue.filter((row) => row.tshirtGivenAt).length
   const countLabel = masterCountLabel(list.length, total)
   const showTable = !loading && !error && list.length > 0
   const presetCounts = useMemo(
@@ -370,7 +366,6 @@ export function MasterScreen() {
             {loading
               ? <><strong><SkeletonText w={`${shape?.totalDigits ?? 2}ch`} /></strong> people</>
               : hasFilter ? <><strong>{list.length}</strong> of {total}</> : <><strong>{total}</strong> people</>}
-            {!loading && shirtsDue.length > 0 && <> · T-shirts <strong>{shirtsGiven}</strong> of {shirtsDue.length} given</>}
           </span>
         )}
       </div>
@@ -390,7 +385,7 @@ export function MasterScreen() {
         <div className="table master" aria-busy="true" aria-label="Loading the master list">
           <div className="thead" aria-hidden="true">
             <span><button type="button" disabled tabIndex={-1}>Person <Icon name="caret-down" /></button></span>
-            <span>Tier</span><span className="wide-only">Days</span><span>Band</span><span className="wide-only">Vehicle</span><span>BMS</span>
+            <span>Tier</span><span className="wide-only">Days</span><span>Band</span><span className="wide-only">Vehicle</span><span>T-shirt given</span>
             <span className="cell-r"><button type="button" disabled tabIndex={-1}>Collected</button></span>
           </div>
           <div aria-hidden="true">
@@ -429,7 +424,7 @@ export function MasterScreen() {
             <span role="columnheader" className="wide-only">Days</span>
             <span role="columnheader">Band</span>
             <span role="columnheader" className="wide-only">Vehicle</span>
-            <span role="columnheader">BMS</span>
+            <span role="columnheader">T-shirt given</span>
             <span role="columnheader" className="cell-r" aria-sort={sort === 'collected' ? 'descending' : 'none'}>
               <button type="button" onClick={() => setSort(sort === 'collected' ? 'default' : 'collected')}>Collected</button>
             </span>
@@ -592,9 +587,9 @@ function MasterRowView({ row, theme, onOpen }: { row: MasterRow; theme: Theme; o
         : row.collectedAt
           ? <span className="muted">Issued</span>
           : <span className="muted">–</span>
-  const bms = row.status !== 'approved'
+  const bms = row.status !== 'approved' || !row.tshirtSize
     ? <span className="muted">–</span>
-    : <span className={`pill ${row.inBms ? 'pill-ok' : 'pill-wait'}`}>{row.inBms ? 'In BMS' : 'Not in BMS'}</span>
+    : <span className={`pill ${row.tshirtGivenAt ? 'pill-ok' : 'pill-wait'}`}>{row.tshirtGivenAt ? 'Given' : 'Not given'}</span>
   const tierLabel = type?.label ?? '–'
   return (
     <div

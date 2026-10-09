@@ -12,11 +12,12 @@ import type { MasterRow } from './schemas/master'
  * CSV, so the download is exactly what the screen shows.
  */
 
-export const MASTER_FILTER_KEYS = ['org', 'tier', 'status', 'bms', 'vehicle', 'day', 'role'] as const
+export const MASTER_FILTER_KEYS = ['org', 'tier', 'status', 'bms', 'shirt', 'vehicle', 'day', 'role'] as const
 export type MasterFilterKey = (typeof MASTER_FILTER_KEYS)[number]
 
 export const MASTER_STATUSES = ['collected', 'not_collected', 'voided', 'rejected'] as const
 export const MASTER_BMS = ['in', 'out'] as const
+export const MASTER_SHIRTS = ['given', 'not_given'] as const
 // ADR-031: no sticker states; a vehicle clears on its plate and the sticker
 // the officer sees, so "sticker issued / pending" is not a list to work.
 export const MASTER_VEHICLES = ['yes', 'no'] as const
@@ -27,6 +28,7 @@ export const masterFiltersSchema = z.object({
   tier: z.array(z.enum(ORG_TYPE_CODES)).max(8).default([]),
   status: z.array(z.enum(MASTER_STATUSES)).max(4).default([]),
   bms: z.array(z.enum(MASTER_BMS)).max(2).default([]),
+  shirt: z.array(z.enum(MASTER_SHIRTS)).max(2).default([]),
   vehicle: z.array(z.enum(MASTER_VEHICLES)).max(2).default([]),
   day: z.array(z.enum(MASTER_DAYS)).max(3).default([]),
   role: z.array(z.string().trim().min(1).max(60)).max(50).default([]),
@@ -39,6 +41,7 @@ const ALLOWED: Partial<Record<MasterFilterKey, readonly string[]>> = {
   tier: ORG_TYPE_CODES,
   status: MASTER_STATUSES,
   bms: MASTER_BMS,
+  shirt: MASTER_SHIRTS,
   vehicle: MASTER_VEHICLES,
   day: MASTER_DAYS,
 }
@@ -106,6 +109,8 @@ const TESTS: { [K in MasterFilterKey]: (row: MasterRow, values: MasterFilters[K]
   tier: (row, values) => row.typeCode !== null && values.includes(row.typeCode),
   status: (row, values) => (values as string[]).includes(masterStatusOf(row)),
   bms: (row, values) => row.status === 'approved' && values.includes(row.inBms ? 'in' : 'out'),
+  // Only approved people marked for a shirt are in either list.
+  shirt: (row, values) => row.status === 'approved' && row.tshirtSize !== null && values.includes(row.tshirtGivenAt ? 'given' : 'not_given'),
   vehicle: (row, values) => values.some((value) => vehicleStates(row).includes(value)),
   day: (row, values) => row.dayValidity !== null && values.includes(row.dayValidity),
   role: (row, values) => values.includes(row.role),
@@ -133,6 +138,7 @@ export const MASTER_FIELD_LABELS: Record<MasterFilterKey, string> = {
   tier: 'Tier',
   status: 'Status',
   bms: 'BMS',
+  shirt: 'T-shirt given',
   vehicle: 'Vehicle',
   day: 'Days valid',
   role: 'Role',
@@ -151,6 +157,7 @@ const STATUS_LABELS: Record<(typeof MASTER_STATUSES)[number], string> = {
   rejected: 'Rejected',
 }
 const BMS_LABELS: Record<(typeof MASTER_BMS)[number], string> = { in: 'Entered in BMS', out: 'Not in BMS' }
+const SHIRT_LABELS: Record<(typeof MASTER_SHIRTS)[number], string> = { given: 'T-shirt given', not_given: 'T-shirt not given' }
 const VEHICLE_LABELS: Record<(typeof MASTER_VEHICLES)[number], string> = {
   yes: 'Has a vehicle',
   no: 'No vehicle',
@@ -176,6 +183,8 @@ export function masterFilterOptions(rows: MasterRow[], key: MasterFilterKey): Ma
       return MASTER_STATUSES.map((value) => ({ value, label: STATUS_LABELS[value], count: count((row) => masterStatusOf(row) === value) }))
     case 'bms':
       return MASTER_BMS.map((value) => ({ value, label: BMS_LABELS[value], count: count((row) => matchesMasterFilter(row, 'bms', [value])) }))
+    case 'shirt':
+      return MASTER_SHIRTS.map((value) => ({ value, label: SHIRT_LABELS[value], count: count((row) => matchesMasterFilter(row, 'shirt', [value])) }))
     case 'vehicle':
       return MASTER_VEHICLES.map((value) => ({ value, label: VEHICLE_LABELS[value], count: count((row) => vehicleStates(row).includes(value)) }))
     case 'day':
