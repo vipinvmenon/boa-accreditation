@@ -204,11 +204,11 @@
 .behind { grid-column: 1 / -1; }
 .feed { grid-column: span 4; }
 /* The feed matches the left column's height rather than setting it: size
-   containment drops its rows from the grid row's sizing, and the list
-   scrolls inside the card. Stacked (<=1100px) it grows as normal. */
+   containment drops its rows from the grid row's sizing; the row count
+   is capped in the screen (FEED_ROWS). Stacked (<=1100px) it grows as normal. */
 @media (min-width: 1101px) {
   .feed { display: flex; flex-direction: column; contain: size; }
-  .feed > .feedList { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+  .feed > .feedList { flex: 1 1 0; min-height: 0; overflow: hidden; }
 }
 /* An empty feed still stretches to the left column's height (a short card
    left a hole beside the tiles, Vipin 1 Oct); its one line sits in the

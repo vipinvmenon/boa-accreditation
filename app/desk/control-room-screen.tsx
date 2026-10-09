@@ -114,6 +114,8 @@ function heroKickerText(now: Date): string {
 }
 
 /** Tiers that go to the band shelf's last row, in this order. */
+/* The feed card is held to the height of the tiles beside it; this many rows fit. */
+const FEED_ROWS = 7
 const SHELF_LAST: readonly string[] = ['artist', 'general_admission']
 
 function ratio(value: number, total: number): number {
@@ -382,7 +384,7 @@ function ControlRoomR10({ dash, now, theme }: { dash: DashboardResponse | null; 
                 ))}
               </div>
               <ul className={styles['feedList']}>
-                {dash.latestIssues.map((issue, i) => {
+                {dash.latestIssues.slice(0, FEED_ROWS).map((issue, i) => {
                   const issueTier = issue.typeCode ? tier(issue.typeCode) : null
                   const serial = issue.kind === 'wristband'
                     ? `band ${issue.bandSerial ?? 'not typed'}`
